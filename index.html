@@ -322,7 +322,7 @@
       color: var(--text-main);
       font-weight: 700;
       font-size: 1.05rem;
-      width: 1.6rem;
+      width: 4.8rem;
       text-align: center;
       outline: none;
       padding: 0.1rem 0;
@@ -1423,10 +1423,11 @@
           </div>
         </div>
         <div style="display: flex; gap: 15px; align-items: stretch">
-          <div class="status-badge goal-inputs">
+          <div class="status-badge goal-inputs" style="padding: 0.5rem 0.8rem;">
             <span class="label">Goal:</span>
-            <input type="text" id="goal-hours" value="08" onfocus="this.select()" maxlength="2" /><span class="unit">h</span>
-            <input type="text" id="goal-mins" value="00" onfocus="this.select()" maxlength="2" /><span class="unit">m</span>
+            <input type="text" id="goal-time" value="8h" onfocus="this.select()" />
+            <input type="hidden" id="goal-hours" value="8" />
+            <input type="hidden" id="goal-mins" value="0" />
           </div>
           <button class="theme-toggle-btn" onclick="toggleTheme()" title="Toggle Theme">
             <span id="theme-toggle-icon" style="display: flex; align-items: center"></span>
@@ -2120,6 +2121,16 @@
       if (el && el.style[prop] !== val) el.style[prop] = val;
     }
 
+    function syncGoalTimeInput() {
+      if (!DOM.goalHours || !DOM.goalMins) return;
+      const h = parseInt(DOM.goalHours.value, 10) || 0;
+      const m = parseInt(DOM.goalMins.value, 10) || 0;
+      const timeInput = document.getElementById("goal-time");
+      if (timeInput && timeInput !== document.activeElement) {
+        timeInput.value = `${h}h ${m}m`;
+      }
+    }
+
     /**
      * Renders matching toggles for current active design systems
      */
@@ -2404,6 +2415,7 @@
      * @param {Date} nowDate - True local date instance.
      */
     function renderTimersOnly(nowDate = new Date(getTrueTime())) {
+      syncGoalTimeInput();
       const nowMs = nowDate.getTime();
       const workSeconds = pendingSubmitData ? pendingSubmitData.workSec : getCurrentWorkSeconds(nowMs);
       const breakSeconds = pendingSubmitData ? pendingSubmitData.breakSec : getCurrentBreakSeconds(nowMs);
@@ -3677,58 +3689,50 @@
       }
     };
 
-    const handleGoalHoursBlur = () => {
-      let val = DOM.goalHours.value.trim().replace(/\D/g, "");
-      let num = parseInt(val, 10) || 0;
-      num = Math.max(0, num);
-      const formatted = String(num).padStart(2, "0");
-      DOM.goalHours.value = formatted;
-      localStorage.setItem(GOAL_H_KEY, num);
-      renderTimersOnly();
-      renderInsights();
-    };
-
-    const handleGoalMinsBlur = () => {
-      let val = DOM.goalMins.value.trim().replace(/\D/g, "");
-      let num = parseInt(val, 10) || 0;
-      num = Math.min(59, Math.max(0, num));
-      const formatted = String(num).padStart(2, "0");
-      DOM.goalMins.value = formatted;
-      localStorage.setItem(GOAL_M_KEY, num);
-      renderTimersOnly();
-      renderInsights();
-    };
-
-    const handleGoalHoursChange = () => {
-      const val = DOM.goalHours.value.trim();
-      if (val !== "") {
-        const num = Math.max(0, parseInt(val, 10) || 0);
-        localStorage.setItem(GOAL_H_KEY, num);
+    const handleGoalTimeBlur = () => {
+      const goalTimeEl = document.getElementById("goal-time");
+      if (!goalTimeEl) return;
+      const val = goalTimeEl.value.trim();
+      const digits = val.replace(/\D/g, "");
+      
+      let hh = 8;
+      let mm = 0;
+      
+      if (digits) {
+        if (digits.length === 1 || digits.length === 2) {
+          hh = parseInt(digits, 10) || 0;
+        } else if (digits.length === 3) {
+          hh = parseInt(digits.slice(0, 1), 10) || 0;
+          mm = parseInt(digits.slice(1), 10) || 0;
+        } else {
+          hh = parseInt(digits.slice(0, 2), 10) || 0;
+          mm = parseInt(digits.slice(2, 4), 10) || 0;
+        }
       }
+      
+      hh = Math.max(0, hh);
+      mm = Math.min(59, Math.max(0, mm));
+      
+      DOM.goalHours.value = hh;
+      DOM.goalMins.value = mm;
+      localStorage.setItem(GOAL_H_KEY, hh);
+      localStorage.setItem(GOAL_M_KEY, mm);
+      
+      goalTimeEl.value = `${hh}h ${mm}m`;
+      
       renderTimersOnly();
       renderInsights();
     };
 
-    const handleGoalMinsChange = () => {
-      const val = DOM.goalMins.value.trim();
-      if (val !== "") {
-        const num = Math.min(59, Math.max(0, parseInt(val, 10) || 0));
-        localStorage.setItem(GOAL_M_KEY, num);
-      }
-      renderTimersOnly();
-      renderInsights();
-    };
-
-    DOM.goalHours.addEventListener("keydown", blockInvalidKeys);
-    DOM.goalMins.addEventListener("keydown", blockInvalidKeys);
-
-    DOM.goalHours.addEventListener("blur", handleGoalHoursBlur);
-    DOM.goalMins.addEventListener("blur", handleGoalMinsBlur);
-
-    DOM.goalHours.addEventListener("change", handleGoalHoursChange);
-    DOM.goalMins.addEventListener("change", handleGoalMinsChange);
-    DOM.goalHours.addEventListener("input", handleGoalHoursChange);
-    DOM.goalMins.addEventListener("input", handleGoalMinsChange);
+    const goalTimeEl = document.getElementById("goal-time");
+    if (goalTimeEl) {
+      goalTimeEl.addEventListener("blur", handleGoalTimeBlur);
+      goalTimeEl.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          goalTimeEl.blur();
+        }
+      });
+    }
 
     // Auto-formatting helper for manual and edit time inputs on blur
     function handleTimeInputBlur(e) {
