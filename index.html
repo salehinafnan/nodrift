@@ -681,19 +681,20 @@
     .advanced-filters {
       display: none;
       flex-direction: column;
-      background: var(--element-bg);
-      padding: 12px;
-      border-radius: 16px;
+      background: var(--panel-bg);
+      padding: 16px;
+      border-radius: 1.25rem;
       border: 1px solid var(--border-main);
       margin-bottom: 15px;
-      gap: 10px;
+      gap: 12px;
       flex-shrink: 0;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
     }
 
     .header-icon-btn.filter-active {
-      background: rgba(96, 165, 250, 0.1);
       color: var(--accent-blue) !important;
-      border: 1px solid rgba(96, 165, 250, 0.3);
+      background: transparent !important;
+      border: none !important;
     }
 
     .advanced-filters.show {
@@ -704,28 +705,36 @@
       display: flex;
       align-items: center;
       gap: 10px;
-      flex-wrap: wrap;
+      flex-wrap: nowrap;
     }
 
-    .filter-select {
-      background: var(--panel-bg);
+    .filter-select,
+    .filter-input {
+      background: var(--element-bg);
       border: 1px solid var(--border-main);
       color: var(--text-main);
-      padding: 6px 10px;
+      padding: 8px 12px;
       border-radius: 12px;
       font-family: inherit;
       font-size: 0.75rem;
       font-weight: 600;
       outline: none;
       cursor: pointer;
+      transition: all 0.2s ease;
+      box-sizing: border-box;
     }
 
-    .filter-select:hover {
+    .filter-select:hover,
+    .filter-input:hover,
+    .filter-select:focus,
+    .filter-input:focus {
       border-color: var(--border-light);
+      background: var(--element-hover);
     }
 
     .filter-select option {
       background: var(--dropdown-bg);
+      color: var(--text-main);
     }
 
     .filter-checkbox-label {
@@ -736,6 +745,7 @@
       font-weight: 600;
       color: var(--text-muted);
       cursor: pointer;
+      user-select: none;
     }
 
     .filter-checkbox-label input {
@@ -749,18 +759,65 @@
       background: transparent;
       color: var(--text-muted);
       border: 1px solid var(--border-main);
-      padding: 5px 12px;
+      padding: 6px 14px;
       border-radius: 12px;
-      font-size: 0.7rem;
+      font-size: 0.75rem;
       margin-left: auto;
       cursor: pointer;
       font-weight: 600;
+      transition: all 0.2s ease;
     }
 
     .clear-filter-btn:hover {
       color: var(--text-main);
-      background: var(--element-hover);
-      border-color: var(--border-light);
+      background: rgba(248, 113, 113, 0.1);
+      border-color: rgba(248, 113, 113, 0.3);
+    }
+
+    /* Active Filter Chips Styling */
+    .filter-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(96, 165, 250, 0.08);
+      border: 1px solid rgba(96, 165, 250, 0.2);
+      color: var(--accent-blue);
+      padding: 5px 10px;
+      border-radius: 99px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      transition: all 0.2s ease;
+      animation: chipFadeIn 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .filter-chip:hover {
+      background: rgba(96, 165, 250, 0.15);
+      border-color: rgba(96, 165, 250, 0.35);
+      transform: translateY(-1px);
+    }
+
+    .filter-chip-remove {
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-muted);
+      border-radius: 50%;
+      width: 14px;
+      height: 14px;
+      font-size: 0.65rem;
+      font-weight: bold;
+      transition: all 0.15s ease;
+    }
+
+    .filter-chip-remove:hover {
+      color: #ffffff;
+      background: var(--accent-break);
+    }
+
+    @keyframes chipFadeIn {
+      from { opacity: 0; transform: scale(0.9); }
+      to { opacity: 1; transform: scale(1); }
     }
 
     /* =========================================================================
@@ -1589,7 +1646,7 @@
       <div id="tab-logbook" class="tab-content" style="display: block">
         <div class="logbook-controls-header">
           <!-- Nested inline layout container -->
-          <div style="display: flex; gap: 0px; align-items: center; margin-left: -8px;">
+          <div style="display: flex; gap: 8px; align-items: center;">
             <!-- Toggle Filters Drawer Button -->
             <button class="header-icon-btn" id="filter-toggle-btn" onclick="toggleFilters()" title="Advanced Filters"
               style="gap: 6px; font-family: inherit; font-size: 0.8rem; font-weight: 600; padding: 6px 10px; border-radius: 8px;">
@@ -1629,6 +1686,15 @@
 
         <!-- Filter Drawer Container -->
         <div id="advanced-filters" class="advanced-filters">
+          <!-- Text Search Row -->
+          <div class="filter-row">
+            <div style="position: relative; flex: 1; display: flex;">
+              <input type="text" id="filter-search" class="filter-input" placeholder="Search notes or tags..." style="flex: 1; text-align: left; padding: 8px 12px 8px 32px; font-size: 0.75rem; border-radius: 12px;" />
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); width: 14px; height: 14px; color: var(--text-muted);"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            </div>
+          </div>
+
+          <!-- Time & Status Select Dropdowns -->
           <div class="filter-row">
             <select id="filter-time" class="filter-select" style="flex: 1">
               <option value="ALL">All Time</option>
@@ -1642,37 +1708,50 @@
               <option value="UNDER">Under Goal</option>
             </select>
           </div>
-          <div class="filter-row">
-            <div style="display: flex; align-items: center; gap: 6px; flex: 1;">
-              <span style="font-size: 0.65rem; color: var(--text-muted); font-weight: 600;">From:</span>
-              <input type="date" id="filter-date-start" class="filter-input"
-                style="flex: 1; font-size: 0.7rem; padding: 4px;" />
+
+          <!-- Unified Date Range Picker -->
+          <div class="filter-row" style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-main); border-radius: 14px; padding: 8px 12px; gap: 8px;">
+            <div style="display: flex; align-items: center; gap: 8px; flex: 1;">
+              <span style="font-size: 0.65rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">From</span>
+              <input type="date" id="filter-date-start" class="filter-input" style="flex: 1; font-size: 0.7rem; padding: 4px 8px; border-radius: 8px; text-align: left; border: none; background: transparent;" />
             </div>
-            <div style="display: flex; align-items: center; gap: 6px; flex: 1;">
-              <span style="font-size: 0.65rem; color: var(--text-muted); font-weight: 600;">To:</span>
-              <input type="date" id="filter-date-end" class="filter-input"
-                style="flex: 1; font-size: 0.7rem; padding: 4px;" />
+            <span style="color: var(--text-muted); font-size: 0.8rem; font-weight: bold;">→</span>
+            <div style="display: flex; align-items: center; gap: 8px; flex: 1;">
+              <span style="font-size: 0.65rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">To</span>
+              <input type="date" id="filter-date-end" class="filter-input" style="flex: 1; font-size: 0.7rem; padding: 4px 8px; border-radius: 8px; text-align: left; border: none; background: transparent;" />
             </div>
           </div>
+
+          <!-- Hours Filter -->
           <div class="filter-row">
             <select id="filter-hours-op" class="filter-select" style="flex: 1.5">
               <option value="ALL">Hours worked...</option>
               <option value="MORE">More than</option>
               <option value="LESS">Less than</option>
             </select>
-            <div style="display: flex; align-items: center; gap: 6px; flex: 1;">
-              <input type="number" id="filter-hours-val" class="filter-input" placeholder="0" min="0"
-                style="width: 100%; font-size: 0.75rem; padding: 4px;" disabled />
-              <span style="font-size: 0.65rem; color: var(--text-muted); font-weight: 600;">hrs</span>
+            <div style="display: flex; align-items: center; gap: 8px; flex: 1; background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-main); border-radius: 12px; padding: 0 8px;">
+              <input type="number" id="filter-hours-val" class="filter-input" placeholder="0" min="0" style="width: 100%; font-size: 0.75rem; padding: 6px 0; border: none; background: transparent; text-align: center;" disabled />
+              <span style="font-size: 0.65rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">hrs</span>
             </div>
           </div>
-          <div class="filter-row" style="justify-content: space-between; margin-top: 4px">
+
+          <!-- Checkbox, Views & Reset Action Row -->
+          <div class="filter-row" style="justify-content: space-between; border-top: 1px solid var(--border-main); padding-top: 10px; margin-top: 4px; flex-wrap: wrap; gap: 10px;">
             <label class="filter-checkbox-label">
               <input type="checkbox" id="filter-notes" /> Has Notes
             </label>
-            <button class="clear-filter-btn" onclick="clearFilters()">Clear Filters</button>
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <select id="filter-view-presets" class="filter-select" style="font-size: 0.7rem; padding: 4px 8px; border-radius: 8px;">
+                <option value="">Saved Views...</option>
+              </select>
+              <button class="preset-pill" onclick="saveCurrentFilterView()" style="padding: 5px 10px; font-size: 0.7rem; border-radius: 8px; font-family: inherit; font-weight: 600; border: 1px solid var(--border-main); background: rgba(255,255,255,0.05); color: var(--text-main);" title="Save current filters as a custom view">Save View</button>
+            </div>
+            <button class="clear-filter-btn" onclick="clearFilters()" style="margin-left: 0;">Clear Filters</button>
           </div>
         </div>
+
+        <!-- Active Filter Chips Container -->
+        <div id="filter-chips-container" style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px;"></div>
 
         <!-- Virtual list target container -->
         <div id="log-container"></div>
@@ -1957,9 +2036,11 @@
       filterTime: document.getElementById("filter-time"),
       filterStatus: document.getElementById("filter-status"),
       filterNotes: document.getElementById("filter-notes"),
-      filterDate: document.getElementById("filter-date"),
       filterHoursOp: document.getElementById("filter-hours-op"),
       filterHoursVal: document.getElementById("filter-hours-val"),
+      filterSearch: document.getElementById("filter-search"),
+      filterChipsContainer: document.getElementById("filter-chips-container"),
+      filterViewPresets: document.getElementById("filter-view-presets"),
       weekMonthLabel: document.getElementById("week-month-label"),
       weeklyBreakdown: document.getElementById("weekly-breakdown"),
       weeklyBreak: document.getElementById("total-weekly-break"),
@@ -2919,6 +3000,9 @@
     /**
      * Changes active filtering badge highlight flags on advanced filters toggle.
      */
+    /**
+     * Changes active filtering badge highlight flags on advanced filters toggle.
+     */
     function updateFilterIconState() {
       const timeFilter = DOM.filterTime.value !== "ALL";
       const statusFilter = DOM.filterStatus.value !== "ALL";
@@ -2926,13 +3010,337 @@
       const dateStart = document.getElementById("filter-date-start").value !== "";
       const dateEnd = document.getElementById("filter-date-end").value !== "";
       const hoursFilter = DOM.filterHoursOp.value !== "ALL";
+      const searchFilter = DOM.filterSearch.value.trim() !== "";
 
-      const isActive = timeFilter || statusFilter || notesFilter || dateStart || dateEnd || hoursFilter;
+      // Calculate active count
+      let activeCount = 0;
+      if (timeFilter) activeCount++;
+      if (statusFilter) activeCount++;
+      if (notesFilter) activeCount++;
+      if (dateStart) activeCount++;
+      if (dateEnd) activeCount++;
+      if (hoursFilter) activeCount++;
+      if (searchFilter) activeCount++;
+
       const btn = document.getElementById("filter-toggle-btn");
-      if (isActive) {
+      
+      // Update toggle button text & style with active count
+      if (activeCount > 0) {
         btn.classList.add("filter-active");
+        btn.innerHTML = `
+          <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" width="18" height="18">
+            <line x1="4" y1="21" x2="4" y2="14"></line>
+            <line x1="4" y1="10" x2="4" y2="3"></line>
+            <line x1="12" y1="21" x2="12" y2="12"></line>
+            <line x1="12" y1="8" x2="12" y2="3"></line>
+            <line x1="20" y1="21" x2="20" y2="16"></line>
+            <line x1="20" y1="12" x2="20" y2="3"></line>
+            <line x1="1" y1="14" x2="7" y2="14"></line>
+            <line x1="9" y1="8" x2="15" y2="8"></line>
+            <line x1="17" y1="16" x2="23" y2="16"></line>
+          </svg>
+          Filters (${activeCount})
+        `;
       } else {
         btn.classList.remove("filter-active");
+        btn.innerHTML = `
+          <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" width="18" height="18">
+            <line x1="4" y1="21" x2="4" y2="14"></line>
+            <line x1="4" y1="10" x2="4" y2="3"></line>
+            <line x1="12" y1="21" x2="12" y2="12"></line>
+            <line x1="12" y1="8" x2="12" y2="3"></line>
+            <line x1="20" y1="21" x2="20" y2="16"></line>
+            <line x1="20" y1="12" x2="20" y2="3"></line>
+            <line x1="1" y1="14" x2="7" y2="14"></line>
+            <line x1="9" y1="8" x2="15" y2="8"></line>
+            <line x1="17" y1="16" x2="23" y2="16"></line>
+          </svg>
+          Filters
+        `;
+      }
+
+      DOM.filterHoursVal.disabled = DOM.filterHoursOp.value === "ALL";
+
+      renderFilterChips();
+    }
+
+    /**
+     * Renders active filters as dismissible rounded chips/badges.
+     */
+    function renderFilterChips() {
+      const container = DOM.filterChipsContainer;
+      if (!container) return;
+
+      container.innerHTML = "";
+      const chips = [];
+
+      // 1. Time filter
+      if (DOM.filterTime.value !== "ALL") {
+        const timeLabel = DOM.filterTime.options[DOM.filterTime.selectedIndex].text;
+        chips.push({ id: "time", label: `Time: ${timeLabel}` });
+      }
+
+      // 2. Status filter
+      if (DOM.filterStatus.value !== "ALL") {
+        const statusLabel = DOM.filterStatus.options[DOM.filterStatus.selectedIndex].text;
+        chips.push({ id: "status", label: `Status: ${statusLabel}` });
+      }
+
+      // 3. Search query text
+      const searchText = DOM.filterSearch.value.trim();
+      if (searchText) {
+        chips.push({ id: "search", label: `Search: "${searchText}"` });
+      }
+
+      // 4. Date start
+      const dateStart = document.getElementById("filter-date-start").value;
+      if (dateStart) {
+        chips.push({ id: "date-start", label: `From: ${dateStart}` });
+      }
+
+      // 5. Date end
+      const dateEnd = document.getElementById("filter-date-end").value;
+      if (dateEnd) {
+        chips.push({ id: "date-end", label: `To: ${dateEnd}` });
+      }
+
+      // 6. Hours Filter
+      if (DOM.filterHoursOp.value !== "ALL") {
+        const hoursOpLabel = DOM.filterHoursOp.options[DOM.filterHoursOp.selectedIndex].text;
+        const hoursVal = DOM.filterHoursVal.value || "0";
+        chips.push({ id: "hours", label: `Hours: ${hoursOpLabel} ${hoursVal}h` });
+      }
+
+      // 7. Notes checkbox
+      if (DOM.filterNotes.checked) {
+        chips.push({ id: "notes", label: "Has Notes" });
+      }
+
+      if (chips.length === 0) {
+        container.style.display = "none";
+        return;
+      }
+
+      container.style.display = "flex";
+      container.innerHTML = chips
+        .map(
+          (c) => `
+        <span class="filter-chip">
+          ${escapeHTML(c.label)}
+          <span class="filter-chip-remove" onclick="clearSingleFilter('${c.id}')">✕</span>
+        </span>
+      `
+        )
+        .join("");
+    }
+
+    /**
+     * Resets a single filter parameter by its ID.
+     */
+    window.clearSingleFilter = function(filterId) {
+      if (filterId === "time") {
+        DOM.filterTime.value = "ALL";
+      } else if (filterId === "status") {
+        DOM.filterStatus.value = "ALL";
+      } else if (filterId === "search") {
+        DOM.filterSearch.value = "";
+      } else if (filterId === "date-start") {
+        document.getElementById("filter-date-start").value = "";
+      } else if (filterId === "date-end") {
+        document.getElementById("filter-date-end").value = "";
+      } else if (filterId === "hours") {
+        DOM.filterHoursOp.value = "ALL";
+        DOM.filterHoursVal.value = "";
+        DOM.filterHoursVal.disabled = true;
+      } else if (filterId === "notes") {
+        DOM.filterNotes.checked = false;
+      }
+
+      saveActiveFilters();
+      renderLogbook();
+    };
+
+    /**
+     * Resets all filters back to their default values.
+     */
+    window.clearFilters = function() {
+      DOM.filterTime.value = "ALL";
+      DOM.filterStatus.value = "ALL";
+      DOM.filterSearch.value = "";
+      document.getElementById("filter-date-start").value = "";
+      document.getElementById("filter-date-end").value = "";
+      DOM.filterHoursOp.value = "ALL";
+      DOM.filterHoursVal.value = "";
+      DOM.filterHoursVal.disabled = true;
+      DOM.filterNotes.checked = false;
+      DOM.filterViewPresets.value = "";
+
+      saveActiveFilters();
+      renderLogbook();
+      showAppToast("All filters cleared.");
+    };
+
+    // ==========================================
+    // PERSISTENT SAVED FILTER VIEWS
+    // ==========================================
+    const VIEWS_KEY = "production_saved_filter_views";
+    const FILTERS_PREF_KEY = "production_active_filters_pref";
+
+    window.saveCurrentFilterView = function() {
+      const name = prompt("Enter a name for this custom filter view:");
+      if (!name) return;
+      const cleanName = name.trim();
+      if (!cleanName) return;
+
+      const newView = {
+        name: cleanName,
+        time: DOM.filterTime.value,
+        status: DOM.filterStatus.value,
+        search: DOM.filterSearch.value,
+        dateStart: document.getElementById("filter-date-start").value,
+        dateEnd: document.getElementById("filter-date-end").value,
+        hoursOp: DOM.filterHoursOp.value,
+        hoursVal: DOM.filterHoursVal.value,
+        hasNotes: DOM.filterNotes.checked
+      };
+
+      let views = [];
+      try {
+        const saved = localStorage.getItem(VIEWS_KEY);
+        if (saved) views = JSON.parse(saved);
+      } catch (err) {
+        console.error("Error reading saved views:", err);
+      }
+
+      const existingIdx = views.findIndex(v => v.name.toLowerCase() === cleanName.toLowerCase());
+      if (existingIdx !== -1) {
+        views[existingIdx] = newView;
+      } else {
+        views.push(newView);
+      }
+
+      localStorage.setItem(VIEWS_KEY, JSON.stringify(views));
+      loadSavedFilterViews();
+      
+      DOM.filterViewPresets.value = cleanName;
+      saveActiveFilters();
+      showAppToast(`Saved view "${cleanName}" successfully.`);
+    };
+
+    function loadSavedFilterViews() {
+      const select = DOM.filterViewPresets;
+      if (!select) return;
+
+      let views = [];
+      try {
+        const saved = localStorage.getItem(VIEWS_KEY);
+        if (saved) views = JSON.parse(saved);
+      } catch (err) {
+        console.error("Error reading saved views:", err);
+      }
+
+      let html = `<option value="">Saved Views...</option>`;
+      
+      // Seed initial custom views if empty
+      if (views.length === 0) {
+        views.push({
+          name: "Overtime Shifts",
+          time: "ALL",
+          status: "OVER",
+          search: "",
+          dateStart: "",
+          dateEnd: "",
+          hoursOp: "ALL",
+          hoursVal: "",
+          hasNotes: false
+        });
+        views.push({
+          name: "Logged Notes Only",
+          time: "ALL",
+          status: "ALL",
+          search: "",
+          dateStart: "",
+          dateEnd: "",
+          hoursOp: "ALL",
+          hoursVal: "",
+          hasNotes: true
+        });
+        localStorage.setItem(VIEWS_KEY, JSON.stringify(views));
+      }
+
+      views.forEach(v => {
+        html += `<option value="${escapeHTML(v.name)}">${escapeHTML(v.name)}</option>`;
+      });
+
+      select.innerHTML = html;
+    }
+
+    DOM.filterViewPresets.addEventListener("change", () => {
+      const selectedName = DOM.filterViewPresets.value;
+      if (!selectedName) return;
+
+      let views = [];
+      try {
+        const saved = localStorage.getItem(VIEWS_KEY);
+        if (saved) views = JSON.parse(saved);
+      } catch (err) {}
+
+      const view = views.find(v => v.name === selectedName);
+      if (view) {
+        DOM.filterTime.value = view.time || "ALL";
+        DOM.filterStatus.value = view.status || "ALL";
+        DOM.filterSearch.value = view.search || "";
+        document.getElementById("filter-date-start").value = view.dateStart || "";
+        document.getElementById("filter-date-end").value = view.dateEnd || "";
+        DOM.filterHoursOp.value = view.hoursOp || "ALL";
+        DOM.filterHoursVal.value = view.hoursVal || "";
+        DOM.filterNotes.checked = !!view.hasNotes;
+
+        DOM.filterHoursVal.disabled = view.hoursOp === "ALL";
+
+        saveActiveFilters();
+        renderLogbook();
+        showAppToast(`Applied view: ${selectedName}`);
+      }
+    });
+
+    function saveActiveFilters() {
+      const activeFilters = {
+        time: DOM.filterTime.value,
+        status: DOM.filterStatus.value,
+        search: DOM.filterSearch.value,
+        dateStart: document.getElementById("filter-date-start").value,
+        dateEnd: document.getElementById("filter-date-end").value,
+        hoursOp: DOM.filterHoursOp.value,
+        hoursVal: DOM.filterHoursVal.value,
+        hasNotes: DOM.filterNotes.checked,
+        selectedPreset: DOM.filterViewPresets.value
+      };
+      localStorage.setItem(FILTERS_PREF_KEY, JSON.stringify(activeFilters));
+    }
+
+    function loadActiveFilters() {
+      try {
+        const saved = localStorage.getItem(FILTERS_PREF_KEY);
+        if (saved) {
+          const pref = JSON.parse(saved);
+          DOM.filterTime.value = pref.time || "ALL";
+          DOM.filterStatus.value = pref.status || "ALL";
+          DOM.filterSearch.value = pref.search || "";
+          document.getElementById("filter-date-start").value = pref.dateStart || "";
+          document.getElementById("filter-date-end").value = pref.dateEnd || "";
+          DOM.filterHoursOp.value = pref.hoursOp || "ALL";
+          DOM.filterHoursVal.value = pref.hoursVal || "";
+          DOM.filterNotes.checked = !!pref.hasNotes;
+
+          DOM.filterHoursVal.disabled = pref.hoursOp === "ALL";
+          
+          if (pref.selectedPreset) {
+            DOM.filterViewPresets.value = pref.selectedPreset;
+          }
+        }
+      } catch (err) {
+        console.error("Error loading active filters pref:", err);
       }
     }
 
@@ -2949,6 +3357,7 @@
       const dateEndVal = document.getElementById("filter-date-end").value;
       const hoursOp = DOM.filterHoursOp.value;
       const hoursVal = parseFloat(DOM.filterHoursVal.value) || 0;
+      const searchText = DOM.filterSearch.value.trim().toLowerCase();
 
       if (
         timeFilter === "ALL" &&
@@ -2956,7 +3365,8 @@
         !hasNotes &&
         !dateStartVal &&
         !dateEndVal &&
-        hoursOp === "ALL"
+        hoursOp === "ALL" &&
+        !searchText
       ) {
         return logs;
       }
@@ -2996,7 +3406,14 @@
           if (hoursOp === "MORE") matchHours = workHours >= hoursVal;
           if (hoursOp === "LESS") matchHours = workHours <= hoursVal;
         }
-        return matchTime && matchStatus && matchNotes && matchDate && matchHours;
+
+        let matchSearch = true;
+        if (searchText) {
+          const searchTarget = (l.searchStr || `${l.displayDate} ${l.date} ${l.login} ${l.logout} ${l.notes || ""}`).toLowerCase();
+          matchSearch = searchTarget.includes(searchText);
+        }
+
+        return matchTime && matchStatus && matchNotes && matchDate && matchHours && matchSearch;
       });
     }
 
@@ -3054,8 +3471,24 @@
       const itemHeight = getDynamicItemHeight();
       const countDisplay = document.getElementById("log-count-display");
       if (countDisplay) {
-        countDisplay.textContent = `${virtualScrollLogs.length.toLocaleString()} log${virtualScrollLogs.length !== 1 ? "s" : ""
-          }`;
+        const totalLogsCount = getLogs().length;
+        const filteredCount = virtualScrollLogs.length;
+
+        // Determine if filters are active
+        const timeFilter = DOM.filterTime.value !== "ALL";
+        const statusFilter = DOM.filterStatus.value !== "ALL";
+        const notesFilter = DOM.filterNotes.checked;
+        const dateStart = document.getElementById("filter-date-start").value !== "";
+        const dateEnd = document.getElementById("filter-date-end").value !== "";
+        const hoursFilter = DOM.filterHoursOp.value !== "ALL";
+        const searchFilter = DOM.filterSearch.value.trim() !== "";
+        const isFiltering = timeFilter || statusFilter || notesFilter || dateStart || dateEnd || hoursFilter || searchFilter;
+
+        if (isFiltering) {
+          countDisplay.textContent = `Showing ${filteredCount.toLocaleString()} of ${totalLogsCount.toLocaleString()} shift${totalLogsCount !== 1 ? "s" : ""}`;
+        } else {
+          countDisplay.textContent = `${totalLogsCount.toLocaleString()} shift${totalLogsCount !== 1 ? "s" : ""}`;
+        }
       }
 
       if (virtualScrollLogs.length === 0) {
@@ -3289,12 +3722,19 @@
       renderLogbook();
     }, 300);
 
-    DOM.filterTime.addEventListener("change", renderLogbook);
-    DOM.filterStatus.addEventListener("change", renderLogbook);
-    DOM.filterNotes.addEventListener("change", renderLogbook);
-    document.getElementById("filter-date-start").addEventListener("change", renderLogbook);
-    document.getElementById("filter-date-end").addEventListener("change", renderLogbook);
-    DOM.filterHoursVal.addEventListener("input", debouncedRenderLogbook);
+    DOM.filterTime.addEventListener("change", () => { saveActiveFilters(); renderLogbook(); });
+    DOM.filterStatus.addEventListener("change", () => { saveActiveFilters(); renderLogbook(); });
+    DOM.filterNotes.addEventListener("change", () => { saveActiveFilters(); renderLogbook(); });
+    document.getElementById("filter-date-start").addEventListener("change", () => { saveActiveFilters(); renderLogbook(); });
+    document.getElementById("filter-date-end").addEventListener("change", () => { saveActiveFilters(); renderLogbook(); });
+    DOM.filterHoursVal.addEventListener("input", () => { saveActiveFilters(); debouncedRenderLogbook(); });
+    DOM.filterHoursOp.addEventListener("change", () => { saveActiveFilters(); renderLogbook(); });
+    
+    // Search bar listener (debounced 200ms)
+    DOM.filterSearch.addEventListener("input", debounce(() => {
+      saveActiveFilters();
+      renderLogbook();
+    }, 200));
 
     /**
      * populates log editor values.
@@ -4351,6 +4791,11 @@
       updatePrimaryFormatter();
       displayBaseDate = getPSTDateObj();
       loadState();
+      
+      // Load saved views and restore active filters from preferences
+      loadSavedFilterViews();
+      loadActiveFilters();
+
       renderStaticUI();
       renderTimersOnly();
       renderLogbook();
