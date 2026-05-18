@@ -96,7 +96,9 @@ The logbook handles extensive history smoothly by incorporating custom visual an
   * **Copy Log Table**: Copies the entire filtered logbook into a tabular text report.
   * **Manual Shift Entry**: Retroactively log a forgotten shift by clicking the **Manual Entry** button.
   * **Smart Auto-Formatting Normalizers (Blur Event)**:
-    * **Frictionless Time Inputs**: The Add Manual Shift and Edit Shift forms support speed-typing time inputs with auto-select on focus (`onfocus="this.select()"`). Typing shorthands automatically normalizes on focus exit: `8` or `08` $\rightarrow$ `08:00`; `930` $\rightarrow$ `09:30`; `1245` $\rightarrow$ `12:45` (with a `23:59` maximum ceiling limit).
+    * **Frictionless Time & Goal Inputs**: The Add Manual Shift, Edit Shift, and Header Daily Goal forms support speed-typing inputs with auto-select on focus (`onfocus="this.select()"`). Typing shorthands automatically normalizes on focus exit:
+      * *Shift Times*: `8` or `08` $\rightarrow$ `08:00`; `930` $\rightarrow$ `09:30`; `1245` $\rightarrow$ `12:45` (with a `23:59` maximum ceiling limit).
+      * *Daily Goal Fields*: `8` $\rightarrow$ `08` hours; `5` $\rightarrow$ `05` minutes.
     * **Intelligent Date Parser**: The date input automatically resolves partial, shorthand, and relative entries on focus exit:
       * *Relative Keywords*: `t` or `today` $\rightarrow$ today's date (`MM/DD/YY`); `y` or `yesterday` $\rightarrow$ yesterday's date; `-N` (e.g. `-3`) $\rightarrow$ date from $N$ days ago.
       * *Partial Delimiters*: `5/18` $\rightarrow$ pads to `05/18/currentYear`.

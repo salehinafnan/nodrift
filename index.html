@@ -316,25 +316,24 @@
       margin: 0;
     }
 
-    .goal-inputs input[type="number"] {
-      -moz-appearance: textfield;
-      appearance: textfield;
+    .goal-inputs input[type="text"] {
       background: transparent;
       border: 1px solid transparent;
       color: var(--text-main);
       font-weight: 700;
       font-size: 1.05rem;
-      width: 2rem;
+      width: 1.6rem;
       text-align: center;
       outline: none;
       padding: 0.1rem 0;
       border-radius: 0.4rem;
       transition: background 0.2s, border-color 0.2s;
       cursor: pointer;
+      font-family: inherit;
     }
 
-    .goal-inputs input[type="number"]:hover,
-    .goal-inputs input[type="number"]:focus {
+    .goal-inputs input[type="text"]:hover,
+    .goal-inputs input[type="text"]:focus {
       background: var(--element-hover);
       border-color: var(--border-main);
       cursor: text;
@@ -1426,8 +1425,8 @@
         <div style="display: flex; gap: 15px; align-items: stretch">
           <div class="status-badge goal-inputs">
             <span class="label">Goal:</span>
-            <input type="number" id="goal-hours" min="0" value="8" /><span class="unit">h</span>
-            <input type="number" id="goal-mins" min="0" max="59" value="0" /><span class="unit">m</span>
+            <input type="text" id="goal-hours" value="08" onfocus="this.select()" maxlength="2" /><span class="unit">h</span>
+            <input type="text" id="goal-mins" value="00" onfocus="this.select()" maxlength="2" /><span class="unit">m</span>
           </div>
           <button class="theme-toggle-btn" onclick="toggleTheme()" title="Toggle Theme">
             <span id="theme-toggle-icon" style="display: flex; align-items: center"></span>
@@ -3314,11 +3313,11 @@
           }
           if (data.goalH !== undefined) {
             localStorage.setItem(GOAL_H_KEY, data.goalH);
-            DOM.goalHours.value = data.goalH;
+            DOM.goalHours.value = String(parseInt(data.goalH, 10) || 0).padStart(2, "0");
           }
           if (data.goalM !== undefined) {
             localStorage.setItem(GOAL_M_KEY, data.goalM);
-            DOM.goalMins.value = data.goalM;
+            DOM.goalMins.value = String(parseInt(data.goalM, 10) || 0).padStart(2, "0");
           }
           if (data.logs) {
             data.logs.forEach((l) => {
@@ -3654,8 +3653,10 @@
     document.getElementById("import-file").addEventListener("change", importJSON);
 
     // Goal Hour updates
-    DOM.goalHours.value = localStorage.getItem(GOAL_H_KEY) || 8;
-    DOM.goalMins.value = localStorage.getItem(GOAL_M_KEY) || 0;
+    const initGoalH = localStorage.getItem(GOAL_H_KEY) || "8";
+    const initGoalM = localStorage.getItem(GOAL_M_KEY) || "0";
+    DOM.goalHours.value = String(parseInt(initGoalH, 10) || 0).padStart(2, "0");
+    DOM.goalMins.value = String(parseInt(initGoalM, 10) || 0).padStart(2, "0");
 
     const blockInvalidKeys = (e) => {
       // Allow navigation and edit keys
@@ -3677,30 +3678,23 @@
     };
 
     const handleGoalHoursBlur = () => {
-      let val = DOM.goalHours.value.trim();
-      if (val === "") {
-        val = "0";
-      } else {
-        val = Math.max(0, parseInt(val, 10) || 0).toString();
-      }
-      DOM.goalHours.value = "";
-      DOM.goalHours.value = val;
-      localStorage.setItem(GOAL_H_KEY, val);
+      let val = DOM.goalHours.value.trim().replace(/\D/g, "");
+      let num = parseInt(val, 10) || 0;
+      num = Math.max(0, num);
+      const formatted = String(num).padStart(2, "0");
+      DOM.goalHours.value = formatted;
+      localStorage.setItem(GOAL_H_KEY, num);
       renderTimersOnly();
       renderInsights();
     };
 
     const handleGoalMinsBlur = () => {
-      let val = DOM.goalMins.value.trim();
-      if (val === "") {
-        val = "0";
-      } else {
-        const num = parseInt(val, 10) || 0;
-        val = Math.min(59, Math.max(0, num)).toString();
-      }
-      DOM.goalMins.value = "";
-      DOM.goalMins.value = val;
-      localStorage.setItem(GOAL_M_KEY, val);
+      let val = DOM.goalMins.value.trim().replace(/\D/g, "");
+      let num = parseInt(val, 10) || 0;
+      num = Math.min(59, Math.max(0, num));
+      const formatted = String(num).padStart(2, "0");
+      DOM.goalMins.value = formatted;
+      localStorage.setItem(GOAL_M_KEY, num);
       renderTimersOnly();
       renderInsights();
     };
