@@ -1373,9 +1373,7 @@
         font-weight: 700;
         letter-spacing: -0.05em;
         margin-bottom: 0;
-        transition:
-          color 0.3s ease,
-          text-shadow 0.3s ease;
+        transition: color 0.3s ease;
         font-variant-numeric: tabular-nums;
       }
 
@@ -3608,24 +3606,7 @@
           }
         }
 
-        const isSpecial = currentTheme === "midnight";
-        const glowOpacity = "0.3";
-        const glowBlur = "25px";
-
-        setStyle(
-          DOM.workTimer,
-          "textShadow",
-          state.currentMode !== "work" || !isSpecial
-            ? "none"
-            : `0 0 ${glowBlur} color-mix(in srgb, var(--accent-work) ${parseFloat(glowOpacity) * 100}%, transparent)`,
-        );
-        setStyle(
-          DOM.breakTimer,
-          "textShadow",
-          state.currentMode !== "break" || !isSpecial
-            ? "none"
-            : `0 0 ${glowBlur} color-mix(in srgb, var(--accent-break) ${parseFloat(glowOpacity) * 100}%, transparent)`,
-        );
+        // No timer clock glow active
       }
 
       /**
