@@ -3684,7 +3684,8 @@
         const liveScaleValue = livePercent / 100;
 
         // 2. Cumulative daily progress (drives today's weekly calendar segment fill scale)
-        const cumulativePercent = goalSec > 0 ? Math.min((cumulativeWorkSeconds / goalSec) * 100, 100) : 100;
+        const cumulativePercent =
+          goalSec > 0 ? Math.min((cumulativeWorkSeconds / goalSec) * 100, 100) : 100;
         const cumulativeScaleValue = cumulativePercent / 100;
 
         // 3. Update main visual progress bar representation (live tracking segment only)
@@ -3768,7 +3769,11 @@
         }
 
         // 9. Dispatch congratulations alert modal when target production metrics are satisfied
-        if (cumulativeWorkSeconds >= goalSec && !state.goalNotified && state.currentMode === "work") {
+        if (
+          cumulativeWorkSeconds >= goalSec &&
+          !state.goalNotified &&
+          state.currentMode === "work"
+        ) {
           document.getElementById("goal-modal").style.display = "flex";
           playGoalSound();
           state.goalNotified = true;
