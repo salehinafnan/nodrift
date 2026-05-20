@@ -42,35 +42,53 @@
        2. PREMIUM NOIR THEME (MIDNIGHT)
        ========================================================================= */
       :root[data-theme="midnight"] {
-        --page-bg: #000000;
-        --panel-bg: rgba(15, 15, 15, 0.7);
-        --panel-shadow: 0 0 0 1px rgba(255, 255, 255, 0.05), 0 30px 60px rgba(0, 0, 0, 0.9);
-        --panel-blur: blur(28px) saturate(160%);
+        --page-bg:
+          radial-gradient(at 0% 0%, rgba(30, 27, 75, 0.1) 0%, transparent 50%),
+          radial-gradient(at 100% 0%, rgba(15, 23, 42, 0.15) 0%, transparent 50%),
+          radial-gradient(at 100% 100%, rgba(15, 23, 42, 0.15) 0%, transparent 50%),
+          radial-gradient(at 0% 100%, rgba(30, 27, 75, 0.1) 0%, transparent 50%), #030303;
+        --panel-bg: rgba(10, 10, 12, 0.45);
+        --panel-shadow:
+          0 0 0 1px rgba(255, 255, 255, 0.05), 0 30px 60px rgba(0, 0, 0, 0.9),
+          0 0 80px rgba(96, 165, 250, 0.03);
+        --panel-blur: blur(32px) saturate(160%);
 
-        --element-bg: rgba(255, 255, 255, 0.03);
-        --element-hover: rgba(255, 255, 255, 0.08);
-        --element-bg-light: #ffffff;
+        --element-bg: rgba(255, 255, 255, 0.02);
+        --element-hover: rgba(255, 255, 255, 0.06);
+        --element-bg-light: rgba(255, 255, 255, 0.04);
 
         --border-main: rgba(255, 255, 255, 0.08);
         --border-light: rgba(255, 255, 255, 0.15);
 
         --text-main: #ffffff;
-        --text-muted: #71717a;
+        --text-muted: #8e8e9f;
 
-        --btn-work-bg: rgba(74, 222, 128, 0.08);
-        --btn-work-border: rgba(74, 222, 128, 0.2);
+        --btn-work-bg: rgba(74, 222, 128, 0.06);
+        --btn-work-border: rgba(74, 222, 128, 0.25);
         --btn-work-text: #4ade80;
 
-        --btn-break-bg: rgba(248, 113, 113, 0.08);
-        --btn-break-border: rgba(248, 113, 113, 0.2);
+        --btn-break-bg: rgba(248, 113, 113, 0.06);
+        --btn-break-border: rgba(248, 113, 113, 0.25);
         --btn-break-text: #f87171;
 
-        --btn-log-bg: #ffffff;
-        --btn-log-text: #000000;
-        --btn-log-border: #ffffff;
+        --btn-log-bg: rgba(255, 255, 255, 0.08);
+        --btn-log-text: #ffffff;
+        --btn-log-border: rgba(255, 255, 255, 0.15);
 
-        --dropdown-bg: #0a0a0a;
-        --modal-bg: #0a0a0a;
+        --dropdown-bg: #070708;
+        --modal-bg: #070708;
+      }
+
+      :root[data-theme="midnight"][data-session-mode="work"] {
+        --panel-shadow:
+          0 0 0 1px rgba(255, 255, 255, 0.08), 0 30px 60px rgba(0, 0, 0, 0.95),
+          0 0 80px rgba(74, 222, 128, 0.06);
+      }
+
+      :root[data-theme="midnight"][data-session-mode="break"] {
+        --panel-shadow:
+          0 0 0 1px rgba(255, 255, 255, 0.08), 0 30px 60px rgba(0, 0, 0, 0.95),
+          0 0 80px rgba(248, 113, 113, 0.06);
       }
 
       /* =========================================================================
@@ -160,6 +178,76 @@
         justify-content: center;
         align-items: center;
         overflow: hidden;
+        position: relative;
+      }
+
+      /* Animated Ambient Auroras (Living Canvas) */
+      body::before,
+      body::after {
+        content: "";
+        position: absolute;
+        width: 35vmax;
+        height: 35vmax;
+        border-radius: 50%;
+        filter: blur(100px);
+        z-index: -1;
+        pointer-events: none;
+        will-change: transform;
+        opacity: 0;
+        transition: opacity 1s ease;
+      }
+
+      :root[data-theme="midnight"]::before,
+      :root[data-theme="midnight"]::after {
+        content: "";
+        position: absolute;
+        width: 35vmax;
+        height: 35vmax;
+        border-radius: 50%;
+        filter: blur(100px);
+        z-index: -1;
+        pointer-events: none;
+        will-change: transform;
+      }
+
+      :root[data-theme="midnight"]::before {
+        background: #4f46e5;
+        top: -10%;
+        left: -10%;
+        animation: aurora-drift-1 35s infinite alternate ease-in-out;
+        opacity: 0.08;
+      }
+
+      :root[data-theme="midnight"]::after {
+        background: #06b6d4;
+        bottom: -10%;
+        right: -10%;
+        animation: aurora-drift-2 40s infinite alternate ease-in-out;
+        opacity: 0.08;
+      }
+
+      @keyframes aurora-drift-1 {
+        0% {
+          transform: translate3d(0, 0, 0) scale(1);
+        }
+        50% {
+          transform: translate3d(8vw, 12vh, 0) scale(1.15);
+        }
+        100% {
+          transform: translate3d(-3vw, 4vh, 0) scale(0.9);
+        }
+      }
+
+      @keyframes aurora-drift-2 {
+        0% {
+          transform: translate3d(0, 0, 0) scale(0.9);
+        }
+        50% {
+          transform: translate3d(-12vw, -8vh, 0) scale(1.1);
+        }
+        100% {
+          transform: translate3d(4vw, -4vh, 0) scale(1.15);
+        }
       }
 
       /* Monospaced Data Styling for Alignment Precision */
@@ -184,6 +272,9 @@
         max-width: 90rem;
         height: 85vh;
         background: var(--panel-bg);
+        background-image:
+          linear-gradient(135deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0) 40%),
+          url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.012'/%3E%3C/svg%3E");
         backdrop-filter: var(--panel-blur);
         -webkit-backdrop-filter: var(--panel-blur);
         border: 1px solid var(--border-main);
@@ -193,6 +284,7 @@
         grid-template-columns: 1fr 1.3fr;
         gap: 2.2rem;
         padding: 2.2rem;
+        transition: box-shadow 0.6s cubic-bezier(0.16, 1, 0.3, 1);
       }
 
       .main-ui {
@@ -692,12 +784,32 @@
         font-family: inherit;
         font-weight: 600;
         font-size: 0.85rem;
+        position: relative;
+        overflow: hidden;
         transition:
           transform 0.2s cubic-bezier(0.4, 0, 0.2, 1),
           opacity 0.2s ease,
           filter 0.2s ease,
           background 0.3s ease,
           border-color 0.2s;
+      }
+
+      button::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: -150%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.12), transparent);
+        transform: skewX(-20deg);
+        transition: none;
+        pointer-events: none;
+      }
+
+      button:hover:not(:disabled)::before {
+        left: 150%;
+        transition: left 0.6s cubic-bezier(0.3, 1, 0.2, 1);
       }
 
       button:hover:not(:disabled) {
@@ -1571,6 +1683,8 @@
         margin-bottom: 0;
         transition: color 0.3s ease;
         font-variant-numeric: tabular-nums;
+        will-change: transform;
+        transform: translate3d(0, 0, 0);
       }
 
       .digit-slot {
@@ -3772,6 +3886,7 @@
         const isIdle = !!state.idleLock;
         const hasStarted = !!state.loginTimestamp;
         const mode = state.currentMode;
+        document.documentElement.setAttribute("data-session-mode", mode || "idle");
 
         if (!hasStarted) {
           DOM.startBtn.style.display = "flex";
