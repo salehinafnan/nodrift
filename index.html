@@ -36,6 +36,8 @@
           "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial,
           sans-serif;
         --font-mono: "JetBrains Mono", monospace;
+        --header-el-height: 45px;
+        --header-el-radius: 12px;
       }
 
       /* =========================================================================
@@ -313,9 +315,10 @@
         align-items: center;
         background: var(--element-bg);
         border: 1px solid var(--border-main);
-        padding: 0.5rem 1rem;
-        border-radius: 1rem;
-        box-shadow: 0 0.25rem 0.4rem rgba(0, 0, 0, 0.15);
+        height: var(--header-el-height);
+        padding: 0 0.9rem;
+        border-radius: var(--header-el-radius);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
       }
 
       .theme-toggle-btn {
@@ -324,11 +327,12 @@
         justify-content: center;
         background: var(--element-bg);
         border: 1px solid var(--border-main);
-        padding: 0.5rem 1rem;
-        border-radius: 1rem;
+        height: var(--header-el-height);
+        padding: 0 0.9rem;
+        border-radius: var(--header-el-radius);
         color: var(--text-muted);
         cursor: pointer;
-        box-shadow: 0 0.25rem 0.4rem rgba(0, 0, 0, 0.15);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
         transition:
           background 0.2s,
           border-color 0.2s,
@@ -343,12 +347,12 @@
         align-items: center;
         justify-content: center;
         transition:
-          transform 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+          transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
           opacity 0.2s ease;
       }
 
       .theme-switching {
-        transform: rotate(360deg) scale(0);
+        transform: rotate(-180deg) scale(0.85);
         opacity: 0;
       }
 
@@ -363,6 +367,8 @@
         font-weight: bold;
         color: var(--text-muted);
         white-space: nowrap;
+        display: flex;
+        align-items: center;
       }
 
       .status-time span {
@@ -370,6 +376,110 @@
         font-size: 1.05rem;
         margin: 0 0.4rem;
         font-variant-numeric: tabular-nums;
+        font-family: var(--font-mono);
+      }
+
+      .clock-ampm {
+        font-size: 0.72rem;
+        font-weight: 600;
+        color: var(--text-muted);
+        opacity: 0.85;
+        margin-left: 3px;
+        font-family: var(--font-sans);
+        font-variant-caps: all-small-caps;
+      }
+
+      .clock-divider {
+        width: 1px;
+        height: 12px;
+        background: var(--border-main);
+        margin: 0 14px;
+        align-self: center;
+        display: inline-block;
+      }
+
+      .last-seen-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 0.65rem;
+        width: 65px;
+        flex-shrink: 0;
+        text-align: center;
+        white-space: nowrap;
+        font-variant-numeric: tabular-nums;
+        margin-left: 10px;
+        justify-content: center;
+      }
+
+      .last-seen-status::before {
+        content: "";
+        display: inline-block;
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background: currentColor;
+        box-shadow: 0 0 6px currentColor;
+        flex-shrink: 0;
+        animation: status-pulse 2s infinite ease-in-out;
+      }
+
+      @keyframes status-pulse {
+        0%,
+        100% {
+          transform: scale(1);
+          opacity: 0.8;
+        }
+        50% {
+          transform: scale(1.3);
+          opacity: 1;
+          box-shadow: 0 0 10px currentColor;
+        }
+      }
+
+      .goal-status-dot {
+        width: 0;
+        height: 6px;
+        border-radius: 50%;
+        background: transparent;
+        margin-right: 0;
+        opacity: 0;
+        flex-shrink: 0;
+        transition:
+          width 0.3s,
+          margin-right 0.3s,
+          background 0.3s,
+          box-shadow 0.3s,
+          opacity 0.3s;
+      }
+
+      .goal-inputs.goal-accumulating .goal-status-dot {
+        width: 6px;
+        margin-right: 6px;
+        opacity: 1;
+        background: var(--accent-blue);
+        box-shadow: 0 0 6px var(--accent-blue);
+        animation: goal-pulse 2s infinite ease-in-out;
+      }
+
+      .goal-inputs.goal-completed .goal-status-dot {
+        width: 6px;
+        margin-right: 6px;
+        opacity: 1;
+        background: var(--accent-work);
+        box-shadow: 0 0 8px var(--accent-work);
+      }
+
+      @keyframes goal-pulse {
+        0%,
+        100% {
+          transform: scale(1);
+          opacity: 0.7;
+        }
+        50% {
+          transform: scale(1.35);
+          opacity: 1;
+        }
       }
 
       .tz-select {
@@ -378,7 +488,7 @@
         color: var(--accent-blue);
         font-size: 0.75rem;
         font-weight: 700;
-        padding: 0.25rem 0.5rem;
+        padding: 0.25rem 0.4rem;
         border-radius: 0.5rem;
         cursor: pointer;
         outline: none;
@@ -386,6 +496,9 @@
           background 0.2s,
           border-color 0.2s;
         margin-right: 0.25rem;
+        appearance: none;
+        -webkit-appearance: none;
+        text-align: center;
       }
 
       .tz-select:hover {
@@ -684,14 +797,13 @@
         gap: 6px;
         padding: 10px 8px 8px;
         background: var(--dropdown-bg);
-        backdrop-filter: blur(16px);
-        -webkit-backdrop-filter: blur(16px);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
         border: 1px solid var(--border-light);
         border-radius: 14px;
         box-shadow:
-          0 16px 40px rgba(0, 0, 0, 0.6),
-          0 0 0 1px rgba(255, 255, 255, 0.04);
-        /* exit: fast, no bounce */
+          0 12px 32px rgba(0, 0, 0, 0.4),
+          inset 0 1px 0 rgba(255, 255, 255, 0.05);
         transition:
           opacity 0.15s ease,
           transform 0.15s ease;
@@ -713,7 +825,6 @@
         opacity: 1;
         pointer-events: auto;
         transform: translateY(4px) scale(1);
-        /* entrance: bouncy spring */
         transition:
           opacity 0.25s ease,
           transform 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28);
@@ -2658,27 +2769,14 @@
               <option value="America/New_York">EST</option>
             </select>
             <span id="primary-clock">00:00 AM</span>
-            <span style="color: var(--border-light); font-size: 1.1rem; margin: 0 8px">|</span>
+            <i class="clock-divider"></i>
             BST: <span id="bst-clock">00:00 PM</span>
-            <div
-              id="last-seen"
-              style="
-                margin-left: 10px;
-                font-size: 0.65rem;
-                color: var(--text-muted);
-                width: 65px;
-                flex-shrink: 0;
-                text-align: center;
-                white-space: nowrap;
-                font-variant-numeric: tabular-nums;
-              "
-            >
-              Active
-            </div>
+            <div id="last-seen" class="last-seen-status">Active</div>
           </div>
           <div style="display: flex; gap: 15px; align-items: stretch">
             <div class="goal-container">
-              <div class="status-badge goal-inputs" style="padding: 0.5rem 0.8rem">
+              <div class="status-badge goal-inputs" style="padding: 0 0.8rem">
+                <span class="goal-status-dot"></span>
                 <span class="label">Goal:</span>
                 <input type="text" id="goal-time" value="8h 0m" onfocus="this.select()" />
                 <input type="hidden" id="goal-hours" value="8" />
@@ -3720,6 +3818,12 @@
         if (el && el.textContent !== text) el.textContent = text;
       }
 
+      function setClock(el, formattedTime) {
+        if (!el) return;
+        const html = formattedTime.replace(/\s*(AM|PM)/i, '<span class="clock-ampm">$1</span>');
+        if (el.innerHTML !== html) el.innerHTML = html;
+      }
+
       function setStyle(el, prop, val) {
         if (el && el.style[prop] !== val) el.style[prop] = val;
       }
@@ -4085,8 +4189,8 @@
         if (!document.hidden) {
           updateTickerDisplay(DOM.workTimer, formatDuration(workSeconds));
           updateTickerDisplay(DOM.breakTimer, formatDuration(breakSeconds));
-          setText(DOM.primaryClock, primaryFormatter.format(nowDate));
-          setText(DOM.bstClock, bstFormatter.format(nowDate));
+          setClock(DOM.primaryClock, primaryFormatter.format(nowDate));
+          setClock(DOM.bstClock, bstFormatter.format(nowDate));
         }
       }
 
@@ -4171,6 +4275,19 @@
             DOM.progressRail.classList.add("goal-completed");
           } else {
             DOM.progressRail.classList.remove("goal-completed");
+          }
+        }
+
+        const goalBadge = document.querySelector(".goal-inputs");
+        if (goalBadge) {
+          if (totalWorkToday >= anchorGoalSec && anchorGoalSec > 0) {
+            goalBadge.classList.add("goal-completed");
+            goalBadge.classList.remove("goal-accumulating");
+          } else if (state.currentMode === "WORK") {
+            goalBadge.classList.add("goal-accumulating");
+            goalBadge.classList.remove("goal-completed");
+          } else {
+            goalBadge.classList.remove("goal-completed", "goal-accumulating");
           }
         }
 
