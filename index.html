@@ -1339,10 +1339,13 @@
         width: 100%;
         max-width: 400px;
         background: var(--modal-bg);
-        border: 1px solid var(--border-light);
+        border: 1px solid var(--border-main);
         border-radius: 20px;
         padding: 30px;
-        box-shadow: 0 30px 60px rgba(0, 0, 0, 0.9);
+        box-shadow: 0 30px 60px rgba(0, 0, 0, 0.9), 0 0 40px rgba(255, 255, 255, 0.02);
+        backdrop-filter: var(--panel-blur);
+        -webkit-backdrop-filter: var(--panel-blur);
+        transition: all 0.3s ease;
       }
 
       .modal-container h3 {
@@ -1360,37 +1363,48 @@
         background: var(--modal-bg);
         border: 1px solid var(--border-main);
         color: var(--text-main);
-        padding: 8px 8px 8px 24px;
+        padding: 8px 8px 8px 20px;
         border-radius: 100px;
         font-weight: 600;
         font-size: 0.85rem;
-        transition: bottom 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        transition: bottom 0.4s cubic-bezier(0.16, 1, 0.3, 1);
         display: flex;
-        gap: 16px;
+        gap: 12px;
         align-items: center;
         z-index: 3000;
-        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5), 0 0 30px rgba(96, 165, 250, 0.15);
         backdrop-filter: var(--panel-blur);
         -webkit-backdrop-filter: var(--panel-blur);
+        border-color: rgba(96, 165, 250, 0.3);
+      }
+
+      #undo-toast .undo-icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--accent-blue);
+        filter: drop-shadow(0 0 4px rgba(96, 165, 250, 0.3));
       }
 
       #undo-btn {
-        background: var(--accent-blue);
-        border: none;
+        background: rgba(96, 165, 250, 0.1);
+        border: 1px solid rgba(96, 165, 250, 0.2);
         cursor: pointer;
-        color: #000000;
-        padding: 8px 20px;
+        color: var(--accent-blue);
+        padding: 4px 12px;
         border-radius: 100px;
+        font-family: "JetBrains Mono", monospace;
         font-weight: 700;
-        font-size: 0.75rem;
-        transition:
-          transform 0.2s,
-          filter 0.2s;
+        font-size: 0.7rem;
+        letter-spacing: 0.02em;
+        transition: all 0.2s ease;
       }
 
       #undo-btn:hover {
-        filter: brightness(1.1);
-        transform: scale(1.05);
+        background: var(--accent-blue);
+        color: #000000;
+        transform: translateY(-1px);
+        box-shadow: 0 0 8px rgba(96, 165, 250, 0.3);
       }
 
       #sync-toast {
@@ -1399,20 +1413,21 @@
         left: 50%;
         transform: translateX(-50%);
         background: var(--modal-bg);
-        border: 1px solid var(--accent-warning);
-        color: var(--accent-warning);
-        padding: 10px 20px;
+        border: 1px solid var(--border-main);
+        color: var(--text-main);
+        padding: 8px 20px;
         border-radius: 100px;
         font-weight: 600;
         font-size: 0.85rem;
-        transition: top 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        transition: top 0.5s cubic-bezier(0.16, 1, 0.3, 1);
         display: flex;
         gap: 12px;
         align-items: center;
         z-index: 3000;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5), 0 0 30px rgba(245, 158, 11, 0.15);
         backdrop-filter: var(--panel-blur);
         -webkit-backdrop-filter: var(--panel-blur);
+        border-color: rgba(245, 158, 11, 0.3);
       }
 
       #goal-toast {
@@ -1456,6 +1471,37 @@
         border-radius: 100px;
         border: 1px solid rgba(74, 222, 128, 0.2);
         letter-spacing: 0.02em;
+      }
+
+      #app-toast {
+        position: fixed;
+        bottom: -100px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: var(--modal-bg);
+        border: 1px solid var(--border-main);
+        color: var(--text-main);
+        padding: 8px 20px 8px 16px;
+        border-radius: 100px;
+        font-weight: 600;
+        font-size: 0.85rem;
+        transition: bottom 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        z-index: 4000;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5), 0 0 30px rgba(96, 165, 250, 0.1);
+        backdrop-filter: var(--panel-blur);
+        -webkit-backdrop-filter: var(--panel-blur);
+        border-color: rgba(96, 165, 250, 0.2);
+      }
+
+      #app-toast .app-toast-icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--accent-blue);
+        filter: drop-shadow(0 0 4px rgba(96, 165, 250, 0.3));
       }
 
       /* Screen Adaptive Media Queries */
@@ -1554,7 +1600,13 @@
        ========================================================================= -->
     <!-- Undo EOD Submission Toast Notification -->
     <div id="undo-toast">
-      Shift Logged Successfully
+      <div class="undo-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+          <polyline points="22 4 12 14.01 9 11.01"></polyline>
+        </svg>
+      </div>
+      <span>Shift Logged Successfully</span>
       <button id="undo-btn">Undo</button>
     </div>
 
@@ -1750,28 +1802,15 @@
     </div>
 
     <!-- Native App Toast Notification Overlay -->
-    <div
-      id="app-toast"
-      style="
-        position: fixed;
-        bottom: -100px;
-        left: 50%;
-        transform: translateX(-50%);
-        background: var(--modal-bg);
-        border: 1px solid var(--border-main);
-        color: var(--text-main);
-        padding: 10px 24px;
-        border-radius: 100px;
-        font-weight: 600;
-        font-size: 0.85rem;
-        transition: bottom 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        z-index: 4000;
-        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
-        backdrop-filter: var(--panel-blur);
-        -webkit-backdrop-filter: var(--panel-blur);
-      "
-    >
-      Message
+    <div id="app-toast">
+      <div class="app-toast-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="16" x2="12" y2="12"></line>
+          <line x1="12" y1="8" x2="12.01" y2="8"></line>
+        </svg>
+      </div>
+      <span id="app-toast-content">Message</span>
     </div>
 
     <!-- Confirmation dialog for destructive actions -->
@@ -6075,7 +6114,12 @@
       // Native custom application toast notifier
       function showAppToast(msg) {
         const toast = document.getElementById("app-toast");
-        toast.textContent = msg;
+        const contentEl = document.getElementById("app-toast-content");
+        if (contentEl) {
+          contentEl.textContent = msg;
+        } else {
+          toast.textContent = msg;
+        }
         toast.style.bottom = "30px";
         clearTimeout(appToastTimeout);
         appToastTimeout = setTimeout(() => {
