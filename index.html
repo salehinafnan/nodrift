@@ -303,6 +303,36 @@
       .goal-inputs {
         gap: 0.1rem;
         white-space: nowrap;
+        transition:
+          border-color 0.2s,
+          box-shadow 0.2s,
+          background 0.2s;
+      }
+
+      .goal-container:hover .goal-inputs {
+        border-color: rgba(96, 165, 250, 0.35);
+        box-shadow:
+          0 0 0 3px rgba(96, 165, 250, 0.08),
+          0 0.25rem 0.4rem rgba(0, 0, 0, 0.15);
+        background: var(--element-hover);
+      }
+
+      .goal-container:hover .goal-inputs .label {
+        color: var(--text-main);
+      }
+
+      .goal-chevron {
+        color: var(--text-muted);
+        margin-left: 0.25rem;
+        flex-shrink: 0;
+        transition:
+          transform 0.25s ease,
+          color 0.2s;
+      }
+
+      .goal-container:hover .goal-chevron {
+        transform: rotate(180deg);
+        color: var(--accent-blue);
       }
 
       .goal-inputs span.label {
@@ -348,7 +378,7 @@
       .goal-inputs input[type="text"]:hover,
       .goal-inputs input[type="text"]:focus {
         background: var(--element-hover);
-        border-color: var(--border-main);
+        border-color: var(--border-light);
         cursor: text;
       }
 
@@ -391,19 +421,31 @@
       }
 
       /* =========================================================================
-       7. TIMERS & PROGRESS GAUGES
+       7. TIMERS & PROGRESS GAUGES (SYMMETRICAL LAYOUT)
        ========================================================================= */
       .timers-wrapper {
         flex: 1;
         display: flex;
         flex-direction: column;
         justify-content: center;
+        gap: 1.5rem;
+        align-items: stretch;
         margin: 1rem 0;
+        min-height: 0;
       }
 
-      #break-timer {
-        font-size: clamp(2.2rem, 6vw, 4rem);
-        margin-bottom: 1rem;
+      /* Group wrappers for the top and bottom sections */
+      .timer-group {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+      }
+
+      /* The Unified Centerpiece */
+      .progress-centerpiece {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
       }
 
       .progress-rail {
@@ -411,10 +453,37 @@
         background: rgba(255, 255, 255, 0.08);
         border-radius: 2px;
         overflow: visible;
-        /* Increased top margin to 50px to create independence from Production section */
-        margin: 50px 0 10px 0;
+        margin: 0;
+        /* Reset margins as the parent centerpiece handles it */
         border: none;
         position: relative;
+      }
+
+      #break-timer {
+        /* Adjusted size for better visual weight balance with the work timer */
+        font-size: clamp(2.2rem, 6vw, 4rem);
+        margin: 0;
+      }
+
+      .label-xs {
+        font-size: 0.75rem;
+        letter-spacing: 0.5px;
+        font-weight: 600;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        margin: 0;
+        /* Controlled by flex gaps */
+      }
+
+      /* Spacing between label and timer inside groups */
+      .timer-group .label-xs {
+        margin-bottom: 4px;
+      }
+
+      /* Inverted spacing for the break group */
+      .timer-group.inverted .label-xs {
+        margin-bottom: 0;
+        margin-top: 4px;
       }
 
       #progress-fill {
@@ -511,29 +580,47 @@
       /* Enhanced Preset Container */
       .goal-presets {
         position: absolute;
-        top: 110%;
-        /* Slightly further down */
+        top: 100%;
         right: 0;
         opacity: 0;
         pointer-events: none;
         display: flex;
         gap: 6px;
-        padding: 8px;
-        background: rgba(15, 15, 15, 0.8);
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
-        border: 1px solid var(--border-main);
-        border-radius: 12px;
-        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
-        transition: all 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28);
-        transform: translateY(-10px) scale(0.95);
+        padding: 10px 8px 8px;
+        background: var(--dropdown-bg);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border: 1px solid var(--border-light);
+        border-radius: 14px;
+        box-shadow:
+          0 16px 40px rgba(0, 0, 0, 0.6),
+          0 0 0 1px rgba(255, 255, 255, 0.04);
+        /* exit: fast, no bounce */
+        transition:
+          opacity 0.15s ease,
+          transform 0.15s ease;
+        transform: translateY(-8px) scale(0.95);
         z-index: 100;
+      }
+
+      /* dead-zone bridge so mouse can reach pills without dismissing */
+      .goal-presets::before {
+        content: "";
+        position: absolute;
+        top: -10px;
+        left: 0;
+        right: 0;
+        height: 10px;
       }
 
       .goal-container:hover .goal-presets {
         opacity: 1;
         pointer-events: auto;
-        transform: translateY(0) scale(1);
+        transform: translateY(4px) scale(1);
+        /* entrance: bouncy spring */
+        transition:
+          opacity 0.25s ease,
+          transform 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28);
       }
 
       /* Preset Pills with Active State */
@@ -554,6 +641,8 @@
         background: var(--element-hover);
         color: var(--text-main);
         border-color: var(--accent-blue);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
       }
 
       /* The "Active" state for the currently selected goal */
@@ -561,7 +650,9 @@
         background: rgba(96, 165, 250, 0.15);
         border-color: var(--accent-blue);
         color: var(--accent-blue);
-        box-shadow: 0 0 10px rgba(96, 165, 250, 0.2);
+        box-shadow:
+          0 0 14px rgba(96, 165, 250, 0.35),
+          inset 0 0 8px rgba(96, 165, 250, 0.08);
       }
 
       /* =========================================================================
@@ -2255,6 +2346,22 @@
                 <input type="text" id="goal-time" value="8h 0m" onfocus="this.select()" />
                 <input type="hidden" id="goal-hours" value="8" />
                 <input type="hidden" id="goal-mins" value="0" />
+                <svg
+                  class="goal-chevron"
+                  width="10"
+                  height="10"
+                  viewBox="0 0 10 10"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M2 3.5L5 6.5L8 3.5"
+                    stroke="currentColor"
+                    stroke-width="1.5"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                </svg>
               </div>
               <div class="goal-presets">
                 <!-- Adjustment Button -->
@@ -2279,14 +2386,6 @@
                 >
                   6h
                 </button>
-                <button
-                  class="preset-pill dynamic-preset"
-                  id="preset-2"
-                  ondblclick="changePreset(2)"
-                  title="Double-click to edit preset"
-                >
-                  8h
-                </button>
 
                 <!-- Adjustment Button -->
                 <button class="preset-pill" onclick="adjustGoal(15)" title="Add 15 mins">
@@ -2302,35 +2401,36 @@
 
         <!-- Live Counters Visualization Section -->
         <div class="timers-wrapper">
-          <div class="label-xs">Production Time</div>
-          <div id="work-timer" class="timer-val"></div>
-
-          <!-- Linear Progress Rail -->
-          <div class="progress-rail">
-            <div id="progress-fill"></div>
-          </div>
-          <div
-            style="
-              display: flex;
-              justify-content: space-between;
-              font-size: 0.75rem;
-              color: var(--text-muted);
-              margin-top: 0px;
-              /* Matches the 50px top margin to make the progress unit centered */
-              margin-bottom: 50px;
-              font-family: &quot;JetBrains Mono&quot;, monospace;
-            "
-          >
-            <span id="progress-text" style="font-family: &quot;JetBrains Mono&quot;, monospace"
-              >0.0% (Remaining: 08:00:00)</span
-            >
-            <span id="eta-text" style="font-family: &quot;JetBrains Mono&quot;, monospace"
-              >Est. EOD: --:-- BST</span
-            >
+          <!-- TOP: Production Section -->
+          <div class="timer-group">
+            <div class="label-xs">Production Time</div>
+            <div id="work-timer" class="timer-val"></div>
           </div>
 
-          <div class="label-xs">Break Time</div>
-          <div id="break-timer" class="timer-val"></div>
+          <!-- CENTER: Symmetrical Progress Centerpiece -->
+          <div class="progress-centerpiece">
+            <div class="progress-rail">
+              <div id="progress-fill"></div>
+            </div>
+            <div
+              style="
+                display: flex;
+                justify-content: space-between;
+                font-size: 0.75rem;
+                color: var(--text-muted);
+                font-family: &quot;JetBrains Mono&quot;, monospace;
+              "
+            >
+              <span id="progress-text">0.0% (Remaining: 08:00:00)</span>
+              <span id="eta-text">Est. EOD: --:-- BST</span>
+            </div>
+          </div>
+
+          <!-- BOTTOM: Break Section (Inverted Label for Symmetry) -->
+          <div class="timer-group inverted">
+            <div id="break-timer" class="timer-val"></div>
+            <div class="label-xs">Break Time</div>
+          </div>
         </div>
 
         <!-- Dynamic Active Session Controllers -->
@@ -2345,16 +2445,16 @@
       <div class="sidebar">
         <!-- Navigation tabs switcher -->
         <div class="tab-nav">
-          <button class="tab-btn active" data-target="logbook" onclick="switchTab('logbook')">
-            Logbook
-          </button>
-          <button class="tab-btn" data-target="insights" onclick="switchTab('insights')">
+          <button class="tab-btn active" data-target="insights" onclick="switchTab('insights')">
             Insights
+          </button>
+          <button class="tab-btn" data-target="logbook" onclick="switchTab('logbook')">
+            Logbook
           </button>
         </div>
 
         <!-- Tab Content Area: Historical Shift Logbook -->
-        <div id="tab-logbook" class="tab-content" style="display: block">
+        <div id="tab-logbook" class="tab-content" style="display: none">
           <div class="logbook-controls-header">
             <!-- Nested inline layout container -->
             <div style="display: flex; gap: 8px; align-items: center">
@@ -2624,7 +2724,7 @@
         <div
           id="tab-insights"
           class="tab-content"
-          style="display: none; flex-direction: column; overflow: hidden"
+          style="display: flex; flex-direction: column; overflow: hidden"
         >
           <!-- Weekly Segmented Progress Visualizations -->
           <div
@@ -3390,23 +3490,41 @@
       }
 
       /**
-       * Groups shifts by ISO UTC Monday start bounds. Avoids expensive date re-evaluation
-       * using basic math equations to map indexes in O(1).
+       * Groups shifts by ISO UTC Monday start bounds and identifies the "Anchor Goal"
+       * (the goal of the first shift submitted) for every date in history.
        */
+      let dailyAnchorMap = new Map(); // DateString -> GoalSeconds
+
       function rebuildWeeklyCache() {
         const logs = getLogs();
         weeklyCache.clear();
-        for (let i = 0; i < logs.length; i++) {
+        dailyAnchorMap.clear();
+
+        // Loop backwards (oldest to newest) to ensure the FIRST goal seen for any date
+        // is the oldest one. This becomes the "Anchor Goal".
+        for (let i = logs.length - 1; i >= 0; i--) {
           const log = logs[i];
-          // Guard: skip logs with missing or zero epochMs (bad imports)
           if (!log.epochMs || log.epochMs <= 0) continue;
+
+          // Grouping for Weekly Tabs
           const daysSinceEpoch = Math.floor(log.epochMs / 86400000);
           const dayOfWeek = (daysSinceEpoch + 4) % 7;
           const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
-          const key = (daysSinceEpoch + diffToMonday) * 86400000; // Monday midnight UTC ms
+          const key = (daysSinceEpoch + diffToMonday) * 86400000;
 
           if (!weeklyCache.has(key)) weeklyCache.set(key, []);
           weeklyCache.get(key).push(log);
+
+          // Identify Daily Anchor (First-in-wins)
+          const dateKey = log.date;
+          if (!dailyAnchorMap.has(dateKey) && log.dayGoal) {
+            dailyAnchorMap.set(dateKey, log.dayGoal);
+          }
+        }
+
+        // Re-sort the logs within each week to newest-first for the Insights list
+        for (let [key, weekLogs] of weeklyCache) {
+          weekLogs.sort((a, b) => b.epochMs - a.epochMs);
         }
       }
 
@@ -3632,22 +3750,24 @@
           ? pendingSubmitData.breakSec
           : getCurrentBreakSeconds(nowMs);
 
-        // Browser active tab status title update
+        // Browser active tab status update (Text status only, no timer)
         let activeTitle = "Paused";
         let iconColor = "#f59e0b"; // Yellow
-        let isPulsing = false;
 
         if (state.currentMode === "work") {
-          activeTitle = formatDuration(workSeconds);
+          activeTitle = "Work";
           iconColor = "#4ade80"; // Green
-          isPulsing = true;
         } else if (state.currentMode === "break") {
-          activeTitle = formatDuration(breakSeconds);
+          activeTitle = "Break";
           iconColor = "#f87171"; // Red
-          isPulsing = true;
         }
 
-        if (document.title !== activeTitle) document.title = activeTitle;
+        // Only update the DOM title if the string has actually changed
+        if (document.title !== activeTitle) {
+          document.title = activeTitle;
+        }
+
+        // Update the Tab Icon color to match the status
         const faviconKey = iconColor;
         if (faviconKey !== lastFaviconKey) {
           lastFaviconKey = faviconKey;
@@ -3657,7 +3777,7 @@
         // Refresh daily targets
         updateProgress(workSeconds);
 
-        // Render visible controls
+        // Render visible controls (UI Tickers) only if tab is visible
         if (!document.hidden) {
           updateTickerDisplay(DOM.workTimer, formatDuration(workSeconds));
           updateTickerDisplay(DOM.breakTimer, formatDuration(breakSeconds));
@@ -3667,32 +3787,37 @@
       }
 
       /**
-       * Adjusts active progress indicators, text ratios, and daily goal targets.
-       * Decouples the main visual progress bar (live tracking duration only) from the
-       * weekly weekday segments (cumulative tracking duration including logged shifts).
-       *
-       * @param {number} workSeconds - Live worked seconds for the active tracking session.
+       * Dual-Perspective Progress Engine
+       * Perspective A (Session): Active timer vs. Current UI Goal
+       * Perspective B (Daily): Total Day (History + Active) vs. Anchor Goal
        */
       function updateProgress(workSeconds) {
-        const goalSec = getGoalSeconds();
+        const todayStr = getPSTDate();
+
+        // 1. Perspective Setup
+        const uiGoalSec = getGoalSeconds();
+        const anchorGoalSec = dailyAnchorMap.get(todayStr) || uiGoalSec;
         const loggedSec = getTodayLoggedWorkSeconds();
-        const cumulativeWorkSeconds = loggedSec + workSeconds;
-        const diff = cumulativeWorkSeconds - goalSec;
+        const totalWorkToday = loggedSec + workSeconds;
 
-        // 1. Live session progress (drives the main horizontal progress fill scale)
-        const livePercent = goalSec > 0 ? Math.min((workSeconds / goalSec) * 100, 100) : 100;
-        const liveScaleValue = livePercent / 100;
+        // 2. Perspective A: Session Progress (Dashboard Horizontal Bar)
+        const sessionPercent = uiGoalSec > 0 ? Math.min((workSeconds / uiGoalSec) * 100, 100) : 100;
+        const sessionDiff = workSeconds - uiGoalSec;
+        const sessionScale = sessionPercent / 100;
 
-        // 2. Cumulative daily progress (drives today's weekly calendar segment fill scale)
-        const cumulativePercent =
-          goalSec > 0 ? Math.min((cumulativeWorkSeconds / goalSec) * 100, 100) : 100;
-        const cumulativeScaleValue = cumulativePercent / 100;
+        // 3. Perspective B: Daily Progress (Insights Segments & ETA)
+        const dailyPercent =
+          anchorGoalSec > 0 ? Math.min((totalWorkToday / anchorGoalSec) * 100, 100) : 100;
+        const dailyDiff = totalWorkToday - anchorGoalSec;
+        const dailyScale = dailyPercent / 100;
 
-        // 3. Update main visual progress bar representation (live tracking segment only)
-        setStyle(DOM.progressFill, "transform", `scaleX(${liveScaleValue})`);
+        // --- RENDERING PERSPECTIVE A (SESSION) ---
 
-        if (livePercent >= 100) {
-          // Green glow styling for live goal completion
+        // Update the main Dashboard progress bar
+        setStyle(DOM.progressFill, "transform", `scaleX(${sessionScale})`);
+
+        // Color the bar based on session completion
+        if (sessionPercent >= 100) {
           setStyle(DOM.progressFill, "background", "var(--accent-work)");
           setStyle(
             DOM.progressFill,
@@ -3700,7 +3825,6 @@
             "0 0 12px var(--accent-work), 0 0 35px color-mix(in srgb, var(--accent-work) 50%, transparent)",
           );
         } else {
-          // Standard blue tracking styling
           setStyle(DOM.progressFill, "background", "var(--accent-blue)");
           setStyle(
             DOM.progressFill,
@@ -3709,7 +3833,16 @@
           );
         }
 
-        // 4. Update the current weekday segmented progress indicator (fully cumulative)
+        // Update session text (X% and Remaining/Overtime)
+        const progStr =
+          sessionDiff >= 0
+            ? `${sessionPercent.toFixed(1)}% (Overtime: ${formatFriendlyDuration(sessionDiff, "0m")})`
+            : `${sessionPercent.toFixed(1)}% (Left: ${formatFriendlyDuration(Math.abs(sessionDiff), "0m")})`;
+        setText(DOM.progressText, progStr);
+
+        // --- RENDERING PERSPECTIVE B (DAILY) ---
+
+        // Update the specific Weekly Progress Segment for today
         const nowPST = getPSTDateObj();
         const dayIdx = nowPST.getDay(); // 0 (Sun) to 6 (Sat)
         const isoDay = dayIdx === 0 ? 7 : dayIdx; // 1 (Mon) to 7 (Sun)
@@ -3717,8 +3850,9 @@
         if (isoDay <= 5) {
           const todaySegmentFill = DOM.progressSegmentFills[isoDay - 1];
           if (todaySegmentFill) {
-            todaySegmentFill.style.transform = `scaleX(${cumulativeScaleValue})`;
-            if (cumulativePercent >= 100) {
+            todaySegmentFill.style.transform = `scaleX(${dailyScale})`;
+            // Color segment green only if full daily goal is hit
+            if (dailyPercent >= 100) {
               todaySegmentFill.style.background = "var(--accent-work)";
             } else {
               todaySegmentFill.style.background =
@@ -3727,50 +3861,33 @@
           }
         }
 
-        // 5. Manage ambient pulsing glow of the progress rail (triggered on overall daily target completion)
+        // Handle ambient pulsing glow on the rail (Daily Target trigger)
         if (DOM.progressRail) {
-          if (cumulativeWorkSeconds >= goalSec && goalSec > 0) {
+          if (totalWorkToday >= anchorGoalSec && anchorGoalSec > 0) {
             DOM.progressRail.classList.add("goal-completed");
           } else {
             DOM.progressRail.classList.remove("goal-completed");
           }
         }
 
-        // 6. Handle theme-specific glass-morphism overrides for Midnight noir
-        const isSpecial = currentTheme === "midnight";
-        if (isSpecial) {
-          const shadowVal =
-            livePercent >= 100
-              ? "0 0 10px color-mix(in srgb, var(--accent-work) 40%, transparent)"
-              : "0 0 10px color-mix(in srgb, var(--accent-blue) 40%, transparent)";
-          setStyle(DOM.progressFill, "boxShadow", shadowVal);
-        } else {
-          setStyle(DOM.progressFill, "boxShadow", "none");
-        }
-
-        // 7. Update visual text ratios presenting live percent alongside daily remaining time
-        const progressStr =
-          diff >= 0
-            ? `${livePercent.toFixed(1)}% (Overtime: ${formatFriendlyDuration(diff, "0m")})`
-            : `${livePercent.toFixed(1)}% (Left: ${formatFriendlyDuration(Math.abs(diff), "0m")})`;
-        setText(DOM.progressText, progressStr);
-
-        // 8. Recalculate local estimated end of day finish timestamp
+        // Recalculate ETA based on total daily work vs anchor goal
         const etaEl = document.getElementById("eta-text");
-        if (diff >= 0) {
-          setText(etaEl, "Goal Reached");
+        if (dailyDiff >= 0) {
+          setText(etaEl, "Daily Goal Reached");
           etaEl.style.color = "var(--accent-work)";
         } else {
-          const remainingMs = Math.abs(diff) * 1000;
+          const remainingMs = Math.abs(dailyDiff) * 1000;
           const finishTime = new Date(getTrueTime() + remainingMs);
           const bstEtaStr = bstEtaFormatter.format(finishTime);
           setText(etaEl, `Est. EOD: ${bstEtaStr} BST`);
           etaEl.style.color = "var(--text-muted)";
         }
 
-        // 9. Dispatch congratulations alert modal when target production metrics are satisfied
+        // --- NOTIFICATIONS ---
+
+        // Dispatch alert only when the DAILY total reaches the Anchor Goal
         if (
-          cumulativeWorkSeconds >= goalSec &&
+          totalWorkToday >= anchorGoalSec &&
           !state.goalNotified &&
           state.currentMode === "work"
         ) {
@@ -4773,8 +4890,13 @@
           if (isToday) {
             dayWorkSeconds += getCurrentWorkSeconds(getTrueTime());
           }
-          const savedGoal = logsByDate[dateStr] ? logsByDate[dateStr].goal : 0;
-          const denominator = isToday ? dailyGoalSec : savedGoal || 28800;
+
+          // --- DAILY ANCHOR LOGIC ---
+          // 1. Check if we have a locked anchor goal from the first shift of that day
+          // 2. If it's today and no shift is logged yet, use the current UI Goal
+          // 3. Fallback to 8h (28800) if something is wrong
+          const anchorGoal = dailyAnchorMap.get(dateStr);
+          const denominator = anchorGoal || (isToday ? dailyGoalSec : 28800);
 
           const segment = DOM.progressSegments[i];
           if (segment) {
@@ -4790,6 +4912,13 @@
             if (weekStartMs === currentWeekStartMs && i + 1 === (nowDay === 0 ? 7 : nowDay)) {
               segment.classList.add("is-today");
             }
+          }
+        }
+
+        if (weekStartMs === currentWeekStartMs) {
+          const nowDayIdx = nowDay === 0 ? 7 : nowDay;
+          if (nowDayIdx >= 1 && nowDayIdx <= 5) {
+            totalW_MonFri += getCurrentWorkSeconds(getTrueTime());
           }
         }
 
@@ -4816,9 +4945,13 @@
               if (todayIdx <= 5) {
                 const daysRemaining = 5 - todayIdx + 1;
                 const paceSec = remainingSec / daysRemaining;
-                const paceH = Math.floor(paceSec / 3600);
-                const paceM = Math.round((paceSec % 3600) / 60);
-                weekMsg.textContent = `Pace Needed: ${paceH}h ${paceM}m / day (to hit 40h)`;
+                let paceH = Math.floor(paceSec / 3600);
+                let paceM = Math.round((paceSec % 3600) / 60);
+                if (paceM === 60) {
+                  paceH++;
+                  paceM = 0;
+                }
+                weekMsg.textContent = `Pace Needed: ${paceH}h ${paceM}m / day`;
               } else {
                 weekMsg.textContent = "Weekend: Goal not reached.";
               }
@@ -5437,47 +5570,76 @@
       DOM.goalMins.value = String(parseInt(initGoalM, 10) || 0).padStart(2, "0");
 
       const blockInvalidKeys = (e) => {
-        // Allow navigation and edit keys
-        if (
-          e.key === "Backspace" ||
-          e.key === "Delete" ||
-          e.key === "ArrowLeft" ||
-          e.key === "ArrowRight" ||
-          e.key === "Tab" ||
-          e.key === "Escape" ||
-          e.key === "Enter"
-        ) {
-          return;
-        }
-        // Block non-numeric characters (only allow 0-9 digits)
-        if (e.key < "0" || e.key > "9") {
-          e.preventDefault();
-        }
+        const allowed = [
+          "Backspace",
+          "Delete",
+          "ArrowLeft",
+          "ArrowRight",
+          "Tab",
+          "Escape",
+          "Enter",
+        ];
+        if (allowed.includes(e.key)) return;
+        // Allow digits, h, m, colon, dot, space
+        if (!/[\dhmHM:. ]/.test(e.key)) e.preventDefault();
       };
+
+      function parseGoalTimeStr(val) {
+        let hh = 0;
+        let mm = 0;
+        const cleanVal = val.trim();
+        if (!cleanVal) return { hh: 8, mm: 0 };
+
+        const naturalMatch = cleanVal.match(/^(?:(\d+(?:\.\d+)?)\s*h)?\s*(?:(\d+)\s*m)?$/i);
+        const colonMatch = cleanVal.match(/^(\d+):(\d{1,2})$/);
+        const decimalMatch = cleanVal.match(/^(\d+(?:\.\d+))$/);
+
+        if (colonMatch) {
+          hh = parseInt(colonMatch[1], 10);
+          mm = parseInt(colonMatch[2], 10);
+        } else if (decimalMatch) {
+          const total = parseFloat(decimalMatch[1]);
+          hh = Math.floor(total);
+          mm = Math.round((total - hh) * 60);
+        } else if (naturalMatch && (naturalMatch[1] || naturalMatch[2])) {
+          const rawH = parseFloat(naturalMatch[1] || 0);
+          hh = Math.floor(rawH);
+          mm = Math.round((rawH - hh) * 60) + parseInt(naturalMatch[2] || 0, 10);
+        } else {
+          // Fallback: strip non-digits and parse based on length (like 159 -> 1h 59m)
+          const digits = cleanVal.replace(/\D/g, "");
+          if (digits) {
+            if (digits.length <= 2) {
+              hh = parseInt(digits, 10) || 0;
+              mm = 0;
+            } else if (digits.length === 3) {
+              hh = parseInt(digits.slice(0, 1), 10) || 0;
+              mm = parseInt(digits.slice(1), 10) || 0;
+            } else {
+              hh = parseInt(digits.slice(0, 2), 10) || 0;
+              mm = parseInt(digits.slice(2, 4), 10) || 0;
+            }
+          } else {
+            hh = 8;
+          }
+        }
+
+        hh += Math.floor(mm / 60);
+        mm = mm % 60;
+
+        hh = Math.min(24, Math.max(0, hh));
+        mm = Math.min(59, Math.max(0, mm));
+
+        return { hh, mm };
+      }
 
       const handleGoalTimeBlur = () => {
         const goalTimeEl = document.getElementById("goal-time");
         if (!goalTimeEl) return;
-        const val = goalTimeEl.value.trim();
-        const digits = val.replace(/\D/g, "");
 
-        let hh = 8;
-        let mm = 0;
-
-        if (digits) {
-          if (digits.length === 1 || digits.length === 2) {
-            hh = parseInt(digits, 10) || 0;
-          } else if (digits.length === 3) {
-            hh = parseInt(digits.slice(0, 1), 10) || 0;
-            mm = parseInt(digits.slice(1), 10) || 0;
-          } else {
-            hh = parseInt(digits.slice(0, 2), 10) || 0;
-            mm = parseInt(digits.slice(2, 4), 10) || 0;
-          }
-        }
-
-        hh = Math.max(0, hh);
-        mm = Math.min(59, Math.max(0, mm));
+        const parsed = parseGoalTimeStr(goalTimeEl.value);
+        const hh = parsed.hh;
+        const mm = parsed.mm;
 
         DOM.goalHours.value = hh;
         DOM.goalMins.value = mm;
@@ -5488,13 +5650,16 @@
 
         renderTimersOnly();
         renderInsights();
-        updatePresetHighlights(); // Updates the blue buttons when you finish typing
+        updatePresetHighlights();
       };
 
       // --- NEW COMBINED PRESET & ADJUSTMENT SYSTEM ---
       function getSavedPresets() {
         const saved = localStorage.getItem(PRESET_VALUES_KEY);
-        return saved ? JSON.parse(saved) : [4, 6, 8];
+        const defaults = [4, 6];
+        if (!saved) return defaults;
+        const parsed = JSON.parse(saved);
+        return parsed.slice(0, 2);
       }
 
       function renderPresets() {
@@ -5610,41 +5775,14 @@
           if (!tooltip) return;
 
           const parseGoalPreview = (val) => {
-            const digits = val.replace(/\D/g, "");
-            let hh = 8,
-              mm = 0;
-            if (digits) {
-              if (digits.length === 1 || digits.length === 2) {
-                hh = parseInt(digits, 10) || 0;
-              } else if (digits.length === 3) {
-                hh = parseInt(digits.slice(0, 1), 10) || 0;
-                mm = parseInt(digits.slice(1), 10) || 0;
-              } else {
-                hh = parseInt(digits.slice(0, 2), 10) || 0;
-                mm = parseInt(digits.slice(2, 4), 10) || 0;
-              }
-            }
-            hh = Math.max(0, hh);
-            mm = Math.min(59, Math.max(0, mm));
-            return `${hh}h ${mm}m`;
+            const parsed = parseGoalTimeStr(val);
+            return `${parsed.hh}h ${parsed.mm}m`;
           };
 
           const parseTimePreview = (val) => {
-            const digits = val.replace(/\D/g, "");
-            if (!digits) return "";
-            let formatted = "";
-            if (digits.length === 1) formatted = `0${digits}:00`;
-            else if (digits.length === 2) formatted = `${digits}:00`;
-            else if (digits.length === 3) formatted = `0${digits.slice(0, 1)}:${digits.slice(1)}`;
-            else if (digits.length === 4) formatted = `${digits.slice(0, 2)}:${digits.slice(2)}`;
-            else formatted = `${digits.slice(0, 2)}:${digits.slice(2, 4)}`;
-
-            const parts = formatted.split(":");
-            let hh = parseInt(parts[0], 10) || 0;
-            let mm = parseInt(parts[1], 10) || 0;
-            if (hh > 23) hh = 23;
-            if (mm > 59) mm = 59;
-            return `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
+            if (!val.trim()) return "";
+            const parsed = parseGoalTimeStr(val);
+            return `${String(parsed.hh).padStart(2, "0")}:${String(parsed.mm).padStart(2, "0")}`;
           };
 
           const parseDatePreview = (val) => {
@@ -5767,30 +5905,8 @@
         const val = input.value.trim();
         if (!val) return;
 
-        const digits = val.replace(/\D/g, "");
-        if (!digits) return;
-
-        let formatted = "";
-        if (digits.length === 1) {
-          formatted = `0${digits}:00`;
-        } else if (digits.length === 2) {
-          formatted = `${digits}:00`;
-        } else if (digits.length === 3) {
-          formatted = `0${digits.slice(0, 1)}:${digits.slice(1)}`;
-        } else if (digits.length === 4) {
-          formatted = `${digits.slice(0, 2)}:${digits.slice(2)}`;
-        } else {
-          formatted = `${digits.slice(0, 2)}:${digits.slice(2, 4)}`;
-        }
-
-        const parts = formatted.split(":");
-        let hh = parseInt(parts[0], 10);
-        let mm = parseInt(parts[1], 10);
-
-        if (hh > 23) hh = 23;
-        if (mm > 59) mm = 59;
-
-        input.value = `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
+        const parsed = parseGoalTimeStr(val);
+        input.value = `${String(parsed.hh).padStart(2, "0")}:${String(parsed.mm).padStart(2, "0")}`;
       }
 
       ["manual-work", "manual-break", "edit-work", "edit-break"].forEach((id) => {
