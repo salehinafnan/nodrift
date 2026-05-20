@@ -525,24 +525,25 @@
       .tz-presets {
         position: absolute;
         top: 100%;
-        left: 0;
+        left: 50%;
         opacity: 0;
         pointer-events: none;
         display: flex;
-        gap: 6px;
-        padding: 10px 8px 8px;
+        flex-direction: column;
+        gap: 4px;
+        padding: 8px;
         background: var(--dropdown-bg);
         backdrop-filter: blur(20px);
         -webkit-backdrop-filter: blur(20px);
         border: 1px solid var(--border-light);
-        border-radius: 14px;
+        border-radius: 12px;
         box-shadow:
           0 12px 32px rgba(0, 0, 0, 0.4),
           inset 0 1px 0 rgba(255, 255, 255, 0.05);
         transition:
           opacity 0.15s ease,
           transform 0.15s ease;
-        transform: translateY(-8px) scale(0.95);
+        transform: translateX(-50%) translateY(-8px) scale(0.95);
         z-index: 100;
       }
 
@@ -558,23 +559,10 @@
       .tz-container:hover .tz-presets {
         opacity: 1;
         pointer-events: auto;
-        transform: translateY(4px) scale(1);
+        transform: translateX(-50%) translateY(4px) scale(1);
         transition:
           opacity 0.25s ease,
           transform 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28);
-      }
-
-      .tz-chevron {
-        color: var(--text-muted);
-        transition:
-          transform 0.25s ease,
-          color 0.2s;
-        margin-left: 1px;
-      }
-
-      .tz-container:hover .tz-chevron {
-        transform: rotate(180deg);
-        color: var(--accent-blue);
       }
 
       .goal-inputs {
@@ -2839,22 +2827,6 @@
             <div class="tz-container">
               <div class="tz-trigger">
                 <span id="tz-current-label">PST</span>
-                <svg
-                  class="tz-chevron"
-                  width="10"
-                  height="10"
-                  viewBox="0 0 10 10"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path
-                    d="M2 3.5L5 6.5L8 3.5"
-                    stroke="currentColor"
-                    stroke-width="1.5"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                  />
-                </svg>
               </div>
               <div class="tz-presets">
                 <button class="preset-pill" onclick="selectPresetTZ('America/Los_Angeles')">
@@ -3938,7 +3910,17 @@
         const label = document.getElementById("tz-current-label");
         if (select && label) {
           const activeOpt = select.options[select.selectedIndex];
-          if (activeOpt) label.textContent = activeOpt.textContent;
+          if (activeOpt) {
+            label.textContent = activeOpt.textContent;
+            const pills = document.querySelectorAll(".tz-presets .preset-pill");
+            pills.forEach((pill) => {
+              if (pill.textContent.trim() === activeOpt.textContent.trim()) {
+                pill.classList.add("active");
+              } else {
+                pill.classList.remove("active");
+              }
+            });
+          }
         }
       }
 
