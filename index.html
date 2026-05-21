@@ -68,11 +68,10 @@
        2. PREMIUM NOIR THEME (MIDNIGHT) - OPTIMIZED FOR CPU-ONLY SOFTWARE RENDER
        ========================================================================= */
       :root[data-theme="midnight"] {
-        --page-bg:
-          radial-gradient(circle at 10% 10%, rgba(79, 70, 229, 0.08) 0%, transparent 45%),
-          radial-gradient(circle at 90% 90%, rgba(6, 182, 212, 0.08) 0%, transparent 45%), #030303;
-        --panel-bg: rgba(10, 10, 12, 0.82);
-        --panel-shadow: 0 0 0 1px rgba(255, 255, 255, 0.05), 0 15px 40px rgba(0, 0, 0, 0.8);
+        /* Simplified page background and panel shadow to save CPU rasterization resources */
+        --page-bg: #050505;
+        --panel-bg: #0c0c0e;
+        --panel-shadow: 0 0 0 1px rgba(255, 255, 255, 0.06), 0 4px 12px rgba(0, 0, 0, 0.6);
         --panel-blur: none;
 
         --element-bg: rgba(255, 255, 255, 0.03);
@@ -102,24 +101,21 @@
       }
 
       :root[data-theme="midnight"][data-session-mode="work"] {
-        --panel-shadow: 0 0 0 1px rgba(74, 222, 128, 0.25), 0 15px 40px rgba(0, 0, 0, 0.85);
+        --panel-shadow: 0 0 0 1px rgba(74, 222, 128, 0.45), 0 4px 12px rgba(0, 0, 0, 0.6);
       }
 
       :root[data-theme="midnight"][data-session-mode="break"] {
-        --panel-shadow: 0 0 0 1px rgba(248, 113, 113, 0.25), 0 15px 40px rgba(0, 0, 0, 0.85);
+        --panel-shadow: 0 0 0 1px rgba(248, 113, 113, 0.45), 0 4px 12px rgba(0, 0, 0, 0.6);
       }
 
       /* =========================================================================
        3. MODERN GLASSMORPHISM THEME (GLASS) - OPTIMIZED FOR CPU-ONLY SOFTWARE RENDER
        ========================================================================= */
       :root[data-theme="glass"] {
-        --page-bg:
-          radial-gradient(circle at 10% 20%, rgba(30, 41, 59, 0.8) 0%, transparent 40%),
-          radial-gradient(circle at 90% 10%, rgba(51, 65, 85, 0.8) 0%, transparent 40%),
-          radial-gradient(circle at 80% 80%, rgba(15, 23, 42, 0.85) 0%, transparent 50%),
-          radial-gradient(circle at 10% 90%, rgba(30, 27, 75, 0.8) 0%, transparent 40%), #020617;
-        --panel-bg: rgba(15, 23, 42, 0.72);
-        --panel-shadow: 0 15px 40px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.1);
+        /* Solidified page-bg and panel-bg, significantly reducing shadow blur sizes */
+        --page-bg: #090f1d;
+        --panel-bg: #111a2e;
+        --panel-shadow: 0 4px 12px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.08);
         --panel-blur: none;
 
         --element-bg: rgba(0, 0, 0, 0.25);
@@ -162,9 +158,7 @@
         font-size: var(--text-sm);
         outline: none;
         box-sizing: border-box;
-        transition:
-          border-color 0.2s,
-          background 0.2s;
+        /* Transitions are removed to prevent CPU rendering frame drops during input interaction */
       }
       .input-standard:focus {
         border-color: var(--border-light);
@@ -397,12 +391,8 @@
         border-radius: var(--header-el-radius);
         color: var(--text-muted);
         cursor: pointer;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-        transition:
-          background 0.2s,
-          border-color 0.2s,
-          color 0.2s,
-          transform 0.2s ease;
+        box-shadow: none;
+        /* Transitions removed for faster execution */
         outline: none;
         overflow: hidden;
       }
@@ -411,13 +401,9 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        transition:
-          transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
-          opacity 0.2s ease;
       }
 
       .theme-switching {
-        transform: rotate(-180deg) scale(0.85);
         opacity: 0;
       }
 
@@ -485,23 +471,9 @@
         height: 5px;
         border-radius: 50%;
         background: currentColor;
-        box-shadow: 0 0 6px currentColor;
+        /* Static, flat shadow with no scale keyframe animation loop to prevent continuous repaints */
+        box-shadow: 0 0 2px currentColor;
         flex-shrink: 0;
-        animation: status-pulse 2s infinite ease-in-out;
-      }
-
-      @keyframes status-pulse {
-        0%,
-        100% {
-          transform: scale(1);
-          opacity: 0.8;
-        }
-
-        50% {
-          transform: scale(1.3);
-          opacity: 1;
-          box-shadow: 0 0 10px currentColor;
-        }
       }
 
       .tz-container {
@@ -554,17 +526,12 @@
         gap: 4px;
         padding: 8px;
         background: var(--dropdown-bg);
-        backdrop-filter: blur(20px);
-        -webkit-backdrop-filter: blur(20px);
+        /* Backdrop blur calculations removed */
         border: 1px solid var(--border-light);
         border-radius: 12px;
-        box-shadow:
-          0 12px 32px rgba(0, 0, 0, 0.4),
-          inset 0 1px 0 rgba(255, 255, 255, 0.05);
-        transition:
-          opacity 0.15s ease,
-          transform 0.15s ease;
-        transform: translateX(-50%) translateY(-8px) scale(0.95);
+        /* Replaced dynamic translate transitions with static, hardware-friendly configurations */
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+        transform: translateX(-50%) translateY(4px);
         z-index: 100;
       }
 
@@ -580,10 +547,6 @@
       .tz-container:hover .tz-presets {
         opacity: 1;
         pointer-events: auto;
-        transform: translateX(-50%) translateY(4px) scale(1);
-        transition:
-          opacity 0.25s ease,
-          transform 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28);
       }
 
       .goal-inputs {
@@ -779,17 +742,15 @@
         transform-origin: left;
         background: var(--accent-blue);
         border-radius: 2px;
-        /* The "Laser Bloom" - Layer 1 is sharp, Layer 2 is a wide atmospheric glow */
-        box-shadow:
-          0 0 10px var(--accent-blue),
-          0 0 30px color-mix(in srgb, var(--accent-blue) 40%, transparent);
-        /* Smooth, cinematic expansion */
-        transition: transform 1.5s cubic-bezier(0.19, 1, 0.22, 1);
+        /* Replaced soft atmospheric glows with simple, flat border styles */
+        box-shadow: none;
+        /* Changed transition timeline speed to make values paint instantly */
+        transition: transform 0.1s linear;
         position: relative;
         will-change: transform;
       }
 
-      /* Adding a tiny "head" to the laser for a sense of direction */
+      /* The visual layout of the progress indicators remains, but has been flattened */
       #progress-fill::after {
         content: "";
         position: absolute;
@@ -799,29 +760,14 @@
         height: 8px;
         background: #fff;
         border-radius: 50%;
-        filter: blur(2px);
-        box-shadow: 0 0 15px #fff;
+        /* Filter-based blur calls removed */
+        box-shadow: none;
         opacity: 0.8;
       }
 
-      /* Ambient Pulsing Glow for Goal Completion */
-      @keyframes ambientGlowPulse {
-        0% {
-          box-shadow: 0 0 8px rgba(74, 222, 128, 0.25);
-        }
-
-        50% {
-          box-shadow: 0 0 20px rgba(74, 222, 128, 0.5);
-        }
-
-        100% {
-          box-shadow: 0 0 8px rgba(74, 222, 128, 0.25);
-        }
-      }
-
+      /* High-cost keyframe pulsing removed to conserve resources */
       .progress-rail.goal-completed {
-        animation: ambientGlowPulse 2.5s infinite ease-in-out;
-        border: 1px solid rgba(74, 222, 128, 0.35) !important;
+        border: 1px solid rgba(74, 222, 128, 0.6) !important;
       }
 
       /* Unified High-Performance Dynamic Floating Tooltip */
@@ -829,12 +775,11 @@
         position: absolute;
         left: 0;
         top: 0;
-        transform: translate(-50%, -100%) translateY(-6px) scale(0.9);
+        transform: translate(-50%, -100%) translateY(-6px);
         opacity: 0;
         pointer-events: none;
         background: rgba(10, 10, 10, 0.95);
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
+        /* Backdrop blur effects removed */
         border: 1px solid rgba(255, 255, 255, 0.15);
         color: var(--accent-work);
         font-size: 0.72rem;
@@ -842,18 +787,16 @@
         padding: 4px 10px;
         border-radius: 6px;
         white-space: nowrap;
-        transition:
-          opacity 0.18s cubic-bezier(0.4, 0, 0.2, 1),
-          transform 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+        /* Transition properties configured for instant visibility toggles */
+        transition: opacity 0.05s linear;
         z-index: 99999;
         font-family: var(--font-mono);
-        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
         transform-origin: bottom center;
       }
 
       .app-tooltip.visible {
         opacity: 1;
-        transform: translate(-50%, -100%) translateY(-6px) scale(1);
       }
 
       /* Premium Goal Container & Presets Styling with Hover Bridging */
@@ -874,17 +817,12 @@
         gap: 6px;
         padding: 10px 8px 8px;
         background: var(--dropdown-bg);
-        backdrop-filter: blur(20px);
-        -webkit-backdrop-filter: blur(20px);
+        /* Backdrop blur calculations removed */
         border: 1px solid var(--border-light);
         border-radius: 14px;
-        box-shadow:
-          0 12px 32px rgba(0, 0, 0, 0.4),
-          inset 0 1px 0 rgba(255, 255, 255, 0.05);
-        transition:
-          opacity 0.15s ease,
-          transform 0.15s ease;
-        transform: translateY(-8px) scale(0.95);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+        /* Replaced dynamic translate transitions with static configurations */
+        transform: translateY(4px);
         z-index: 100;
       }
 
@@ -901,10 +839,6 @@
       .goal-container:hover .goal-presets {
         opacity: 1;
         pointer-events: auto;
-        transform: translateY(4px) scale(1);
-        transition:
-          opacity 0.25s ease,
-          transform 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28);
       }
 
       /* Preset Pills with Active State */
@@ -972,12 +906,8 @@
         font-size: 0.85rem;
         position: relative;
         overflow: hidden;
-        transition:
-          transform 0.3s cubic-bezier(0.16, 1, 0.3, 1),
-          opacity 0.2s ease,
-          filter 0.2s ease,
-          background 0.3s ease,
-          border-color 0.2s;
+        /* Transitions are simplified to background colors only to save paint costs */
+        transition: background 0.1s linear;
       }
 
       button::before {
@@ -1528,22 +1458,18 @@
         align-items: center;
         justify-content: center;
         cursor: pointer;
-        transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
       }
 
       .sidebar-footer .sq-btn svg {
         width: 17px;
         height: 17px;
-        transition:
-          transform 0.3s cubic-bezier(0.16, 1, 0.3, 1),
-          stroke 0.3s ease;
       }
 
       .sidebar-footer .sq-btn:hover {
         background: var(--element-hover);
         border-color: var(--border-light);
         color: var(--text-main);
-        transform: translateY(-1.5px);
+        /* Transform translations removed */
       }
 
       .sidebar-footer .sq-btn:hover svg {
@@ -1764,7 +1690,7 @@
         left: 0;
         right: 0;
         bottom: 0;
-        background: rgba(10, 10, 10, 0.85);
+        background: rgba(5, 5, 5, 0.9);
         z-index: 2000;
         display: none;
         align-items: center;
@@ -1779,12 +1705,10 @@
         border: 1px solid var(--border-main);
         border-radius: 20px;
         padding: 30px;
-        box-shadow:
-          0 30px 60px rgba(0, 0, 0, 0.9),
-          0 0 40px rgba(255, 255, 255, 0.02);
-        backdrop-filter: var(--panel-blur);
-        -webkit-backdrop-filter: var(--panel-blur);
-        transition: all 0.3s ease;
+        /* Box shadow simplified to lower the paint time for modal popups */
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+        /* Backdrop filter operations removed */
+        transition: none;
       }
 
       .modal-container h3 {
