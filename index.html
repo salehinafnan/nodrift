@@ -1712,6 +1712,18 @@
         box-shadow: 0 0 8px color-mix(in srgb, var(--accent-work) 20%, transparent);
       }
 
+      .progress-segment.is-leave {
+        background: repeating-linear-gradient(
+          45deg,
+          rgba(255, 255, 255, 0.02),
+          rgba(255, 255, 255, 0.02) 6px,
+          rgba(255, 255, 255, 0.07) 6px,
+          rgba(255, 255, 255, 0.07) 12px
+        );
+        border: 1px dashed rgba(255, 255, 255, 0.15);
+        opacity: 0.65;
+      }
+
       /* =========================================================================
        13. MODALS, TOASTS & RESPONSIVE BREAKPOINTS
        ========================================================================= */
@@ -2792,6 +2804,135 @@
       </div>
     </div>
 
+    <!-- Manage Leaves & Holidays Modal -->
+    <div id="leave-modal" class="modal-overlay" style="z-index: 3500">
+      <div class="modal-container" style="max-width: 360px">
+        <h3
+          style="
+            margin-top: 0;
+            margin-bottom: 15px;
+            font-size: 1.1rem;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+          "
+        >
+          <svg
+            viewBox="0 0 24 24"
+            width="18"
+            height="18"
+            stroke="currentColor"
+            fill="none"
+            stroke-width="2"
+            style="color: var(--accent-blue)"
+          >
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+            <line x1="16" y1="2" x2="16" y2="6"></line>
+            <line x1="8" y1="2" x2="8" y2="6"></line>
+            <line x1="3" y1="10" x2="21" y2="10"></line>
+          </svg>
+          Manage Leaves & Holidays
+        </h3>
+
+        <div style="text-align: left; margin-bottom: 20px">
+          <label
+            style="
+              display: block;
+              font-size: 0.75rem;
+              color: var(--text-muted);
+              margin-bottom: 6px;
+              font-weight: 600;
+            "
+          >
+            Add Leave Date
+          </label>
+          <div style="display: flex; gap: 8px">
+            <input
+              type="date"
+              id="leave-date-input"
+              style="
+                flex: 1;
+                background: var(--panel-bg);
+                border: 1px solid var(--border-main);
+                color: var(--text-main);
+                padding: 10px;
+                border-radius: 8px;
+                font-family: inherit;
+                font-size: 0.9rem;
+                outline: none;
+              "
+            />
+            <button
+              class="btn-log"
+              style="
+                padding: 10px 16px;
+                background: rgba(96, 165, 250, 0.1);
+                color: var(--accent-blue);
+                border: 1px solid rgba(96, 165, 250, 0.3);
+                border-radius: 8px;
+                font-weight: 600;
+                cursor: pointer;
+              "
+              onclick="addLeaveDate()"
+            >
+              Add
+            </button>
+          </div>
+        </div>
+
+        <label
+          style="
+            display: block;
+            text-align: left;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+            font-weight: 600;
+          "
+        >
+          Active Leave Dates
+        </label>
+        <div
+          id="leave-dates-list"
+          style="
+            max-height: 150px;
+            overflow-y: auto;
+            text-align: left;
+            background: rgba(0, 0, 0, 0.15);
+            border: 1px solid var(--border-light);
+            padding: 8px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+          "
+        >
+          <!-- Active leave dates will be dynamically inserted here -->
+        </div>
+
+        <div style="display: flex; gap: 10px">
+          <button
+            class="btn-secondary"
+            style="
+              flex: 1;
+              padding: 12px;
+              background: transparent;
+              border: 1px solid var(--border-light);
+              color: var(--text-main);
+              border-radius: 12px;
+              cursor: pointer;
+              font-weight: 600;
+            "
+            onclick="closeLeaveModal()"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- Daily Goal Reached celebratory toast -->
     <div id="goal-toast">
       <div class="goal-icon">
@@ -3478,6 +3619,22 @@
               <span class="icon-tag">LOAD</span>
             </div>
 
+            <div class="icon-stack">
+              <button
+                title="Manage Leaves & Holidays"
+                class="icon-btn sq-btn"
+                onclick="openLeaveModal()"
+              >
+                <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2">
+                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                  <line x1="16" y1="2" x2="16" y2="6"></line>
+                  <line x1="8" y1="2" x2="8" y2="6"></line>
+                  <line x1="3" y1="10" x2="21" y2="10"></line>
+                </svg>
+              </button>
+              <span class="icon-tag">Leave</span>
+            </div>
+
             <div class="footer-divider"></div>
 
             <div class="icon-stack">
@@ -3514,6 +3671,25 @@
       const TZ_KEY = "production_tz_pref";
       const THEME_KEY = "production_theme_pref";
       const PRESET_VALUES_KEY = "production_custom_presets_v2";
+      const LEAVE_DATES_KEY = "production_leave_dates_v1";
+
+      function getLeaveDates() {
+        try {
+          const saved = localStorage.getItem(LEAVE_DATES_KEY);
+          return saved ? JSON.parse(saved) : [];
+        } catch (err) {
+          console.error("Error reading leave dates:", err);
+          return [];
+        }
+      }
+
+      function saveLeaveDates(dates) {
+        try {
+          localStorage.setItem(LEAVE_DATES_KEY, JSON.stringify(dates));
+        } catch (err) {
+          console.error("Error saving leave dates:", err);
+        }
+      }
 
       // Inactivity / Idle limits (30 Minutes threshold)
       const IDLE_THRESHOLD = 30 * 60 * 1000;
@@ -5316,14 +5492,35 @@
           `Week of ${shortMonths[mondayUTC.getUTCMonth()]} ${mondayUTC.getUTCDate()}, ${mondayUTC.getUTCFullYear()}`,
         );
 
-        let totalW_MonFri = 0; // Cumulative Monday-Friday work time (40 Hours baseline target boundary)
+        // Fetch leave dates list
+        const leaveDates = typeof getLeaveDates === "function" ? getLeaveDates() : [];
+        const isVacationDate = (dStr) => leaveDates.includes(dStr);
+
+        // Calculate leave days count for Mon-Fri in this week
+        let numLeaveDaysMonFri = 0;
+        const weekDateChecker = new Date(mondayUTC);
+        for (let idx = 0; idx < 5; idx++) {
+          weekDateChecker.setTime(mondayUTC.getTime());
+          weekDateChecker.setUTCDate(mondayUTC.getUTCDate() + idx);
+          const checkerStr = `${String(weekDateChecker.getUTCMonth() + 1).padStart(2, "0")}/${String(
+            weekDateChecker.getUTCDate(),
+          ).padStart(2, "0")}/${weekDateChecker.getUTCFullYear().toString().slice(-2)}`;
+          if (isVacationDate(checkerStr)) {
+            numLeaveDaysMonFri++;
+          }
+        }
+
+        const leaveDaysSec = numLeaveDaysMonFri * 8 * 3600;
+        const adjustedWeeklyGoalSec = Math.max(0, 40 * 3600 - leaveDaysSec);
+        const adjustedWeeklyGoalHrs = adjustedWeeklyGoalSec / 3600;
+
+        let totalW_MonFri = 0; // Cumulative Monday-Friday work time
         let totalB_AllWeek = 0; // Total break time
         let breakdownHTML = "";
         const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
         const reusableDate = new Date(mondayUTC);
         const dailyGoalSec = getGoalSeconds();
-        const fixedWeeklyGoalSec = 40 * 3600;
 
         for (let i = 0; i < 7; i++) {
           reusableDate.setTime(mondayUTC.getTime());
@@ -5348,20 +5545,9 @@
             isToday ? "var(--accent-blue)" : "transparent"
           }; background: ${isToday ? "rgba(96, 165, 250, 0.08)" : "transparent"}; border-radius: 8px; margin-bottom: 2px;`;
 
-          let statusBadge = "";
-          if (dayW > 0 || dayB > 0) {
-            const isOver = dayW >= dailyGoalSec;
-            const badgeColor = isOver ? "var(--accent-work)" : "var(--accent-warning)";
-            statusBadge = `<span style="border: 1px solid ${badgeColor}; color: ${badgeColor}; border-radius: 4px; padding: 1px 3px; font-size: 0.5rem; margin-left: 5px; font-weight: 800; line-height: 1;">${
-              isOver ? "O" : "U"
-            }</span>`;
-          }
-
-          const weekendBadge = isWeekend
-            ? `<span style="font-size: 0.55rem; color: var(--text-muted); opacity: 0.7; margin-left: 8px; font-weight: 500; border: 1px solid var(--border-main); padding: 1px 6px; border-radius: 4px; background: rgba(255,255,255,0.03); white-space: nowrap; letter-spacing: 0.1px;">Weekend (Not Counted)</span>`
-            : "";
-
-          if (!isWeekend || dayW > 0 || dayB > 0) {
+          const isVacation = isVacationDate(dateStr);
+          if (isVacation) {
+            const leaveBadge = `<span style="font-size: 0.55rem; color: #4ade80; border: 1px solid rgba(74, 222, 128, 0.3); padding: 2px 6px; border-radius: 4px; background: rgba(74, 222, 128, 0.05); margin-left: 8px; font-weight: 700; letter-spacing: 0.2px; white-space: nowrap;">On Leave</span>`;
             breakdownHTML += `
           <div class="breakdown-row" style="flex-direction: row; align-items: center; justify-content: space-between; padding: 10px 12px; ${rowStyle}">
             <div style="display: flex; align-items: center; white-space: nowrap; overflow: hidden;">
@@ -5372,18 +5558,50 @@
                   reusableDate.getUTCMonth() + 1,
                 ).padStart(2, "0")}/${String(reusableDate.getUTCDate()).padStart(2, "0")})</span>
               </span>
-              ${statusBadge}
-              ${weekendBadge}
+              ${leaveBadge}
             </div>
-            <div class="font-mono" style="display: flex; gap: 12px; font-size: 0.75rem; flex-shrink: 0; color: var(--text-main);">
-              <span style="display: inline-block; min-width: 75px;">
-                <span style="color:var(--accent-work); font-weight: 700;">W:</span> ${formatFriendlyDuration(dayW)}
-              </span>
-              <span style="display: inline-block; min-width: 65px;">
-                <span style="color:var(--accent-break); font-weight: 700;">B:</span> ${formatFriendlyDuration(dayB)}
-              </span>
+            <div class="font-mono" style="display: flex; gap: 12px; font-size: 0.75rem; flex-shrink: 0; color: #4ade80; font-weight: 600;">
+              <span>No Hours expected</span>
             </div>
           </div>`;
+          } else {
+            let statusBadge = "";
+            if (dayW > 0 || dayB > 0) {
+              const isOver = dayW >= dailyGoalSec;
+              const badgeColor = isOver ? "var(--accent-work)" : "var(--accent-warning)";
+              statusBadge = `<span style="border: 1px solid ${badgeColor}; color: ${badgeColor}; border-radius: 4px; padding: 1px 3px; font-size: 0.5rem; margin-left: 5px; font-weight: 800; line-height: 1;">${
+                isOver ? "O" : "U"
+              }</span>`;
+            }
+
+            const weekendBadge = isWeekend
+              ? `<span style="font-size: 0.55rem; color: var(--text-muted); opacity: 0.7; margin-left: 8px; font-weight: 500; border: 1px solid var(--border-main); padding: 1px 6px; border-radius: 4px; background: rgba(255,255,255,0.03); white-space: nowrap; letter-spacing: 0.1px;">Weekend (Not Counted)</span>`
+              : "";
+
+            if (!isWeekend || dayW > 0 || dayB > 0) {
+              breakdownHTML += `
+            <div class="breakdown-row" style="flex-direction: row; align-items: center; justify-content: space-between; padding: 10px 12px; ${rowStyle}">
+              <div style="display: flex; align-items: center; white-space: nowrap; overflow: hidden;">
+                <span style="font-weight: ${isToday ? "700" : "400"}; color: ${
+                  isToday ? "var(--text-main)" : "var(--text-muted)"
+                }; font-size: 0.8rem;">
+                  ${dayNames[dayOfWeekIndex]} <span style="opacity: 0.5; font-size: 0.7rem; font-weight: 400;">(${String(
+                    reusableDate.getUTCMonth() + 1,
+                  ).padStart(2, "0")}/${String(reusableDate.getUTCDate()).padStart(2, "0")})</span>
+                </span>
+                ${statusBadge}
+                ${weekendBadge}
+              </div>
+              <div class="font-mono" style="display: flex; gap: 12px; font-size: 0.75rem; flex-shrink: 0; color: var(--text-main);">
+                <span style="display: inline-block; min-width: 75px;">
+                  <span style="color:var(--accent-work); font-weight: 700;">W:</span> ${formatFriendlyDuration(dayW)}
+                </span>
+                <span style="display: inline-block; min-width: 65px;">
+                  <span style="color:var(--accent-break); font-weight: 700;">B:</span> ${formatFriendlyDuration(dayB)}
+                </span>
+              </div>
+            </div>`;
+            }
           }
         }
 
@@ -5408,6 +5626,7 @@
         DOM.progressSegments.forEach((seg, index) => {
           if (seg) {
             seg.classList.remove("is-today");
+            seg.classList.remove("is-leave");
             if (DOM.progressSegmentFills[index]) {
               DOM.progressSegmentFills[index].style.transform = "scaleX(0)";
             }
@@ -5428,24 +5647,42 @@
             dayWorkSeconds += getCurrentWorkSeconds(getTrueTime());
           }
 
-          // --- DAILY ANCHOR LOGIC ---
-          // 1. Check if we have a locked anchor goal from the first shift of that day
-          // 2. If it's today and no shift is logged yet, use the current UI Goal
-          // 3. Fallback to 8h (28800) if something is wrong
-          const anchorGoal = dailyAnchorMap.get(dateStr);
-          const denominator = anchorGoal || (isToday ? dailyGoalSec : 28800);
-
+          const isVacation = isVacationDate(dateStr);
           const segment = DOM.progressSegments[i];
           if (segment) {
-            const fill = DOM.progressSegmentFills[i];
-            const fillScale = Math.min(dayWorkSeconds / denominator, 1);
-            fill.style.transform = `scaleX(${fillScale})`;
-            if (dayWorkSeconds >= denominator && dayWorkSeconds > 0) {
-              fill.style.background = "var(--accent-work)";
+            const labelEl = segment.querySelector("div:not(.progress-segment-fill)");
+            const dayLetter = ["M", "T", "W", "T", "F"][i];
+
+            if (isVacation) {
+              segment.classList.add("is-leave");
+              const fill = DOM.progressSegmentFills[i];
+              if (fill) fill.style.transform = "scaleX(0)";
+              if (labelEl) {
+                labelEl.textContent = `${dayLetter} (Leave)`;
+                labelEl.style.opacity = "0.5";
+              }
             } else {
-              fill.style.background =
-                "linear-gradient(135deg, var(--accent-blue) 0%, #4f46e5 100%)";
+              segment.classList.remove("is-leave");
+              if (labelEl) {
+                labelEl.textContent = dayLetter;
+                labelEl.style.opacity = "0.7";
+              }
+
+              // --- DAILY ANCHOR LOGIC ---
+              const anchorGoal = dailyAnchorMap.get(dateStr);
+              const denominator = anchorGoal || (isToday ? dailyGoalSec : 28800);
+
+              const fill = DOM.progressSegmentFills[i];
+              const fillScale = Math.min(dayWorkSeconds / denominator, 1);
+              fill.style.transform = `scaleX(${fillScale})`;
+              if (dayWorkSeconds >= denominator && dayWorkSeconds > 0) {
+                fill.style.background = "var(--accent-work)";
+              } else {
+                fill.style.background =
+                  "linear-gradient(135deg, var(--accent-blue) 0%, #4f46e5 100%)";
+              }
             }
+
             if (weekStartMs === currentWeekStartMs && i + 1 === (nowDay === 0 ? 7 : nowDay)) {
               segment.classList.add("is-today");
             }
@@ -5459,11 +5696,17 @@
           }
         }
 
-        const totalPercent = Math.min((totalW_MonFri / fixedWeeklyGoalSec) * 100, 100);
-        setText(summaryText, `${formatFriendlyDuration(totalW_MonFri, "0h")} / 40h`);
+        const totalPercent =
+          adjustedWeeklyGoalSec > 0
+            ? Math.min((totalW_MonFri / adjustedWeeklyGoalSec) * 100, 100)
+            : 100;
+        setText(
+          summaryText,
+          `${formatFriendlyDuration(totalW_MonFri, "0h")} / ${adjustedWeeklyGoalHrs}h`,
+        );
         setText(percentText, `(${totalPercent.toFixed(0)}%)`);
 
-        if (totalW_MonFri >= fixedWeeklyGoalSec) {
+        if (totalW_MonFri >= adjustedWeeklyGoalSec) {
           progressCard.classList.add("goal-reached");
         } else {
           progressCard.classList.remove("goal-reached");
@@ -5471,7 +5714,7 @@
 
         // Dynamic daily pace calculation message
         if (weekMsg) {
-          const remainingSec = Math.max(0, fixedWeeklyGoalSec - totalW_MonFri);
+          const remainingSec = Math.max(0, adjustedWeeklyGoalSec - totalW_MonFri);
 
           if (weekStartMs > currentWeekStartMs) {
             weekMsg.textContent = "Upcoming Week";
@@ -5480,15 +5723,30 @@
             if (weekStartMs === currentWeekStartMs) {
               let todayIdx = nowDay === 0 ? 7 : nowDay;
               if (todayIdx <= 5) {
-                const daysRemaining = 5 - todayIdx + 1;
-                const paceSec = remainingSec / daysRemaining;
-                let paceH = Math.floor(paceSec / 3600);
-                let paceM = Math.round((paceSec % 3600) / 60);
-                if (paceM === 60) {
-                  paceH++;
-                  paceM = 0;
+                let activeDaysRemaining = 0;
+                for (let d = todayIdx; d <= 5; d++) {
+                  const checkDate = new Date(mondayUTC);
+                  checkDate.setUTCDate(mondayUTC.getUTCDate() + (d - 1));
+                  const checkDateStr = `${String(checkDate.getUTCMonth() + 1).padStart(2, "0")}/${String(
+                    checkDate.getUTCDate(),
+                  ).padStart(2, "0")}/${checkDate.getUTCFullYear().toString().slice(-2)}`;
+                  if (!isVacationDate(checkDateStr)) {
+                    activeDaysRemaining++;
+                  }
                 }
-                weekMsg.textContent = `Pace Needed: ${paceH}h ${paceM}m / day`;
+
+                if (activeDaysRemaining > 0) {
+                  const paceSec = remainingSec / activeDaysRemaining;
+                  let paceH = Math.floor(paceSec / 3600);
+                  let paceM = Math.round((paceSec % 3600) / 60);
+                  if (paceM === 60) {
+                    paceH++;
+                    paceM = 0;
+                  }
+                  weekMsg.textContent = `Pace Needed: ${paceH}h ${paceM}m / day`;
+                } else {
+                  weekMsg.textContent = "Remaining weekdays are leaves.";
+                }
               } else {
                 weekMsg.textContent = "Weekend: Goal not reached.";
               }
@@ -5498,7 +5756,7 @@
               weekMsg.style.color = "var(--text-muted)";
             }
           } else {
-            weekMsg.textContent = `40h Goal reached! Overtime: ${formatFriendlyDuration(totalW_MonFri - fixedWeeklyGoalSec, "0m")}`;
+            weekMsg.textContent = `${adjustedWeeklyGoalHrs}h Goal reached! Overtime: ${formatFriendlyDuration(totalW_MonFri - adjustedWeeklyGoalSec, "0m")}`;
             weekMsg.style.color = "var(--accent-work)";
           }
         }
@@ -6232,6 +6490,88 @@
         editingPresetIndex = -1;
       };
 
+      window.openLeaveModal = function () {
+        document.getElementById("leave-modal").style.display = "flex";
+        renderLeaveDatesList();
+        setTimeout(() => {
+          document.getElementById("leave-date-input").focus();
+        }, 100);
+      };
+
+      window.closeLeaveModal = function () {
+        document.getElementById("leave-modal").style.display = "none";
+      };
+
+      window.addLeaveDate = function () {
+        const input = document.getElementById("leave-date-input");
+        const val = input.value;
+        if (!val) {
+          showAppToast("Please select a valid date.");
+          return;
+        }
+
+        const [y, m, d] = val.split("-");
+        const formattedDate = `${m}/${d}/${y.slice(-2)}`;
+
+        const currentLeaves = getLeaveDates();
+        if (currentLeaves.includes(formattedDate)) {
+          showAppToast("Date already marked as leave.");
+          return;
+        }
+
+        currentLeaves.push(formattedDate);
+        currentLeaves.sort((a, b) => {
+          const aParts = a.split("/");
+          const bParts = b.split("/");
+          const aDate = new Date(`20${aParts[2]}`, aParts[0] - 1, aParts[1]);
+          const bDate = new Date(`20${bParts[2]}`, bParts[0] - 1, bParts[1]);
+          return aDate - bDate;
+        });
+
+        saveLeaveDates(currentLeaves);
+        renderLeaveDatesList();
+
+        renderInsights();
+        renderLogbook();
+
+        showAppToast(`Added leave on ${formattedDate}`);
+        input.value = "";
+      };
+
+      window.removeLeaveDate = function (formattedDate) {
+        let currentLeaves = getLeaveDates();
+        currentLeaves = currentLeaves.filter((d) => d !== formattedDate);
+        saveLeaveDates(currentLeaves);
+        renderLeaveDatesList();
+
+        renderInsights();
+        renderLogbook();
+
+        showAppToast(`Removed leave on ${formattedDate}`);
+      };
+
+      function renderLeaveDatesList() {
+        const listContainer = document.getElementById("leave-dates-list");
+        if (!listContainer) return;
+
+        const currentLeaves = getLeaveDates();
+        if (currentLeaves.length === 0) {
+          listContainer.innerHTML = `<div style="text-align: center; color: var(--text-muted); font-size: 0.75rem; padding: 12px 0;">No active leave dates set.</div>`;
+          return;
+        }
+
+        let html = "";
+        currentLeaves.forEach((date) => {
+          html += `
+            <div style="display: flex; justify-content: space-between; align-items: center; background: var(--panel-bg); border: 1px solid var(--border-main); padding: 6px 10px; border-radius: 6px; font-size: 0.8rem; font-family: monospace; color: var(--text-main);">
+              <span>${date}</span>
+              <button style="background: transparent; border: none; color: var(--accent-break); font-weight: bold; cursor: pointer; font-size: 0.85rem; padding: 0 4px; display: flex; align-items: center;" onclick="removeLeaveDate('${date}')" title="Remove Leave">✕</button>
+            </div>
+          `;
+        });
+        listContainer.innerHTML = html;
+      }
+
       window.savePresetModal = function () {
         if (editingPresetIndex === -1) return;
         const newVal = parseFloat(document.getElementById("preset-input").value);
@@ -6433,6 +6773,10 @@
         document.getElementById("preset-input").addEventListener("keydown", (e) => {
           if (e.key === "Enter") savePresetModal();
           if (e.key === "Escape") closePresetModal();
+        });
+        document.getElementById("leave-date-input").addEventListener("keydown", (e) => {
+          if (e.key === "Enter") addLeaveDate();
+          if (e.key === "Escape") closeLeaveModal();
         });
       }
 
