@@ -3065,6 +3065,8 @@
       let activityThrottle = false;
       let editingLogId = null;
       let cachedBaseFontSize = parseFloat(getComputedStyle(document.documentElement).fontSize);
+      // Added a layout cache to avoid clientHeight calls on scrolls
+      let cachedViewportHeight = 0;
 
       // High-frequency delta anchor and defensive lock flags
       let lastTickTime = Date.now();
@@ -3806,6 +3808,18 @@
         }
       }
 
+      // Cache variables to prevent redundant DOM style and property write updates on ticks
+      const domWriteCache = {
+        progressFillScale: -1,
+        progressFillBg: "",
+        progressRailCompleted: null,
+        goalBadgeMode: "",
+        etaText: "",
+        etaColor: "",
+        todaySegmentScale: -1,
+        todaySegmentBg: "",
+      };
+
       /**
        * Dual-Perspective Progress Engine
        */
@@ -3826,22 +3840,17 @@
         const dailyDiff = totalWorkToday - anchorGoalSec;
         const dailyScale = dailyPercent / 100;
 
-        setStyle(DOM.progressFill, "transform", `scaleX(${sessionScale})`);
+        // Scale Write Guard
+        if (domWriteCache.progressFillScale !== sessionScale) {
+          domWriteCache.progressFillScale = sessionScale;
+          setStyle(DOM.progressFill, "transform", `scaleX(${sessionScale})`);
+        }
 
-        if (sessionPercent >= 100) {
-          setStyle(DOM.progressFill, "background", "var(--accent-work)");
-          setStyle(
-            DOM.progressFill,
-            "boxShadow",
-            "0 0 12px var(--accent-work), 0 0 35px color-mix(in srgb, var(--accent-work) 50%, transparent)",
-          );
-        } else {
-          setStyle(DOM.progressFill, "background", "var(--accent-blue)");
-          setStyle(
-            DOM.progressFill,
-            "boxShadow",
-            "0 0 10px var(--accent-blue), 0 0 30px color-mix(in srgb, var(--accent-blue) 40%, transparent)",
-          );
+        // Color and Shadow Write Guard
+        const fillBg = sessionPercent >= 100 ? "var(--accent-work)" : "var(--accent-blue)";
+        if (domWriteCache.progressFillBg !== fillBg) {
+          domWriteCache.progressFillBg = fillBg;
+          setStyle(DOM.progressFill, "background", fillBg);
         }
 
         const progStr =
@@ -3857,47 +3866,77 @@
         if (isoDay <= 5) {
           const todaySegmentFill = DOM.progressSegmentFills[isoDay - 1];
           if (todaySegmentFill) {
-            todaySegmentFill.style.transform = `scaleX(${dailyScale})`;
-            if (dailyPercent >= 100) {
-              todaySegmentFill.style.background = "var(--accent-work)";
-            } else {
-              todaySegmentFill.style.background =
-                "linear-gradient(135deg, var(--accent-blue) 0%, #4f46e5 100%)";
+            const segmentBg =
+              dailyPercent >= 100
+                ? "var(--accent-work)"
+                : "linear-gradient(135deg, var(--accent-blue) 0%, #4f46e5 100%)";
+
+            if (domWriteCache.todaySegmentScale !== dailyScale) {
+              domWriteCache.todaySegmentScale = dailyScale;
+              todaySegmentFill.style.transform = `scaleX(${dailyScale})`;
+            }
+            if (domWriteCache.todaySegmentBg !== segmentBg) {
+              domWriteCache.todaySegmentBg = segmentBg;
+              todaySegmentFill.style.background = segmentBg;
             }
           }
         }
 
-        if (DOM.progressRail) {
-          if (totalWorkToday >= anchorGoalSec && anchorGoalSec > 0) {
-            DOM.progressRail.classList.add("goal-completed");
-          } else {
-            DOM.progressRail.classList.remove("goal-completed");
+        const isGoalReached = totalWorkToday >= anchorGoalSec && anchorGoalSec > 0;
+        if (domWriteCache.progressRailCompleted !== isGoalReached) {
+          domWriteCache.progressRailCompleted = isGoalReached;
+          if (DOM.progressRail) {
+            if (isGoalReached) {
+              DOM.progressRail.classList.add("goal-completed");
+            } else {
+              DOM.progressRail.classList.remove("goal-completed");
+            }
           }
         }
 
-        const goalBadge = document.querySelector(".goal-inputs");
-        if (goalBadge) {
-          if (totalWorkToday >= anchorGoalSec && anchorGoalSec > 0) {
-            goalBadge.classList.add("goal-completed");
-            goalBadge.classList.remove("goal-accumulating");
-          } else if (state.currentMode === "work") {
-            goalBadge.classList.add("goal-accumulating");
-            goalBadge.classList.remove("goal-completed");
-          } else {
-            goalBadge.classList.remove("goal-completed", "goal-accumulating");
+        const currentGoalMode = isGoalReached
+          ? "completed"
+          : state.currentMode === "work"
+            ? "accumulating"
+            : "none";
+        if (domWriteCache.goalBadgeMode !== currentGoalMode) {
+          domWriteCache.goalBadgeMode = currentGoalMode;
+          const goalBadge = document.querySelector(".goal-inputs");
+          if (goalBadge) {
+            if (currentGoalMode === "completed") {
+              goalBadge.classList.add("goal-completed");
+              goalBadge.classList.remove("goal-accumulating");
+            } else if (currentGoalMode === "accumulating") {
+              goalBadge.classList.add("goal-accumulating");
+              goalBadge.classList.remove("goal-completed");
+            } else {
+              goalBadge.classList.remove("goal-completed", "goal-accumulating");
+            }
           }
         }
 
         const etaEl = document.getElementById("eta-text");
-        if (dailyDiff >= 0) {
-          setText(etaEl, "Daily Goal Reached");
-          etaEl.style.color = "var(--accent-work)";
-        } else {
-          const remainingMs = Math.abs(dailyDiff) * 1000;
-          const finishTime = new Date(getTrueTime() + remainingMs);
-          const bstEtaStr = bstEtaFormatter.format(finishTime);
-          setText(etaEl, `Est. EOD: ${bstEtaStr} BST`);
-          etaEl.style.color = "var(--text-muted)";
+        if (etaEl) {
+          let etaText = "";
+          let etaColor = "";
+          if (dailyDiff >= 0) {
+            etaText = "Daily Goal Reached";
+            etaColor = "var(--accent-work)";
+          } else {
+            const remainingMs = Math.abs(dailyDiff) * 1000;
+            const finishTime = new Date(getTrueTime() + remainingMs);
+            etaText = `Est. EOD: ${bstEtaFormatter.format(finishTime)} BST`;
+            etaColor = "var(--text-muted)";
+          }
+
+          if (domWriteCache.etaText !== etaText) {
+            domWriteCache.etaText = etaText;
+            setText(etaEl, etaText);
+          }
+          if (domWriteCache.etaColor !== etaColor) {
+            domWriteCache.etaColor = etaColor;
+            etaEl.style.color = etaColor;
+          }
         }
 
         if (
@@ -4629,6 +4668,10 @@
         "resize",
         debounce(() => {
           cachedBaseFontSize = parseFloat(getComputedStyle(document.documentElement).fontSize);
+          const logbookTab = document.getElementById("tab-logbook");
+          if (logbookTab) {
+            cachedViewportHeight = logbookTab.clientHeight;
+          }
           renderLogbook();
         }, 150),
       );
@@ -4637,9 +4680,21 @@
         return 4.8 * cachedBaseFontSize;
       }
 
-      document.getElementById("tab-logbook").addEventListener("scroll", () => {
-        renderVirtualVisibleItems();
-      });
+      // High-performance passive animation frame throttle for scroll calculations
+      let scrollAnimationFrameActive = false;
+      document.getElementById("tab-logbook").addEventListener(
+        "scroll",
+        () => {
+          if (!scrollAnimationFrameActive) {
+            scrollAnimationFrameActive = true;
+            window.requestAnimationFrame(() => {
+              renderVirtualVisibleItems();
+              scrollAnimationFrameActive = false;
+            });
+          }
+        },
+        { passive: true },
+      );
 
       /**
        * Renders virtual elements visible in active scroll windows.
@@ -4648,7 +4703,11 @@
         if (virtualScrollLogs.length === 0) return;
         const scrollContainer = document.getElementById("tab-logbook");
         const scrollTop = scrollContainer.scrollTop;
-        const viewportHeight = scrollContainer.clientHeight;
+        // Uses the layout-cached clientHeight value to prevent CPU-based style recalculations
+        if (!cachedViewportHeight) {
+          cachedViewportHeight = scrollContainer.clientHeight || 400;
+        }
+        const viewportHeight = cachedViewportHeight;
         const itemHeight = getDynamicItemHeight();
 
         const overscan = 5;
@@ -5425,15 +5484,25 @@
 
         checkMidnightReset(now);
 
-        if (++saveTicks % 5 === 0) {
+        // Writes to storage are scaled to 60-second ticks to minimize synchronous localStorage write delays
+        if (++saveTicks % 60 === 0) {
           saveState();
         }
 
         setTimeout(tick, 1000 - (nowMs % 1000));
       }
 
+      // Automatically saves metrics on tab hiding or page exits to prevent data loss
       document.addEventListener("visibilitychange", () => {
-        if (!document.hidden) renderTimersOnly();
+        if (document.hidden) {
+          saveState();
+        } else {
+          renderTimersOnly();
+        }
+      });
+
+      window.addEventListener("pagehide", () => {
+        saveState();
       });
 
       /*==========================================================================
@@ -6248,6 +6317,7 @@
           targetContent.style.display = "block";
           // Render the logbook on-demand whenever the tab is selected to ensure data is always fresh
           if (target === "logbook") {
+            cachedViewportHeight = targetContent.clientHeight;
             renderLogbook();
           }
         }
