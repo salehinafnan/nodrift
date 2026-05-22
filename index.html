@@ -24,9 +24,6 @@
       /* =========================================================================
        1. GLOBAL BASE STYLES & VARIABLE CONFIGURATION
        ========================================================================= */
-      /* =========================================================================
-       1. GLOBAL BASE STYLES & VARIABLE CONFIGURATION
-       ========================================================================= */
       :root {
         /* Shared Color Scheme Accents */
         --accent-work: #4ade80;
@@ -62,6 +59,10 @@
 
         --header-el-height: 45px;
         --header-el-radius: var(--radius-lg);
+
+        /* Modal Redesign Dimension Tokens */
+        --modal-width-sm: 360px;
+        --modal-width-md: 460px;
       }
 
       /* =========================================================================
@@ -164,27 +165,51 @@
         box-sizing: border-box;
         /* Transitions are removed to prevent CPU rendering frame drops during input interaction */
       }
+
+      /* Beautiful custom dropdown style */
+      select.input-standard {
+        appearance: none;
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        background-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238e8e9f' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'></polyline></svg>");
+        background-repeat: no-repeat;
+        background-position: right 1rem center;
+        background-size: 1.1em;
+        padding-right: 2.5rem;
+        cursor: pointer;
+      }
+
+      select.input-standard option {
+        background-color: var(--dropdown-bg);
+        color: var(--text-main);
+      }
+
       .input-standard:focus {
         border-color: var(--border-light);
         background: var(--element-hover);
       }
+
       textarea.input-standard {
         resize: vertical;
         min-height: 60px;
       }
+
       .form-group {
         margin-bottom: var(--space-4);
         text-align: left;
       }
+
       .form-row {
         display: flex;
         gap: var(--space-4);
         margin-bottom: var(--space-4);
       }
+
       .form-row .form-group {
         flex: 1;
         margin-bottom: 0;
       }
+
       .form-label {
         display: block;
         font-size: var(--text-xs);
@@ -192,6 +217,7 @@
         margin-bottom: var(--space-2);
         font-weight: 600;
       }
+
       .modal-header {
         margin-top: 0;
         margin-bottom: var(--space-4);
@@ -202,59 +228,85 @@
         align-items: center;
         gap: var(--space-2);
       }
+
       .modal-header.warning {
         color: var(--accent-warning);
       }
+
       .modal-header.danger {
         color: var(--accent-break);
       }
+
       .modal-header.info {
         color: var(--accent-blue);
       }
+
       .modal-body-text {
         margin-bottom: var(--space-5);
         font-size: var(--text-sm);
         color: var(--text-muted);
         line-height: 1.5;
       }
+
       .action-row {
         display: flex;
         gap: var(--space-3);
       }
+
       .action-row > button {
         flex: 1;
         padding: var(--space-3);
         border-radius: var(--radius-lg);
         font-weight: 600;
+        transition:
+          background-color 0.15s ease,
+          border-color 0.15s ease,
+          color 0.15s ease,
+          transform 0.1s ease;
       }
+
+      .action-row > button:hover:not(:disabled) {
+        transform: translateY(-1px);
+      }
+
+      .action-row > button:active:not(:disabled) {
+        transform: translateY(0) scale(0.98);
+      }
+
       .btn-secondary {
         background: transparent;
         border: 1px solid var(--border-light);
         color: var(--text-main);
       }
+
       .btn-secondary:hover:not(:disabled) {
         background: var(--element-hover);
       }
+
       .btn-danger-outline {
         background: rgba(248, 113, 113, 0.1);
         color: var(--accent-break);
         border: 1px solid rgba(248, 113, 113, 0.3);
       }
+
       .btn-warning-outline {
         background: rgba(245, 158, 11, 0.1);
         color: var(--accent-warning);
         border: 1px solid rgba(245, 158, 11, 0.3);
       }
+
       .btn-success-outline {
         background: rgba(74, 222, 128, 0.1);
         color: var(--accent-work);
         border: 1px solid rgba(74, 222, 128, 0.3);
       }
+
       .btn-info-outline {
         background: rgba(96, 165, 250, 0.1);
         color: var(--accent-blue);
         border: 1px solid rgba(96, 165, 250, 0.3);
       }
+
       .ui-icon {
         width: 1.2em;
         height: 1.2em;
@@ -366,7 +418,7 @@
        ========================================================================= */
       .status-bar {
         display: flex;
-        justify-content: space-between;
+        justify-content: center;
         align-items: center;
         margin-bottom: 1.5rem;
         gap: 1rem;
@@ -508,6 +560,19 @@
         color: var(--text-main);
       }
 
+      /* Timezone chevron animation styles */
+      .tz-chevron {
+        color: currentColor;
+        /* Dynamically matches active trigger text state colors */
+        flex-shrink: 0;
+        transition: transform 0.25s ease;
+      }
+
+      .tz-container:hover .tz-chevron {
+        transform: rotate(180deg);
+        /* Rotates the chevron to point upwards on hover */
+      }
+
       .tz-static-label {
         font-size: 0.8rem;
         font-weight: 700;
@@ -590,9 +655,11 @@
 
       .goal-inputs span.label {
         font-size: 0.9rem;
-        color: var(--text-muted);
+        color: var(--accent-blue);
         margin-right: 0.4rem;
         font-weight: 600;
+        font-family: var(--font-mono);
+        /* Switched to JetBrains Mono */
       }
 
       .goal-inputs span.unit {
@@ -616,7 +683,8 @@
         color: var(--text-main);
         font-weight: 700;
         font-size: 1.15rem;
-        width: 5.2rem;
+        width: 8.5ch;
+        /* Force width to exactly 8.5 monospaced characters */
         text-align: center;
         outline: none;
         padding: 0.1rem 0;
@@ -625,7 +693,8 @@
           background 0.2s,
           border-color 0.2s;
         cursor: pointer;
-        font-family: inherit;
+        font-family: var(--font-mono);
+        /* Switched to JetBrains Mono */
       }
 
       .goal-inputs input[type="text"]:hover,
@@ -855,7 +924,12 @@
         padding: 6px 12px;
         border-radius: 8px;
         cursor: pointer;
-        transition: all 0.2s ease;
+        transition:
+          background-color 0.2s ease,
+          border-color 0.2s ease,
+          color 0.2s ease,
+          opacity 0.2s ease,
+          transform 0.2s ease;
         white-space: nowrap;
       }
 
@@ -1017,7 +1091,12 @@
         color: var(--text-muted);
         font-size: 0.75rem;
         font-weight: 600;
-        transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        transition:
+          background-color 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+          border-color 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+          color 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+          opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+          transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -1064,7 +1143,12 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        transition:
+          background-color 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+          border-color 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+          color 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+          opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+          transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
       }
 
       .header-icon-btn:hover,
@@ -1081,13 +1165,32 @@
         display: none;
         flex-direction: column;
         background: var(--panel-bg);
-        padding: 16px;
-        border-radius: 1.25rem;
+        padding: 10px;
+        border-radius: 1rem;
         border: 1px solid var(--border-main);
-        margin-bottom: 15px;
-        gap: 12px;
+        margin-bottom: 12px;
+        gap: 6px;
         flex-shrink: 0;
-        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+        box-shadow: var(--panel-shadow);
+        opacity: 0;
+        transform: translateY(-8px);
+        transition:
+          opacity 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+          transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+          display 0.2s allow-discrete;
+      }
+
+      @starting-style {
+        .advanced-filters.show {
+          opacity: 0;
+          transform: translateY(-8px);
+        }
+      }
+
+      .advanced-filters.show {
+        display: flex;
+        opacity: 1;
+        transform: translateY(0);
       }
 
       .header-icon-btn.filter-active {
@@ -1096,15 +1199,63 @@
         border: none !important;
       }
 
-      .advanced-filters.show {
-        display: flex;
-      }
-
       .filter-row {
         display: flex;
         align-items: center;
-        gap: 10px;
-        flex-wrap: nowrap;
+        gap: 6px;
+        width: 100%;
+        box-sizing: border-box;
+      }
+
+      .filter-row .filter-select-wrapper,
+      .filter-row .filter-input-wrapper,
+      .filter-row .filter-group-card {
+        min-width: 0 !important;
+        width: 100% !important;
+      }
+
+      .filter-input-wrapper {
+        position: relative;
+        display: flex;
+        align-items: center;
+      }
+
+      .filter-input-wrapper .field-icon {
+        position: absolute;
+        left: 8px;
+        width: 12px;
+        height: 12px;
+        color: var(--text-muted);
+        pointer-events: none;
+      }
+
+      .filter-input-wrapper .filter-input {
+        padding-left: 26px !important;
+        width: 100%;
+      }
+
+      .filter-select-wrapper {
+        position: relative;
+        display: flex;
+        align-items: center;
+      }
+
+      .filter-select-wrapper::after {
+        content: "";
+        position: absolute;
+        right: 10px;
+        width: 7px;
+        height: 4px;
+        background-color: var(--text-muted);
+        clip-path: polygon(100% 0, 0 0, 50% 100%);
+        pointer-events: none;
+      }
+
+      .filter-select-wrapper .filter-select {
+        width: 100%;
+        padding-right: 22px !important;
+        appearance: none;
+        -webkit-appearance: none;
       }
 
       .filter-select,
@@ -1112,28 +1263,42 @@
         background: var(--element-bg);
         border: 1px solid var(--border-main);
         color: var(--text-main);
-        padding: 6px 10px;
-        border-radius: 8px;
+        padding: 4px 10px;
+        border-radius: 6px;
         font-family: inherit;
-        font-size: 0.75rem;
-        font-weight: 600;
+        font-size: 0.72rem;
+        font-weight: 500;
         outline: none;
-        cursor: pointer;
-        transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        height: 27px;
+        transition:
+          background-color 0.15s ease,
+          border-color 0.15s ease,
+          box-shadow 0.15s ease,
+          transform 0.1s ease;
         box-sizing: border-box;
+        cursor: pointer;
+      }
+
+      .filter-input::-webkit-calendar-picker-indicator {
+        display: none !important;
       }
 
       .filter-select:hover,
-      .filter-input:hover,
+      .filter-input:hover {
+        background: var(--element-hover);
+        border-color: var(--border-light);
+      }
+
       .filter-select:focus,
       .filter-input:focus {
-        border-color: var(--border-light);
         background: var(--element-hover);
+        border-color: var(--accent-blue);
+        box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.12);
       }
 
       .filter-select:active,
       .filter-input:active {
-        transform: scale(0.97);
+        transform: scale(0.98);
       }
 
       .filter-select option {
@@ -1141,35 +1306,166 @@
         color: var(--text-main);
       }
 
-      .filter-checkbox-label {
-        display: flex;
+      .filter-checkbox-chip {
+        display: inline-flex;
         align-items: center;
-        gap: 8px;
-        font-size: 0.75rem;
-        font-weight: 600;
-        color: var(--text-muted);
+        justify-content: center;
+        background: var(--element-bg);
+        border: 1px solid var(--border-main);
+        padding: 0 8px;
+        border-radius: 6px;
+        height: 27px;
         cursor: pointer;
         user-select: none;
+        transition:
+          all 0.15s ease,
+          transform 0.1s ease;
+        box-sizing: border-box;
+        font-size: 0.72rem;
+        font-weight: 600;
+        color: var(--text-muted);
       }
 
-      .filter-checkbox-label input {
+      .filter-checkbox-chip:hover {
+        background: var(--element-hover);
+        border-color: var(--border-light);
+        color: var(--text-main);
+      }
+
+      .filter-checkbox-chip:active {
+        transform: scale(0.98);
+      }
+
+      .filter-checkbox-chip input {
+        display: none;
+      }
+
+      .filter-checkbox-chip:has(input:checked) {
+        background: rgba(96, 165, 250, 0.12) !important;
+        border-color: var(--accent-blue) !important;
+        color: var(--accent-blue) !important;
+      }
+
+      .filter-checkbox-chip .checkbox-text {
+        font-size: 0.72rem;
+        font-weight: 600;
+        transition: color 0.15s ease;
+      }
+
+      .filter-checkbox-chip:has(input:checked) .checkbox-text {
+        color: var(--accent-blue) !important;
+      }
+
+      .filter-group-card {
+        display: flex;
+        align-items: center;
+        background: var(--element-bg);
+        border: 1px solid var(--border-main);
+        border-radius: 6px;
+        padding: 0 8px;
+        gap: 4px;
+        height: 27px;
+        transition:
+          border-color 0.15s ease,
+          background-color 0.15s ease;
+        box-sizing: border-box;
+      }
+
+      .filter-group-card:focus-within {
+        border-color: var(--accent-blue);
+        background: var(--element-hover);
+        box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.12);
+      }
+
+      .filter-group-card .filter-input {
+        border: none !important;
+        background: transparent !important;
+        padding: 0 !important;
+        outline: none !important;
+        margin: 0 !important;
+        box-shadow: none !important;
+        flex: 1;
+        height: 100% !important;
+      }
+
+      .form-label-xs {
+        font-size: 0.6rem;
+        color: var(--text-muted);
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        user-select: none;
+        flex-shrink: 0;
+      }
+
+      .filter-suffix {
+        font-size: 0.65rem;
+        color: var(--text-muted);
+        font-weight: 700;
+        text-transform: uppercase;
+        user-select: none;
+        flex-shrink: 0;
+      }
+
+      .preset-action-btn {
+        padding: 0 8px;
+        height: 30px;
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
         cursor: pointer;
-        width: 14px;
-        height: 14px;
-        accent-color: var(--accent-blue);
+        background: var(--element-bg);
+        border: 1px solid var(--border-main);
+        color: var(--text-muted);
+        transition:
+          all 0.15s ease,
+          transform 0.1s ease;
+        font-size: 0.7rem;
+        font-weight: 600;
+        flex-shrink: 0;
+        box-sizing: border-box;
+      }
+
+      .preset-action-btn:hover {
+        background: var(--element-hover);
+        color: var(--text-main);
+        border-color: var(--border-light);
+      }
+
+      .preset-action-btn:active {
+        transform: scale(0.92);
+      }
+
+      .preset-action-btn.btn-save:hover {
+        color: var(--accent-work);
+        border-color: rgba(74, 222, 128, 0.3);
+        background: rgba(74, 222, 128, 0.06);
+      }
+
+      .preset-action-btn.btn-delete:hover {
+        color: var(--accent-break);
+        border-color: rgba(248, 113, 113, 0.3);
+        background: rgba(248, 113, 113, 0.06);
       }
 
       .clear-filter-btn {
         background: transparent;
         color: var(--text-muted);
         border: 1px solid var(--border-main);
-        padding: 5px 10px;
-        border-radius: 8px;
-        font-size: 0.72rem;
-        margin-left: auto;
+        padding: 0 10px;
+        border-radius: 6px;
+        font-size: 0.7rem;
         cursor: pointer;
         font-weight: 600;
-        transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        transition:
+          all 0.15s ease,
+          transform 0.1s ease;
+        height: 27px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-sizing: border-box;
       }
 
       .clear-filter-btn:hover {
@@ -1179,7 +1475,7 @@
       }
 
       .clear-filter-btn:active {
-        transform: scale(0.95);
+        transform: scale(0.97);
       }
 
       /* Active Filter Chips Styling */
@@ -1194,7 +1490,12 @@
         border-radius: 99px;
         font-size: 0.7rem;
         font-weight: 600;
-        transition: all 0.2s ease;
+        transition:
+          background-color 0.2s ease,
+          border-color 0.2s ease,
+          color 0.2s ease,
+          opacity 0.2s ease,
+          transform 0.2s ease;
         animation: chipFadeIn 0.2s cubic-bezier(0.4, 0, 0.2, 1);
       }
 
@@ -1215,7 +1516,12 @@
         height: 14px;
         font-size: 0.65rem;
         font-weight: bold;
-        transition: all 0.15s ease;
+        transition:
+          background-color 0.15s ease,
+          border-color 0.15s ease,
+          color 0.15s ease,
+          opacity 0.15s ease,
+          transform 0.15s ease;
       }
 
       .filter-chip-remove:hover {
@@ -1351,7 +1657,12 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        transition:
+          background-color 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+          border-color 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+          color 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+          opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+          transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
       }
 
       .icon-btn:hover:not(:disabled) {
@@ -1385,13 +1696,13 @@
        ========================================================================= */
       .sidebar-footer {
         margin-top: auto;
-        padding-top: 0.5rem;
+        padding-top: 0.75rem;
         border-top: 1px solid var(--border-main);
         display: flex;
-        justify-content: space-between;
+        justify-content: center;
         align-items: center;
-        /* Centers metadata and icons vertically in one row */
-        margin-right: 0px;
+        width: 100%;
+        box-sizing: border-box;
         flex-shrink: 0;
         min-height: 60px;
       }
@@ -1425,27 +1736,31 @@
       .footer-icons {
         display: flex;
         align-items: center;
-        gap: 12px;
+        justify-content: center;
+        width: 100%;
+        gap: clamp(4px, 0.4vw, 8px);
       }
 
       .icon-stack {
         display: flex;
         flex-direction: column;
         align-items: center;
-        gap: 4px;
+        gap: 6px;
+        width: clamp(34px, 2.6vw, 42px);
+        text-align: center;
       }
 
       .icon-tag {
-        font-family: var(--font-mono);
-        font-size: 0.42rem;
+        font-family: var(--font-sans);
+        font-size: clamp(8px, 0.6vw, 10px);
         font-weight: 700;
         color: var(--text-muted);
-        text-transform: uppercase;
         opacity: 0.55;
-        letter-spacing: 0.06em;
+        letter-spacing: 0.02em;
         transition:
-          opacity 0.25s ease,
-          color 0.25s ease;
+          color 0.25s ease,
+          opacity 0.25s ease;
+        white-space: nowrap;
       }
 
       .icon-stack:hover .icon-tag {
@@ -1458,8 +1773,8 @@
       }
 
       .sidebar-footer .sq-btn {
-        width: 38px;
-        height: 38px;
+        width: clamp(28px, 2.4vw, 38px);
+        height: clamp(28px, 2.4vw, 38px);
         background: var(--element-bg);
         border: 1px solid var(--border-main);
         border-radius: 8px;
@@ -1467,11 +1782,12 @@
         align-items: center;
         justify-content: center;
         cursor: pointer;
+        box-sizing: border-box;
       }
 
       .sidebar-footer .sq-btn svg {
-        width: 17px;
-        height: 17px;
+        width: clamp(15px, 1.2vw, 19px);
+        height: clamp(15px, 1.2vw, 19px);
       }
 
       .sidebar-footer .sq-btn:hover {
@@ -1489,6 +1805,172 @@
         transform: scale(0.93) translateY(0);
       }
 
+      /* Inactivity Config Popup Styling */
+      .idle-popup {
+        position: absolute;
+        bottom: 110%;
+        left: 50%;
+        transform: translateX(-50%) translateY(-0.625rem);
+        /* Scales dynamically on window resize */
+        background: var(--dropdown-bg);
+        border: 1px solid var(--border-light);
+        border-radius: 0.75rem;
+        /* Scales dynamically on window resize */
+        padding: 0.75rem;
+        /* Scales dynamically on window resize */
+        width: 11.25rem;
+        /* Scales dynamically on window resize */
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+        z-index: 1500;
+        display: none;
+        flex-direction: column;
+        gap: 0.625rem;
+        /* Scales dynamically on window resize */
+        text-align: left;
+      }
+
+      .idle-popup::before {
+        content: "";
+        position: absolute;
+        bottom: -10px;
+        left: 0;
+        right: 0;
+        height: 10px;
+      }
+
+      .idle-popup.show {
+        display: flex;
+      }
+
+      .idle-popup-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        width: 100%;
+      }
+
+      .idle-popup-row.flex-col {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 6px;
+      }
+
+      .idle-popup-subrow {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        width: 100%;
+      }
+
+      .idle-popup-label {
+        font-size: 0.7rem;
+        font-weight: 700;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+
+      .idle-popup-val {
+        font-family: var(--font-mono);
+        font-size: 0.75rem;
+        font-weight: 700;
+        color: var(--accent-blue);
+      }
+
+      /* Switch Toggle Styling */
+      .switch {
+        position: relative;
+        display: inline-block;
+        width: 2rem;
+        /* Scales dynamically on window resize */
+        height: 1.125rem;
+        /* Scales dynamically on window resize */
+      }
+
+      .switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+      }
+
+      .slider-toggle {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: rgba(255, 255, 255, 0.1);
+        transition: 0.2s;
+        border-radius: 1.125rem;
+        /* Scales dynamically on window resize */
+        border: 1px solid var(--border-main);
+      }
+
+      .slider-toggle:before {
+        position: absolute;
+        content: "";
+        height: 0.75rem;
+        /* Scales dynamically on window resize */
+        width: 0.75rem;
+        /* Scales dynamically on window resize */
+        left: 0.125rem;
+        /* Scales dynamically on window resize */
+        bottom: 0.125rem;
+        /* Scales dynamically on window resize */
+        background-color: var(--text-muted);
+        transition: 0.2s;
+        border-radius: 50%;
+      }
+
+      input:checked + .slider-toggle {
+        background-color: rgba(96, 165, 250, 0.2);
+        border-color: var(--accent-blue);
+      }
+
+      input:checked + .slider-toggle:before {
+        transform: translateX(0.875rem);
+        /* Scales dynamically on window resize */
+        background-color: var(--accent-blue);
+      }
+
+      /* Range Slider Input Styling */
+      .idle-range-input {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 100%;
+        height: 4px;
+        border-radius: 2px;
+        background: rgba(255, 255, 255, 0.1);
+        outline: none;
+        margin: 4px 0;
+      }
+
+      .idle-range-input::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: var(--accent-blue);
+        cursor: pointer;
+        transition: transform 0.1s;
+      }
+
+      .idle-range-input::-webkit-slider-thumb:hover {
+        transform: scale(1.2);
+      }
+
+      .idle-range-input:disabled {
+        opacity: 0.3;
+        cursor: not-allowed;
+      }
+
+      .idle-range-input:disabled::-webkit-slider-thumb {
+        background: var(--text-muted);
+        cursor: not-allowed;
+      }
+
       /* Theme Adjustments */
       :root[data-theme="midnight"] .sidebar-footer .sq-btn {
         background: transparent;
@@ -1502,8 +1984,7 @@
 
       :root[data-theme="glass"] .sidebar-footer .sq-btn:hover {
         background: rgba(255, 255, 255, 0.08);
-        backdrop-filter: blur(8px);
-        -webkit-backdrop-filter: blur(8px);
+        /* removed backdrop-filter for CPU perf */
         box-shadow:
           inset 0 1px 0 rgba(255, 255, 255, 0.15),
           0 4px 12px rgba(0, 0, 0, 0.15);
@@ -1563,9 +2044,11 @@
       /* Separator between standard actions and danger zone */
       .footer-divider {
         width: 1px;
-        height: 28px;
+        height: 1.75rem;
+        /* Scales dynamically on window resize */
         background: var(--border-main);
-        margin: 0 4px;
+        margin: 0 0.25rem;
+        /* Scales dynamically on window resize */
         align-self: center;
       }
 
@@ -1665,6 +2148,8 @@
         );
         box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.1);
         transition: transform 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+        will-change: transform;
+        /* Promotes segment fills to the GPU compositor layer */
       }
 
       .progress-segment.is-today {
@@ -1699,31 +2184,124 @@
       /* =========================================================================
        13. MODALS, TOASTS & RESPONSIVE BREAKPOINTS
        ========================================================================= */
+      @keyframes modalOverlayFadeIn {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+
+      @keyframes modalContainerScaleIn {
+        from {
+          transform: scale(0.96);
+          opacity: 0;
+        }
+        to {
+          transform: scale(1);
+          opacity: 1;
+        }
+      }
+
       .modal-overlay {
         position: fixed;
         top: 0;
         left: 0;
         right: 0;
         bottom: 0;
-        background: rgba(5, 5, 5, 0.9);
+        background: rgba(5, 5, 5, 0.85);
         z-index: 2000;
         display: none;
         align-items: center;
         justify-content: center;
         padding: 20px;
+        animation: modalOverlayFadeIn 0.15s cubic-bezier(0.16, 1, 0.3, 1)
+          forwards;
       }
 
       .modal-container {
         width: 100%;
-        max-width: 400px;
+        max-width: var(--modal-width-sm);
         background: var(--modal-bg);
         border: 1px solid var(--border-main);
-        border-radius: 20px;
-        padding: 30px;
-        /* Box shadow simplified to lower the paint time for modal popups */
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
-        /* Backdrop filter operations removed */
-        transition: none;
+        border-radius: var(--radius-xl);
+        padding: var(--space-5);
+        box-shadow:
+          0 10px 25px -5px rgba(0, 0, 0, 0.5),
+          0 8px 10px -6px rgba(0, 0, 0, 0.5),
+          inset 0 1px 0 rgba(255, 255, 255, 0.05);
+        position: relative;
+        overflow: hidden;
+        animation: modalContainerScaleIn 0.2s cubic-bezier(0.16, 1, 0.3, 1)
+          forwards;
+      }
+
+      /* Standard Modal Sizes */
+      .modal-width-sm {
+        max-width: var(--modal-width-sm) !important;
+      }
+      .modal-width-md {
+        max-width: var(--modal-width-md) !important;
+      }
+
+      /* Semantic Accent Tops for Modals */
+      .modal-container.accent-warning {
+        border-top: 4px solid var(--accent-warning);
+      }
+      .modal-container.accent-danger {
+        border-top: 4px solid var(--accent-break);
+      }
+      .modal-container.accent-info {
+        border-top: 4px solid var(--accent-blue);
+      }
+      .modal-container.accent-success {
+        border-top: 4px solid var(--accent-work);
+      }
+
+      /* Standardized visual date picker input groupings */
+      .date-picker-group {
+        display: flex;
+        align-items: center;
+        background: var(--panel-bg);
+        border: 1px solid var(--border-main);
+        border-radius: var(--radius-md);
+        padding: 0 var(--space-3);
+        height: 38px;
+        box-sizing: border-box;
+        transition:
+          border-color 0.15s ease,
+          background-color 0.15s ease;
+        width: 100%;
+      }
+      .date-picker-group:focus-within {
+        border-color: var(--border-light);
+        background: var(--element-hover);
+      }
+      .date-picker-group .input-standard {
+        border: none !important;
+        background: transparent !important;
+        padding: 0 !important;
+        outline: none !important;
+        width: 100% !important;
+        box-shadow: none !important;
+        height: 100% !important;
+      }
+      .date-picker-group .preset-pill {
+        background: transparent !important;
+        border: none !important;
+        padding: 0 !important;
+        color: var(--text-muted) !important;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: color 0.15s ease;
+        flex-shrink: 0;
+        margin-left: var(--space-2);
+      }
+      .date-picker-group .preset-pill:hover {
+        color: var(--text-main) !important;
       }
 
       .modal-container h3 {
@@ -1749,12 +2327,12 @@
         display: flex;
         gap: 12px;
         align-items: center;
+        justify-content: center;
         z-index: 3000;
         box-shadow:
-          0 20px 40px rgba(0, 0, 0, 0.5),
-          0 0 30px rgba(96, 165, 250, 0.15);
-        backdrop-filter: var(--panel-blur);
-        -webkit-backdrop-filter: var(--panel-blur);
+          0 4px 12px rgba(0, 0, 0, 0.4),
+          inset 0 1px 0 rgba(255, 255, 255, 0.05);
+        /* removed backdrop-filter for CPU perf */
         border-color: rgba(96, 165, 250, 0.3);
       }
 
@@ -1777,7 +2355,12 @@
         font-weight: 700;
         font-size: 0.7rem;
         letter-spacing: 0.02em;
-        transition: all 0.2s ease;
+        transition:
+          background-color 0.2s ease,
+          border-color 0.2s ease,
+          color 0.2s ease,
+          opacity 0.2s ease,
+          transform 0.2s ease;
       }
 
       #undo-btn:hover {
@@ -1803,12 +2386,12 @@
         display: flex;
         gap: 12px;
         align-items: center;
+        justify-content: center;
         z-index: 3000;
         box-shadow:
-          0 20px 40px rgba(0, 0, 0, 0.5),
-          0 0 30px rgba(245, 158, 11, 0.15);
-        backdrop-filter: var(--panel-blur);
-        -webkit-backdrop-filter: var(--panel-blur);
+          0 4px 12px rgba(0, 0, 0, 0.4),
+          inset 0 1px 0 rgba(255, 255, 255, 0.05);
+        /* removed backdrop-filter for CPU perf */
         border-color: rgba(245, 158, 11, 0.3);
       }
 
@@ -1828,12 +2411,12 @@
         display: flex;
         gap: 12px;
         align-items: center;
+        justify-content: center;
         z-index: 4000;
         box-shadow:
-          0 20px 40px rgba(0, 0, 0, 0.5),
-          0 0 30px rgba(74, 222, 128, 0.15);
-        backdrop-filter: var(--panel-blur);
-        -webkit-backdrop-filter: var(--panel-blur);
+          0 4px 12px rgba(0, 0, 0, 0.4),
+          inset 0 1px 0 rgba(255, 255, 255, 0.05);
+        /* removed backdrop-filter for CPU perf */
         border-color: rgba(74, 222, 128, 0.3);
       }
 
@@ -1873,12 +2456,12 @@
         display: flex;
         gap: 12px;
         align-items: center;
+        justify-content: center;
         z-index: 4000;
         box-shadow:
-          0 20px 40px rgba(0, 0, 0, 0.5),
-          0 0 30px rgba(96, 165, 250, 0.1);
-        backdrop-filter: var(--panel-blur);
-        -webkit-backdrop-filter: var(--panel-blur);
+          0 4px 12px rgba(0, 0, 0, 0.4),
+          inset 0 1px 0 rgba(255, 255, 255, 0.05);
+        /* removed backdrop-filter for CPU perf */
         border-color: rgba(96, 165, 250, 0.2);
       }
 
@@ -1924,7 +2507,7 @@
         .sidebar-footer {
           flex-direction: column;
           gap: 15px;
-          align-items: flex-start;
+          align-items: center;
         }
       }
 
@@ -1973,23 +2556,129 @@
 
     <!-- Idle Lockout Detection Overlay Modal -->
     <div id="idle-modal" class="modal-overlay">
-      <div class="modal-container">
-        <h3 class="modal-header warning">Idle Detected</h3>
-        <p class="modal-body-text">
-          You were away for
-          <span
-            id="idle-duration-text"
-            class="font-mono"
-            style="color: var(--text-main); font-weight: bold"
-          ></span
-          >. Where should this time go?
+      <div class="modal-container modal-width-md accent-warning">
+        <h3
+          id="idle-header"
+          class="modal-header warning"
+          style="display: flex; align-items: center; gap: var(--space-2)"
+        >
+          <span id="idle-title-text">Idle Detected</span>
+        </h3>
+        <p
+          id="idle-description-text"
+          class="modal-body-text"
+          style="margin-bottom: var(--space-3)"
+        >
+          You were away. Where should this time go?
         </p>
-        <div class="action-row">
-          <button class="btn-success-outline" onclick="resolveIdle('work')">
-            Log as Work
+
+        <!-- Timestamps Context Box -->
+        <div
+          style="
+            background: var(--element-bg);
+            border: 1px solid var(--border-main);
+            border-radius: var(--radius-md);
+            padding: var(--space-3);
+            margin-bottom: var(--space-4);
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-2);
+            font-size: var(--text-xs);
+            color: var(--text-muted);
+          "
+        >
+          <div style="display: flex; justify-content: space-between">
+            <span>Last Active Time:</span>
+            <span
+              id="idle-last-active"
+              class="font-mono"
+              style="color: var(--text-main); font-weight: 600"
+              >--:--:--</span
+            >
+          </div>
+          <div style="display: flex; justify-content: space-between">
+            <span>Current Time:</span>
+            <span
+              id="idle-current-time"
+              class="font-mono"
+              style="color: var(--text-main); font-weight: 600"
+              >--:--:--</span
+            >
+          </div>
+          <div
+            style="
+              display: flex;
+              justify-content: space-between;
+              border-top: 1px solid var(--border-main);
+              padding-top: var(--space-2);
+              margin-top: 2px;
+            "
+          >
+            <span>Unaccounted Duration:</span>
+            <span
+              id="idle-duration-text"
+              class="font-mono"
+              style="color: var(--accent-blue); font-weight: bold"
+              >--:--:--</span
+            >
+          </div>
+        </div>
+
+        <div
+          class="action-row"
+          style="flex-direction: column; gap: var(--space-2)"
+        >
+          <button
+            class="btn-success-outline"
+            onclick="resolveIdle('work')"
+            style="
+              width: 100%;
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              justify-content: center;
+              padding: var(--space-2) var(--space-4);
+              height: auto;
+            "
+          >
+            <span style="font-weight: 700; font-size: var(--text-sm)"
+              >Log as Work</span
+            >
+            <span
+              style="
+                font-size: 10px;
+                font-weight: 400;
+                opacity: 0.8;
+                margin-top: 2px;
+              "
+              >Add this duration to your work timer</span
+            >
           </button>
-          <button class="btn-danger-outline" onclick="resolveIdle('break')">
-            Log as Break
+          <button
+            class="btn-danger-outline"
+            onclick="resolveIdle('break')"
+            style="
+              width: 100%;
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              justify-content: center;
+              padding: var(--space-2) var(--space-4);
+              height: auto;
+            "
+          >
+            <span style="font-weight: 700; font-size: var(--text-sm)"
+              >Log as Break</span
+            >
+            <span
+              style="
+                font-size: 10px;
+                font-weight: 400;
+                opacity: 0.8;
+                margin-top: 2px;
+              "
+              >Add this duration to your break timer</span
+            >
           </button>
         </div>
       </div>
@@ -1997,7 +2686,7 @@
 
     <!-- Micro-Shift Alert Modal (Ghost Filter) -->
     <div id="ghost-modal" class="modal-overlay">
-      <div class="modal-container">
+      <div class="modal-container modal-width-sm accent-warning">
         <h3 class="modal-header warning">Short Shift Detected</h3>
         <p class="modal-body-text">
           This shift is under 60 seconds. Are you sure you want to log it?
@@ -2015,7 +2704,7 @@
 
     <!-- End of Day Note & Submission Modal -->
     <div id="submit-modal" class="modal-overlay">
-      <div class="modal-container">
+      <div class="modal-container modal-width-sm accent-info">
         <h3 class="modal-header">End of Day Submission</h3>
         <div class="form-group">
           <label class="form-label" for="modal-shift-notes"
@@ -2047,8 +2736,8 @@
       style="z-index: 9999; background: var(--page-bg)"
     >
       <div
-        class="modal-container"
-        style="text-align: center; border-color: var(--accent-break)"
+        class="modal-container modal-width-sm accent-danger"
+        style="text-align: center"
       >
         <h1
           style="font-size: 3rem; margin-bottom: var(--space-3); margin-top: 0"
@@ -2071,30 +2760,35 @@
       </div>
     </div>
 
+    <!-- Sync Session Toast Notification -->
+    <div id="sync-toast"></div>
+
     <!-- Native App Toast Notification Overlay -->
     <div id="app-toast">
       <div class="app-toast-icon">
         <svg
           xmlns="http://www.w3.org/2000/svg"
-          width="14"
-          height="14"
+          width="16"
+          height="16"
           viewBox="0 0 24 24"
-          fill="none"
           stroke="currentColor"
-          stroke-width="2.5"
+          fill="none"
+          stroke-width="2"
           stroke-linecap="round"
           stroke-linejoin="round"
         >
-          <circle cx="12" cy="12" r="10"></circle>
-          <line x1="12" y1="16" x2="12" y2="12"></line>
-          <line x1="12" y1="8" x2="12.01" y2="8"></line>
+          <path d="M18 8h1a4 4 0 0 1 0 8h-1"></path>
+          <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path>
+          <line x1="6" y1="1" x2="6" y2="4"></line>
+          <line x1="10" y1="1" x2="10" y2="4"></line>
+          <line x1="14" y1="1" x2="14" y2="4"></line>
         </svg>
       </div>
       <span id="app-toast-content">Message</span>
     </div>
 
     <div id="confirm-modal" class="modal-overlay" style="z-index: 3500">
-      <div class="modal-container">
+      <div class="modal-container modal-width-sm accent-warning">
         <h3 id="confirm-title" class="modal-header warning">Confirm Action</h3>
         <p id="confirm-desc" class="modal-body-text">Are you sure?</p>
         <div class="action-row">
@@ -2110,16 +2804,53 @@
 
     <!-- Log Edit Form Popup -->
     <div id="edit-modal" class="modal-overlay" style="z-index: 3500">
-      <div class="modal-container" style="max-width: 350px">
+      <div class="modal-container modal-width-sm accent-info">
         <h3 class="modal-header">Edit Shift</h3>
         <div class="form-group">
           <label class="form-label" for="edit-date">Date (MM/DD/YY)</label>
-          <input
-            type="text"
-            id="edit-date"
-            class="input-standard"
-            onfocus="this.select()"
-          />
+          <div class="date-picker-group">
+            <input
+              type="text"
+              id="edit-date"
+              class="input-standard"
+              onfocus="this.select()"
+            />
+            <!-- Hidden native input triggered by button click -->
+            <input
+              type="date"
+              id="edit-date-picker"
+              style="
+                position: absolute;
+                opacity: 0;
+                width: 0;
+                height: 0;
+                pointer-events: none;
+              "
+            />
+            <button
+              type="button"
+              class="preset-pill"
+              onclick="document.getElementById('edit-date-picker').showPicker()"
+              title="Open Calendar"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                fill="none"
+                style="
+                  width: 14px;
+                  height: 14px;
+                  stroke-width: 2;
+                  flex-shrink: 0;
+                "
+              >
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="16" y1="2" x2="16" y2="6"></line>
+                <line x1="8" y1="2" x2="8" y2="6"></line>
+                <line x1="3" y1="10" x2="21" y2="10"></line>
+              </svg>
+            </button>
+          </div>
         </div>
         <div class="form-row">
           <div class="form-group">
@@ -2162,17 +2893,56 @@
 
     <!-- Manual Entry Form Popup Overlay -->
     <div id="manual-modal" class="modal-overlay" style="z-index: 3500">
-      <div class="modal-container" style="max-width: 350px">
+      <div class="modal-container modal-width-sm accent-success">
         <h3 class="modal-header">Add Manual Shift</h3>
         <div class="form-group">
           <label class="form-label" for="manual-date">Date (MM/DD/YY)</label>
-          <input
-            type="text"
-            id="manual-date"
-            class="input-standard"
-            placeholder="05/16/26"
-            onfocus="this.select()"
-          />
+          <div class="date-picker-group">
+            <input
+              type="text"
+              id="manual-date"
+              class="input-standard"
+              placeholder="05/16/26"
+              onfocus="this.select()"
+            />
+            <!-- Hidden native input triggered by button click -->
+            <input
+              type="date"
+              id="manual-date-picker"
+              style="
+                position: absolute;
+                opacity: 0;
+                width: 0;
+                height: 0;
+                pointer-events: none;
+              "
+            />
+            <button
+              type="button"
+              class="preset-pill"
+              onclick="
+                document.getElementById('manual-date-picker').showPicker()
+              "
+              title="Open Calendar"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                fill="none"
+                style="
+                  width: 14px;
+                  height: 14px;
+                  stroke-width: 2;
+                  flex-shrink: 0;
+                "
+              >
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="16" y1="2" x2="16" y2="6"></line>
+                <line x1="8" y1="2" x2="8" y2="6"></line>
+                <line x1="3" y1="10" x2="21" y2="10"></line>
+              </svg>
+            </button>
+          </div>
         </div>
         <div class="form-row">
           <div class="form-group">
@@ -2197,7 +2967,10 @@
           </div>
         </div>
         <div class="form-group">
-          <label class="form-label" style="color: var(--accent-blue)"
+          <label
+            class="form-label"
+            for="manual-goal-h"
+            style="color: var(--accent-blue)"
             >Daily Goal for this shift</label
           >
           <div style="display: flex; gap: var(--space-2); align-items: center">
@@ -2241,8 +3014,8 @@
     </div>
 
     <div id="note-modal" class="modal-overlay">
-      <div class="modal-container">
-        <h3 class="modal-header info">Shift Note</h3>
+      <div class="modal-container modal-width-sm accent-info">
+        <h3 class="modal-header">Shift Note</h3>
         <div
           id="note-modal-text"
           class="input-standard"
@@ -2265,7 +3038,7 @@
     <div id="app-tooltip" class="app-tooltip"></div>
 
     <div id="preset-modal" class="modal-overlay" style="z-index: 3500">
-      <div class="modal-container" style="max-width: 320px">
+      <div class="modal-container modal-width-sm accent-info">
         <h3 class="modal-header">Edit Preset</h3>
         <div class="form-group">
           <label class="form-label" for="preset-input"
@@ -2293,8 +3066,11 @@
     </div>
 
     <div id="leave-modal" class="modal-overlay" style="z-index: 3500">
-      <div class="modal-container" style="max-width: 360px">
-        <h3 class="modal-header info">
+      <div class="modal-container modal-width-md accent-info">
+        <h3
+          class="modal-header"
+          style="white-space: nowrap; font-size: 1.05rem"
+        >
           <svg
             viewBox="0 0 24 24"
             class="ui-icon"
@@ -2306,33 +3082,101 @@
             <line x1="8" y1="2" x2="8" y2="6"></line>
             <line x1="3" y1="10" x2="21" y2="10"></line>
           </svg>
-          Manage Leaves & Holidays
+          Leaves & Holidays
         </h3>
+
+        <!-- Date Picker Row -->
         <div class="form-group">
           <label class="form-label" for="leave-date-input"
-            >Add Leave Date</label
+            >Select Leave Date</label
           >
-          <div style="display: flex; gap: var(--space-2)">
+          <div class="date-picker-group">
             <input
-              type="date"
+              type="text"
               id="leave-date-input"
               class="input-standard"
-              style="flex: 1"
+              placeholder="05/16/26"
+              onfocus="this.select()"
+            />
+            <!-- Hidden native input triggered by button click -->
+            <input
+              type="date"
+              id="leave-date-picker"
+              style="
+                position: absolute;
+                opacity: 0;
+                width: 0;
+                height: 0;
+                pointer-events: none;
+              "
             />
             <button
-              class="btn-info-outline"
-              style="flex: 0 0 auto; padding: var(--space-2) var(--space-4)"
-              onclick="addLeaveDate()"
+              type="button"
+              class="preset-pill"
+              onclick="
+                document.getElementById('leave-date-picker').showPicker()
+              "
+              title="Open Calendar"
             >
-              Add
+              <svg
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                fill="none"
+                style="
+                  width: 14px;
+                  height: 14px;
+                  stroke-width: 2;
+                  flex-shrink: 0;
+                "
+              >
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="16" y1="2" x2="16" y2="6"></line>
+                <line x1="8" y1="2" x2="8" y2="6"></line>
+                <line x1="3" y1="10" x2="21" y2="10"></line>
+              </svg>
             </button>
           </div>
         </div>
-        <label class="form-label">Active Leave Dates</label>
+
+        <!-- Leave Classification dropdown -->
+        <div class="form-group">
+          <label class="form-label" for="leave-type-select">Leave Type</label>
+          <select
+            id="leave-type-select"
+            class="input-standard"
+            style="cursor: pointer"
+          >
+            <option value="Casual">Casual</option>
+            <option value="Sick">Sick</option>
+            <option value="Public Holiday">Public Holiday</option>
+            <option value="In Lieu">In Lieu</option>
+          </select>
+        </div>
+
+        <!-- Modal Action triggers -->
+        <div
+          class="form-group"
+          style="margin-bottom: var(--space-5); margin-top: var(--space-4)"
+        >
+          <button
+            class="btn-info-outline"
+            style="
+              width: 100%;
+              height: 38px;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+            "
+            onclick="addLeaveDate()"
+          >
+            Add Leave Entry
+          </button>
+        </div>
+        <span class="form-label">Active Leave Dates</span>
         <div
           id="leave-dates-list"
           style="
-            max-height: 150px;
+            height: 150px;
             overflow-y: auto;
             background: rgba(0, 0, 0, 0.15);
             border: 1px solid var(--border-light);
@@ -2392,6 +3236,23 @@
 
             <div class="tz-container">
               <div class="tz-trigger">
+                <!-- Inline chevron SVG matching the goal control chevron -->
+                <svg
+                  class="tz-chevron"
+                  width="10"
+                  height="10"
+                  viewBox="0 0 10 10"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M2 3.5L5 6.5L8 3.5"
+                    stroke="currentColor"
+                    stroke-width="1.5"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                </svg>
                 <span id="tz-current-label">PST</span>
               </div>
               <div class="tz-presets">
@@ -2431,7 +3292,7 @@
           <div style="display: flex; gap: 15px; align-items: stretch">
             <div class="goal-container">
               <div class="status-badge goal-inputs" style="padding: 0 0.8rem">
-                <span class="label">Goal:</span>
+                <span class="label">Goal</span>
                 <input
                   type="text"
                   id="goal-time"
@@ -2656,193 +3517,284 @@
 
           <!-- Filter Drawer Container -->
           <div id="advanced-filters" class="advanced-filters">
-            <!-- Time & Status Select Dropdowns -->
-            <div class="filter-row">
-              <select id="filter-time" class="filter-select" style="flex: 1">
-                <option value="ALL">All Time</option>
-                <option value="TODAY">Today</option>
-                <option value="WEEK">This Week</option>
-                <option value="MONTH">This Month</option>
-              </select>
-              <select id="filter-status" class="filter-select" style="flex: 1">
-                <option value="ALL">All Status</option>
-                <option value="OVER">Over Goal</option>
-                <option value="UNDER">Under Goal</option>
-              </select>
-            </div>
+            <!-- Hidden view presets container for JS safety -->
+            <select id="filter-view-presets" style="display: none !important">
+              <option value="">Views...</option>
+            </select>
 
-            <!-- Unified Date Range Picker -->
-            <div
-              class="filter-row"
-              style="
-                background: rgba(255, 255, 255, 0.02);
-                border: 1px solid var(--border-main);
-                border-radius: 14px;
-                padding: 8px 12px;
-                gap: 8px;
-              "
-            >
-              <div
-                style="display: flex; align-items: center; gap: 8px; flex: 1"
-              >
-                <span
-                  style="
-                    font-size: 0.65rem;
-                    color: var(--text-muted);
-                    font-weight: 700;
-                  "
-                  >From</span
+            <!-- Row 1: Search -->
+            <div class="filter-row">
+              <div class="filter-input-wrapper" style="flex: 1; min-width: 0">
+                <svg
+                  class="field-icon"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
                 >
+                  <circle cx="11" cy="11" r="8"></circle>
+                  <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
                 <input
-                  type="date"
-                  id="filter-date-start"
+                  type="text"
+                  id="filter-search"
                   class="filter-input"
-                  style="
-                    flex: 1;
-                    font-size: 0.7rem;
-                    padding: 4px 8px;
-                    border-radius: 8px;
-                    text-align: left;
-                    border: none;
-                    background: transparent;
-                  "
-                />
-              </div>
-              <span
-                style="
-                  color: var(--text-muted);
-                  font-size: 0.8rem;
-                  font-weight: bold;
-                "
-                >→</span
-              >
-              <div
-                style="display: flex; align-items: center; gap: 8px; flex: 1"
-              >
-                <span
-                  style="
-                    font-size: 0.65rem;
-                    color: var(--text-muted);
-                    font-weight: 700;
-                  "
-                  >To</span
-                >
-                <input
-                  type="date"
-                  id="filter-date-end"
-                  class="filter-input"
-                  style="
-                    flex: 1;
-                    font-size: 0.7rem;
-                    padding: 4px 8px;
-                    border-radius: 8px;
-                    text-align: left;
-                    border: none;
-                    background: transparent;
-                  "
+                  placeholder="Search notes or times..."
                 />
               </div>
             </div>
 
-            <!-- Hours Filter -->
+            <!-- Row 2: Unified Constraints (Date Picker & Hours Filter) -->
             <div class="filter-row">
-              <select
-                id="filter-hours-op"
-                class="filter-select"
-                style="flex: 1.5"
-              >
-                <option value="ALL">Hours worked...</option>
-                <option value="MORE">More than</option>
-                <option value="LESS">Less than</option>
-              </select>
+              <!-- Unified Date Picker -->
               <div
                 style="
+                  flex: 1.5;
+                  min-width: 0;
                   display: flex;
                   align-items: center;
-                  gap: 8px;
-                  flex: 1;
-                  background: rgba(255, 255, 255, 0.02);
+                  background: rgba(255, 255, 255, 0.015);
                   border: 1px solid var(--border-main);
-                  border-radius: 12px;
-                  padding: 0 8px;
+                  border-radius: 6px;
+                  padding: 0 6px;
+                  gap: 6px;
+                  height: 27px;
+                  box-sizing: border-box;
                 "
               >
-                <input
-                  type="number"
-                  id="filter-hours-val"
-                  class="filter-input"
-                  placeholder="0"
-                  min="0"
+                <!-- From Column with Clickable Calendar Button -->
+                <div
                   style="
-                    width: 100%;
-                    font-size: 0.75rem;
-                    padding: 6px 0;
-                    border: none;
-                    background: transparent;
-                    text-align: center;
+                    display: flex;
+                    align-items: center;
+                    gap: 3px;
+                    flex: 1;
+                    min-width: 0;
                   "
-                  disabled
-                />
-                <span
-                  style="
-                    font-size: 0.65rem;
-                    color: var(--text-muted);
-                    font-weight: 700;
-                  "
-                  >hrs</span
                 >
+                  <span
+                    class="form-label-xs"
+                    style="text-transform: none !important"
+                    >From</span
+                  >
+                  <input
+                    type="date"
+                    id="filter-date-start"
+                    class="filter-input"
+                    style="
+                      border: none !important;
+                      background: transparent !important;
+                      padding: 0 !important;
+                      height: 100% !important;
+                      flex: 1;
+                      min-width: 0;
+                      font-size: 0.7rem;
+                      color: var(--text-main);
+                    "
+                  />
+                  <button
+                    type="button"
+                    onclick="
+                      document.getElementById('filter-date-start').showPicker()
+                    "
+                    style="
+                      background: transparent;
+                      border: none;
+                      padding: 0;
+                      cursor: pointer;
+                      color: var(--text-muted);
+                      display: flex;
+                      align-items: center;
+                      justify-content: center;
+                      flex-shrink: 0;
+                    "
+                    title="Open Calendar"
+                  >
+                    <svg
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      fill="none"
+                      style="width: 12px; height: 12px; stroke-width: 2"
+                    >
+                      <rect
+                        x="3"
+                        y="4"
+                        width="18"
+                        height="18"
+                        rx="2"
+                        ry="2"
+                      ></rect>
+                      <line x1="16" y1="2" x2="16" y2="6"></line>
+                      <line x1="8" y1="2" x2="8" y2="6"></line>
+                      <line x1="3" y1="10" x2="21" y2="10"></line>
+                    </svg>
+                  </button>
+                </div>
+                <div
+                  style="
+                    width: 1px;
+                    height: 12px;
+                    background: var(--border-main);
+                  "
+                ></div>
+                <!-- To Column with Clickable Calendar Button -->
+                <div
+                  style="
+                    display: flex;
+                    align-items: center;
+                    gap: 3px;
+                    flex: 1;
+                    min-width: 0;
+                  "
+                >
+                  <span
+                    class="form-label-xs"
+                    style="text-transform: none !important"
+                    >To</span
+                  >
+                  <input
+                    type="date"
+                    id="filter-date-end"
+                    class="filter-input"
+                    style="
+                      border: none !important;
+                      background: transparent !important;
+                      padding: 0 !important;
+                      height: 100% !important;
+                      flex: 1;
+                      min-width: 0;
+                      font-size: 0.7rem;
+                      color: var(--text-main);
+                    "
+                  />
+                  <button
+                    type="button"
+                    onclick="
+                      document.getElementById('filter-date-end').showPicker()
+                    "
+                    style="
+                      background: transparent;
+                      border: none;
+                      padding: 0;
+                      cursor: pointer;
+                      color: var(--text-muted);
+                      display: flex;
+                      align-items: center;
+                      justify-content: center;
+                      flex-shrink: 0;
+                    "
+                    title="Open Calendar"
+                  >
+                    <svg
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      fill="none"
+                      style="width: 12px; height: 12px; stroke-width: 2"
+                    >
+                      <rect
+                        x="3"
+                        y="4"
+                        width="18"
+                        height="18"
+                        rx="2"
+                        ry="2"
+                      ></rect>
+                      <line x1="16" y1="2" x2="16" y2="6"></line>
+                      <line x1="8" y1="2" x2="8" y2="6"></line>
+                      <line x1="3" y1="10" x2="21" y2="10"></line>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Unified Hours Filter -->
+              <div
+                class="filter-hours-group"
+                style="
+                  flex: 1.2;
+                  min-width: 0;
+                  display: flex;
+                  gap: 4px;
+                  align-items: center;
+                "
+              >
+                <div
+                  class="filter-select-wrapper"
+                  style="flex: 1.2; min-width: 0"
+                >
+                  <select id="filter-hours-op" class="filter-select">
+                    <option value="ALL">Hours...</option>
+                    <option value="MORE">More than</option>
+                    <option value="LESS">Less than</option>
+                  </select>
+                </div>
+                <div
+                  class="filter-group-card"
+                  style="flex: 0.8; min-width: 0; padding: 0 6px"
+                >
+                  <input
+                    type="number"
+                    id="filter-hours-val"
+                    class="filter-input"
+                    placeholder="0"
+                    min="0"
+                    disabled
+                    style="width: 100%; text-align: center"
+                  />
+                  <span class="filter-suffix" style="margin-left: 2px"
+                    >hrs</span
+                  >
+                </div>
               </div>
             </div>
 
-            <!-- Checkbox, Views & Reset Action Row -->
-            <div
-              class="filter-row"
-              style="
-                justify-content: space-between;
-                border-top: 1px solid var(--border-main);
-                padding-top: 10px;
-                margin-top: 4px;
-                flex-wrap: wrap;
-                gap: 10px;
-              "
-            >
-              <label class="filter-checkbox-label">
-                <input type="checkbox" id="filter-notes" /> Has Notes
-              </label>
-              <div style="display: flex; align-items: center; gap: 6px">
-                <select
-                  id="filter-view-presets"
-                  class="filter-select"
-                  style="
-                    font-size: 0.7rem;
-                    padding: 4px 8px;
-                    border-radius: 8px;
-                  "
-                >
-                  <option value="">Saved Views...</option>
+            <!-- Row 3: Quick Action Options (Timeframe, Status, Has Notes, Clear) -->
+            <div class="filter-row">
+              <div class="filter-select-wrapper" style="flex: 1; min-width: 0">
+                <select id="filter-time" class="filter-select">
+                  <option value="ALL">All Time</option>
+                  <option value="TODAY">Today</option>
+                  <option value="WEEK">This Week</option>
+                  <option value="MONTH">This Month</option>
                 </select>
-                <button
-                  class="preset-pill"
-                  onclick="saveCurrentFilterView()"
-                  style="
-                    padding: 5px 10px;
-                    font-size: 0.7rem;
-                    border-radius: 8px;
-                    font-family: inherit;
-                    font-weight: 600;
-                    border: 1px solid var(--border-main);
-                    background: rgba(255, 255, 255, 0.05);
-                    color: var(--text-main);
-                  "
-                  title="Save current filters as a custom view"
-                >
-                  Save View
-                </button>
               </div>
+              <div class="filter-select-wrapper" style="flex: 1; min-width: 0">
+                <select id="filter-status" class="filter-select">
+                  <option value="ALL">All Status</option>
+                  <option value="OVER">Over Goal</option>
+                  <option value="UNDER">Under Goal</option>
+                </select>
+              </div>
+              <label
+                class="filter-checkbox-chip"
+                style="
+                  flex: 1;
+                  min-width: 0;
+                  margin: 0;
+                  padding: 0 4px;
+                  box-sizing: border-box;
+                  justify-content: center;
+                  width: 100%;
+                "
+              >
+                <input type="checkbox" id="filter-notes" />
+                <span class="checkbox-text">Has Notes</span>
+              </label>
               <button
                 class="clear-filter-btn"
                 onclick="clearFilters()"
-                style="margin-left: 0"
+                style="
+                  flex: 1;
+                  height: 27px;
+                  padding: 0 8px;
+                  border-radius: 6px;
+                  font-size: 0.72rem;
+                  margin: 0;
+                  justify-content: center;
+                  width: 100%;
+                "
               >
                 Clear Filters
               </button>
@@ -3051,31 +4003,93 @@
             </div>
           </div>
 
-          <!-- Weekly navigation selector header -->
+          <!-- Modern Perfectly Centered Week Navigation Header -->
           <div
             class="label-xs"
             style="
               display: flex;
               justify-content: center;
               align-items: center;
-              margin-top: 5px;
-              margin-bottom: 10px;
+              margin-top: var(--space-2);
+              margin-bottom: var(--space-4);
             "
           >
-            <div style="display: flex; align-items: center; gap: 12px">
-              <span
-                class="nav-arrow"
+            <!-- Center Group: Symmetrical Navigation Controls and Date Label -->
+            <div
+              style="display: flex; align-items: center; gap: var(--space-3)"
+            >
+              <!-- Previous Week Button -->
+              <button
+                class="icon-btn"
                 onclick="changeWeekOffset(-1)"
                 title="Previous Week"
-                >&lt;</span
+                style="
+                  width: 36px;
+                  height: 20px;
+                  border-radius: 4px;
+                  padding: 0;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                "
               >
-              <span id="week-month-label"></span>
+                <svg
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  fill="none"
+                  stroke-width="2.5"
+                  style="width: 12px; height: 12px"
+                >
+                  <polyline points="15 18 9 12 15 6"></polyline>
+                </svg>
+              </button>
+
+              <!-- Week Month Label (Double-click to jump to today/current week) -->
               <span
-                class="nav-arrow"
+                id="week-month-label"
+                ondblclick="jumpToCurrentWeek()"
+                title="Double-click to jump to current week"
+                style="
+                  font-size: var(--text-sm);
+                  font-weight: 700;
+                  color: var(--text-main);
+                  margin-bottom: 0;
+                  white-space: nowrap;
+                  margin-left: 2px;
+                  margin-right: 2px;
+                  cursor: pointer;
+                  user-select: none;
+                  transition:
+                    color 0.2s ease,
+                    opacity 0.2s ease;
+                "
+              ></span>
+
+              <!-- Next Week Button -->
+              <button
+                class="icon-btn"
                 onclick="changeWeekOffset(1)"
                 title="Next Week"
-                >&gt;</span
+                style="
+                  width: 36px;
+                  height: 20px;
+                  border-radius: 4px;
+                  padding: 0;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                "
               >
+                <svg
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  fill="none"
+                  stroke-width="2.5"
+                  style="width: 12px; height: 12px"
+                >
+                  <polyline points="9 18 15 12 9 6"></polyline>
+                </svg>
+              </button>
             </div>
           </div>
 
@@ -3089,18 +4103,6 @@
         <!-- Data Export / Restore / Wipe Panel -->
         <div class="sidebar-footer">
           <!-- Left Bottom: Two Lines Metadata -->
-          <div class="footer-metadata">
-            <div>
-              <span class="label">DB:</span>
-              <span class="value">LOCAL_BROWSER</span>
-            </div>
-            <div>
-              <span class="label">TIME/DATE:</span>
-              <span class="value">PST_FORMAT</span>
-            </div>
-          </div>
-
-          <!-- Right: Icons with Labels at Bottom -->
           <div class="footer-icons">
             <div class="icon-stack">
               <button
@@ -3144,7 +4146,7 @@
                   <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
                 </svg>
               </button>
-              <span class="icon-tag">COPY</span>
+              <span class="icon-tag">Copy</span>
             </div>
 
             <div class="icon-stack">
@@ -3164,7 +4166,7 @@
                   <line x1="12" y1="15" x2="12" y2="3"></line>
                 </svg>
               </button>
-              <span class="icon-tag">SAVE</span>
+              <span class="icon-tag">Save</span>
             </div>
 
             <div class="icon-stack">
@@ -3184,7 +4186,7 @@
                   <line x1="12" y1="3" x2="12" y2="15"></line>
                 </svg>
               </button>
-              <span class="icon-tag">LOAD</span>
+              <span class="icon-tag">Load</span>
             </div>
 
             <div class="icon-stack">
@@ -3205,10 +4207,76 @@
                   <line x1="3" y1="10" x2="21" y2="10"></line>
                 </svg>
               </button>
-              <span class="icon-tag">Leave</span>
+              <span class="icon-tag">Leaves</span>
             </div>
 
-            <div class="footer-divider"></div>
+            <div class="icon-stack" style="position: relative">
+              <button
+                title="Inactivity Detection Settings"
+                class="icon-btn sq-btn"
+                id="idle-config-btn"
+                onclick="toggleIdleConfigPopup(event)"
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  fill="none"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <!-- Top Solid Active Arc -->
+                  <path d="M4 12a8 8 0 0 1 16 0"></path>
+                  <!-- Bottom Dotted Standby Arc -->
+                  <path
+                    d="M20 12a8 8 0 0 1-16 0"
+                    stroke-dasharray="3 3"
+                    opacity="0.55"
+                  ></path>
+                  <!-- Clock Hands (Minute hand pointing up, hour hand pointing right) -->
+                  <path d="M12 12V7"></path>
+                  <path d="M12 12h4" opacity="0.6"></path>
+                  <!-- Center pivot dot -->
+                  <circle cx="12" cy="12" r="1.5" fill="currentColor"></circle>
+                </svg>
+              </button>
+              <span class="icon-tag" id="idle-tag-display">Idle</span>
+
+              <!-- Dynamic Settings Menu Popup overlay -->
+              <div id="idle-config-popup" class="idle-popup">
+                <div class="idle-popup-row">
+                  <span class="idle-popup-label">Enable Idle</span>
+                  <label class="switch">
+                    <input
+                      type="checkbox"
+                      id="idle-toggle"
+                      checked
+                      onchange="onIdleToggleChange()"
+                    />
+                    <span class="slider-toggle"></span>
+                  </label>
+                </div>
+                <div id="idle-range-container" class="idle-popup-row flex-col">
+                  <div class="idle-popup-subrow">
+                    <span class="idle-popup-label">Threshold</span>
+                    <span class="idle-popup-val" id="idle-val-display"
+                      >30m</span
+                    >
+                  </div>
+                  <input
+                    type="range"
+                    id="idle-slider"
+                    min="5"
+                    max="120"
+                    step="5"
+                    value="30"
+                    class="idle-range-input"
+                    oninput="onIdleSliderInput(this.value)"
+                    onchange="onIdleSliderChange(this.value)"
+                  />
+                </div>
+              </div>
+            </div>
 
             <div class="icon-stack">
               <button
@@ -3229,16 +4297,16 @@
                 </svg>
               </button>
               <span class="icon-tag" style="color: var(--accent-break)"
-                >WIPE</span
+                >Wipe</span
               >
             </div>
-            <input
-              type="file"
-              id="import-file"
-              accept=".json"
-              style="display: none"
-            />
           </div>
+          <input
+            type="file"
+            id="import-file"
+            accept=".json"
+            style="display: none"
+          />
         </div>
       </div>
     </div>
@@ -3258,6 +4326,9 @@
       const PRESET_VALUES_KEY = "production_custom_presets_v2";
       const LEAVE_DATES_KEY = "production_leave_dates_v1";
 
+      /**
+       * Executes getLeaveDates logic.
+       */
       function getLeaveDates() {
         try {
           const saved = localStorage.getItem(LEAVE_DATES_KEY);
@@ -3268,6 +4339,9 @@
         }
       }
 
+      /**
+       * Executes saveLeaveDates logic.
+       */
       function saveLeaveDates(dates) {
         try {
           localStorage.setItem(LEAVE_DATES_KEY, JSON.stringify(dates));
@@ -3276,8 +4350,17 @@
         }
       }
 
-      // Inactivity / Idle limits (30 Minutes threshold)
-      const IDLE_THRESHOLD = 30 * 60 * 1000;
+      // Dynamic Idle Threshold Getter
+      /**
+       * Executes getIdleThresholdMs logic.
+       */
+      function getIdleThresholdMs() {
+        const mins =
+          state.idleThresholdMinutes !== undefined
+            ? state.idleThresholdMinutes
+            : 30;
+        return mins * 60 * 1000;
+      }
 
       // Vector Icon Resources (SVG mappings)
       const SVGs = {
@@ -3301,8 +4384,12 @@
         idleLock: false,
         idleStart: null,
         preIdleMode: null,
+        idleOverlapSec: 0,
         lastActivity: null,
         goalNotified: false,
+        idleTrackingEnabled: true,
+        idleThresholdMinutes: 30,
+        idleType: null,
       };
 
       // Shared State Backups and Transaction Variables
@@ -3325,6 +4412,7 @@
       let lastTickTime = Date.now();
       let lastMonotonicTime = performance.now();
       let isTabConflict = false;
+      let lastWeeklyUpdateMinute = -1;
 
       // Memory Caches
       let cachedLogs = [];
@@ -3341,6 +4429,9 @@
       const faviconLink = document.querySelector("link[rel='icon']");
       let lastFaviconKey = "";
 
+      /**
+       * Executes getDotSVG logic.
+       */
       function getDotSVG(color, opacity = 1) {
         return `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><circle cx='12' cy='12' r='10' fill='${encodeURIComponent(color)}' fill-opacity='${opacity}'/></svg>`;
       }
@@ -3485,35 +4576,47 @@
        * @param {Array} logsData - Full array of log entries to divide and save.
        */
       async function saveLogsToDB(logsData) {
-        const db = await dbPromise;
-        return new Promise((resolve) => {
-          const chunks = {};
-          logsData.forEach((log) => {
-            const dObj = new Date(log.epochMs);
-            const chunkId = `${dObj.getUTCFullYear()}-${String(
-              dObj.getUTCMonth() + 1,
-            ).padStart(2, "0")}`;
-            if (!chunks[chunkId]) chunks[chunkId] = [];
-            chunks[chunkId].push(log);
-          });
-
-          const tx = db.transaction("logs_chunked", "readwrite");
-          const store = tx.objectStore("logs_chunked");
-
-          const reqKeys = store.getAllKeys();
-          reqKeys.onsuccess = () => {
-            const newKeySet = new Set(Object.keys(chunks));
-            reqKeys.result.forEach((k) => {
-              if (!newKeySet.has(k)) store.delete(k);
+        try {
+          const db = await dbPromise;
+          return new Promise((resolve) => {
+            const chunks = {};
+            logsData.forEach((log) => {
+              const dObj = new Date(log.epochMs);
+              const chunkId = `${dObj.getUTCFullYear()}-${String(
+                dObj.getUTCMonth() + 1,
+              ).padStart(2, "0")}`;
+              if (!chunks[chunkId]) chunks[chunkId] = [];
+              chunks[chunkId].push(log);
             });
-            newKeySet.forEach((chunkId) =>
-              store.put({ chunkId, data: chunks[chunkId] }),
-            );
-            tx.oncomplete = () => resolve();
-            tx.onerror = () => resolve();
-          };
-          reqKeys.onerror = () => resolve();
-        });
+
+            const tx = db.transaction("logs_chunked", "readwrite");
+            const store = tx.objectStore("logs_chunked");
+
+            const reqKeys = store.getAllKeys();
+            reqKeys.onsuccess = () => {
+              const newKeySet = new Set(Object.keys(chunks));
+              reqKeys.result.forEach((k) => {
+                if (!newKeySet.has(k)) store.delete(k);
+              });
+              newKeySet.forEach((chunkId) =>
+                store.put({ chunkId, data: chunks[chunkId] }),
+              );
+              tx.oncomplete = () => resolve();
+              tx.onerror = (e) => {
+                console.error("IndexedDB write failed:", e);
+                showAppToast("⚠️ Storage write failed — data may not be saved");
+                resolve();
+              };
+            };
+            reqKeys.onerror = (e) => {
+              console.error("IndexedDB key read failed:", e);
+              showAppToast("⚠️ Storage read failed — save may be incomplete");
+              resolve();
+            };
+          });
+        } catch (e) {
+          console.warn("Unable to save logs to IndexedDB:", e);
+        }
       }
 
       /**
@@ -3526,7 +4629,7 @@
           db = await dbPromise;
         } catch (e) {
           console.warn("IndexedDB unavailable:", e);
-          showAppToast("Storage unavailable — running in session-only mode.");
+          showAppToast("Storage unavailable — running in session-only mode");
           return [];
         }
         return new Promise((resolve) => {
@@ -3584,7 +4687,7 @@
             };
           } catch (e) {
             console.warn("loadLogsFromDB transaction error:", e);
-            showAppToast("Could not read storage — data may be unavailable.");
+            showAppToast("Could not read storage — data may be unavailable");
             done([]);
           }
         });
@@ -3594,16 +4697,20 @@
        * 6. BROADCAST CHANNEL (INSTANCE MULTI-TAB LOCK)
        * =========================================================================*/
       const tabSyncChannel = new BroadcastChannel("work_tracker_sync");
+      const instanceId = Math.random().toString(36).substring(2, 15);
 
       // Ping existing instances to verify tab status
-      tabSyncChannel.postMessage({ type: "ping" });
+      tabSyncChannel.postMessage({ type: "ping", id: instanceId });
 
       tabSyncChannel.onmessage = (e) => {
+        // Ignore messages originating from this exact tab
+        if (e.data.id === instanceId) return;
+
         const conflictModal = document.getElementById("tab-conflict-modal");
         if (e.data.type === "ping") {
           // If this active instance is healthy (not currently locked out), claim ownership
           if (!isTabConflict) {
-            tabSyncChannel.postMessage({ type: "pong" });
+            tabSyncChannel.postMessage({ type: "pong", id: instanceId });
           }
         } else if (e.data.type === "pong" || e.data.type === "takeover") {
           // Halt and lock down this tab if another instance exists or is forcing ownership
@@ -3618,7 +4725,10 @@
       function forceTakeover() {
         isTabConflict = false;
         document.getElementById("tab-conflict-modal").style.display = "none";
-        tabSyncChannel.postMessage({ type: "takeover" });
+        tabSyncChannel.postMessage({ type: "takeover", id: instanceId });
+
+        // Engage the silent audio context during tab takeover activation
+        startSilentAudio();
 
         // Synchronize delta anchor when active tab takes priority
         lastTickTime = Date.now();
@@ -3632,6 +4742,7 @@
           renderTimersOnly();
           renderLogbook();
           renderInsights();
+          showSyncToast("Tab takeover successful. Session synchronized");
         });
       }
 
@@ -3643,10 +4754,16 @@
       document.documentElement.setAttribute("data-theme", currentTheme);
 
       // DOM Manipulation Fast Helpers
+      /**
+       * Executes setText logic.
+       */
       function setText(el, text) {
         if (el && el.textContent !== text) el.textContent = text;
       }
 
+      /**
+       * Executes setClock logic.
+       */
       function setClock(el, formattedTime) {
         if (!el) return;
         const html = formattedTime.replace(
@@ -3656,6 +4773,9 @@
         if (el.innerHTML !== html) el.innerHTML = html;
       }
 
+      /**
+       * Executes selectPresetTZ logic.
+       */
       function selectPresetTZ(tzValue) {
         const select = document.getElementById("primary-tz");
         if (select) {
@@ -3664,6 +4784,9 @@
         }
       }
 
+      /**
+       * Executes updateTZLabel logic.
+       */
       function updateTZLabel() {
         const select = document.getElementById("primary-tz");
         const label = document.getElementById("tz-current-label");
@@ -3683,10 +4806,16 @@
         }
       }
 
+      /**
+       * Executes setStyle logic.
+       */
       function setStyle(el, prop, val) {
         if (el && el.style[prop] !== val) el.style[prop] = val;
       }
 
+      /**
+       * Executes syncGoalTimeInput logic.
+       */
       function syncGoalTimeInput() {
         if (!DOM.goalHours || !DOM.goalMins) return;
         const h = parseInt(DOM.goalHours.value, 10) || 0;
@@ -3758,8 +4887,8 @@
 
         // Delay database operations until the current thread yields, batching parallel changes
         if (!pendingDBSave) {
-          pendingDBSave = Promise.resolve().then(() => {
-            saveLogsToDB(cachedLogs);
+          pendingDBSave = Promise.resolve().then(async () => {
+            await saveLogsToDB(cachedLogs);
             pendingDBSave = null;
           });
         }
@@ -3800,6 +4929,7 @@
       const blob = new Blob([workerCode], { type: "application/javascript" });
       const workerUrl = URL.createObjectURL(blob);
       const analyticsWorker = new Worker(workerUrl);
+      URL.revokeObjectURL(workerUrl); // Release blob URL — Worker holds its own internal reference
 
       /**
        * Delegates weekly database sorting and grouping logic to our background Web Worker thread.
@@ -3830,20 +4960,53 @@
       };
 
       // Timezone Conversions and Getters
+      /**
+       * Executes getPSTClock logic.
+       */
       function getPSTClock() {
         return pstFormatter.format(new Date(getTrueTime()));
       }
 
+      /**
+       * Executes getPSTDate logic.
+       */
       function getPSTDate() {
         return pstDateFormatter.format(new Date(getTrueTime()));
       }
 
+      /**
+       * Executes getPSTDateObj logic.
+       */
       function getPSTDateObj() {
-        return new Date(
-          new Date(getTrueTime()).toLocaleString("en-US", {
+        try {
+          const formatter = new Intl.DateTimeFormat("en-US", {
             timeZone: "America/Los_Angeles",
-          }),
-        );
+            year: "numeric",
+            month: "numeric",
+            day: "numeric",
+            hour: "numeric",
+            minute: "numeric",
+            second: "numeric",
+            hour12: false,
+          });
+          const parts = formatter.formatToParts(new Date(getTrueTime()));
+          const p = {};
+          parts.forEach((part) => (p[part.type] = part.value));
+
+          // Hour is normalized to 12 (midday) to prevent +/- 1 hour DST adjustments
+          // from shifting the calendar date across the midnight boundary.
+          return new Date(
+            parseInt(p.year, 10),
+            parseInt(p.month, 10) - 1,
+            parseInt(p.day, 10),
+            12,
+            0,
+            0,
+          );
+        } catch (e) {
+          console.error("Error creating PST date object:", e);
+          return new Date();
+        }
       }
 
       /**
@@ -3863,6 +5026,9 @@
       }
 
       // Inactivity tracker helper
+      /**
+       * Executes updateActivity logic.
+       */
       function updateActivity() {
         if (!state.idleLock && !activityThrottle) {
           lastActivity = getTrueTime();
@@ -3925,7 +5091,17 @@
           if (deltaMs > threshold) {
             // Intercept large time gap and shift it safely into the idle handler
             if (state.currentMode !== null && !state.idleLock) {
-              triggerIdleLock(lastTickTime);
+              if (state.idleTrackingEnabled !== false) {
+                triggerIdleLock(lastTickTime, "system");
+              } else {
+                const deltaSec = deltaMs / 1000;
+                if (state.currentMode === "work") {
+                  state.workAccumulated += deltaSec;
+                } else if (state.currentMode === "break") {
+                  state.breakAccumulated += deltaSec;
+                }
+                showAppToast("Timer adjusted after background suspension");
+              }
             }
           } else {
             // Process standard, trusted, real-world delta slices incrementally
@@ -3950,6 +5126,14 @@
       function switchMode(mode) {
         if (state.currentMode === mode) return;
         accumulateCurrentDelta();
+
+        // Dismisses the undo window to prevent state collisions if a new session starts
+        if (lastStateBackup) {
+          lastStateBackup = null;
+          const toast = document.getElementById("undo-toast");
+          if (toast) toast.style.bottom = "-100px";
+        }
+
         state.currentMode = mode;
         const now = Date.now();
         if (mode === "work") {
@@ -4070,7 +5254,15 @@
         let activeTitle = "Paused";
         let iconColor = "#f59e0b";
 
-        if (state.currentMode === "work") {
+        if (state.idleLock) {
+          if (state.idleType === "system") {
+            activeTitle = "Idle (System)";
+            iconColor = "#94a3b8";
+          } else {
+            activeTitle = "Idle (Inactive)";
+            iconColor = "#94a3b8";
+          }
+        } else if (state.currentMode === "work") {
           activeTitle = "Work";
           iconColor = "#4ade80";
         } else if (state.currentMode === "break") {
@@ -4089,6 +5281,7 @@
         }
 
         updateProgress(workSeconds);
+        updateLiveWeeklySummary(false);
 
         if (!document.hidden) {
           // High-Performance Plain Text Clock update costing 0% CPU on Software Rendering
@@ -4096,6 +5289,182 @@
           setText(DOM.breakTimer, formatDuration(breakSeconds));
           setClock(DOM.primaryClock, primaryFormatter.format(nowDate));
           setClock(DOM.bstClock, bstFormatter.format(nowDate));
+        }
+      }
+
+      /**
+       * High-performance micro-updater to live refresh weekly stats
+       * only when the Insights tab is visible and focused.
+       * Throttled to run once per minute unless forced [5].
+       */
+      function updateLiveWeeklySummary(force = false) {
+        const insightsTab = document.getElementById("tab-insights");
+        if (
+          !insightsTab ||
+          insightsTab.style.display === "none" ||
+          document.hidden
+        )
+          return;
+
+        const currentMinute = new Date(getTrueTime()).getMinutes();
+        if (!force && currentMinute === lastWeeklyUpdateMinute) return;
+        lastWeeklyUpdateMinute = currentMinute;
+
+        const y = displayBaseDate.getFullYear();
+        const m = displayBaseDate.getMonth();
+        const d_val = displayBaseDate.getDate();
+        const dObj = new Date(Date.UTC(y, m, d_val));
+        const day = dObj.getUTCDay();
+        const diffToMonday = day === 0 ? -6 : 1 - day;
+        const mondayUTC = new Date(dObj);
+        mondayUTC.setUTCDate(dObj.getUTCDate() + diffToMonday);
+        mondayUTC.setUTCHours(0, 0, 0, 0);
+        const weekStartMs = mondayUTC.getTime();
+
+        const nowPST = getPSTDateObj();
+        const nowDay = nowPST.getDay();
+        const nowDiffToMonday = nowDay === 0 ? -6 : 1 - nowDay;
+        const currentMonday = new Date(nowPST);
+        currentMonday.setDate(nowPST.getDate() + nowDiffToMonday);
+        currentMonday.setHours(0, 0, 0, 0);
+        const currentWeekStartMs = Date.UTC(
+          currentMonday.getFullYear(),
+          currentMonday.getMonth(),
+          currentMonday.getDate(),
+        );
+
+        if (weekStartMs !== currentWeekStartMs) return;
+
+        const weeklyLogs = weeklyCache.get(weekStartMs) || [];
+        const logsByDate = {};
+        for (let i = 0; i < weeklyLogs.length; i++) {
+          const l = weeklyLogs[i];
+          if (!logsByDate[l.displayDate]) {
+            logsByDate[l.displayDate] = { w: 0 };
+          }
+          logsByDate[l.displayDate].w += l.workSec;
+        }
+
+        let totalW_MonFri = 0;
+        const reusableDate = new Date(mondayUTC);
+        for (let i = 0; i < 5; i++) {
+          reusableDate.setTime(mondayUTC.getTime());
+          reusableDate.setUTCDate(mondayUTC.getUTCDate() + i);
+          const dateStr = `${String(reusableDate.getUTCMonth() + 1).padStart(2, "0")}/${String(
+            reusableDate.getUTCDate(),
+          ).padStart(
+            2,
+            "0",
+          )}/${reusableDate.getUTCFullYear().toString().slice(-2)}`;
+          const dayW = logsByDate[dateStr] ? logsByDate[dateStr].w : 0;
+          totalW_MonFri += dayW;
+        }
+
+        totalW_MonFri += getCurrentWorkSeconds();
+
+        const leaveDates =
+          typeof getLeaveDates === "function" ? getLeaveDates() : [];
+        const isVacationDate = (dStr) =>
+          leaveDates.some((l) => (typeof l === "string" ? l : l.date) === dStr);
+
+        let numLeaveDaysMonFri = 0;
+        const weekDateChecker = new Date(mondayUTC);
+        for (let idx = 0; idx < 5; idx++) {
+          weekDateChecker.setTime(mondayUTC.getTime());
+          weekDateChecker.setUTCDate(mondayUTC.getUTCDate() + idx);
+          const checkerStr = `${String(
+            weekDateChecker.getUTCMonth() + 1,
+          ).padStart(2, "0")}/${String(weekDateChecker.getUTCDate()).padStart(
+            2,
+            "0",
+          )}/${weekDateChecker.getUTCFullYear().toString().slice(-2)}`;
+          if (isVacationDate(checkerStr)) {
+            numLeaveDaysMonFri++;
+          }
+        }
+
+        const leaveDaysSec = numLeaveDaysMonFri * 8 * 3600;
+        const adjustedWeeklyGoalSec = Math.max(0, 40 * 3600 - leaveDaysSec);
+        const adjustedWeeklyGoalHrs = adjustedWeeklyGoalSec / 3600;
+
+        const totalPercent =
+          adjustedWeeklyGoalSec > 0
+            ? Math.min((totalW_MonFri / adjustedWeeklyGoalSec) * 100, 100)
+            : 100;
+
+        const summaryText = document.getElementById("weekly-summary-text");
+        const percentText = document.getElementById("weekly-progress-percent");
+        const weekMsg = document.getElementById("weekly-status-msg");
+        const progressCard = document.getElementById("weekly-progress-card");
+
+        if (summaryText) {
+          setText(
+            summaryText,
+            `${formatFriendlyDuration(totalW_MonFri, "0h")} / ${adjustedWeeklyGoalHrs}h`,
+          );
+        }
+        if (percentText) {
+          setText(percentText, `(${totalPercent.toFixed(0)}%)`);
+        }
+
+        if (progressCard) {
+          if (totalW_MonFri >= adjustedWeeklyGoalSec) {
+            progressCard.classList.add("goal-reached");
+          } else {
+            progressCard.classList.remove("goal-reached");
+          }
+        }
+
+        if (weekMsg) {
+          const remainingSec = Math.max(
+            0,
+            adjustedWeeklyGoalSec - totalW_MonFri,
+          );
+
+          if (remainingSec > 0) {
+            const todayIdx = nowDay === 0 ? 7 : nowDay;
+            if (todayIdx <= 5) {
+              let activeDaysRemaining = 0;
+              for (let d = todayIdx; d <= 5; d++) {
+                const checkDate = new Date(mondayUTC);
+                checkDate.setUTCDate(mondayUTC.getUTCDate() + (d - 1));
+                const checkDateStr = `${String(
+                  checkDate.getUTCMonth() + 1,
+                ).padStart(2, "0")}/${String(checkDate.getUTCDate()).padStart(
+                  2,
+                  "0",
+                )}/${checkDate.getUTCFullYear().toString().slice(-2)}`;
+                if (!isVacationDate(checkDateStr)) {
+                  activeDaysRemaining++;
+                }
+              }
+
+              if (activeDaysRemaining > 0) {
+                const paceSec = remainingSec / activeDaysRemaining;
+                let paceH = Math.floor(paceSec / 3600);
+                let paceM = Math.round((paceSec % 3600) / 60);
+                if (paceM === 60) {
+                  paceH++;
+                  paceM = 0;
+                }
+                setText(weekMsg, `Pace Needed: ${paceH}h ${paceM}m / day`);
+              } else {
+                setText(weekMsg, "Remaining weekdays are leaves.");
+              }
+            } else {
+              setText(weekMsg, "Weekend: Goal not reached.");
+            }
+            weekMsg.style.color = "var(--text-muted)";
+          } else {
+            setText(
+              weekMsg,
+              `${adjustedWeeklyGoalHrs}h Goal reached! Overtime: ${formatFriendlyDuration(
+                totalW_MonFri - adjustedWeeklyGoalSec,
+                "0m",
+              )}`,
+            );
+            weekMsg.style.color = "var(--accent-work)";
+          }
         }
       }
 
@@ -4235,11 +5604,7 @@
           }
         }
 
-        if (
-          totalWorkToday >= anchorGoalSec &&
-          !state.goalNotified &&
-          state.currentMode === "work"
-        ) {
+        if (totalWorkToday >= anchorGoalSec && !state.goalNotified) {
           const toast = document.getElementById("goal-toast");
           const timeEl = document.getElementById("goal-toast-time");
           if (timeEl) {
@@ -4297,37 +5662,58 @@
         }
       }
 
+      /**
+       * Executes closeGhostModal logic.
+       */
       function closeGhostModal() {
         DOM.ghostModal.style.display = "none";
         pendingSubmitData = null;
       }
 
+      /**
+       * Executes confirmGhost logic.
+       */
       function confirmGhost() {
         DOM.ghostModal.style.display = "none";
         proceedToSubmitModal();
       }
 
+      /**
+       * Executes proceedToSubmitModal logic.
+       */
       function proceedToSubmitModal() {
         populateNoteSuggestions();
         DOM.submitModal.style.display = "flex";
         setTimeout(() => DOM.modalShiftNotes.focus(), 100);
       }
 
+      /**
+       * Executes closeSubmitModal logic.
+       */
       function closeSubmitModal() {
         DOM.submitModal.style.display = "none";
         DOM.modalShiftNotes.value = "";
         pendingSubmitData = null;
       }
 
+      /**
+       * Executes openNoteModal logic.
+       */
       function openNoteModal(noteText) {
         DOM.noteModalText.textContent = noteText;
         DOM.noteModal.style.display = "flex";
       }
 
+      /**
+       * Executes closeNoteModal logic.
+       */
       function closeNoteModal() {
         DOM.noteModal.style.display = "none";
       }
 
+      /**
+       * Executes confirmSubmit logic.
+       */
       function confirmSubmit() {
         const notes = DOM.modalShiftNotes.value.trim();
         DOM.submitModal.style.display = "none";
@@ -4359,16 +5745,22 @@
         const loginTime = loginTs
           ? loginFormatter.format(new Date(loginTs))
           : "--";
-        const logoutTime = pstFormatter.format(new Date(getTrueTime()));
+
+        // Formulates logout using last active heartbeat for auto-submissions
+        const logoutTimestamp =
+          overrideDate && state.lastHeartbeat
+            ? state.lastHeartbeat
+            : getTrueTime();
+        const logoutTime = pstFormatter.format(new Date(logoutTimestamp));
 
         const logs = getLogs();
         const displayDate = entryDate.replace(/\/20(\d{2})$/, "/$1");
         const [m, d, y] = entryDate.split("/");
         const fullYear = y.length === 2 ? `20${y}` : y;
         const epochMs = Date.UTC(
-          parseInt(fullYear),
-          parseInt(m) - 1,
-          parseInt(d),
+          parseInt(fullYear, 10),
+          parseInt(m, 10) - 1,
+          parseInt(d, 10),
         );
 
         const entry = {
@@ -4388,12 +5780,10 @@
         entry.searchStr =
           `${displayDate} ${entryDate} ${loginTime} ${logoutTime} ${forceNotes}`.toLowerCase();
 
-        // Backup active states and prepend shift to log list
         lastStateBackup = JSON.parse(JSON.stringify(state));
         logs.unshift(entry);
         saveLogs(logs);
         resetSession();
-        // Removed synchronous rendering calls to let background Web Worker callback handle updates safely
 
         const toast = document.getElementById("undo-toast");
         toast.style.bottom = "30px";
@@ -4408,6 +5798,8 @@
       document.getElementById("undo-btn").addEventListener("click", () => {
         if (!lastStateBackup) return;
         state = lastStateBackup;
+        state.activeDate = getPSTDate(); // Prevent checkMidnightReset re-triggering after undo
+        state.lastHeartbeat = Date.now(); // Bug 2 fix — prevent spurious idle lock on reload
         saveState();
 
         const logs = getLogs();
@@ -4430,9 +5822,13 @@
       /**
        * Pauses active timers and locks application under Inactivity mode if thresholds pass.
        */
-      function triggerIdleLock(timeOfIdle) {
+      function triggerIdleLock(timeOfIdle, type = "inactivity") {
+        // Calculate the overlap (the duration that was actively accumulated but should have been idle)
         const deltaMs = timeOfIdle - lastTickTime;
+        let overlapSec = 0;
+
         if (deltaMs > 0) {
+          // Forward jump (standard wake-up gap) - accumulate it up to the moment of sleep
           if (!state.idleLock && state.currentMode !== null) {
             const deltaSec = deltaMs / 1000;
             if (state.currentMode === "work") {
@@ -4442,32 +5838,68 @@
             }
           }
         } else if (deltaMs < 0) {
-          // If the idle trigger is in the past (e.g. inactivity timeout triggered after some background ticking),
-          // we deduct the time actively accumulated since inactivity started so it can be re-allocated.
+          // Backward jump (inactivity timeout) - record how much overlapping active time was accumulated
           if (!state.idleLock && state.currentMode !== null) {
-            const deductSec = Math.abs(deltaMs) / 1000;
-            if (state.currentMode === "work") {
-              state.workAccumulated = Math.max(
-                0,
-                state.workAccumulated - deductSec,
-              );
-            } else if (state.currentMode === "break") {
-              state.breakAccumulated = Math.max(
-                0,
-                state.breakAccumulated - deductSec,
-              );
-            }
+            overlapSec = Math.abs(deltaMs) / 1000;
           }
         }
 
         state.preIdleMode = state.currentMode;
+        state.idleOverlapSec = overlapSec;
         state.currentMode = null;
         state.idleStart = timeOfIdle;
         state.idleLock = true;
+        state.idleType = type;
         lastTickTime = timeOfIdle;
         saveState();
         renderStaticUI();
         renderTimersOnly(new Date(timeOfIdle));
+        updateIdleModalLabels();
+      }
+
+      /**
+       * Dynamically adjusts idle modal headers, icons, descriptions, and static timestamps.
+       */
+      function updateIdleModalLabels() {
+        const type = state.idleType || "inactivity";
+        const titleEl = document.getElementById("idle-title-text");
+        const descEl = document.getElementById("idle-description-text");
+        const headerEl = document.getElementById("idle-header");
+        const lastActiveEl = document.getElementById("idle-last-active");
+
+        if (!headerEl || !titleEl || !descEl || !lastActiveEl) return;
+
+        // Remove any existing SVG icons
+        const existingSvg = headerEl.querySelector(".ui-icon");
+        if (existingSvg) existingSvg.remove();
+
+        let iconHtml = "";
+        if (type === "system") {
+          titleEl.textContent = "System Pause Detected";
+          descEl.textContent =
+            "Your computer went to sleep or this browser tab was suspended to save resources. We paused your timer during this gap to keep your hours accurate.";
+          iconHtml = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="ui-icon" width="24" height="24"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>`;
+        } else {
+          titleEl.textContent = "Inactivity Detected";
+          descEl.textContent =
+            "No keyboard or mouse movement was detected for your configured threshold. We paused your timer so you don't accidentally log unworked hours.";
+          iconHtml = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="ui-icon" width="24" height="24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>`;
+        }
+        headerEl.insertAdjacentHTML("afterbegin", iconHtml);
+
+        if (state.idleStart) {
+          const tz = DOM.primaryTz.value || "America/Los_Angeles";
+          const timeFormatter = new Intl.DateTimeFormat("en-US", {
+            timeZone: tz,
+            hour12: true,
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+          });
+          lastActiveEl.textContent = timeFormatter.format(
+            new Date(state.idleStart),
+          );
+        }
       }
 
       /**
@@ -4476,30 +5908,68 @@
        */
       function resolveIdle(choice) {
         const now = Date.now();
-        const idleDurationSec = (now - state.idleStart) / 1000;
+        const totalIdleSec = (now - state.idleStart) / 1000;
+        const overlapSec = state.idleOverlapSec || 0;
+        const preMode = state.preIdleMode;
+
         if (choice === "work") {
-          state.workAccumulated += idleDurationSec;
+          if (preMode === "work") {
+            // It was already accumulated as work up to the sleep/idle freeze.
+            // Add only the remaining duration that was spent in the idle state.
+            state.workAccumulated += totalIdleSec - overlapSec;
+          } else if (preMode === "break") {
+            // It was accumulated as break. Deduct the overlap from break, add full duration to work.
+            state.breakAccumulated = Math.max(
+              0,
+              state.breakAccumulated - overlapSec,
+            );
+            state.workAccumulated += totalIdleSec;
+          } else {
+            state.workAccumulated += totalIdleSec;
+          }
+
           if (!state.loginTimestamp) {
-            state.loginTimestamp = now - idleDurationSec * 1000;
+            state.loginTimestamp = now - totalIdleSec * 1000;
           }
         } else if (choice === "break") {
-          state.breakAccumulated += idleDurationSec;
+          if (preMode === "break") {
+            // It was already accumulated as break up to the sleep/idle freeze.
+            // Add only the remaining duration that was spent in the idle state.
+            state.breakAccumulated += totalIdleSec - overlapSec;
+          } else if (preMode === "work") {
+            // It was accumulated as work. Deduct the overlap from work, add full duration to break.
+            state.workAccumulated = Math.max(
+              0,
+              state.workAccumulated - overlapSec,
+            );
+            state.breakAccumulated += totalIdleSec;
+          } else {
+            state.breakAccumulated += totalIdleSec;
+          }
         }
+
         state.idleLock = false;
         state.idleStart = null;
         state.preIdleMode = null;
+        state.idleOverlapSec = 0;
         lastActivity = now;
         state.lastActivity = now;
         lastTickTime = now; // Recalibrate high-frequency accumulation anchor
         saveState();
         document.getElementById("idle-modal").style.display = "none";
-        switchMode("work");
+
+        // Resume into the mode the user chose — work if they said it was work time,
+        // break if they said it was break time. This preserves pre-idle intent.
+        switchMode(choice === "break" ? "break" : "work");
       }
 
       /**
        * Wipes live transaction memory and boots active workspace clean.
        */
       function resetSession() {
+        const previousIdleEnabled = state.idleTrackingEnabled;
+        const previousIdleThreshold = state.idleThresholdMinutes;
+
         state = {
           workAccumulated: 0,
           breakAccumulated: 0,
@@ -4509,8 +5979,14 @@
           idleLock: false,
           idleStart: null,
           preIdleMode: null,
+          idleOverlapSec: 0,
           goalNotified: false,
           lastActivity: Date.now(),
+          idleType: null,
+          idleTrackingEnabled:
+            previousIdleEnabled !== undefined ? previousIdleEnabled : true,
+          idleThresholdMinutes:
+            previousIdleThreshold !== undefined ? previousIdleThreshold : 30,
         };
         lastActivity = Date.now();
         lastTickTime = Date.now(); // Recalibrate high-frequency accumulation anchor
@@ -4546,7 +6022,10 @@
           ? `<span style="font-size: 0.5rem; color: var(--text-muted); border: 1px solid var(--border-main); padding: 1px 4px; border-radius: 4px; margin-left: 8px; font-weight: 400; opacity: 0.7;">Weekend</span>`
           : "";
 
-        const rawDeltaSec = Math.abs(log.workSec - (log.dayGoal || 8 * 3600));
+        const rawDeltaSec = Math.abs(
+          log.workSec -
+            (log.dayGoal != null && log.dayGoal > 0 ? log.dayGoal : 8 * 3600),
+        );
         const friendlyDiff = formatFriendlyDuration(rawDeltaSec, "0m");
         const selectedClass = isSelected ? " kb-selected" : "";
 
@@ -4760,10 +6239,22 @@
         DOM.filterNotes.checked = false;
         DOM.filterViewPresets.value = "";
 
+        const searchInput = document.getElementById("filter-search");
+        if (searchInput) searchInput.value = ""; // Resets the search text field
+
         saveActiveFilters();
         renderLogbook();
-        showAppToast("All filters cleared.");
+        showAppToast("All filters cleared");
       };
+
+      // Binds live inputs typing detection helper (add inside the DOM initialization block)
+      const searchInput = document.getElementById("filter-search");
+      if (searchInput) {
+        searchInput.addEventListener("input", () => {
+          saveActiveFilters();
+          renderLogbook();
+        });
+      }
 
       // ==========================================
       // PERSISTENT SAVED FILTER VIEWS
@@ -4772,8 +6263,18 @@
       const FILTERS_PREF_KEY = "production_active_filters_pref";
 
       window.saveCurrentFilterView = function () {
-        const name = prompt("Enter a name for this custom filter view:");
-        if (!name) return;
+        let name;
+        try {
+          name = prompt("Enter a name for this custom filter view:");
+        } catch (e) {
+          name = null;
+        }
+        if (name === null) {
+          showAppToast(
+            "Could not open name input. Try a different browser context",
+          );
+          return;
+        }
         const cleanName = name.trim();
         if (!cleanName) return;
 
@@ -4810,9 +6311,12 @@
 
         DOM.filterViewPresets.value = cleanName;
         saveActiveFilters();
-        showAppToast(`Saved view "${cleanName}" successfully.`);
+        showAppToast(`Saved view "${cleanName}" successfully`);
       };
 
+      /**
+       * Executes loadSavedFilterViews logic.
+       */
       function loadSavedFilterViews() {
         const select = DOM.filterViewPresets;
         if (!select) return;
@@ -4889,6 +6393,46 @@
         }
       });
 
+      window.deleteCurrentSavedView = function () {
+        const select = DOM.filterViewPresets;
+        const selectedName = select.value;
+        if (!selectedName) {
+          showAppToast("Select a saved view first");
+          return;
+        }
+
+        // Exclude default core templates from deletion
+        if (
+          selectedName === "Overtime Shifts" ||
+          selectedName === "Logged Notes Only"
+        ) {
+          showAppToast("Default system views cannot be deleted");
+          return;
+        }
+
+        openConfirmModal(
+          "Delete Saved View?",
+          `Are you sure you want to permanently delete the saved view "${selectedName}"?`,
+          () => {
+            let views = [];
+            try {
+              const saved = localStorage.getItem(VIEWS_KEY);
+              if (saved) views = JSON.parse(saved);
+            } catch (err) {}
+
+            views = views.filter((v) => v.name !== selectedName);
+            localStorage.setItem(VIEWS_KEY, JSON.stringify(views));
+            loadSavedFilterViews();
+            clearFilters();
+            showAppToast(`Deleted saved view "${selectedName}"`);
+          },
+          true,
+        );
+      };
+
+      /**
+       * Executes saveActiveFilters logic.
+       */
       function saveActiveFilters() {
         const activeFilters = {
           time: DOM.filterTime.value,
@@ -4903,6 +6447,9 @@
         localStorage.setItem(FILTERS_PREF_KEY, JSON.stringify(activeFilters));
       }
 
+      /**
+       * Executes loadActiveFilters logic.
+       */
       function loadActiveFilters() {
         try {
           const saved = localStorage.getItem(FILTERS_PREF_KEY);
@@ -4943,24 +6490,35 @@
         const hoursOp = DOM.filterHoursOp.value;
         const hoursVal = parseFloat(DOM.filterHoursVal.value) || 0;
 
+        const searchInput = document.getElementById("filter-search");
+        const searchVal = searchInput
+          ? searchInput.value.trim().toLowerCase()
+          : "";
+
         if (
           timeFilter === "ALL" &&
           status === "ALL" &&
           !hasNotes &&
           !dateStartVal &&
           !dateEndVal &&
-          hoursOp === "ALL"
+          hoursOp === "ALL" &&
+          !searchVal
         ) {
           return logs;
         }
 
-        const cacheKey = `${timeFilter}|${status}|${hasNotes}|${dateStartVal}|${dateEndVal}|${hoursOp}|${hoursVal}|${logs.length}`;
+        const cacheKey = `${timeFilter}|${status}|${hasNotes}|${dateStartVal}|${dateEndVal}|${hoursOp}|${hoursVal}|${searchVal}|${logs.length}`;
         if (filterCache && filterCacheKey === cacheKey) return filterCache;
 
         const todayStr = getPSTDate();
-        const now = new Date(getTrueTime());
+        // Use PST date to match the timezone anchor used everywhere else in the app
+        const nowPSTObj = getPSTDateObj();
         const nowUTC = new Date(
-          Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()),
+          Date.UTC(
+            nowPSTObj.getFullYear(),
+            nowPSTObj.getMonth(),
+            nowPSTObj.getDate(),
+          ),
         );
         const day = nowUTC.getUTCDay();
         const diffToMonday = day === 0 ? -6 : 1 - day;
@@ -4968,7 +6526,7 @@
         mondayUTC.setUTCDate(nowUTC.getUTCDate() + diffToMonday);
         const weekStartMs = mondayUTC.getTime();
         const monthStartUTC = new Date(
-          Date.UTC(now.getFullYear(), now.getMonth(), 1),
+          Date.UTC(nowPSTObj.getFullYear(), nowPSTObj.getMonth(), 1),
         );
         const monthStartMs = monthStartUTC.getTime();
 
@@ -4977,7 +6535,8 @@
 
         const result = logs.filter((l) => {
           let matchTime = true;
-          if (timeFilter === "TODAY") matchTime = l.date === todayStr;
+          if (timeFilter === "TODAY")
+            matchTime = l.date === todayStr || l.displayDate === todayStr;
           else if (timeFilter === "WEEK") matchTime = l.epochMs >= weekStartMs;
           else if (timeFilter === "MONTH")
             matchTime = l.epochMs >= monthStartMs;
@@ -4998,8 +6557,18 @@
             if (hoursOp === "LESS") matchHours = workHours <= hoursVal;
           }
 
+          let matchSearch = true;
+          if (searchVal && l.searchStr) {
+            matchSearch = l.searchStr.includes(searchVal);
+          }
+
           return (
-            matchTime && matchStatus && matchNotes && matchDate && matchHours
+            matchTime &&
+            matchStatus &&
+            matchNotes &&
+            matchDate &&
+            matchHours &&
+            matchSearch
           );
         });
         filterCache = result;
@@ -5021,6 +6590,9 @@
         }, 150),
       );
 
+      /**
+       * Executes getDynamicItemHeight logic.
+       */
       function getDynamicItemHeight() {
         return 4.8 * cachedBaseFontSize;
       }
@@ -5192,14 +6764,37 @@
           "Nov",
           "Dec",
         ];
+        const todayPST = getPSTDateObj();
+        const todayY = todayPST.getFullYear();
+        const todayM = todayPST.getMonth();
+        const todayD = todayPST.getDate();
+        const todayDObj = new Date(Date.UTC(todayY, todayM, todayD));
+        const todayDay = todayDObj.getUTCDay();
+        const todayDiffToMonday = todayDay === 0 ? -6 : 1 - todayDay;
+        const todayMondayUTC = new Date(todayDObj);
+        todayMondayUTC.setUTCDate(todayDObj.getUTCDate() + todayDiffToMonday);
+        todayMondayUTC.setUTCHours(0, 0, 0, 0);
+        const todayWeekStartMs = todayMondayUTC.getTime();
+
+        const isCurrentWeek = weekStartMs === todayWeekStartMs;
+
         setText(
           DOM.weekMonthLabel,
-          `Week of ${shortMonths[mondayUTC.getUTCMonth()]} ${mondayUTC.getUTCDate()}, ${mondayUTC.getUTCFullYear()}`,
+          `Week of ${shortMonths[mondayUTC.getUTCMonth()]} ${mondayUTC.getUTCDate()}`,
         );
+
+        if (DOM.weekMonthLabel) {
+          DOM.weekMonthLabel.style.color = isCurrentWeek
+            ? "var(--accent-blue)"
+            : "var(--text-main)";
+        }
 
         const leaveDates =
           typeof getLeaveDates === "function" ? getLeaveDates() : [];
-        const isVacationDate = (dStr) => leaveDates.includes(dStr);
+
+        // Backward-compatible verification for both string elements and leaf objects
+        const isVacationDate = (dStr) =>
+          leaveDates.some((l) => (typeof l === "string" ? l : l.date) === dStr);
 
         let numLeaveDaysMonFri = 0;
         const weekDateChecker = new Date(mondayUTC);
@@ -5257,7 +6852,17 @@
 
           const isVacation = isVacationDate(dateStr);
           if (isVacation) {
-            const leaveBadge = `<span style="font-size: 0.55rem; color: #4ade80; border: 1px solid rgba(74, 222, 128, 0.3); padding: 2px 6px; border-radius: 4px; background: rgba(74, 222, 128, 0.05); margin-left: 8px; font-weight: 700; letter-spacing: 0.2px; white-space: nowrap;">On Leave</span>`;
+            const leaveRecord = leaveDates.find(
+              (l) => (typeof l === "string" ? l : l.date) === dateStr,
+            );
+
+            // Appends the word "Leave" to your category type, fallback to "On Leave" for legacy records
+            const leaveLabel =
+              typeof leaveRecord === "object"
+                ? `${leaveRecord.type} Leave`
+                : "On Leave";
+
+            const leaveBadge = `<span style="font-size: 0.55rem; color: #4ade80; border: 1px solid rgba(74, 222, 128, 0.3); padding: 2px 6px; border-radius: 4px; background: rgba(74, 222, 128, 0.05); margin-left: 8px; font-weight: 700; letter-spacing: 0.2px; white-space: nowrap;">${leaveLabel}</span>`;
             breakdownHTML += `
       <div class="breakdown-row" style="flex-direction: row; align-items: center; justify-content: space-between; padding: 10px 12px; ${rowStyle}">
         <div style="display: flex; align-items: center; white-space: nowrap; overflow: hidden;">
@@ -5273,8 +6878,13 @@
           </span>
           ${leaveBadge}
         </div>
-        <div class="font-mono" style="display: flex; gap: 12px; font-size: 0.75rem; flex-shrink: 0; color: #4ade80; font-weight: 600;">
-          <span>No Hours expected</span>
+        <div class="font-mono" style="display: flex; gap: 12px; font-size: 0.75rem; flex-shrink: 0; color: var(--text-main);">
+          <span style="display: inline-block; min-width: 11ch;">
+            <span style="color:var(--accent-work); font-weight: 700;">W:</span> <span style="opacity: 0.25; font-weight: 400;">—</span>
+          </span>
+          <span style="display: inline-block; min-width: 11ch;">
+            <span style="color:var(--accent-break); font-weight: 700;">B:</span> <span style="opacity: 0.25; font-weight: 400;">—</span>
+          </span>
         </div>
       </div>`;
           } else {
@@ -5312,10 +6922,10 @@
             ${weekendBadge}
           </div>
           <div class="font-mono" style="display: flex; gap: 12px; font-size: 0.75rem; flex-shrink: 0; color: var(--text-main);">
-            <span style="display: inline-block; min-width: 75px;">
+            <span style="display: inline-block; min-width: 11ch;">
               <span style="color:var(--accent-work); font-weight: 700;">W:</span> ${formatFriendlyDuration(dayW)}
             </span>
-            <span style="display: inline-block; min-width: 65px;">
+            <span style="display: inline-block; min-width: 11ch;">
               <span style="color:var(--accent-break); font-weight: 700;">B:</span> ${formatFriendlyDuration(dayB)}
             </span>
           </div>
@@ -5345,6 +6955,8 @@
           if (seg) {
             seg.classList.remove("is-today");
             seg.classList.remove("is-leave");
+            seg.style.background = ""; // Resets custom zebra pattern inline styles on week changes
+            seg.style.borderColor = ""; // Resets custom color-coded borders on week changes
             if (DOM.progressSegmentFills[index]) {
               DOM.progressSegmentFills[index].style.transform = "scaleX(0)";
             }
@@ -5376,12 +6988,38 @@
               segment.classList.add("is-leave");
               const fill = DOM.progressSegmentFills[i];
               if (fill) fill.style.transform = "scaleX(0)";
+
+              const leaveRecord = leaveDates.find(
+                (l) => (typeof l === "string" ? l : l.date) === dateStr,
+              );
+              const leaveLabel =
+                typeof leaveRecord === "object" ? leaveRecord.type : "Leave";
+
+              // Maps leave category colors to render a dynamic zebra pattern gradient
+              let typeColor = "var(--text-muted)";
+              if (leaveLabel === "Sick") typeColor = "var(--accent-break)";
+              else if (leaveLabel === "Casual")
+                typeColor = "var(--accent-warning)";
+              else if (leaveLabel === "Public Holiday")
+                typeColor = "var(--accent-work)";
+              else if (leaveLabel === "In Lieu")
+                typeColor = "var(--accent-blue)";
+
+              segment.style.background = `repeating-linear-gradient(45deg,
+                  transparent,
+                  transparent 6px,
+                  color-mix(in srgb, ${typeColor} 12%, transparent) 6px,
+                  color-mix(in srgb, ${typeColor} 12%, transparent) 12px)`;
+              segment.style.borderColor = `color-mix(in srgb, ${typeColor} 35%, transparent)`;
+
               if (labelEl) {
-                labelEl.textContent = `${dayLetter} (Leave)`;
+                labelEl.textContent = dayLetter; // Restores raw single-character label name (M, T, W, T, F)
                 labelEl.style.opacity = "0.5";
               }
             } else {
               segment.classList.remove("is-leave");
+              segment.style.background = "";
+              segment.style.borderColor = "";
               if (labelEl) {
                 labelEl.textContent = dayLetter;
                 labelEl.style.opacity = "0.7";
@@ -5412,10 +7050,7 @@
         }
 
         if (weekStartMs === currentWeekStartMs) {
-          const nowDayIdx = nowDay === 0 ? 7 : nowDay;
-          if (nowDayIdx >= 1 && nowDayIdx <= 5) {
-            totalW_MonFri += getCurrentWorkSeconds();
-          }
+          totalW_MonFri += getCurrentWorkSeconds();
         }
 
         const totalPercent =
@@ -5554,6 +7189,9 @@
         document.getElementById("edit-modal").style.display = "flex";
       }
 
+      /**
+       * Executes closeEditModal logic.
+       */
       function closeEditModal() {
         document.getElementById("edit-modal").style.display = "none";
         editingLogId = null;
@@ -5573,22 +7211,32 @@
         const newBreak = document.getElementById("edit-break").value.trim();
         const newNotes = document.getElementById("edit-notes").value.trim();
 
-        const wSec = parseTime(newWork);
-        const bSec = parseTime(newBreak);
+        let wSec = parseTime(newWork);
+        let bSec = parseTime(newBreak);
+
+        // Cap at absolute 24 hours to prevent chart overflow
+        if (wSec !== null) wSec = Math.min(wSec, 86400);
+        if (bSec !== null) bSec = Math.min(bSec, 86400);
 
         if (
           wSec !== null &&
           bSec !== null &&
-          newDate.match(/^\d{1,2}\/\d{1,2}\/\d{2}$/)
+          newDate.match(/^\d{1,2}\/\d{1,2}\/(\d{2}|\d{4})$/)
         ) {
           log.date = newDate;
           log.displayDate = newDate.replace(/\/20(\d{2})$/, "/$1");
           log.workSec = wSec;
           log.breakSec = bSec;
+
+          // Prioritizes the saved dayGoal value to avoid rewriting history during edits
           const goal =
-            typeof getGoalSeconds === "function" ? getGoalSeconds() : 8 * 3600;
+            log.dayGoal ||
+            (typeof getGoalSeconds === "function"
+              ? getGoalSeconds()
+              : 8 * 3600);
           log.status = wSec - goal >= 0 ? "OVER" : "UNDER";
           log.diff = formatDuration(Math.abs(wSec - goal));
+
           const [m, d, y] = newDate.split("/");
           const fullYear = y.length === 2 ? `20${y}` : y;
           log.epochMs = Date.UTC(
@@ -5600,11 +7248,10 @@
           log.searchStr =
             `${log.displayDate} ${log.date} ${log.notes || ""}`.toLowerCase();
           saveLogs(logs);
-          // Removed synchronous rendering calls to let background Web Worker callback handle updates safely
           closeEditModal();
-          showAppToast("Shift updated successfully.");
+          showAppToast("Shift updated successfully");
         } else {
-          showAppToast("Invalid format. Use MM/DD/YY and HH:MM.");
+          showAppToast("Invalid format. Use MM/DD/YY and HH:MM");
         }
       }
 
@@ -5621,8 +7268,7 @@
             if (pos === -1) return;
             logs.splice(pos, 1);
             saveLogs(logs);
-            // Removed synchronous rendering calls to let background Web Worker callback handle updates safely
-            showAppToast("Shift deleted.");
+            showAppToast("Shift deleted");
           },
           true,
         );
@@ -5648,10 +7294,14 @@
         csv += logs
           .map((l) => {
             const workDec = (l.workSec / 3600).toFixed(2);
+
+            // Reads the original Day Goal assigned to this shift instead of the current UI goal
             const goalSec =
-              typeof getGoalSeconds === "function"
+              l.dayGoal ||
+              (typeof getGoalSeconds === "function"
                 ? getGoalSeconds()
-                : 8 * 3600;
+                : 8 * 3600);
+
             const deltaDec = (
               (l.status === "OVER" ? 1 : -1) *
               (Math.abs(l.workSec - goalSec) / 3600)
@@ -5682,6 +7332,9 @@
           logs: getLogs(),
           goalH: localStorage.getItem(GOAL_H_KEY) || 8,
           goalM: localStorage.getItem(GOAL_M_KEY) || 0,
+          presets: localStorage.getItem(PRESET_VALUES_KEY),
+          leaves: localStorage.getItem(LEAVE_DATES_KEY),
+          views: localStorage.getItem(VIEWS_KEY),
         };
 
         if (data.logs.length === 0) {
@@ -5705,50 +7358,83 @@
        * @param {Event} e - Native file input upload target.
        */
       function importJSON(e) {
-        if (!e.target.files[0]) return;
-        const reader = new FileReader();
-        reader.onload = (event) => {
-          try {
-            const data = JSON.parse(event.target.result);
-            if (data.state) {
-              state = data.state;
-              saveState();
-            }
-            if (data.goalH !== undefined) {
-              localStorage.setItem(GOAL_H_KEY, data.goalH);
-              DOM.goalHours.value = String(
-                parseInt(data.goalH, 10) || 0,
-              ).padStart(2, "0");
-            }
-            if (data.goalM !== undefined) {
-              localStorage.setItem(GOAL_M_KEY, data.goalM);
-              DOM.goalMins.value = String(
-                parseInt(data.goalM, 10) || 0,
-              ).padStart(2, "0");
-            }
-            if (data.logs) {
-              data.logs.forEach((l) => {
-                l.displayDate = l.date.replace(/\/20(\d{2})$/, "/$1");
-                const [m, d, y] = l.date.split("/");
-                const fullY = y.length === 2 ? `20${y}` : y;
-                l.epochMs = Date.UTC(
-                  parseInt(fullY),
-                  parseInt(m) - 1,
-                  parseInt(d),
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const executeImport = () => {
+          const reader = new FileReader();
+          reader.onload = (event) => {
+            try {
+              const data = JSON.parse(event.target.result);
+              if (data.state) {
+                state = data.state;
+                saveState();
+              }
+              if (data.goalH !== undefined) {
+                localStorage.setItem(GOAL_H_KEY, data.goalH);
+                DOM.goalHours.value = String(
+                  parseInt(data.goalH, 10) || 0,
+                ).padStart(2, "0");
+              }
+              if (data.goalM !== undefined) {
+                localStorage.setItem(GOAL_M_KEY, data.goalM);
+                DOM.goalMins.value = String(
+                  parseInt(data.goalM, 10) || 0,
+                ).padStart(2, "0");
+              }
+              if (data.presets) {
+                localStorage.setItem(PRESET_VALUES_KEY, data.presets);
+              }
+              if (data.leaves) {
+                localStorage.setItem(LEAVE_DATES_KEY, data.leaves);
+              }
+              if (data.views) {
+                localStorage.setItem(VIEWS_KEY, data.views);
+              }
+              if (data.logs) {
+                // Filter out any malformed logs to prevent database corruption
+                const validatedLogs = data.logs.filter(
+                  (l) =>
+                    l && typeof l.date === "string" && l.date.includes("/"),
                 );
-              });
-              saveLogs(data.logs);
+
+                validatedLogs.forEach((l) => {
+                  l.displayDate = l.date.replace(/\/20(\d{2})$/, "/$1");
+                  const [m, d, y] = l.date.split("/");
+                  const fullY = y.length === 2 ? `20${y}` : y;
+                  l.epochMs = Date.UTC(
+                    parseInt(fullY, 10),
+                    parseInt(m, 10) - 1,
+                    parseInt(d, 10),
+                  );
+                });
+                saveLogs(validatedLogs);
+              }
+              showSyncToast("Data imported. Session synchronized");
+              renderStaticUI();
+              renderTimersOnly();
+              renderPresets();
+              loadSavedFilterViews();
+            } catch (err) {
+              showAppToast("Error restoring data");
             }
-            showAppToast("Restored successfully.");
-            renderStaticUI();
-            renderTimersOnly();
-            renderLogbook();
-            renderInsights();
-          } catch (err) {
-            showAppToast("Error restoring data.");
-          }
+          };
+          reader.readAsText(file);
+          e.target.value = ""; // Clear file input value to allow consecutive selection of the same file
         };
-        reader.readAsText(e.target.files[0]);
+
+        const hasActiveSession =
+          state.currentMode !== null || state.workAccumulated > 0;
+        if (hasActiveSession) {
+          openConfirmModal(
+            "Overwrite Active Session?",
+            "You have an active running timer. Importing a backup now will overwrite your current shift progress. Are you sure?",
+            executeImport,
+            true,
+          );
+        } else {
+          executeImport();
+        }
       }
 
       /**
@@ -5821,10 +7507,14 @@
           () => {
             saveLogs([]);
             localStorage.removeItem(STATE_KEY);
+            localStorage.removeItem(GOAL_H_KEY);
+            localStorage.removeItem(GOAL_M_KEY);
+            localStorage.removeItem(PRESET_VALUES_KEY);
+            localStorage.removeItem(LEAVE_DATES_KEY);
+            localStorage.removeItem(VIEWS_KEY); // Clears saved custom filter views
+            localStorage.removeItem(FILTERS_PREF_KEY); // Clears active filters preferences
             resetSession();
-            renderLogbook();
-            renderInsights();
-            showAppToast("All data wiped.");
+            showAppToast("All data wiped");
           },
           true,
         );
@@ -5848,6 +7538,31 @@
 
         if (state.activeDate !== currentDatePST) {
           if (state.currentMode === null && state.workAccumulated < 60) {
+            // Paused with negligible work — just roll the date forward cleanly
+            state.activeDate = currentDatePST;
+            saveState();
+          } else if (state.workAccumulated > 60) {
+            // Active session or paused with real work accumulated — auto-submit
+            // under the previous day's date, then reset for the new day
+            const activeMode = state.currentMode;
+            executeSubmit(
+              null,
+              "Auto-submitted (Midnight Reset)",
+              state.activeDate,
+            );
+            // If the user had an active tracking mode, seamlessly continue tracking in the new day
+            if (activeMode !== null) {
+              state.currentMode = activeMode;
+              state.loginTimestamp = getTrueTime();
+              state.activeDate = currentDatePST;
+              saveState();
+              renderStaticUI();
+              renderTimersOnly();
+            }
+          }
+          // If workAccumulated <= 60 and mode is active (just started at midnight),
+          // silently roll the date forward to avoid submitting a ghost entry
+          else {
             state.activeDate = currentDatePST;
             saveState();
           }
@@ -5870,8 +7585,12 @@
         const now = new Date();
         const nowMs = now.getTime();
 
-        if (!state.idleLock && state.currentMode !== null) {
-          if (nowMs - lastActivity > IDLE_THRESHOLD) {
+        if (
+          state.idleTrackingEnabled !== false &&
+          !state.idleLock &&
+          state.currentMode !== null
+        ) {
+          if (nowMs - lastActivity > getIdleThresholdMs()) {
             triggerIdleLock(lastActivity);
           }
         }
@@ -5883,6 +7602,20 @@
               document.getElementById("idle-duration-text"),
               formatDuration((nowMs - state.idleStart) / 1000),
             );
+
+            // Dynamically update current time timestamp in local timezone
+            const currentTimeEl = document.getElementById("idle-current-time");
+            if (currentTimeEl) {
+              const tz = DOM.primaryTz.value || "America/Los_Angeles";
+              const timeFormatter = new Intl.DateTimeFormat("en-US", {
+                timeZone: tz,
+                hour12: true,
+                hour: "2-digit",
+                minute: "2-digit",
+                second: "2-digit",
+              });
+              currentTimeEl.textContent = timeFormatter.format(now);
+            }
           }
 
           renderTimersOnly(now);
@@ -5896,8 +7629,8 @@
 
         checkMidnightReset(now);
 
-        // Writes to storage are scaled to 60-second ticks to minimize synchronous localStorage write delays
-        if (++saveTicks % 60 === 0) {
+        // Writes to storage are scaled to 60-second ticks to minimize synchronous localStorage write delays, saving every tick in the background
+        if (++saveTicks % 60 === 0 || document.hidden) {
           saveState();
         }
 
@@ -5925,6 +7658,11 @@
 
         if (e.code === "Space") {
           e.preventDefault();
+          startSilentAudio();
+          if (!state.loginTimestamp) {
+            // Session not started — Space only works once the user has clicked Begin Work
+            return;
+          }
           if (state.currentMode === "work") {
             switchMode("break");
           } else {
@@ -6016,11 +7754,11 @@
           lastSeenEl.textContent = "Active";
           lastSeenEl.style.color = "var(--accent-work)";
         } else if (secondsIdle < 60) {
-          lastSeenEl.textContent = "Idle: " + secondsIdle + "s";
+          lastSeenEl.textContent = "Idle " + secondsIdle + "s";
           lastSeenEl.style.color = "var(--text-muted)";
         } else {
           const mins = Math.floor(secondsIdle / 60);
-          lastSeenEl.textContent = "Idle: " + mins + "m";
+          lastSeenEl.textContent = "Idle " + mins + "m";
           lastSeenEl.style.color = "var(--accent-warning)";
         }
       }
@@ -6028,6 +7766,111 @@
       /*==========================================================================
        * 19. MANUAL LOG INSERTION UTILITIES
        * =========================================================================*/
+      let activeIdleCloseHandler = null;
+
+      window.toggleIdleConfigPopup = function (e) {
+        e.stopPropagation();
+        const popup = document.getElementById("idle-config-popup");
+        if (!popup) return;
+
+        const isShowing = popup.classList.contains("show");
+        if (isShowing) {
+          popup.classList.remove("show");
+          if (activeIdleCloseHandler) {
+            window.removeEventListener("click", activeIdleCloseHandler);
+            activeIdleCloseHandler = null;
+          }
+        } else {
+          popup.classList.add("show");
+          syncIdleConfigUI();
+
+          if (activeIdleCloseHandler) {
+            window.removeEventListener("click", activeIdleCloseHandler);
+          }
+
+          activeIdleCloseHandler = (event) => {
+            if (!popup.contains(event.target)) {
+              popup.classList.remove("show");
+              window.removeEventListener("click", activeIdleCloseHandler);
+              activeIdleCloseHandler = null;
+            }
+          };
+          window.addEventListener("click", activeIdleCloseHandler);
+        }
+      };
+
+      window.onIdleToggleChange = function () {
+        const checkbox = document.getElementById("idle-toggle");
+        const sliderContainer = document.getElementById("idle-range-container");
+        const slider = document.getElementById("idle-slider");
+
+        state.idleTrackingEnabled = checkbox.checked;
+
+        if (checkbox.checked) {
+          sliderContainer.style.opacity = "1";
+          slider.removeAttribute("disabled");
+        } else {
+          sliderContainer.style.opacity = "0.3";
+          slider.setAttribute("disabled", "true");
+        }
+
+        updateIdleTagDisplay();
+        saveState();
+      };
+
+      window.onIdleSliderInput = function (val) {
+        document.getElementById("idle-val-display").textContent = val + "m";
+      };
+
+      window.onIdleSliderChange = function (val) {
+        state.idleThresholdMinutes = parseInt(val, 10);
+        updateIdleTagDisplay();
+        saveState();
+      };
+
+      /**
+       * Executes updateIdleTagDisplay logic.
+       */
+      function updateIdleTagDisplay() {
+        const tag = document.getElementById("idle-tag-display");
+        if (!tag) return;
+        if (state.idleTrackingEnabled === false) {
+          tag.textContent = "Idle Off";
+        } else {
+          tag.textContent = `Idle ${state.idleThresholdMinutes || 30}m`;
+        }
+      }
+
+      /**
+       * Executes syncIdleConfigUI logic.
+       */
+      function syncIdleConfigUI() {
+        const isEnabled = state.idleTrackingEnabled !== false;
+        const mins = state.idleThresholdMinutes || 30;
+
+        const checkbox = document.getElementById("idle-toggle");
+        const sliderContainer = document.getElementById("idle-range-container");
+        const slider = document.getElementById("idle-slider");
+        const valDisplay = document.getElementById("idle-val-display");
+
+        if (checkbox) checkbox.checked = isEnabled;
+        if (slider) {
+          slider.value = mins;
+          if (isEnabled) {
+            sliderContainer.style.opacity = "1";
+            slider.removeAttribute("disabled");
+          } else {
+            sliderContainer.style.opacity = "0.3";
+            slider.setAttribute("disabled", "true");
+          }
+        }
+        if (valDisplay) valDisplay.textContent = mins + "m";
+        updateIdleTagDisplay();
+      }
+
+      /**
+       * Executes openManualModal logic.
+       */
       function openManualModal() {
         document.getElementById("manual-date").value = getPSTDate();
         document.getElementById("manual-work").value = "00:00";
@@ -6040,6 +7883,9 @@
         document.getElementById("manual-modal").style.display = "flex";
       }
 
+      /**
+       * Executes closeManualModal logic.
+       */
       function closeManualModal() {
         const modal = document.getElementById("manual-modal");
         if (modal) {
@@ -6051,7 +7897,10 @@
        * Validates and inserts a manual log directly into storage databases.
        */
       function saveManualModal() {
-        const dateStr = document.getElementById("manual-date").value.trim();
+        const manualDateInput = document.getElementById("manual-date");
+        // Force blur formatting first
+        handleDateInputBlur({ target: manualDateInput });
+        const dateStr = manualDateInput.value.trim();
         const workStr = document.getElementById("manual-work").value.trim();
         const breakStr = document.getElementById("manual-break").value.trim();
         const notes = document.getElementById("manual-notes").value.trim();
@@ -6060,15 +7909,19 @@
           parseInt(document.getElementById("manual-goal-h").value) || 0;
         const gm =
           parseInt(document.getElementById("manual-goal-m").value) || 0;
-        const goal = gh * 3600 + gm * 60;
+        const goal = gh * 3600 + gm * 60 || 1; // Minimum 1 second to avoid falsy zero
 
-        const wSec = parseTime(workStr);
-        const bSec = parseTime(breakStr);
+        let wSec = parseTime(workStr);
+        let bSec = parseTime(breakStr);
+
+        // Cap at absolute 24 hours to prevent chart overflow
+        if (wSec !== null) wSec = Math.min(wSec, 86400);
+        if (bSec !== null) bSec = Math.min(bSec, 86400);
 
         if (
           wSec !== null &&
           bSec !== null &&
-          dateStr.match(/^\d{1,2}\/\d{1,2}\/\d{2}$/)
+          dateStr.match(/^\d{1,2}\/\d{1,2}\/(\d{2}|\d{4})$/)
         ) {
           const diff = wSec - goal;
           const [m, d, y] = dateStr.split("/");
@@ -6100,12 +7953,11 @@
           logs.sort((a, b) => b.epochMs - a.epochMs);
 
           saveLogs(logs);
-          // Removed synchronous rendering calls to let background Web Worker callback handle updates safely
 
           closeManualModal();
-          showAppToast("Manual shift added successfully.");
+          showAppToast("Manual shift added successfully");
         } else {
-          showAppToast("Invalid format. Use MM/DD/YY and HH:MM.");
+          showAppToast("Invalid format. Use MM/DD/YY and HH:MM");
         }
       }
 
@@ -6122,8 +7974,133 @@
         if (event.target == manualMod) closeManualModal();
       };
 
-      DOM.startBtn.addEventListener("click", () => switchMode("work"));
+      let silentAudioStarted = false;
+      let globalAudioCtx = null;
+
+      /**
+       * Generates an inaudible, programmatic low-frequency audio wave in memory.
+       * Bypasses the browser's background tab suspension policies entirely offline.
+       */
+      function startSilentAudio() {
+        try {
+          const AudioContextClass =
+            window.AudioContext || window.webkitAudioContext;
+          if (!AudioContextClass) {
+            console.warn(
+              "[WakeLock] Web Audio API is not supported in this browser environment.",
+            );
+            return;
+          }
+
+          if (!globalAudioCtx) {
+            console.log(
+              "[WakeLock] Initializing offline silent audio context...",
+            );
+            globalAudioCtx = new AudioContextClass();
+          }
+
+          // Resume the context if it was initialized in a suspended state due to autoplay restrictions
+          if (globalAudioCtx.state === "suspended") {
+            globalAudioCtx
+              .resume()
+              .then(() => {
+                console.log("[WakeLock] AudioContext resumed successfully.");
+              })
+              .catch((e) =>
+                console.warn("[WakeLock] AudioContext resume failed:", e),
+              );
+          }
+
+          if (silentAudioStarted) return;
+
+          const osc = globalAudioCtx.createOscillator();
+          const gain = globalAudioCtx.createGain();
+
+          // 1 Hz is completely inaudible to human ears
+          osc.type = "sine";
+          osc.frequency.setValueAtTime(1, globalAudioCtx.currentTime);
+          // Low gain value registers active audio in the browser scheduler
+          gain.gain.setValueAtTime(0.001, globalAudioCtx.currentTime);
+
+          osc.connect(gain);
+          gain.connect(globalAudioCtx.destination);
+          osc.start();
+          silentAudioStarted = true;
+
+          console.log(
+            "[WakeLock] Offline silent audio wake lock successfully activated.",
+          );
+          console.log(
+            "[WakeLock] AudioContext state is: " + globalAudioCtx.state,
+          );
+        } catch (e) {
+          console.warn(
+            "[WakeLock] Offline silent audio context blocked or failed:",
+            e,
+          );
+        }
+      }
+
+      let wakeLock = null;
+
+      /**
+       * Executes requestWakeLock logic.
+       */
+      async function requestWakeLock() {
+        if ("wakeLock" in navigator) {
+          try {
+            wakeLock = await navigator.wakeLock.request("screen");
+            wakeLock.addEventListener("release", () => {
+              console.log("[WakeLock] Screen Wake Lock released");
+            });
+            console.log("[WakeLock] Screen Wake Lock acquired");
+          } catch (err) {
+            console.warn(`[WakeLock] Error: ${err.name}, ${err.message}`);
+          }
+        }
+      }
+
+      // Re-acquire wake lock when tab becomes visible again
+      document.addEventListener("visibilitychange", async () => {
+        if (wakeLock !== null && document.visibilityState === "visible") {
+          await requestWakeLock();
+        }
+      });
+
+      // Automatic interaction triggers to bypass browser autoplay restrictions gracefully
+      const triggerSilentAudioOnGesture = () => {
+        startSilentAudio();
+        requestWakeLock(); // Request native wake lock on user gesture
+        if (
+          silentAudioStarted &&
+          globalAudioCtx &&
+          globalAudioCtx.state === "running"
+        ) {
+          document.removeEventListener("click", triggerSilentAudioOnGesture);
+          document.removeEventListener("keydown", triggerSilentAudioOnGesture);
+          document.removeEventListener(
+            "touchstart",
+            triggerSilentAudioOnGesture,
+          );
+        }
+      };
+      document.addEventListener("click", triggerSilentAudioOnGesture, {
+        passive: true,
+      });
+      document.addEventListener("keydown", triggerSilentAudioOnGesture, {
+        passive: true,
+      });
+      document.addEventListener("touchstart", triggerSilentAudioOnGesture, {
+        passive: true,
+      });
+
+      DOM.startBtn.addEventListener("click", () => {
+        startSilentAudio();
+        switchMode("work");
+      });
+
       DOM.pauseBtn.addEventListener("click", () => {
+        startSilentAudio();
         if (state.currentMode === "work") {
           switchMode("break");
         } else {
@@ -6160,6 +8137,9 @@
         if (!/[\dhmHM:. ]/.test(e.key)) e.preventDefault();
       };
 
+      /**
+       * Executes parseGoalTimeStr logic.
+       */
       function parseGoalTimeStr(val) {
         let hh = 0;
         let mm = 0;
@@ -6227,18 +8207,30 @@
         goalTimeEl.value = `${hh}h ${mm}m`;
 
         renderTimersOnly();
+        insightsCacheKey = null; // Forces recalculation on insights tab with new goals
         renderInsights();
         updatePresetHighlights();
       };
 
+      /**
+       * Executes getSavedPresets logic.
+       */
       function getSavedPresets() {
-        const saved = localStorage.getItem(PRESET_VALUES_KEY);
         const defaults = [4, 6];
-        if (!saved) return defaults;
-        const parsed = JSON.parse(saved);
-        return parsed.slice(0, 2);
+        try {
+          const saved = localStorage.getItem(PRESET_VALUES_KEY);
+          if (!saved) return defaults;
+          const parsed = JSON.parse(saved);
+          return Array.isArray(parsed) ? parsed.slice(0, 2) : defaults;
+        } catch (e) {
+          console.warn("Preset parse failed — using defaults.", e);
+          return defaults;
+        }
       }
 
+      /**
+       * Executes renderPresets logic.
+       */
       function renderPresets() {
         const presets = getSavedPresets();
         presets.forEach((val, index) => {
@@ -6286,33 +8278,63 @@
 
       window.addLeaveDate = function () {
         const input = document.getElementById("leave-date-input");
-        const val = input.value;
+        // Force blur formatting first in case user hit Enter without blurring
+        handleDateInputBlur({ target: input });
+        let val = input.value.trim();
+        const typeSelect = document.getElementById("leave-type-select");
+        const leaveType = typeSelect ? typeSelect.value : "Casual";
+
         if (!val) {
-          showAppToast("Please select a valid date.");
+          showAppToast("Please select a valid date");
           return;
         }
 
-        const [y, m, d] = val.split("-");
-        const formattedDate = `${m}/${d}/${y.slice(-2)}`;
+        // Force padding if user hit Enter without blurring
+        if (val.match(/^\d{1,2}\/\d{1,2}\/\d{2}$/)) {
+          const parts = val.split("/");
+          val = `${parts[0].padStart(2, "0")}/${parts[1].padStart(2, "0")}/${parts[2]}`;
+          input.value = val;
+        }
+
+        // Validates manual formats using the core date regex
+        if (!val.match(/^\d{2}\/\d{2}\/\d{2}$/)) {
+          showAppToast("Invalid format. Use MM/DD/YY");
+          return;
+        }
+
+        const formattedDate = val;
 
         const currentLeaves = getLeaveDates();
-        if (currentLeaves.includes(formattedDate)) {
-          showAppToast("Date already marked as leave.");
+
+        // Handles duplication checks safely against both objects and legacy elements
+        const exists = currentLeaves.some(
+          (l) => (typeof l === "string" ? l : l.date) === formattedDate,
+        );
+        if (exists) {
+          showAppToast("Date already marked as leave");
           return;
         }
 
-        currentLeaves.push(formattedDate);
+        // Save as a leaf object record
+        currentLeaves.push({ date: formattedDate, type: leaveType });
+
         currentLeaves.sort((a, b) => {
-          const aParts = a.split("/");
-          const bParts = b.split("/");
-          const aDate = new Date(`20${aParts[2]}`, aParts[0] - 1, aParts[1]);
-          const bDate = new Date(`20${bParts[2]}`, bParts[0] - 1, bParts[1]);
+          const aStr = typeof a === "string" ? a : a.date;
+          const bStr = typeof b === "string" ? b : b.date;
+          const aParts = aStr.split("/");
+          const bParts = bStr.split("/");
+          const aFullY = aParts[2].length === 2 ? `20${aParts[2]}` : aParts[2];
+          const bFullY = bParts[2].length === 2 ? `20${bParts[2]}` : bParts[2];
+          const aDate = new Date(parseInt(aFullY), aParts[0] - 1, aParts[1]);
+          const bDate = new Date(parseInt(bFullY), bParts[0] - 1, bParts[1]);
           return aDate - bDate;
         });
 
         saveLeaveDates(currentLeaves);
         renderLeaveDatesList();
 
+        // Invalidates cached insights key to force a visual update
+        insightsCacheKey = null;
         renderInsights();
         renderLogbook();
 
@@ -6322,34 +8344,56 @@
 
       window.removeLeaveDate = function (formattedDate) {
         let currentLeaves = getLeaveDates();
-        currentLeaves = currentLeaves.filter((d) => d !== formattedDate);
+        currentLeaves = currentLeaves.filter((item) => {
+          const itemDate = typeof item === "string" ? item : item.date;
+          return itemDate !== formattedDate;
+        });
         saveLeaveDates(currentLeaves);
         renderLeaveDatesList();
 
+        // Invalidates cached insights key to force a visual update
+        insightsCacheKey = null;
         renderInsights();
         renderLogbook();
 
         showAppToast(`Removed leave on ${formattedDate}`);
       };
 
+      /**
+       * Executes renderLeaveDatesList logic.
+       */
       function renderLeaveDatesList() {
         const listContainer = document.getElementById("leave-dates-list");
         if (!listContainer) return;
 
         const currentLeaves = getLeaveDates();
         if (currentLeaves.length === 0) {
-          listContainer.innerHTML = `<div style="text-align: center; color: var(--text-muted); font-size: 0.75rem; padding: 12px 0;">No active leave dates set.</div>`;
+          listContainer.innerHTML = `<div style="text-align: center; color: var(--text-muted); font-size: 0.75rem; display: flex; align-items: center; justify-content: center; height: 100%;">No active leave dates set.</div>`;
           return;
         }
 
         let html = "";
-        currentLeaves.forEach((date) => {
+        currentLeaves.forEach((item) => {
+          const isLegacy = typeof item === "string";
+          const date = isLegacy ? item : item.date;
+          const type = isLegacy ? "Leave" : item.type;
+          const safeDate = escapeHTML(date);
+          const safeType = escapeHTML(type);
+
+          let typeColor = "var(--accent-blue)";
+          if (type === "Sick") typeColor = "var(--accent-break)";
+          if (type === "Casual") typeColor = "var(--accent-warning)";
+          if (type === "Public Holiday") typeColor = "var(--accent-work)";
+
           html += `
-        <div style="display: flex; justify-content: space-between; align-items: center; background: var(--panel-bg); border: 1px solid var(--border-main); padding: var(--space-2) var(--space-3); border-radius: var(--radius-sm); font-size: var(--text-sm); font-family: var(--font-mono); color: var(--text-main);">
-          <span>${date}</span>
-          <button style="background: transparent; border: none; color: var(--accent-break); font-weight: bold; cursor: pointer; display: flex; align-items: center;" onclick="removeLeaveDate('${date}')" title="Remove Leave">✕</button>
-        </div>
-      `;
+              <div style="display: flex; justify-content: space-between; align-items: center; background: var(--panel-bg); border: 1px solid var(--border-main); padding: var(--space-1) var(--space-3); border-radius: var(--radius-sm); font-size: var(--text-sm); font-family: var(--font-mono); color: var(--text-main);">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <span>${safeDate}</span>
+                  <span style="font-size: 0.65rem; font-weight: 700; color: ${typeColor}; border: 1px solid ${typeColor}33; background: ${typeColor}11; padding: 2px 6px; border-radius: 4px; font-family: var(--font-sans);">${safeType}</span>
+                </div>
+                <button style="background: transparent; border: none; color: var(--accent-break); font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; width: 16px; height: 16px; line-height: 1;" onclick="removeLeaveDate('${safeDate}')" title="Remove Leave">✕</button>
+              </div>
+            `;
         });
         listContainer.innerHTML = html;
       }
@@ -6381,6 +8425,7 @@
         if (goalTimeEl) goalTimeEl.value = `${hours}h 0m`;
         updatePresetHighlights();
         renderTimersOnly();
+        insightsCacheKey = null; // Forces recalculation with new goal preset
         renderInsights();
       };
 
@@ -6403,9 +8448,13 @@
 
         updatePresetHighlights();
         renderTimersOnly();
+        insightsCacheKey = null; // Forces recalculation on goal adjustments
         renderInsights();
       };
 
+      /**
+       * Executes updatePresetHighlights logic.
+       */
       function updatePresetHighlights() {
         const currentH = parseFloat(localStorage.getItem(GOAL_H_KEY)) || 0;
         const currentM = parseFloat(localStorage.getItem(GOAL_M_KEY)) || 0;
@@ -6555,6 +8604,7 @@
           bindInput("edit-break", parseTimePreview);
           bindInput("manual-date", parseDatePreview);
           bindInput("edit-date", parseDatePreview);
+          bindInput("leave-date-input", parseDatePreview);
         };
 
         setupDynamicPreview();
@@ -6572,6 +8622,9 @@
           });
       }
 
+      /**
+       * Executes handleTimeInputBlur logic.
+       */
       function handleTimeInputBlur(e) {
         const input = e.target;
         const val = input.value.trim();
@@ -6588,6 +8641,9 @@
         },
       );
 
+      /**
+       * Executes handleDateInputBlur logic.
+       */
       function handleDateInputBlur(e) {
         const input = e.target;
         const val = input.value.trim().toLowerCase();
@@ -6673,10 +8729,61 @@
         }
       }
 
-      ["manual-date", "edit-date"].forEach((id) => {
+      ["manual-date", "edit-date", "leave-date-input"].forEach((id) => {
         const el = document.getElementById(id);
         if (el) el.addEventListener("blur", handleDateInputBlur);
       });
+
+      // Event listener for Manual Date Picker
+      const manualDatePicker = document.getElementById("manual-date-picker");
+      if (manualDatePicker) {
+        manualDatePicker.addEventListener("change", (e) => {
+          const val = e.target.value; // Format: YYYY-MM-DD
+          if (val) {
+            const [y, m, d] = val.split("-");
+            const formattedDate = `${m}/${d}/${y.slice(-2)}`;
+            const manualDateInput = document.getElementById("manual-date");
+            if (manualDateInput) {
+              manualDateInput.value = formattedDate;
+              manualDateInput.dispatchEvent(new Event("blur")); // Fires formatting preview
+            }
+          }
+        });
+      }
+
+      // Event listener for Edit Date Picker
+      const editDatePicker = document.getElementById("edit-date-picker");
+      if (editDatePicker) {
+        editDatePicker.addEventListener("change", (e) => {
+          const val = e.target.value; // Format: YYYY-MM-DD
+          if (val) {
+            const [y, m, d] = val.split("-");
+            const formattedDate = `${m}/${d}/${y.slice(-2)}`;
+            const editDateInput = document.getElementById("edit-date");
+            if (editDateInput) {
+              editDateInput.value = formattedDate;
+              editDateInput.dispatchEvent(new Event("blur")); // Fires formatting preview
+            }
+          }
+        });
+      }
+
+      // Event listener for Leave Date Picker
+      const leaveDatePicker = document.getElementById("leave-date-picker");
+      if (leaveDatePicker) {
+        leaveDatePicker.addEventListener("change", (e) => {
+          const val = e.target.value; // Format: YYYY-MM-DD
+          if (val) {
+            const [y, m, d] = val.split("-");
+            const formattedDate = `${m}/${d}/${y.slice(-2)}`;
+            const leaveDateInput = document.getElementById("leave-date-input");
+            if (leaveDateInput) {
+              leaveDateInput.value = formattedDate;
+              leaveDateInput.dispatchEvent(new Event("blur")); // Fires formatting preview
+            }
+          }
+        });
+      }
 
       DOM.primaryTz.value =
         localStorage.getItem(TZ_KEY) || "America/Los_Angeles";
@@ -6696,6 +8803,32 @@
         }
       });
 
+      let syncToastTimeout;
+
+      /**
+       * Executes showSyncToast logic.
+       */
+      function showSyncToast(msg) {
+        const toast = document.getElementById("sync-toast");
+        if (!toast) return;
+        toast.innerHTML = `
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent-warning); flex-shrink: 0;">
+                <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+              </svg>
+              <span>${msg}</span>
+            </div>
+          `;
+        toast.style.top = "30px";
+        clearTimeout(syncToastTimeout);
+        syncToastTimeout = setTimeout(() => {
+          toast.style.top = "-100px";
+        }, 3500);
+      }
+
+      /**
+       * Executes showAppToast logic.
+       */
       function showAppToast(msg) {
         const toast = document.getElementById("app-toast");
         const contentEl = document.getElementById("app-toast-content");
@@ -6711,6 +8844,9 @@
         }, 3000);
       }
 
+      /**
+       * Executes openConfirmModal logic.
+       */
       function openConfirmModal(title, desc, callback, isDestructive = true) {
         document.getElementById("confirm-title").textContent = title;
         document.getElementById("confirm-desc").textContent = desc;
@@ -6734,6 +8870,9 @@
         document.getElementById("confirm-modal").style.display = "flex";
       }
 
+      /**
+       * Executes closeConfirmModal logic.
+       */
       function closeConfirmModal() {
         document.getElementById("confirm-modal").style.display = "none";
         confirmCallback = null;
@@ -6746,6 +8885,9 @@
           closeConfirmModal();
         });
 
+      /**
+       * Executes escapeHTML logic.
+       */
       function escapeHTML(str) {
         if (!str) return "";
         return str.replace(
@@ -6761,6 +8903,9 @@
         );
       }
 
+      /**
+       * Executes debounce logic.
+       */
       function debounce(func, wait) {
         let timeout;
         return function (...args) {
@@ -6769,6 +8914,9 @@
         };
       }
 
+      /**
+       * Executes switchTab logic.
+       */
       function switchTab(target) {
         document.querySelectorAll(".tab-content").forEach((el) => {
           el.style.display = "none";
@@ -6780,6 +8928,9 @@
         if (target === "insights") {
           targetContent.style.display = "flex";
           targetContent.style.flexDirection = "column";
+          // Reset tracker to force an immediate update on tab selection
+          lastWeeklyUpdateMinute = -1;
+          updateLiveWeeklySummary(true);
         } else {
           targetContent.style.display = "block";
           // Render the logbook on-demand whenever the tab is selected to ensure data is always fresh
@@ -6793,12 +8944,28 @@
           .classList.add("active");
       }
 
+      /**
+       * Executes changeWeekOffset logic.
+       */
       function changeWeekOffset(delta) {
         displayBaseDate.setDate(displayBaseDate.getDate() + delta * 7);
         insightsCacheKey = null;
         renderInsights();
       }
 
+      /**
+       * Re-aligns base date back to current active week and forces a clean render.
+       */
+      window.jumpToCurrentWeek = function () {
+        displayBaseDate = getPSTDateObj(); // Recalibrate baseline to today's PST date
+        insightsCacheKey = null; // Invalidate active insights cache
+        renderInsights(); // Trigger visual re-render
+        showAppToast("Navigated to current week");
+      };
+
+      /**
+       * Executes toggleFilters logic.
+       */
       function toggleFilters() {
         const panel = document.getElementById("advanced-filters");
         const btn = document.getElementById("filter-toggle-btn");
@@ -6811,6 +8978,9 @@
         }
       }
 
+      /**
+       * Executes getGoalSeconds logic.
+       */
       function getGoalSeconds() {
         const h = Math.max(0, parseFloat(DOM.goalHours.value) || 0);
         const m = Math.max(0, parseFloat(DOM.goalMins.value) || 0);
@@ -6818,6 +8988,9 @@
         return total > 0 ? total : 1;
       }
 
+      /**
+       * Executes formatDuration logic.
+       */
       function formatDuration(sec) {
         sec = Math.max(0, Math.floor(sec));
         const h = Math.floor(sec / 3600)
@@ -6832,21 +9005,33 @@
         return `${h}:${m}:${s}`;
       }
 
+      /**
+       * Executes parseTime logic.
+       */
       function parseTime(str) {
         if (!str) return null;
         const p = str.trim().split(":");
+        let h = 0,
+          m = 0,
+          s = 0;
         if (p.length === 2) {
-          return parseInt(p[0], 10) * 3600 + parseInt(p[1], 10) * 60;
+          h = parseInt(p[0], 10);
+          m = parseInt(p[1], 10);
+          if (isNaN(h) || isNaN(m)) return null;
+          return h * 3600 + m * 60;
         } else if (p.length === 3) {
-          return (
-            parseInt(p[0], 10) * 3600 +
-            parseInt(p[1], 10) * 60 +
-            parseInt(p[2], 10)
-          );
+          h = parseInt(p[0], 10);
+          m = parseInt(p[1], 10);
+          s = parseInt(p[2], 10);
+          if (isNaN(h) || isNaN(m) || isNaN(s)) return null;
+          return h * 3600 + m * 60 + s;
         }
         return null;
       }
 
+      /**
+       * Executes formatFriendlyDuration logic.
+       */
       function formatFriendlyDuration(
         sec,
         emptyPlaceholder = '<span style="opacity: 0.25; font-weight: 400;">—</span>',
@@ -6869,23 +9054,45 @@
         }
       }
 
+      /**
+       * Executes initializeTickers logic.
+       */
       function initializeTickers() {
         // Unused - sliding tickers are disabled to maintain 0% CPU software rendering
       }
 
+      /**
+       * Executes updateTickerDisplay logic.
+       */
       function updateTickerDisplay(el, timeStr) {
         // Unused - sliding tickers are disabled to maintain 0% CPU software rendering
       }
 
+      /**
+       * Executes saveState logic.
+       */
       function saveState() {
         state.lastHeartbeat = Date.now();
+        state.lastActivity = lastActivity;
         localStorage.setItem(STATE_KEY, JSON.stringify(state));
       }
 
+      /**
+       * Executes loadState logic.
+       */
       function loadState() {
         const saved = localStorage.getItem(STATE_KEY);
         if (saved) {
-          state = JSON.parse(saved);
+          try {
+            state = JSON.parse(saved);
+          } catch (e) {
+            console.warn(
+              "State parse failed — corrupt state key. Resetting.",
+              e,
+            );
+            localStorage.removeItem(STATE_KEY);
+            return; // state stays at default; app boots clean
+          }
           if (state.lastActivity) lastActivity = state.lastActivity;
           const currentDate = getPSTDate();
 
@@ -6914,17 +9121,25 @@
         displayBaseDate = getPSTDateObj();
         loadState();
 
+        // Trigger baseline audio context during app boot sequence
+        startSilentAudio();
+
         // Persistent Heartbeat Check (Phase 1)
         if (
+          state.idleTrackingEnabled !== false &&
           state.lastHeartbeat &&
           state.currentMode !== null &&
           !state.idleLock
         ) {
           const gap = Date.now() - state.lastHeartbeat;
-          if (gap > IDLE_THRESHOLD) {
+          if (gap > getIdleThresholdMs()) {
             // Recover session using the recorded heartbeat timestamp
-            triggerIdleLock(state.lastHeartbeat);
+            triggerIdleLock(state.lastHeartbeat, "system");
           }
+        }
+
+        if (state.idleLock) {
+          updateIdleModalLabels();
         }
 
         loadSavedFilterViews();
@@ -6935,6 +9150,7 @@
         renderTimersOnly();
         renderThemeToggle();
         renderPresets();
+        syncIdleConfigUI();
 
         // Synchronize delta tracking anchor on app launch
         lastTickTime = Date.now();
