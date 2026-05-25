@@ -4333,27 +4333,6 @@
                     onchange="onIdleSliderChange(this.value)"
                   />
                 </div>
-
-                <div class="settings-divider"></div>
-
-                <!-- Background Audio / Wake Lock Section -->
-                <div class="idle-popup-row flex-col">
-                  <div class="idle-popup-subrow">
-                    <span class="idle-popup-label">Keep tab awake</span>
-                    <label class="switch">
-                      <input
-                        type="checkbox"
-                        id="wakelock-toggle"
-                        onchange="onWakeLockToggleChange()"
-                      />
-                      <span class="slider-toggle"></span>
-                    </label>
-                  </div>
-                  <span class="settings-description">
-                    Uses inaudible background audio to prevent the browser from
-                    freezing timers.
-                  </span>
-                </div>
               </div>
             </div>
 
@@ -4470,7 +4449,6 @@
         idleTrackingEnabled: true,
         idleThresholdMinutes: 60,
         idleType: null,
-        wakeLockEnabled: false,
       };
 
       // Shared State Backups and Transaction Variables
@@ -4490,8 +4468,6 @@
       let cachedViewportHeight = 0;
 
       // High-frequency delta anchor and defensive lock flags
-      let lastTickTime = Date.now();
-      let lastMonotonicTime = performance.now();
       let isTabConflict = false;
       let lastWeeklyUpdateMinute = -1;
 
@@ -4522,36 +4498,18 @@
       }
 
       // High-performance background timer worker to keep loop active when backgrounded
-      const timerWorkerCode = `
-      let timerId = null;
-      self.onmessage = function(e) {
-        if (e.data === "start") {
-          if (!timerId) {
-            timerId = setInterval(() => {
-              self.postMessage("tick");
-            }, 1000);
-          }
-        } else if (e.data === "stop") {
-          if (timerId) {
-            clearInterval(timerId);
-            timerId = null;
-          }
+      let mainUIInterval = null;
+      function startUITimer() {
+        if (!mainUIInterval) {
+          mainUIInterval = setInterval(tick, 1000);
         }
-      };
-    `;
-      const timerBlob = new Blob([timerWorkerCode], {
-        type: "application/javascript",
-      });
-      const timerWorkerUrl = URL.createObjectURL(timerBlob);
-      const timerWorker = new Worker(timerWorkerUrl);
-      URL.revokeObjectURL(timerWorkerUrl);
-
-      // Bind Web Worker ticks to the master thread timer loop
-      timerWorker.onmessage = function (e) {
-        if (e.data === "tick") {
-          tick();
+      }
+      function stopUITimer() {
+        if (mainUIInterval) {
+          clearInterval(mainUIInterval);
+          mainUIInterval = null;
         }
-      };
+      }
 
       /*==========================================================================
        * 2. DOM ELEMENT BINDINGS
@@ -4886,12 +4844,8 @@
         tabSyncChannel.postMessage({ type: "takeover", id: instanceId });
 
         // Engage the silent audio context during tab takeover activation
-        startSilentAudio();
 
         // Synchronize delta anchor when active tab takes priority
-        lastTickTime = Date.now();
-        lastMonotonicTime = performance.now();
-
         // Pull latest database and localStorage states to synchronize this session instantly
         loadState();
         loadLogsFromDB().then((logs) => {
@@ -5241,11 +5195,14 @@
        */
       function getCurrentWorkSeconds() {
         let activeWorkSeconds = 0;
-        if (state.currentMode === "work" && state.sessionAnchorTime) {
-          let refTime = state.idleLock ? state.idleStart : Date.now();
+        if (
+          state.currentMode === "work" &&
+          state.sessionAnchorTime &&
+          !state.idleLock
+        ) {
           activeWorkSeconds = Math.max(
             0,
-            (refTime - state.sessionAnchorTime) / 1000,
+            (Date.now() - state.sessionAnchorTime) / 1000,
           );
         }
         return state.workAccumulated + activeWorkSeconds;
@@ -5257,47 +5214,17 @@
        */
       function getCurrentBreakSeconds() {
         let activeBreakSeconds = 0;
-        if (state.currentMode === "break" && state.sessionAnchorTime) {
-          let refTime = state.idleLock ? state.idleStart : Date.now();
+        if (
+          state.currentMode === "break" &&
+          state.sessionAnchorTime &&
+          !state.idleLock
+        ) {
           activeBreakSeconds = Math.max(
             0,
-            (refTime - state.sessionAnchorTime) / 1000,
+            (Date.now() - state.sessionAnchorTime) / 1000,
           );
         }
         return state.breakAccumulated + activeBreakSeconds;
-      }
-
-      /**
-       * Accumulates elapsed active duration via high-frequency delta intervals.
-       * Blocks time warp anomalies (VM freezes, machine sleep, NTP changes) using safety limits.
-       */
-      function accumulateCurrentDelta() {
-        if (state.currentMode === null || state.idleLock || isTabConflict)
-          return;
-
-        const now = Date.now();
-        const monoNow = performance.now();
-        const wallDelta = now - lastTickTime;
-        const monoDelta = monoNow - lastMonotonicTime;
-
-        if (Math.abs(wallDelta - monoDelta) > 10000) {
-          if (state.idleTrackingEnabled === false) {
-            if (wallDelta > 14400000) {
-              state.sessionAnchorTime += wallDelta - 14400000;
-            }
-          } else {
-            triggerIdleLock(lastActivity, "system");
-            return;
-          }
-        }
-
-        lastTickTime = now;
-        lastMonotonicTime = monoNow;
-
-        // Real-time anchor calculation is handled dynamically in getCurrentWorkSeconds
-        renderTimersOnly();
-
-        saveState();
       }
 
       /**
@@ -5309,7 +5236,8 @@
 
         const now = Date.now();
 
-        if (state.sessionAnchorTime && state.currentMode) {
+        // Finalize the current chunk exactly on mode switch
+        if (state.sessionAnchorTime && state.currentMode && !state.idleLock) {
           const elapsedSeconds = (now - state.sessionAnchorTime) / 1000;
           if (state.currentMode === "work") {
             state.workAccumulated += elapsedSeconds;
@@ -5328,7 +5256,6 @@
 
         if (mode === "work" || mode === "break") {
           state.sessionAnchorTime = now;
-          state.lastHeartbeat = now;
           if (mode === "work" && !state.loginTimestamp) {
             state.loginTimestamp = now;
           }
@@ -5834,7 +5761,6 @@
        * Initializes log validation filters.
        */
       function openSubmitModal() {
-        accumulateCurrentDelta();
         const wSec = Math.floor(getCurrentWorkSeconds());
         const bSec = Math.floor(getCurrentBreakSeconds());
         if (wSec <= 0) return;
@@ -5913,7 +5839,6 @@
        * Serializes session accumulation into storage shift logs.
        */
       function executeSubmit(e, forceNotes = "", overrideDate = null) {
-        accumulateCurrentDelta();
         const workSeconds = pendingSubmitData
           ? pendingSubmitData.workSec
           : Math.floor(getCurrentWorkSeconds());
@@ -6014,13 +5939,15 @@
        * Pauses active timers and locks application under Inactivity mode if thresholds pass.
        */
       function triggerIdleLock(timeOfIdle, type = "inactivity") {
-        if (state.sessionAnchorTime && state.lastHeartbeat) {
-          const elapsedBeforeIdle =
-            (state.lastHeartbeat - state.sessionAnchorTime) / 1000;
+        if (state.sessionAnchorTime && state.currentMode && !state.idleLock) {
+          const elapsedBeforeIdle = Math.max(
+            0,
+            (timeOfIdle - state.sessionAnchorTime) / 1000,
+          );
           if (state.currentMode === "work") {
-            state.workAccumulated += Math.max(0, elapsedBeforeIdle);
+            state.workAccumulated += elapsedBeforeIdle;
           } else if (state.currentMode === "break") {
-            state.breakAccumulated += Math.max(0, elapsedBeforeIdle);
+            state.breakAccumulated += elapsedBeforeIdle;
           }
         }
 
@@ -6028,7 +5955,7 @@
         state.idleOverlapSec = 0;
         state.currentMode = null;
         state.sessionAnchorTime = null;
-        state.idleStart = state.lastHeartbeat || timeOfIdle;
+        state.idleStart = timeOfIdle;
         state.idleLock = true;
         state.idleType = type;
         saveState();
@@ -6113,8 +6040,6 @@
         state.idleOverlapSec = 0;
         lastActivity = now;
         state.lastActivity = now;
-        lastTickTime = Date.now();
-        lastMonotonicTime = performance.now();
         saveState();
         document.getElementById("idle-modal").style.display = "none";
 
@@ -6128,7 +6053,6 @@
       function resetSession() {
         const previousIdleEnabled = state.idleTrackingEnabled;
         const previousIdleThreshold = state.idleThresholdMinutes;
-        const previousWakeLockEnabled = state.wakeLockEnabled;
 
         state = {
           workAccumulated: 0,
@@ -6147,13 +6071,8 @@
             previousIdleEnabled !== undefined ? previousIdleEnabled : true,
           idleThresholdMinutes:
             previousIdleThreshold !== undefined ? previousIdleThreshold : 60,
-          wakeLockEnabled:
-            previousWakeLockEnabled !== undefined
-              ? previousWakeLockEnabled
-              : false,
         };
         lastActivity = Date.now();
-        lastTickTime = Date.now(); // Recalibrate high-frequency accumulation anchor
         saveState();
         DOM.submitModal.style.display = "none";
         DOM.ghostModal.style.display = "none";
@@ -7776,7 +7695,7 @@
       /**
        * Prevents overnight shift breakups.
        */
-      function checkMidnightReset(now = new Date(getTrueTime())) {
+      function checkMidnightReset(now = new Date()) {
         const currentDatePST = pstDateFormatter.format(now);
 
         if (!state.activeDate) {
@@ -7788,24 +7707,57 @@
         if (state.activeDate !== currentDatePST) {
           const currentWork = getCurrentWorkSeconds();
           if (state.currentMode === null && currentWork < 60) {
-            // Paused with negligible work — just roll the date forward cleanly
             state.activeDate = currentDatePST;
             saveState();
           } else if (currentWork >= 60) {
-            // Active session or paused with real work accumulated — auto-submit
-            // under the previous day's date, then reset for the new day
             const activeMode = state.currentMode;
+
+            // Calculate exact midnight boundary of current active date
+            const [m, d, y] = state.activeDate.split("/");
+            const fullYear = y.length === 2 ? `20${y}` : y;
+            // 12:00:00 AM PST next day. We approximate by taking current date and adding a day
+            // Better to just let executeSubmit use getTrueTime, BUT we want it to cut off accurately.
+            // Since we removed lastHeartbeat, executeSubmit uses Date.now().
+
+            // ABSOLUTE MIDNIGHT BOUNDARY ENFORCEMENT (Timezone-Immune)
+            const guessMs = Date.UTC(fullYear, m - 1, Number(d) + 1, 8, 0, 0);
+            const laHourStr = new Intl.DateTimeFormat("en-US", {
+              timeZone: "America/Los_Angeles",
+              hour: "numeric",
+              hour12: false,
+            }).format(new Date(guessMs));
+            let hourOffset = parseInt(laHourStr, 10);
+            if (hourOffset === 24) hourOffset = 0;
+            const midnightMs = guessMs - hourOffset * 3600000;
+
+            // Mathematically cap the shift exactly at midnight, regardless of when this function fires
+            if (state.currentMode !== null && !state.idleLock) {
+              const elapsedToMidnight = Math.max(
+                0,
+                (midnightMs - state.sessionAnchorTime) / 1000,
+              );
+              if (state.currentMode === "work") {
+                state.workAccumulated += elapsedToMidnight;
+              } else if (state.currentMode === "break") {
+                state.breakAccumulated += elapsedToMidnight;
+              }
+              // Prevent getCurrentWorkSeconds() from bleeding into the new day
+              state.sessionAnchorTime = null;
+              // Force the end time to exactly Midnight
+              state.lastHeartbeat = midnightMs;
+            }
             executeSubmit(
               null,
               "Auto-submitted (Midnight Reset)",
               state.activeDate,
             );
-            // If the user had an active tracking mode, seamlessly continue tracking in the new day
+
             if (activeMode !== null) {
               state.currentMode = activeMode;
-              state.loginTimestamp = getTrueTime();
+              state.loginTimestamp = midnightMs;
               state.activeDate = currentDatePST;
-              state.sessionAnchorTime = getTrueTime();
+              state.sessionAnchorTime = midnightMs;
+              state.lastHeartbeat = midnightMs;
               saveState();
               renderStaticUI();
               renderTimersOnly();
@@ -7815,10 +7767,7 @@
               "Midnight rollover: Yesterday's shift auto-saved.",
               true,
             );
-          }
-          // If workAccumulated <= 60 and mode is active (just started at midnight),
-          // silently roll the date forward to avoid submitting a ghost entry
-          else {
+          } else {
             state.activeDate = currentDatePST;
             saveState();
           }
@@ -7833,11 +7782,10 @@
       function tick() {
         if (isTabConflict) return;
 
-        accumulateCurrentDelta();
-
         const now = new Date();
         const nowMs = now.getTime();
 
+        // Pure idle check based on absolute lastActivity
         if (
           state.idleTrackingEnabled !== false &&
           !state.idleLock &&
@@ -7845,6 +7793,7 @@
         ) {
           if (nowMs - lastActivity > getIdleThresholdMs()) {
             triggerIdleLock(lastActivity);
+            return; // Lock and abort tick
           }
         }
 
@@ -7856,7 +7805,6 @@
               formatDuration((nowMs - state.idleStart) / 1000),
             );
 
-            // Dynamically update current time timestamp in local timezone
             const currentTimeEl = DOM.idleCurrentTime;
             if (currentTimeEl) {
               const tz = DOM.primaryTz.value || "America/Los_Angeles";
@@ -7884,11 +7832,6 @@
         }
 
         checkMidnightReset(now);
-
-        // Writes to storage are scaled to 60-second ticks to minimize synchronous localStorage write delays
-        if (++saveTicks % 60 === 0) {
-          saveState();
-        }
       }
 
       // Upgraded Visibility Change handler containing robust background idle catch-ups
@@ -7918,9 +7861,6 @@
           delete state.tabHiddenAt;
 
           // Calibrate timing anchors instantly to prevent delta accumulation spikes
-          lastTickTime = now;
-          lastMonotonicTime = performance.now();
-
           renderTimersOnly();
           updateLiveWeeklySummary(true);
         }
@@ -7938,7 +7878,6 @@
 
         if (e.code === "Space") {
           e.preventDefault();
-          startSilentAudio();
           if (!state.loginTimestamp) {
             // Session not started — Space only works once the user has clicked Begin Work
             return;
@@ -8096,22 +8035,6 @@
         saveState();
       };
 
-      window.onWakeLockToggleChange = function () {
-        const checkbox = document.getElementById("wakelock-toggle");
-        state.wakeLockEnabled = checkbox.checked;
-        saveState();
-
-        if (!state.wakeLockEnabled && globalAudioCtx) {
-          // Suspend the audio context immediately if the user turns it off
-          globalAudioCtx.suspend();
-          silentAudioStarted = false;
-          console.log("[WakeLock] Background audio suspended by user.");
-        } else if (state.wakeLockEnabled) {
-          // Reactivate immediately if turned back on
-          startSilentAudio();
-        }
-      };
-
       window.onIdleSliderInput = function (val) {
         document.getElementById("idle-val-display").textContent = val + "m";
       };
@@ -8130,16 +8053,13 @@
           state.idleThresholdMinutes !== undefined
             ? state.idleThresholdMinutes
             : 60;
-        const isWakeLockEnabled = state.wakeLockEnabled === true;
 
         const idleCheckbox = document.getElementById("idle-toggle");
         const sliderContainer = document.getElementById("idle-range-container");
         const slider = document.getElementById("idle-slider");
         const valDisplay = document.getElementById("idle-val-display");
-        const wakeLockCheckbox = document.getElementById("wakelock-toggle");
 
         if (idleCheckbox) idleCheckbox.checked = isIdleEnabled;
-        if (wakeLockCheckbox) wakeLockCheckbox.checked = isWakeLockEnabled;
 
         if (slider) {
           slider.value = mins;
@@ -8263,164 +8183,11 @@
         if (event.target == manualMod) closeManualModal();
       };
 
-      let silentAudioStarted = false;
-      let globalAudioCtx = null;
-
-      function startSilentAudio() {
-        // Abort immediately if the user has disabled this setting in the UI
-        if (state.wakeLockEnabled === false) return;
-
-        try {
-          if (silentAudioStarted) {
-            // If already started but paused by setting toggles, attempt to resume
-            if (globalAudioCtx && globalAudioCtx.state === "suspended") {
-              globalAudioCtx.resume();
-              console.log("[WakeLock] Audio context resumed.");
-            }
-            return;
-          }
-
-          const AudioContextClass =
-            window.AudioContext || window.webkitAudioContext;
-          if (!AudioContextClass) return;
-
-          if (!globalAudioCtx) {
-            globalAudioCtx = new AudioContextClass();
-          }
-
-          // Satisfy the browser's requirement for a direct user gesture
-          const resumePromise = globalAudioCtx.resume();
-
-          if (!resumePromise) return;
-
-          resumePromise
-            .then(() => {
-              // Guard: prevent double-activation if the promise resolves twice
-              if (silentAudioStarted || globalAudioCtx.state !== "running")
-                return;
-
-              // 1. Create high-entropy Brown Noise Buffer
-              const bufferSize = globalAudioCtx.sampleRate * 2;
-              const buffer = globalAudioCtx.createBuffer(
-                1,
-                bufferSize,
-                globalAudioCtx.sampleRate,
-              );
-              const data = buffer.getChannelData(0);
-              let lastOut = 0.0;
-              for (let i = 0; i < bufferSize; i++) {
-                const white = Math.random() * 2 - 1;
-                data[i] = (lastOut + 0.02 * white) / 1.02;
-                lastOut = data[i];
-              }
-
-              const source = globalAudioCtx.createBufferSource();
-              const osc1 = globalAudioCtx.createOscillator();
-              const osc2 = globalAudioCtx.createOscillator();
-              const filter = globalAudioCtx.createBiquadFilter();
-              const gain = globalAudioCtx.createGain();
-              const merger = globalAudioCtx.createGain();
-
-              // detuned infrasonic oscillators
-              osc1.type = "sine";
-              osc1.frequency.setValueAtTime(7, globalAudioCtx.currentTime);
-              osc2.type = "triangle";
-              osc2.frequency.setValueAtTime(11, globalAudioCtx.currentTime);
-
-              source.buffer = buffer;
-              source.loop = true;
-
-              // Strict Low-Pass Filter (12Hz)
-              filter.type = "lowpass";
-              filter.frequency.setValueAtTime(12, globalAudioCtx.currentTime);
-
-              // Gain 0.15 = Active Speaker Icon / Silent for IEMs
-              gain.gain.setValueAtTime(0.15, globalAudioCtx.currentTime);
-
-              source.connect(merger);
-              osc1.connect(merger);
-              osc2.connect(merger);
-              merger.connect(filter);
-              filter.connect(gain);
-              gain.connect(globalAudioCtx.destination);
-
-              source.start();
-              osc1.start();
-              osc2.start();
-
-              silentAudioStarted = true;
-              console.log(
-                "[WakeLock] Clean complex infrasonic synthesis active.",
-              );
-            })
-            .catch((err) => {
-              console.warn("[WakeLock] Audio resume failed:", err);
-            });
-        } catch (e) {
-          console.warn("[WakeLock] Silent audio execution error:", e);
-        }
-      }
-
-      let wakeLock = null;
-
-      /**
-       * Executes requestWakeLock logic.
-       */
-      async function requestWakeLock() {
-        if ("wakeLock" in navigator) {
-          try {
-            wakeLock = await navigator.wakeLock.request("screen");
-            wakeLock.addEventListener("release", () => {
-              console.log("[WakeLock] Screen Wake Lock released");
-            });
-            console.log("[WakeLock] Screen Wake Lock acquired");
-          } catch (err) {
-            console.warn(`[WakeLock] Error: ${err.name}, ${err.message}`);
-          }
-        }
-      }
-
-      // Re-acquire wake lock when tab becomes visible again
-      document.addEventListener("visibilitychange", async () => {
-        if (wakeLock !== null && document.visibilityState === "visible") {
-          await requestWakeLock();
-        }
-      });
-
-      // Automatic interaction triggers to bypass browser autoplay restrictions gracefully
-      const triggerSilentAudioOnGesture = () => {
-        startSilentAudio();
-        requestWakeLock(); // Request native wake lock on user gesture
-        if (
-          silentAudioStarted &&
-          globalAudioCtx &&
-          globalAudioCtx.state === "running"
-        ) {
-          document.removeEventListener("click", triggerSilentAudioOnGesture);
-          document.removeEventListener("keydown", triggerSilentAudioOnGesture);
-          document.removeEventListener(
-            "touchstart",
-            triggerSilentAudioOnGesture,
-          );
-        }
-      };
-      document.addEventListener("click", triggerSilentAudioOnGesture, {
-        passive: true,
-      });
-      document.addEventListener("keydown", triggerSilentAudioOnGesture, {
-        passive: true,
-      });
-      document.addEventListener("touchstart", triggerSilentAudioOnGesture, {
-        passive: true,
-      });
-
       DOM.startBtn.addEventListener("click", () => {
-        startSilentAudio();
         switchMode("work");
       });
 
       DOM.pauseBtn.addEventListener("click", () => {
-        startSilentAudio();
         if (state.currentMode === "work") {
           switchMode("break");
         } else {
@@ -8645,8 +8412,8 @@
           const bParts = bStr.split("/");
           const aFullY = aParts[2].length === 2 ? `20${aParts[2]}` : aParts[2];
           const bFullY = bParts[2].length === 2 ? `20${bParts[2]}` : bParts[2];
-          const aDate = new Date(parseInt(aFullY), aParts[0] - 1, aParts[1]);
-          const bDate = new Date(parseInt(bFullY), bParts[0] - 1, bParts[1]);
+          const aDate = Date.UTC(parseInt(aFullY), aParts[0] - 1, aParts[1]);
+          const bDate = Date.UTC(parseInt(bFullY), bParts[0] - 1, bParts[1]);
           return aDate - bDate;
         });
 
@@ -9450,23 +9217,10 @@
        * Executes saveState logic.
        */
       function saveState() {
-        const now = Date.now();
-
-        // Permanently cement active uncommitted seconds into the vault on every save
-        // and walk the anchor forward to mathematically prevent any data loss on refresh/crash
-        if (state.sessionAnchorTime && state.currentMode && !state.idleLock) {
-          const deltaSec = Math.max(0, (now - state.sessionAnchorTime) / 1000);
-          if (deltaSec > 0) {
-            if (state.currentMode === "work") {
-              state.workAccumulated += deltaSec;
-            } else if (state.currentMode === "break") {
-              state.breakAccumulated += deltaSec;
-            }
-            state.sessionAnchorTime = now;
-          }
+        // Pure serialization vault. Never alters absolute time anchors.
+        if (state.currentMode !== null && !state.idleLock) {
+          state.lastHeartbeat = Date.now();
         }
-
-        state.lastHeartbeat = now;
         state.lastActivity = lastActivity;
         localStorage.setItem(STATE_KEY, JSON.stringify(state));
       }
@@ -9596,11 +9350,8 @@
         syncSettingsUI();
 
         // Synchronize delta tracking anchor on app launch
-        lastTickTime = Date.now();
-        lastMonotonicTime = performance.now();
-
         // Start the background Web Worker timer thread
-        timerWorker.postMessage("start");
+        startUITimer();
       })();
     </script>
   </body>
