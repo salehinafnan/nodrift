@@ -29,10 +29,10 @@
        ========================================================================= */
       :root {
         /* Shared Color Scheme Accents */
-        --accent-work: #4ade80;
-        --accent-break: #f87171;
-        --accent-blue: #7cb4e8;
-        --accent-warning: #f59e0b;
+        --accent-work: #43df7cfa;
+        --accent-break: #fc6e6eec;
+        --accent-blue: #76b9f8;
+        --accent-warning: #f3a31a;
 
         /* Typographic Tokens */
         --font-sans:
@@ -73,36 +73,44 @@
        ========================================================================= */
       :root[data-theme="midnight"] {
         --page-bg: #000000;
-        --panel-bg: #0c0c0e;
+        --panel-bg: #0e0e11;
         --panel-shadow: none;
         --panel-blur: none;
-        --element-bg: #151518;
-        --element-hover: #1e1e22;
-        --element-bg-light: #1a1a1e;
-        --border-main: #222;
-        --border-light: #333;
+        --element-bg: #222222;
+        --element-hover: #2c2c2c;
+        --element-bg-light: #2c2c2c;
+        --border-main: #1f1f23;
+        --border-light: #404040;
         --text-main: #ffffff;
-        --text-muted: #d1d1e0;
-        --btn-work-bg: #0a1a10;
-        --btn-work-border: #4ade80;
-        --btn-work-text: #4ade80;
-        --btn-break-bg: #1a0a0a;
-        --btn-break-border: #f87171;
-        --btn-break-text: #f87171;
-        --btn-log-bg: #0a101a;
+        --text-muted: #94a3b8;
+        --accent-work: #10b981;
+        --accent-break: #ff4564ce;
+        --accent-blue: #488eff;
+        --accent-warning: #f59f0be8;
+        --btn-work-bg: #03140d;
+        --btn-work-border: var(--accent-work);
+        --btn-work-text: var(--accent-work);
+        --btn-break-bg: #140306;
+        --btn-break-border: var(--accent-break);
+        --btn-break-text: var(--accent-break);
+        --btn-log-bg: #030d1c;
         --btn-log-text: var(--accent-blue);
         --btn-log-border: var(--accent-blue);
         --dropdown-bg: #070708;
         --modal-bg: #070708;
       }
 
+      :root[data-theme="midnight"] .console-panel {
+        border: 1px solid #3d87ff80;
+      }
+
       /* =========================================================================
        3. MODERN GLASSMORPHISM THEME (GLASS) - OPTIMIZED FOR CPU-ONLY SOFTWARE RENDER
        ========================================================================= */
       :root[data-theme="glass"] {
-        --page-bg: #090f1d;
+        --page-bg: #050814;
         --panel-bg: #111a2e;
-        --panel-shadow: 0 0 0 1px #253352;
+        --panel-shadow: none;
         --panel-blur: none;
         --element-bg: #0a1122;
         --element-hover: #1a243d;
@@ -110,7 +118,7 @@
         --border-main: #253352;
         --border-light: #3d4d75;
         --text-main: #f8fafc;
-        --text-muted: #cbd5e1;
+        --text-muted: #e2e8f0;
         --btn-work-bg: #4ade80;
         --btn-work-border: #4ade80;
         --btn-work-text: #052e16;
@@ -122,6 +130,10 @@
         --btn-log-border: var(--accent-blue);
         --dropdown-bg: #0f172a;
         --modal-bg: #0f172a;
+      }
+
+      :root[data-theme="glass"] .console-panel {
+        border: 1px solid rgba(255, 255, 255, 0.15);
       }
 
       /* =========================================================================
@@ -140,7 +152,7 @@
         box-sizing: border-box;
       }
 
-      /* Beautiful custom dropdown style */
+      /* Custom dropdown style */
       select.input-standard {
         appearance: none;
         -webkit-appearance: none;
@@ -309,8 +321,8 @@
       textarea:focus-visible,
       .preset-pill:focus-visible,
       .tz-trigger:focus-visible {
-        outline: 2px solid var(--accent-blue) !important;
-        outline-offset: 2px;
+        outline: 1px solid var(--accent-blue) !important;
+        outline-offset: 0px;
       }
 
       button:focus,
@@ -444,7 +456,7 @@
         max-width: 90rem;
         height: 85vh;
         background: var(--panel-bg);
-        border: 1px solid var(--border-main);
+        border: 2px solid var(--border-main);
         border-radius: 1.5rem;
         box-shadow: var(--panel-shadow);
         display: grid;
@@ -994,12 +1006,26 @@
         border-width: 1.5px;
       }
 
-      /* Ensures the active mode button reflects the selected state */
+      .ios-pill {
+        background: transparent;
+        border: none;
+        color: var(--text-muted);
+        font-size: 0.75rem;
+        font-weight: 700;
+        padding: 6px 12px;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        white-space: nowrap;
+      }
+
+      /* iOS Style Active Slider */
       #mode-simple.active,
       #mode-intelligent.active {
-        background: rgba(96, 165, 250, 0.2);
-        border-color: var(--accent-blue);
+        background: rgba(96, 165, 250, 0.15);
         color: var(--accent-blue);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+        border: none;
       }
 
       /* =========================================================================
@@ -1022,12 +1048,12 @@
         box-shadow: none;
         font-size: 0.95rem;
         letter-spacing: 0.02em;
-        border-radius: 1rem;
+        border-radius: var(--radius-md);
       }
 
       button {
         border: none;
-        border-radius: 16px;
+        border-radius: var(--radius-md);
         padding: 16px;
         cursor: pointer;
         font-family: inherit;
@@ -1035,7 +1061,6 @@
         font-size: 0.85rem;
         position: relative;
         overflow: hidden;
-        transition: none;
       }
 
       button::before {
@@ -1535,7 +1560,7 @@
         border: 1px solid rgba(96, 165, 250, 0.2);
         color: var(--accent-blue);
         padding: 5px 10px;
-        border-radius: 99px;
+        border-radius: var(--radius-md);
         font-size: 0.7rem;
         font-weight: 600;
         transition:
@@ -1790,7 +1815,8 @@
         align-items: center;
         justify-content: center;
         width: 100%;
-        gap: clamp(15px, 0.4vw, 25px);
+        gap: clamp(10px, 0.4vw, 25px);
+        flex-wrap: nowrap;
       }
 
       .icon-stack {
@@ -1866,14 +1892,14 @@
         background: var(--dropdown-bg);
         border: 1px solid var(--border-light);
         border-radius: 0.75rem;
-        padding: 0.75rem;
-        width: 15rem;
+        padding: 0.85rem;
+        width: 18.5rem;
         /* Expanded width for descriptions */
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
         z-index: 1500;
         display: none;
         flex-direction: column;
-        gap: 0.625rem;
+        gap: 0.75rem;
         text-align: left;
       }
 
@@ -2141,6 +2167,7 @@
         font-weight: 700;
         color: var(--accent-blue);
         font-variant-numeric: tabular-nums;
+        line-height: 1.2;
       }
 
       .nav-arrow {
@@ -2178,6 +2205,7 @@
         padding: 6px 12px;
         border-bottom: 1px solid var(--border-main);
         font-variant-numeric: tabular-nums;
+        line-height: 1.2;
         flex: 1;
         contain: layout paint;
         box-sizing: border-box;
@@ -2394,7 +2422,7 @@
         border: 1px solid var(--border-main);
         color: var(--text-main);
         padding: 8px 8px 8px 20px;
-        border-radius: 100px;
+        border-radius: var(--radius-md);
         font-weight: 600;
         font-size: 0.85rem;
         transition: bottom 0.4s cubic-bezier(0.16, 1, 0.3, 1);
@@ -2424,7 +2452,7 @@
         cursor: pointer;
         color: var(--accent-blue);
         padding: 4px 12px;
-        border-radius: 100px;
+        border-radius: var(--radius-md);
         font-family: var(--font-mono);
         font-weight: 700;
         font-size: 0.7rem;
@@ -2453,7 +2481,7 @@
         border: 1px solid var(--border-main);
         color: var(--text-main);
         padding: 8px 20px;
-        border-radius: 100px;
+        border-radius: var(--radius-md);
         font-weight: 600;
         font-size: 0.85rem;
         transition: top 0.5s cubic-bezier(0.16, 1, 0.3, 1);
@@ -2478,7 +2506,7 @@
         border: 1px solid var(--border-main);
         color: var(--text-main);
         padding: 8px 8px 8px 20px;
-        border-radius: 100px;
+        border-radius: var(--radius-md);
         font-weight: 600;
         font-size: 0.85rem;
         transition: top 0.5s cubic-bezier(0.16, 1, 0.3, 1);
@@ -2509,7 +2537,7 @@
         background: rgba(74, 222, 128, 0.1);
         color: var(--accent-work);
         padding: 4px 10px;
-        border-radius: 100px;
+        border-radius: var(--radius-sm);
         border: 1px solid rgba(74, 222, 128, 0.2);
         letter-spacing: 0.02em;
       }
@@ -2523,7 +2551,7 @@
         border: 1px solid var(--border-main);
         color: var(--text-main);
         padding: 8px 20px 8px 16px;
-        border-radius: 100px;
+        border-radius: var(--radius-md);
         font-weight: 600;
         font-size: 0.85rem;
         transition: bottom 0.5s cubic-bezier(0.16, 1, 0.3, 1);
@@ -2552,16 +2580,24 @@
         border: none;
         color: var(--text-muted);
         cursor: pointer;
-        padding: 0 0 0 8px;
+        padding: 6px 10px;
         margin-left: 8px;
-        border-left: 1px solid var(--border-main);
+        border-radius: var(--radius-sm);
         display: flex;
         align-items: center;
-        transition: color 0.15s ease;
+        transition:
+          color 0.15s ease,
+          background-color 0.15s ease,
+          transform 0.1s ease;
       }
 
       .toast-close-btn:hover {
+        background: rgba(255, 255, 255, 0.08);
         color: var(--text-main);
+      }
+
+      .toast-close-btn:active {
+        transform: scale(0.92);
       }
 
       /* ==========================================================================
@@ -3334,6 +3370,9 @@
         border-radius: 4px;
         font-weight: 700;
         vertical-align: middle;
+        font-family: var(--font-mono) !important;
+        line-height: 1;
+        padding-top: 2px;
       }
 
       .badge-leave {
@@ -3456,6 +3495,22 @@
 
       .segment-completed {
         background: var(--accent-work) !important;
+      }
+      .collapsible-wrapper {
+        display: grid;
+        grid-template-rows: 1fr;
+        transition:
+          grid-template-rows 0.3s ease-out,
+          opacity 0.3s ease-out,
+          margin 0.3s ease-out;
+      }
+      .collapsible-wrapper.is-collapsed {
+        grid-template-rows: 0fr;
+        opacity: 0;
+        pointer-events: none;
+      }
+      .collapsible-content {
+        overflow: hidden;
       }
     </style>
   </head>
@@ -4355,7 +4410,7 @@
             <button
               class="theme-toggle-btn"
               onclick="toggleTheme()"
-              title="Toggle Theme"
+              aria-label="Toggle Theme"
             >
               <span
                 id="theme-toggle-icon"
@@ -5081,7 +5136,7 @@
           <div class="footer-icons">
             <div class="icon-stack">
               <button
-                title="Export CSV"
+                aria-label="Export CSV"
                 class="icon-btn sq-btn"
                 onclick="exportCSV()"
               >
@@ -5105,7 +5160,7 @@
 
             <div class="icon-stack">
               <button
-                title="Copy Logs"
+                aria-label="Copy Logs"
                 class="icon-btn sq-btn"
                 onclick="copyLog()"
               >
@@ -5126,7 +5181,7 @@
 
             <div class="icon-stack">
               <button
-                title="Backup JSON"
+                aria-label="Backup JSON"
                 class="icon-btn sq-btn"
                 onclick="exportJSON()"
               >
@@ -5146,7 +5201,7 @@
 
             <div class="icon-stack">
               <button
-                title="Restore JSON"
+                aria-label="Restore JSON"
                 class="icon-btn sq-btn"
                 onclick="document.getElementById('import-file').click()"
               >
@@ -5166,7 +5221,7 @@
 
             <div class="icon-stack">
               <button
-                title="Manage Leaves & Holidays"
+                aria-label="Manage Leaves & Holidays"
                 class="icon-btn sq-btn"
                 onclick="openLeaveModal()"
               >
@@ -5187,7 +5242,7 @@
 
             <div class="icon-stack" style="position: relative">
               <button
-                title="Application Settings"
+                aria-label="Application Settings"
                 class="icon-btn sq-btn"
                 id="settings-config-btn"
                 onclick="toggleSettingsPopup(event)"
@@ -5210,74 +5265,135 @@
 
               <!-- Dynamic Settings Menu Popup overlay -->
               <div id="settings-config-popup" class="idle-popup">
+                <!-- Mode selection segment card -->
                 <div
-                  class="idle-popup-row"
-                  style="
-                    background: var(--element-bg);
-                    border-radius: 8px;
-                    padding: 4px;
-                  "
+                  style="display: flex; flex-direction: column; padding: 2px"
                 >
-                  <button
-                    id="mode-simple"
-                    class="preset-pill"
-                    style="flex: 1"
-                    onclick="setMode('simple')"
+                  <div
+                    class="idle-popup-row"
+                    style="
+                      background: rgba(0, 0, 0, 0.25);
+                      border: 1px solid rgba(255, 255, 255, 0.05);
+                      border-radius: 8px;
+                      padding: 4px;
+                      gap: 4px;
+                      position: relative;
+                    "
                   >
-                    Simple
-                  </button>
-                  <button
-                    id="mode-intelligent"
-                    class="preset-pill"
-                    style="flex: 1"
-                    onclick="setMode('intelligent')"
-                  >
-                    Intelligent
-                  </button>
-                </div>
-                <div class="settings-divider"></div>
-                <div id="idle-settings-wrapper">
-                  <div class="idle-popup-row">
-                    <span class="idle-popup-label">Enable idle lock</span>
-                    <label class="switch">
-                      <input
-                        type="checkbox"
-                        id="idle-toggle"
-                        checked
-                        onchange="onIdleToggleChange()"
-                      />
-                      <span class="slider-toggle"></span>
-                    </label>
+                    <button
+                      id="mode-simple"
+                      class="ios-pill"
+                      style="flex: 1"
+                      onclick="setMode('simple')"
+                    >
+                      Simple
+                    </button>
+                    <button
+                      id="mode-intelligent"
+                      class="ios-pill"
+                      style="flex: 1"
+                      onclick="setMode('intelligent')"
+                    >
+                      Intelligent
+                    </button>
                   </div>
                   <div
-                    id="idle-range-container"
-                    class="idle-popup-row flex-col"
+                    id="settings-mode-desc"
+                    class="settings-description"
+                    style="
+                      margin-top: 12px;
+                      font-size: 0.7rem;
+                      min-height: 2.6em;
+                      line-height: 1.3;
+                      color: var(--text-muted);
+                    "
                   >
-                    <div class="idle-popup-subrow">
-                      <span class="idle-popup-label">Threshold</span>
-                      <span class="idle-popup-val" id="idle-val-display"
-                        >60m</span
+                    Automated tracking with smart sleep & idle detection.
+                  </div>
+                </div>
+
+                <div id="idle-settings-wrapper" class="collapsible-wrapper">
+                  <div class="collapsible-content">
+                    <div class="settings-divider" style="margin: 8px 0"></div>
+
+                    <!-- Idle settings group card -->
+                    <div
+                      style="
+                        display: flex;
+                        flex-direction: column;
+                        gap: 10px;
+                        padding: 2px;
+                      "
+                    >
+                      <div class="idle-popup-row">
+                        <span
+                          class="idle-popup-label"
+                          style="font-size: 0.75rem; font-weight: 700"
+                          >Enable idle lock</span
+                        >
+                        <label class="switch">
+                          <input
+                            type="checkbox"
+                            id="idle-toggle"
+                            checked
+                            onchange="onIdleToggleChange()"
+                          />
+                          <span class="slider-toggle"></span>
+                        </label>
+                      </div>
+                      <div
+                        id="idle-range-container"
+                        class="idle-popup-row flex-col"
+                        style="gap: 6px; width: 100%"
                       >
+                        <div
+                          class="idle-popup-subrow"
+                          style="
+                            display: flex;
+                            justify-content: space-between;
+                            width: 100%;
+                          "
+                        >
+                          <span
+                            class="idle-popup-label"
+                            style="font-size: 0.7rem; color: var(--text-muted)"
+                            >Threshold</span
+                          >
+                          <span
+                            class="idle-popup-val"
+                            id="idle-val-display"
+                            style="
+                              font-family: var(--font-mono);
+                              font-size: 0.75rem;
+                              font-weight: 700;
+                              color: var(--accent-blue);
+                            "
+                            >60m</span
+                          >
+                        </div>
+                        <input
+                          type="range"
+                          id="idle-slider"
+                          min="5"
+                          max="120"
+                          step="5"
+                          value="60"
+                          class="idle-range-input"
+                          style="width: 100%; height: 6px; border-radius: 3px"
+                          oninput="onIdleSliderInput(this.value)"
+                          onchange="onIdleSliderChange(this.value)"
+                        />
+                      </div>
                     </div>
-                    <input
-                      type="range"
-                      id="idle-slider"
-                      min="5"
-                      max="120"
-                      step="5"
-                      value="60"
-                      class="idle-range-input"
-                      oninput="onIdleSliderInput(this.value)"
-                      onchange="onIdleSliderChange(this.value)"
-                    />
                   </div>
                 </div>
               </div>
             </div>
+            <!-- This closing div was missing and fixes the stacking issue! -->
 
             <div class="icon-stack">
               <button
-                title="Factory Reset"
+                aria-label="Factory Reset"
                 class="icon-btn sq-btn danger-icon"
                 onclick="clearAllData()"
               >
@@ -5771,9 +5887,20 @@
           const done = (val) => {
             if (!settled) {
               settled = true;
+              clearTimeout(timeoutId);
               resolve(val);
             }
           };
+
+          // Fallback safety timeout of 1500ms to prevent infinite deadlock hangs
+          const timeoutId = setTimeout(() => {
+            if (!settled) {
+              console.warn(
+                "IndexedDB transaction timed out (deadlock detected). Falling back.",
+              );
+              done([]);
+            }
+          }, 1500);
 
           try {
             const txCheck = db.transaction(
@@ -5857,13 +5984,31 @@
           if (!isTabConflict) {
             tabSyncChannel.postMessage({ type: "pong", id: instanceId });
           }
-        } else if (e.data.type === "pong" || e.data.type === "takeover") {
+        } else if (e.data.type === "pong") {
           // Halt and lock down this tab if another instance exists or is forcing ownership
           if (!isTabConflict) {
             saveState(true);
             if (cachedLogs && cachedLogs.length > 0) {
               saveLogsToDB(cachedLogs).catch((err) => console.error(err));
             }
+          }
+          isTabConflict = true;
+          conflictModal.style.display = "flex";
+        } else if (e.data.type === "takeover") {
+          if (!isTabConflict) {
+            saveState(true);
+            const savePromise =
+              cachedLogs && cachedLogs.length > 0
+                ? saveLogsToDB(cachedLogs)
+                : Promise.resolve();
+            savePromise
+              .catch((err) => console.error(err))
+              .finally(() => {
+                tabSyncChannel.postMessage({
+                  type: "takeover_complete",
+                  id: instanceId,
+                });
+              });
           }
           isTabConflict = true;
           conflictModal.style.display = "flex";
@@ -5876,27 +6021,30 @@
       function forceTakeover() {
         isTabConflict = false;
         document.getElementById("tab-conflict-modal").style.display = "none";
-        tabSyncChannel.postMessage({ type: "takeover", id: instanceId });
 
         // Engage the silent audio context during tab takeover activation
 
         // Synchronize delta anchor when active tab takes priority
         // Pull latest database and localStorage states to synchronize this session instantly
 
-        // Safety delay allowing the locked-down tab to complete asynchronous storage writes
-        setTimeout(() => {
-          loadState();
-          loadLogsFromDB().then((logs) => {
-            cachedLogs = logs;
-            cachedTodayDate = null;
-            rebuildWeeklyCache();
-            renderStaticUI();
-            renderTimersOnly();
-            renderLogbook();
-            renderInsights();
-            showSyncToast("Tab takeover successful. Session synchronized");
-          });
-        }, 300);
+        const handleAck = (e) => {
+          if (e.data.type === "takeover_complete") {
+            tabSyncChannel.removeEventListener("message", handleAck);
+            loadState();
+            loadLogsFromDB().then((logs) => {
+              cachedLogs = logs;
+              cachedTodayDate = null;
+              rebuildWeeklyCache();
+              renderStaticUI();
+              renderTimersOnly();
+              renderLogbook();
+              renderInsights();
+              showSyncToast("Tab takeover successful. Session synchronized");
+            });
+          }
+        };
+        tabSyncChannel.addEventListener("message", handleAck);
+        tabSyncChannel.postMessage({ type: "takeover", id: instanceId });
       }
 
       /*==========================================================================
@@ -6068,7 +6216,7 @@
       // High-performance inline Web Worker compiled in-memory via Virtual Blob
       const workerCode = `
     self.onmessage = function(e) {
-      const logs = e.data
+      const { txId, data: logs } = e.data
       const weeklyGroups = {}
       const dailyAnchors = {}
 
@@ -6098,7 +6246,7 @@
         weeklyGroups[key].sort((a, b) => b.epochMs - a.epochMs)
       }
 
-      self.postMessage({ weeklyGroups, dailyAnchors })
+      self.postMessage({ txId, weeklyGroups, dailyAnchors })
     }
   `;
       const blob = new Blob([workerCode], { type: "application/javascript" });
@@ -6106,24 +6254,31 @@
       const analyticsWorker = new Worker(workerUrl);
       URL.revokeObjectURL(workerUrl); // Release blob URL — Worker holds its own internal reference
 
+      let currentWorkerTxId = 0;
+
       /**
        * Delegates weekly database sorting and grouping logic to our background Web Worker thread.
        */
       function rebuildWeeklyCache() {
         const logs = getLogs();
+        const txId = ++currentWorkerTxId;
         // Send a lightweight representation to the worker using stable unique IDs
-        const payload = logs.map((l) => ({
-          epochMs: l.epochMs,
-          date: l.date,
-          dayGoal: l.dayGoal,
-          id: l.id,
-        }));
+        const payload = {
+          txId,
+          data: logs.map((l) => ({
+            epochMs: l.epochMs,
+            date: l.date,
+            dayGoal: l.dayGoal,
+            id: l.id,
+          })),
+        };
         analyticsWorker.postMessage(payload);
       }
 
       // Receive processed arrays back from background thread
       analyticsWorker.onmessage = (e) => {
-        const { weeklyGroups, dailyAnchors } = e.data;
+        const { txId, weeklyGroups, dailyAnchors } = e.data;
+        if (txId !== undefined && txId !== currentWorkerTxId) return;
         const logs = getLogs();
 
         // Create an O(N) lookup map for safe, race-immune log rehydration
@@ -6552,7 +6707,9 @@
           totalW_MonFri += dayW;
         }
 
-        totalW_MonFri += getCurrentWorkSeconds();
+        if (nowDay >= 1 && nowDay <= 5) {
+          totalW_MonFri += getCurrentWorkSeconds();
+        }
 
         const totalPercent =
           dynamicWeeklyGoalSec > 0
@@ -6808,7 +6965,7 @@
         if (etaEl) {
           let etaText = "";
           let etaColorClass = "";
-          if (dailyDiff >= 0) {
+          if (isGoalReached) {
             etaText = "Daily Goal Reached";
             etaColorClass = "text-work";
           } else {
@@ -6828,7 +6985,7 @@
           }
         }
 
-        if (totalWorkToday >= anchorGoalSec && !state.goalNotified) {
+        if (isGoalReached && !state.goalNotified) {
           const toast = document.getElementById("goal-toast");
           const timeEl = document.getElementById("goal-toast-time");
           if (timeEl) {
@@ -6877,6 +7034,7 @@
           workSec: wSec,
           breakSec: bSec,
           loginTs: state.loginTimestamp,
+          logoutTs: Date.now(),
         };
         if (wSec < 60) {
           DOM.ghostModal.style.display = "flex";
@@ -6891,6 +7049,7 @@
       function closeGhostModal() {
         DOM.ghostModal.style.display = "none";
         pendingSubmitData = null;
+        renderTimersOnly();
       }
 
       /**
@@ -6917,6 +7076,7 @@
         DOM.submitModal.style.display = "none";
         DOM.modalShiftNotes.value = "";
         pendingSubmitData = null;
+        renderTimersOnly();
       }
 
       /**
@@ -7017,6 +7177,9 @@
         const loginTs = pendingSubmitData
           ? pendingSubmitData.loginTs
           : state.loginTimestamp;
+        const pendingLogoutTs = pendingSubmitData
+          ? pendingSubmitData.logoutTs
+          : null;
 
         pendingSubmitData = null;
         if (workSeconds <= 0) return;
@@ -7029,8 +7192,9 @@
           : "--";
 
         // Formulates logout using last active heartbeat for auto-submissions
-        const logoutTimestamp =
-          overrideDate && state.lastHeartbeat
+        const logoutTimestamp = pendingLogoutTs
+          ? pendingLogoutTs
+          : overrideDate && state.lastHeartbeat
             ? state.lastHeartbeat
             : Date.now();
         const logoutTime = pstFormatter.format(new Date(logoutTimestamp));
@@ -7289,8 +7453,8 @@
         const noteIconClass = hasNote ? "icon-btn note-active" : "icon-btn";
         const displayStatus = log.status === "OVER" ? "Over" : "Under";
         const noteBtnAttr = hasNote
-          ? `data-action="view-note" data-id="${log.id}" title="View Note"`
-          : `title="No Note" disabled style="opacity: 0.3; cursor: not-allowed;"`;
+          ? `data-action="view-note" data-id="${log.id}" aria-label="View Note"`
+          : `aria-label="No Note" disabled style="opacity: 0.3; cursor: not-allowed;"`;
 
         const logDate = new Date(log.epochMs);
         const dayNum = logDate.getUTCDay();
@@ -7325,9 +7489,9 @@
             </div>
             <div class="icon-actions">
                 <button class="${noteIconClass}" ${noteBtnAttr}>${SVGs.note}</button>
-                <button title="Copy Log" class="icon-btn" data-action="copy" data-id="${log.id}">${SVGs.copy}</button>
-                <button title="Edit Times" class="icon-btn" data-action="edit" data-id="${log.id}">${SVGs.edit}</button>
-                <button title="Delete Shift" class="icon-btn danger-text" data-action="delete" data-id="${log.id}">${SVGs.trash}</button>
+                <button aria-label="Copy Log" class="icon-btn" data-action="copy" data-id="${log.id}">${SVGs.copy}</button>
+                <button aria-label="Edit Times" class="icon-btn" data-action="edit" data-id="${log.id}">${SVGs.edit}</button>
+                <button aria-label="Delete Shift" class="icon-btn danger-text" data-action="delete" data-id="${log.id}">${SVGs.trash}</button>
             </div>
         </div>
     </div>`;
@@ -7802,9 +7966,9 @@
         const nowPSTObj = getPSTDateObj();
         const nowUTC = new Date(
           Date.UTC(
-            nowPSTObj.getFullYear(),
-            nowPSTObj.getMonth(),
-            nowPSTObj.getDate(),
+            nowPSTObj.getUTCFullYear(),
+            nowPSTObj.getUTCMonth(),
+            nowPSTObj.getUTCDate(),
           ),
         );
         const day = nowUTC.getUTCDay();
@@ -8577,13 +8741,16 @@
       function closeEditModal() {
         document.getElementById("edit-modal").style.display = "none";
         editingLogId = null;
+        isEditSubmitting = false;
       }
+
+      let isEditSubmitting = false;
 
       /**
        * Parses and updates structural values changes in shift log.
        */
       function saveEditModal() {
-        if (editingLogId === null) return;
+        if (editingLogId === null || isEditSubmitting) return;
         const logs = getLogs();
         const log = logs.find((l) => l.id === editingLogId);
         if (!log) return;
@@ -8605,6 +8772,7 @@
           bSec !== null &&
           newDate.match(/^\d{1,2}\/\d{1,2}\/(\d{2}|\d{4})$/)
         ) {
+          isEditSubmitting = true;
           log.date = newDate;
           log.displayDate = newDate.replace(/\/20(\d{2})$/, "/$1");
           log.workSec = wSec;
@@ -9188,113 +9356,6 @@
         const nowMs = Date.now();
         const now = new Date(nowMs);
 
-        // === MIDNIGHT BOUNDARY INTERCEPTOR ===
-        // Atomic date-change handler that saves the old-day shift directly
-        // WITHOUT calling executeSubmit or resetSession. This guarantees
-        // currentMode is never wiped and the timer continues seamlessly.
-        const tickDatePST = pstDateFormatter.format(now);
-        if (
-          state.activeDate &&
-          tickDatePST !== state.activeDate &&
-          !state.idleLock &&
-          (state.currentMode !== null || (state.workAccumulated || 0) > 0)
-        ) {
-          // Step 1: Finalize the running timer into the accumulator
-          if (state.currentMode !== null && state.sessionAnchorWall !== null) {
-            const elapsed = Math.max(
-              0,
-              (nowMs - state.sessionAnchorWall) / 1000,
-            );
-            if (state.currentMode === "work") {
-              state.workAccumulated = (state.workAccumulated || 0) + elapsed;
-            } else if (state.currentMode === "break") {
-              state.breakAccumulated = (state.breakAccumulated || 0) + elapsed;
-            }
-          }
-
-          // Step 2: Save the shift under the OLD date (direct DB write, no executeSubmit/resetSession)
-          const oldWorkSec = Math.floor(state.workAccumulated || 0);
-          const oldBreakSec = Math.floor(state.breakAccumulated || 0);
-
-          if (oldWorkSec > 0) {
-            const oldDate = state.activeDate;
-            const goal = getGoalSeconds();
-            const diff = oldWorkSec - goal;
-            const loginTime = state.loginTimestamp
-              ? loginFormatter.format(new Date(state.loginTimestamp))
-              : "--";
-            const logoutTime = pstFormatter.format(new Date(nowMs));
-            const displayDate = oldDate.replace(/\/20(\d{2})$/, "/$1");
-            const [em, ed, ey] = oldDate.split("/");
-            const fullY = ey.length === 2 ? `20${ey}` : ey;
-            const epochMs = Date.UTC(
-              parseInt(fullY, 10),
-              parseInt(em, 10) - 1,
-              parseInt(ed, 10),
-              12,
-              0,
-              0,
-            );
-
-            const entry = {
-              id:
-                "log_" +
-                Math.random().toString(36).substring(2, 11) +
-                Date.now().toString(36),
-              date: oldDate,
-              displayDate,
-              epochMs,
-              login: loginTime,
-              logout: logoutTime,
-              loginEpochMs:
-                state.loginTimestamp ||
-                nowMs - (oldWorkSec + oldBreakSec) * 1000,
-              logoutEpochMs: nowMs,
-              workSec: oldWorkSec,
-              breakSec: oldBreakSec,
-              status: diff >= 0 ? "OVER" : "UNDER",
-              diff: formatDuration(Math.abs(diff)),
-              notes: "Auto-submitted (Midnight Reset)",
-              dayGoal: goal,
-              lastModified: nowMs,
-            };
-            entry.searchStr =
-              `${displayDate} ${oldDate} ${loginTime} ${logoutTime} Auto-submitted (Midnight Reset)`.toLowerCase();
-
-            const logs = getLogs();
-            logs.unshift(entry);
-            saveLogs(logs);
-          }
-
-          // Step 3: Update activeDate
-          state.activeDate = tickDatePST;
-
-          // Step 4: Reset accumulators to 0
-          state.workAccumulated = 0;
-          state.breakAccumulated = 0;
-
-          // Step 5: Keep currentMode INTACT — restart anchor if timer is running
-          if (state.currentMode !== null) {
-            state.sessionAnchorWall = nowMs;
-            state.loginTimestamp = nowMs;
-          } else {
-            state.sessionAnchorWall = null;
-          }
-          state.lastHeartbeatWall = nowMs;
-          state.lastHeartbeatMonotonic = performance.now();
-
-          saveState(true);
-          renderStaticUI();
-          renderTimersOnly();
-          if (oldWorkSec > 0) {
-            showSyncToast(
-              "Midnight rollover: Yesterday's shift auto-saved.",
-              true,
-            );
-          }
-          return; // End this tick — checkMidnightReset is pre-empted
-        }
-
         // Execute rollover checks for multi-day gaps (sleep/hibernate/page load recovery)
         checkMidnightReset(now);
 
@@ -9315,7 +9376,7 @@
 
           // 5-second deadzone prevents micro-jitter floating point accumulation
           if (discrepancy > 5000) {
-            if (monoDelta < wallDelta - 10000) {
+            if (monoDelta < wallDelta - 30000) {
               // Forward jump with frozen monotonic clock = OS Hardware Sleep
               triggerIdleLock(lastWall, "system");
               return; // Abort the remainder of this tick to respect the lock
@@ -9393,9 +9454,6 @@
         const nowWall = Date.now();
         const nowMonotonic = performance.now();
 
-        // Execute rollover checks FIRST on tab wake to prevent race conditions
-        checkMidnightReset(new Date(nowWall));
-
         // Only perform complex sleep/drift auditing if in Intelligent Mode
         if (
           state.trackingMode === "intelligent" &&
@@ -9413,7 +9471,7 @@
 
           // 5-second deadzone aligns with the real-time tick engine
           if (discrepancy > 5000) {
-            if (monoDelta < wallDelta - 10000) {
+            if (monoDelta < wallDelta - 30000) {
               const timeOfIdle = state.lastHeartbeatWall || lastActivity;
               triggerIdleLock(timeOfIdle, "system");
             } else if (state.sessionAnchorWall !== null) {
@@ -9426,6 +9484,9 @@
             triggerIdleLock(lastActivity, "inactivity");
           }
         }
+
+        // Execute rollover checks AFTER idle locks to prevent multi-day work accumulation
+        checkMidnightReset(new Date(nowWall));
 
         if (state.tabHiddenAt) {
           delete state.tabHiddenAt;
@@ -9647,11 +9708,18 @@
         if (btnIntelligent)
           btnIntelligent.classList.toggle("active", !isSimple);
 
+        // Update helper description
+        const descEl = document.getElementById("settings-mode-desc");
+        if (descEl) {
+          descEl.textContent = isSimple
+            ? "Manual stop/start with zero automated checks."
+            : "Automated tracking with smart sleep & idle detection.";
+        }
+
         // Disable/Dim idle settings if Simple mode is active
         const idleWrapper = document.getElementById("idle-settings-wrapper");
         if (idleWrapper) {
-          idleWrapper.style.opacity = isSimple ? "0.3" : "1";
-          idleWrapper.style.pointerEvents = isSimple ? "none" : "auto";
+          idleWrapper.classList.toggle("is-collapsed", isSimple);
         }
 
         // Sync existing toggle/slider values
@@ -9693,7 +9761,9 @@
         state.trackingMode = mode;
         syncSettingsUI();
         saveState(true); // Force sync to storage immediately
-        showAppToast(`Mode set to ${mode.toUpperCase()}`);
+        showAppToast(
+          `Mode set to ${mode.charAt(0).toUpperCase() + mode.slice(1)}`,
+        );
       };
 
       /**
@@ -9719,12 +9789,17 @@
         if (modal) {
           modal.style.display = "none";
         }
+        isManualSubmitting = false;
       }
+
+      let isManualSubmitting = false;
 
       /**
        * Validates and inserts a manual log directly into storage databases.
        */
       function saveManualModal() {
+        if (isManualSubmitting) return;
+
         const manualDateInput = document.getElementById("manual-date");
         // Force blur formatting first
         handleDateInputBlur({ target: manualDateInput });
@@ -9761,6 +9836,7 @@
           bSec !== null &&
           dateStr.match(/^\d{1,2}\/\d{1,2}\/(\d{2}|\d{4})$/)
         ) {
+          isManualSubmitting = true;
           const diff = wSec - goal;
           const [m, d, y] = dateStr.split("/");
           const fullYear = y.length === 2 ? `20${y}` : y;
@@ -9869,7 +9945,7 @@
       function parseGoalTimeStr(val) {
         let hh = 0;
         let mm = 0;
-        const cleanVal = val.trim();
+        const cleanVal = val.trim().replace(",", ".");
         if (!cleanVal) return { hh: 8, mm: 0 };
 
         const naturalMatch = cleanVal.match(
