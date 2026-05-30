@@ -4438,6 +4438,9 @@
         <button class="help-tab-btn active" onclick="switchHelpTab('help-overview', this)">
           Overview
         </button>
+        <button class="help-tab-btn" onclick="switchHelpTab('help-command-center', this)">
+          Command Center
+        </button>
         <button class="help-tab-btn" onclick="switchHelpTab('help-shortcuts', this)">
           Shortcuts
         </button>
@@ -4512,6 +4515,76 @@
         </ul>
       </div>
 
+      <!-- Tab 2: Command Center -->
+      <div id="help-command-center" class="help-tab-content">
+        <h4>The Command Center HUD</h4>
+        <p>Press <strong>/</strong> to open the intelligent Command Palette. It lets you drive the entire application using natural language and smart commands without ever touching your mouse.</p>
+        
+        <h4 style="margin-top: 1.5rem;">Advanced Database Queries</h4>
+        <ul style="line-height: 1.6;">
+          <li>
+            <strong>Natural Language Write Engine:</strong> Type <code>add</code> or <code>logshift</code> followed by a natural sentence to skip the manual forms and instantly construct a backdated database log.
+            <ul style="margin-top: 4px; padding-left: var(--space-4);">
+              <li><strong>Absolute Ranges (12h):</strong> <code>9am to 5pm</code>, <code>9:30am - 6pm</code></li>
+              <li><strong>Absolute Ranges (24h):</strong> <code>09:00 to 17:30</code>, <code>14:00 - 18:00</code></li>
+              <li><strong>Explicit Durations:</strong> <code>8h 30m</code>, <code>4.5h</code>, <code>90m</code></li>
+              <li><strong>Relative Dates:</strong> <code>yesterday</code>, <code>today</code> (defaults to today if omitted)</li>
+              <li><strong>Absolute Dates:</strong> <code>05/12</code> (assumes current year), <code>05/12/2026</code></li>
+              <li><strong>Shift Notes:</strong> Any remaining text in your query is automatically bound as your shift note.</li>
+            </ul>
+            <span style="color: var(--text-muted); font-size: 0.85rem;">Example: Type <code>add yesterday 9am to 5pm worked on UI architecture</code>. It calculates 8 hours of work time for yesterday, injects the note, and displays a HUD button. Press Enter to instantly commit it.</span>
+          </li>
+          <li style="margin-top: var(--space-2);">
+            <strong>Deep Log Search Engine:</strong> Type <code>log</code> followed by any combination of filters to instantly extract up to 5 matching database records directly into the HUD.
+            <ul style="margin-top: 4px; padding-left: var(--space-4);">
+              <li><strong>Time Bounds:</strong> <code>>5h</code>, <code>&lt;2h</code>, or <code>>=4.5h</code></li>
+              <li><strong>Relative Dates:</strong> <code>today</code>, <code>yesterday</code>, <code>this week</code>, <code>this month</code>, <code>last month</code></li>
+              <li><strong>Absolute Dates:</strong> <code>05/2026</code> (by month) or <code>12/04/2026</code> (specific day)</li>
+              <li><strong>Status Flags:</strong> <code>over</code> or <code>under</code> (find shifts passing/failing your goal)</li>
+              <li><strong>Text:</strong> Any remaining words fuzzy-search your shift notes.</li>
+            </ul>
+            <span style="color: var(--text-muted); font-size: 0.85rem;">Example: Type <code>log meeting >4h last month</code> to find long shifts with "meeting" in the notes from last month. Press Enter on a result to copy it.</span>
+          </li>
+          <li style="margin-top: var(--space-2);">
+            <strong>Dynamic Metrics Aggregation:</strong> Type <code>metrics</code> followed by a timeframe to instantly sum up your exact Work and Break hours.
+            <br/><span style="color: var(--text-muted); font-size: 0.85rem;">Example: Type <code>metrics week</code>, <code>metrics month</code>, <code>metrics today</code>, or <code>metrics all</code> to generate a summary. Press Enter to copy it for your team updates.</span>
+          </li>
+        </ul>
+
+        <hr style="margin: 1.5rem 0;" />
+        <h4>Smart Quirks & Utilities</h4>
+        <ul style="line-height: 1.6;">
+          <li>
+            <strong>Fuzzy Search & Aliases:</strong> Type acronyms or synonyms. 
+            <br/><span style="color: var(--text-muted); font-size: 0.85rem;">Example: Type <code>sw</code> to find "Start Work", or <code>nuke</code> for "Wipe All Data".</span>
+          </li>
+          <li>
+            <strong>Dynamic Calculator:</strong> Type any math expression to instantly evaluate it.
+            <br/><span style="color: var(--text-muted); font-size: 0.85rem;">Example: Type <code>150 / 60</code> and press Enter to instantly copy <code>2.5</code> to your clipboard.</span>
+          </li>
+          <li>
+            <strong>Goal Parser:</strong> Type <code>goal</code> followed by your desired time.
+            <br/><span style="color: var(--text-muted); font-size: 0.85rem;">Example: Type <code>goal 1h 30m</code> or <code>goal 90m</code> to instantly update your daily target.</span>
+          </li>
+          <li>
+            <strong>Daily Report Generator:</strong> Type <code>report</code> or <code>status</code>.
+            <br/><span style="color: var(--text-muted); font-size: 0.85rem;">Action: Instantly copies a beautifully formatted string of your hours and progress.</span>
+          </li>
+          <li>
+            <strong>Quick Shift Notes:</strong> Type <code>note</code> followed by text while working.
+            <br/><span style="color: var(--text-muted); font-size: 0.85rem;">Example: Type <code>note Fixed the backend bug</code>. It silently appends this note to your running timer.</span>
+          </li>
+          <li>
+            <strong>Quick Leaves:</strong> Type <code>leave sick</code> or <code>leave casual</code>.
+            <br/><span style="color: var(--text-muted); font-size: 0.85rem;">Action: Automatically logs today's date with the specified leave type in one keystroke.</span>
+          </li>
+          <li>
+            <strong>Web Search:</strong> Type <code>g</code> followed by a query.
+            <br/><span style="color: var(--text-muted); font-size: 0.85rem;">Example: Type <code>g css flexbox</code> to instantly open a new Google search tab.</span>
+          </li>
+        </ul>
+      </div>
+
       <!-- Tab 6: Shortcuts -->
       <div id="help-shortcuts" class="help-tab-content">
         <h4>Keyboard Shortcuts Reference</h4>
@@ -4526,14 +4599,13 @@
           <li><strong>Alt + 1 / Alt + 2:</strong> Swaps directly between the <strong>Insights</strong> and
             <strong>Logbook</strong> tabs.
           </li>
-          <li><strong>Slash (/):</strong> Focuses the Logbook search box and opens the filters drawer automatically.
+          <li><strong>Slash (/):</strong> Opens the intelligent <strong>Command Center HUD</strong>.
           </li>
           <li><strong>Question Mark (?):</strong> Opens this Help Guide overlay.</li>
           <li><strong>Escape:</strong> Exits input fields, closes modal overlays, collapses the filter drawer, and
             deselects highlighted logs.</li>
           <li><strong>Tab:</strong> Navigates fields sequentially with focus traps active inside modals.</li>
-          <li><strong>Alt + K:</strong> Opens the Command HUD Quick Palette to run commands (e.g., set goals, themes,
-            exports).</li>
+          <li><strong>Alt + K:</strong> Opens the Logbook search box and expands the advanced filters automatically.</li>
           <li><strong>Alt + N:</strong> Launches the Add Manual Log modal instantly.</li>
           <li><strong>Alt + T:</strong> Cycles through the four design themes (Onyx Black, Cobalt Glass, etc.).</li>
           <li><strong>Alt + Plus/Minus (= / -):</strong> Fine-tunes your Daily Goal by +/- 15 mins.</li>
@@ -5263,24 +5335,25 @@
   </div>
 
   <!-- Command HUD / Quick Palette Modal Overlay -->
-  <div id="hud-modal" class="modal-overlay" style="z-index: 5000; align-items: flex-start; padding-top: 10vh;">
-    <div class="modal-container modal-width-md accent-info"
-      style="padding: var(--space-4); border-radius: var(--radius-lg); box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);">
+  <div id="hud-modal" class="modal-overlay" style="z-index: 5000; align-items: flex-start; padding-top: 15vh; backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); background: rgba(0,0,0,0.25); opacity: 0; transition: opacity 0.15s ease-out;">
+    <div class="modal-container modal-width-md accent-info" id="hud-container-anim"
+      style="padding: var(--space-4); border-radius: var(--radius-xl); box-shadow: 0 25px 60px rgba(0, 0, 0, 0.4); background: var(--panel-bg); border: 1px solid var(--border-main); transform: scale(0.96) translateY(-10px); opacity: 0; transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease-out; overflow: hidden;">
       <div
-        style="display: flex; align-items: center; background: var(--element-bg); border: 1px solid var(--border-main); border-radius: var(--radius-md); padding: 0 var(--space-3); height: 42px; box-sizing: border-box; margin-bottom: var(--space-3);">
-        <svg viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2.5" stroke-linecap="round"
-          stroke-linejoin="round" style="width: 16px; height: 16px; flex-shrink: 0; margin-right: var(--space-2);">
+        style="display: flex; align-items: center; border-bottom: 1px solid var(--border-light); padding-bottom: var(--space-3); margin-bottom: var(--space-3);">
+        <svg viewBox="0 0 24 24" fill="none" stroke="var(--accent-blue)" stroke-width="2.5" stroke-linecap="round"
+          stroke-linejoin="round" style="width: 20px; height: 20px; flex-shrink: 0; margin-right: var(--space-3);">
           <circle cx="11" cy="11" r="8"></circle>
           <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
         </svg>
         <input type="text" id="hud-input" class="input-standard"
-          placeholder="Type a command... (e.g., csv, goal 8, theme sf-light)"
-          style="border: none !important; background: transparent !important; padding: 0 !important; font-size: var(--text-base); width: 100%; box-shadow: none !important;" />
+          placeholder="What do you want to do? (e.g. 'sw' for work, '+15' for goal)"
+          autocomplete="off" spellcheck="false"
+          style="border: none !important; background: transparent !important; padding: 0 !important; font-size: 1.25rem; font-family: var(--font-sans); width: 100%; box-shadow: none !important; outline: none !important;" />
         <span class="font-mono"
-          style="font-size: 0.65rem; color: var(--text-muted); background: var(--panel-bg); padding: 2px 6px; border-radius: 4px; border: 1px solid var(--border-main); flex-shrink: 0; user-select: none; margin-left: var(--space-2);">ESC</span>
+          style="font-size: 0.7rem; color: var(--text-muted); background: var(--element-bg); padding: 4px 8px; border-radius: 6px; border: 1px solid var(--border-main); flex-shrink: 0; user-select: none; margin-left: var(--space-2); font-weight: bold;">ESC</span>
       </div>
       <div id="hud-results"
-        style="max-height: 250px; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; padding-right: 2px;">
+        style="max-height: 320px; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; padding-right: 4px;">
         <!-- Dynamically populated commands -->
       </div>
     </div>
@@ -10728,143 +10801,1070 @@
     // Command HUD Logic & Setup
     const HUD_COMMANDS = [
       {
+        key: "start work",
+        title: "Start / Resume Work",
+        desc: "Begin a new work session or resume from break",
+        category: "Timers",
+        aliases: ["resume", "sw", "go", "working"],
+        icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-work)" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>`,
+        action: () => { if (state.currentMode !== "work") switchMode("work"); },
+      },
+      {
+        key: "stop work",
+        title: "Stop Work Timer",
+        desc: "End the current active work session",
+        category: "Timers",
+        aliases: ["end", "done", "stop working"],
+        icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-work)" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect></svg>`,
+        action: () => { if (state.currentMode === "work") switchMode("work"); },
+      },
+      {
+        key: "start break",
+        title: "Start Break",
+        desc: "Pause work and begin a break session",
+        category: "Timers",
+        aliases: ["sb", "pause", "rest", "coffee", "lunch", "afk"],
+        icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-break)" stroke-width="2"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>`,
+        action: () => { if (state.currentMode !== "break") switchMode("break"); },
+      },
+      {
+        key: "stop break",
+        title: "Stop Break Timer",
+        desc: "End the current break session",
+        category: "Timers",
+        aliases: ["resume work", "end break", "back"],
+        icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-break)" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect></svg>`,
+        action: () => { if (state.currentMode === "break") switchMode("break"); },
+      },
+      {
+        key: "add log",
+        title: "Add Manual Entry",
+        desc: "Open modal to log a custom past time entry",
+        category: "Logs",
+        aliases: ["manual", "edit", "past", "new log"],
+        icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text-main)" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>`,
+        action: () => openManualModal(),
+      },
+      {
+        key: "nav dashboard",
+        title: "Go to Dashboard",
+        desc: "Switch view to the main timers dashboard",
+        category: "Navigation",
+        aliases: ["main", "home", "timers", "ui", "app", "dash"],
+        icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text-main)" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>`,
+        action: () => switchTab("dashboard"),
+      },
+      {
+        key: "nav logbook",
+        title: "Go to Logbook",
+        desc: "Switch view to see historical logs",
+        category: "Navigation",
+        aliases: ["history", "past", "logs", "records", "list"],
+        icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text-main)" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>`,
+        action: () => switchTab("logbook"),
+      },
+      {
+        key: "nav insights",
+        title: "Go to Insights",
+        desc: "Switch view to analytics and graphs",
+        category: "Navigation",
+        aliases: ["analytics", "stats", "graphs", "charts", "progress", "week"],
+        icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text-main)" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>`,
+        action: () => switchTab("insights"),
+      },
+      {
+        key: "+15m goal",
+        title: "Add 15m to Goal",
+        desc: "Increase daily goal slightly",
+        category: "Goals",
+        aliases: ["+15", "increase goal", "bump"],
+        icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-work)" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>`,
+        action: () => adjustGoal(15),
+      },
+      {
+        key: "-15m goal",
+        title: "Subtract 15m from Goal",
+        desc: "Decrease daily goal slightly",
+        category: "Goals",
+        aliases: ["-15", "decrease goal", "drop"],
+        icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-break)" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"></line></svg>`,
+        action: () => adjustGoal(-15),
+      },
+      {
+        key: "goal ",
+        title: "Set Daily Goal...",
+        desc: "Type 'goal 7.5' to set custom goal",
+        category: "Goals",
+        aliases: ["set goal", "daily goal"],
+        keepOpen: true,
+        icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-warning)" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>`,
+        action: (arg) => {
+          if (!arg || !arg.trim()) {
+            const input = document.getElementById("hud-input");
+            if (input) {
+              input.value = "goal ";
+              input.dispatchEvent(new Event("input"));
+            }
+            return;
+          }
+          closeHudModal();
+          const str = String(arg).toLowerCase().trim();
+          let h = 0, m = 0, parsed = false;
+
+          if (str.includes(":")) {
+            const parts = str.split(":");
+            h = parseInt(parts[0]) || 0;
+            m = parseInt(parts[1]) || 0;
+            parsed = true;
+          } else {
+            const hMatch = str.match(/([0-9.]+)\s*h/);
+            const mMatch = str.match(/([0-9.]+)\s*m/);
+            
+            if (hMatch || mMatch) {
+              if (hMatch) {
+                const hFloat = parseFloat(hMatch[1]);
+                h += Math.floor(hFloat);
+                m += Math.round((hFloat % 1) * 60);
+              }
+              if (mMatch) m += parseFloat(mMatch[1]);
+              parsed = true;
+            } else {
+              const num = parseFloat(str);
+              if (!isNaN(num)) {
+                h = Math.floor(num);
+                m = Math.round((num % 1) * 60);
+                parsed = true;
+              }
+            }
+          }
+          
+          if (parsed) {
+            h += Math.floor(m / 60);
+            m = Math.round(m % 60);
+            
+            if (h === 0 && m === 0) {
+              showAppToast("Goal must be greater than zero.");
+              return;
+            }
+            if (h > 24 || (h === 24 && m > 0)) {
+              showAppToast("Goal cannot exceed 24 hours.");
+              return;
+            }
+
+            DOM.goalHours.value = h;
+            DOM.goalMins.value = m;
+            localStorage.setItem("goal_hours", h);
+            localStorage.setItem("goal_mins", m);
+            
+            const goalTimeEl = document.getElementById("goal-time");
+            if (goalTimeEl) goalTimeEl.value = `${h}h ${m}m`;
+            
+            if (typeof updatePresetHighlights === 'function') updatePresetHighlights();
+            if (typeof renderTimersOnly === 'function') renderTimersOnly();
+            if (typeof insightsCacheKey !== 'undefined') insightsCacheKey = null;
+            if (typeof renderInsights === 'function') renderInsights();
+
+            showAppToast(`Daily Goal set to ${h}h ${m}m`);
+          } else {
+            showAppToast("Invalid time format. Try '1h 30m', '90m', or '1.5'");
+          }
+        },
+      },
+      {
+        key: "tz pst",
+        title: "Switch Timezone: PST",
+        desc: "Pacific Standard Time (America/Los_Angeles)",
+        category: "Timezones",
+        aliases: ["pacific", "los angeles", "pt", "california"],
+        icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-blue)" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>`,
+        action: () => selectPresetTZ("America/Los_Angeles"),
+      },
+      {
+        key: "tz est",
+        title: "Switch Timezone: EST",
+        desc: "Eastern Standard Time (America/New_York)",
+        category: "Timezones",
+        aliases: ["eastern", "new york", "et", "east"],
+        icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-blue)" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>`,
+        action: () => selectPresetTZ("America/New_York"),
+      },
+      {
+        key: "tz cst",
+        title: "Switch Timezone: CST",
+        desc: "Central Standard Time (America/Chicago)",
+        category: "Timezones",
+        aliases: ["central", "chicago", "ct", "midwest"],
+        icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-blue)" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>`,
+        action: () => selectPresetTZ("America/Chicago"),
+      },
+      {
+        key: "theme onyx",
+        title: "Switch Theme: Onyx Black",
+        desc: "Deep pitch black dark mode",
+        category: "Themes",
+        aliases: ["darkest", "pitch black", "oled", "amoled", "black"],
+        icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle></svg>`,
+        action: () => { setThemeDirect("onyx-black"); showAppToast("Theme switched to Onyx Black"); },
+      },
+      {
+        key: "theme cobalt",
+        title: "Switch Theme: Cobalt Glass",
+        desc: "Translucent blue glassmorphism mode",
+        category: "Themes",
+        aliases: ["blue", "transparent", "frosted", "glass"],
+        icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#38bdf8" stroke-width="2"><circle cx="12" cy="12" r="10"></circle></svg>`,
+        action: () => { setThemeDirect("cobalt-glass"); showAppToast("Theme switched to Cobalt Glass"); },
+      },
+      {
+        key: "theme sf dark",
+        title: "Switch Theme: SF Dark",
+        desc: "System neutral charcoal dark mode",
+        category: "Themes",
+        aliases: ["dark", "charcoal", "gray", "system dark"],
+        icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#8e8e93" stroke-width="2"><circle cx="12" cy="12" r="10"></circle></svg>`,
+        action: () => { setThemeDirect("sf-dark"); showAppToast("Theme switched to SF Dark"); },
+      },
+      {
+        key: "theme sf light",
+        title: "Switch Theme: SF Light",
+        desc: "Bright, clean system light mode",
+        category: "Themes",
+        aliases: ["light", "white", "bright", "system light"],
+        icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#f3a31a" stroke-width="2"><circle cx="12" cy="12" r="10"></circle></svg>`,
+        action: () => { setThemeDirect("sf-light"); showAppToast("Theme switched to SF Light"); },
+      },
+      {
         key: "csv",
-        title: "Export CSV",
-        desc: "Download all visible shift records in spreadsheet-compatible format",
+        title: "Export CSV Data",
+        desc: "Download visible logs as spreadsheet",
+        category: "Data",
+        aliases: ["excel", "spreadsheet", "download", "export"],
+        icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text-main)" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>`,
         action: () => exportCSV(),
       },
       {
         key: "backup",
-        title: "Save Backup",
+        title: "Save JSON Backup",
         desc: "Download full JSON state backup to local drive",
+        category: "Data",
+        aliases: ["backup", "save data", "download full", "export full"],
+        icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text-main)" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>`,
         action: () => exportJSON(),
       },
       {
         key: "restore",
         title: "Load Backup",
         desc: "Trigger JSON restore to merge or restore your backup logs",
+        category: "Data",
+        aliases: ["import", "upload", "load", "restore data"],
+        icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text-main)" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>`,
         action: () => document.getElementById("import-file").click(),
       },
       {
         key: "wipe",
         title: "Wipe All Data",
-        desc: "Factory reset and erase all logs, presets, and active settings",
+        desc: "Factory reset and erase all logs",
+        category: "Data",
+        aliases: ["nuke", "factory reset", "delete all", "clear cache", "reset"],
+        icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-break)" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>`,
         action: () => clearAllData(),
       },
       {
         key: "leave",
         title: "Manage Leaves",
         desc: "Open the Leave & Holiday manager overlay",
+        category: "Modals",
+        aliases: ["sick", "holiday", "pto", "vacation", "absence", "away", "leaves"],
+        icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text-main)" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>`,
         action: () => openLeaveModal(),
+      },
+      {
+        key: "search ",
+        title: "Search Logbook...",
+        desc: "Type 'search bug' to filter past logs",
+        category: "Navigation",
+        aliases: ["find", "lookup", "query"],
+        keepOpen: true,
+        icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text-main)" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>`,
+        action: () => {
+          const input = document.getElementById("hud-input");
+          input.value = "search ";
+          input.dispatchEvent(new Event("input"));
+        }
+      },
+      {
+        key: "add ",
+        title: "Natural Language Write Engine",
+        desc: "Type 'add yesterday 9am to 5pm worked on UI' to create a log",
+        category: "Write Engine",
+        aliases: ["logshift", "create", "insert", "new log"],
+        keepOpen: true,
+        icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text-main)" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>`,
+        action: () => {
+          const input = document.getElementById("hud-input");
+          input.value = "add ";
+          input.dispatchEvent(new Event("input"));
+        }
       },
       {
         key: "help",
         title: "Open Help Guide",
         desc: "Launch the keyboard shortcuts and user guide modal",
+        category: "Modals",
+        aliases: ["shortcuts", "guide", "tutorial", "faq", "?", "userguide", "help", "manual", "docs"],
+        icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text-main)" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>`,
         action: () => openHelpModal(),
       },
       {
-        key: "goal ",
-        title: "Set Daily Goal...",
-        desc: "Shorthand: goal <hours> (e.g. goal 7.5 or goal 8)",
+        key: "search ",
+        title: "Search Logbook...",
+        desc: "Type 'search bug' to filter past logs",
+        category: "Navigation",
+        aliases: ["find", "lookup", "query"],
+        keepOpen: true,
+        icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text-main)" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>`,
         action: (arg) => {
-          const num = parseFloat(arg);
-          if (!isNaN(num) && num > 0 && num <= 24) {
-            setGoalPreset(num);
-            showAppToast(`Daily Goal set to ${num} hours`);
-          } else {
-            showAppToast(
-              "Invalid goal value. Provide a number between 0.1 and 24",
-            );
+          if (!arg || !arg.trim()) {
+            const input = document.getElementById("hud-input");
+            if (input) {
+              input.value = "search ";
+              input.dispatchEvent(new Event("input"));
+            }
+            return;
+          }
+          closeHudModal();
+          switchTab("logbook");
+          const searchInput = document.getElementById("filter-search");
+          if (searchInput) {
+            searchInput.value = arg.trim();
+            searchInput.dispatchEvent(new Event("input"));
+          }
+          const panel = document.getElementById("advanced-filters");
+          const toggleText = document.getElementById("advanced-filters-toggle-text");
+          if (panel && panel.classList.contains("hidden")) {
+            panel.classList.remove("hidden");
+            if (toggleText) toggleText.innerText = "Hide Advanced Filters";
           }
         },
       },
       {
-        key: "theme ",
-        title: "Set Active Theme...",
-        desc: "Shorthand: theme cobalt-glass, onyx-black, sf-dark, sf-light",
+        key: "note ",
+        title: "Add Note to Active Session...",
+        desc: "Type 'note fixed crash' to append a note",
+        category: "Logs",
+        aliases: ["log note", "append note", "write note", "add note"],
+        keepOpen: true,
+        icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text-main)" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>`,
         action: (arg) => {
-          const normalized = arg.trim().toLowerCase();
-          const valid = ["cobalt-glass", "onyx-black", "sf-dark", "sf-light"];
-          if (valid.includes(normalized)) {
-            setThemeDirect(normalized);
-            showAppToast(`Theme switched to ${arg}`);
-          } else {
-            showAppToast(
-              "Invalid theme. Options: cobalt-glass, onyx-black, sf-dark, sf-light",
-            );
+          if (!arg || !arg.trim()) {
+            const input = document.getElementById("hud-input");
+            if (input) {
+              input.value = "note ";
+              input.dispatchEvent(new Event("input"));
+            }
+            return;
+          }
+          closeHudModal();
+          if (state.currentMode !== 'work') {
+            showAppToast("Notes can only be appended while working.");
+            return;
+          }
+          const notesEl = document.getElementById("modal-shift-notes");
+          if (notesEl) {
+            if (notesEl.value) {
+              notesEl.value += " | " + arg.trim();
+            } else {
+              notesEl.value = arg.trim();
+            }
+            showAppToast("Note appended to active session!");
           }
         },
       },
+      {
+        key: "report",
+        title: "Copy Daily Status Report",
+        desc: "Copy your worked hours and goal progress to clipboard",
+        category: "Data",
+        aliases: ["copy status", "status", "copy report"],
+        icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text-main)" stroke-width="2"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg>`,
+        action: () => {
+          const wSec = getCurrentWorkSeconds();
+          const goalH = parseFloat(localStorage.getItem(GOAL_H_KEY)) || 8;
+          const goalM = parseFloat(localStorage.getItem(GOAL_M_KEY)) || 0;
+          const goalSec = (goalH * 3600) + (goalM * 60);
+          const percent = goalSec > 0 ? ((wSec / goalSec) * 100).toFixed(1) : 0;
+          
+          const txt = `Status: ${formatDuration(wSec)} worked (${percent}% of goal).`;
+          navigator.clipboard.writeText(txt).then(() => {
+            showAppToast("Status Report copied to clipboard!");
+          });
+        },
+      },
+      {
+        key: "g ",
+        title: "Search Google...",
+        desc: "Type 'g javascript map' to search the web",
+        category: "Web",
+        aliases: ["google", "search web"],
+        keepOpen: true,
+        icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text-main)" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>`,
+        action: (arg) => {
+          if (!arg || !arg.trim()) {
+            const input = document.getElementById("hud-input");
+            if (input) {
+              input.value = "g ";
+              input.dispatchEvent(new Event("input"));
+            }
+            return;
+          }
+          closeHudModal();
+          window.open(`https://www.google.com/search?q=${encodeURIComponent(arg.trim())}`, "_blank");
+        },
+      },
+      {
+        key: "json",
+        title: "Copy Raw JSON Data",
+        desc: "Copy all local storage state to clipboard for debugging",
+        category: "Data",
+        aliases: ["raw", "state", "dump"],
+        icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text-main)" stroke-width="2"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>`,
+        action: () => {
+          const raw = safeGetLocalStorage(STATE_KEY);
+          if (raw) {
+            navigator.clipboard.writeText(raw).then(() => {
+              showAppToast("Raw JSON copied to clipboard!");
+            });
+          } else {
+            showAppToast("No saved state found.");
+          }
+        },
+      },
+      {
+        key: "leave ",
+        title: "Log Leave for Today...",
+        desc: "Type 'leave sick' or 'leave casual' to log today",
+        category: "Logs",
+        aliases: ["add leave", "mark leave"],
+        keepOpen: true,
+        icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text-main)" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>`,
+        action: (arg) => {
+          if (!arg || !arg.trim()) {
+            const input = document.getElementById("hud-input");
+            if (input) {
+              input.value = "leave ";
+              input.dispatchEvent(new Event("input"));
+            }
+            return;
+          }
+          closeHudModal();
+          const type = arg.trim().toLowerCase();
+          const validTypes = ["sick", "casual", "holiday", "unpaid"];
+          const matched = validTypes.find(t => t.startsWith(type)) || "Casual";
+          const formattedType = matched.charAt(0).toUpperCase() + matched.slice(1);
+          
+          const today = getPSTDateObj();
+          const ds = `${String(today.getUTCMonth() + 1).padStart(2, "0")}/${String(today.getUTCDate()).padStart(2, "0")}/${today.getUTCFullYear()}`;
+          
+          const entry = { id: Date.now().toString(), date: ds, type: formattedType };
+          
+          if (typeof getLeaveDates === 'function' && typeof saveLeaveDates === 'function') {
+            const dates = getLeaveDates();
+            dates.push(entry);
+            saveLeaveDates(dates);
+            if (typeof renderLeaveDates === 'function') renderLeaveDates();
+          }
+          
+          showAppToast(`Logged ${formattedType} leave for today (${ds}).`);
+          if (typeof renderTimersOnly === 'function') renderTimersOnly();
+        },
+      },
+      {
+        key: "metrics ",
+        title: "Calculate Metrics...",
+        desc: "Type 'metrics week', 'month', 'today', or 'all'",
+        category: "Insights",
+        aliases: ["stats", "hours", "total"],
+        keepOpen: true,
+        icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-info)" stroke-width="2"><path d="M12 20V10M18 20V4M6 20v-4"></path></svg>`,
+        action: () => {
+          const input = document.getElementById("hud-input");
+          if (input) {
+            input.value = "metrics ";
+            input.dispatchEvent(new Event("input"));
+          }
+        }
+      },
+      {
+        key: "log ",
+        title: "Search Past Logs...",
+        desc: "Type 'log [keyword]' to search your shift history",
+        category: "Logbook Results",
+        aliases: ["find log", "search logs", "history", "past", "logs", "records"],
+        keepOpen: true,
+        icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text-main)" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>`,
+        action: () => {
+          const input = document.getElementById("hud-input");
+          if (input) {
+            input.value = "log ";
+            input.dispatchEvent(new Event("input"));
+          }
+        }
+      }
     ];
 
     let hudActiveIndex = 0;
     let hudFiltered = [];
 
+    // Custom Fuzzy Scoring Algorithm for "Mind-Reading" Search
+    function hudFuzzyScore(query, target) {
+      if (!query || !target) return 0;
+      const q = query.toLowerCase();
+      const t = target.toLowerCase();
+      
+      let qIdx = 0;
+      let tIdx = 0;
+      let score = 0;
+      let consecutive = 0;
+      
+      while (qIdx < q.length && tIdx < t.length) {
+        if (q[qIdx] === t[tIdx]) {
+          score += 10;
+          score += consecutive * 5; // bonus for consecutive matches
+          
+          // bonus for acronym/start of word
+          if (tIdx === 0 || t[tIdx - 1] === ' ' || t[tIdx - 1] === '-') {
+            score += 15;
+          }
+          
+          consecutive++;
+          qIdx++;
+        } else {
+          consecutive = 0;
+          score -= 1; // minor penalty for gaps
+        }
+        tIdx++;
+      }
+      
+      if (qIdx < q.length) return 0; // Did not match all characters in order
+      
+      // Exact substring bonus
+      if (t.includes(q)) score += 20;
+      // Exact match bonus
+      if (t === q) score += 50;
+      
+      return Math.max(0, score);
+    }
+
     function openHudModal() {
       const modal = document.getElementById("hud-modal");
+      const animContainer = document.getElementById("hud-container-anim");
       const input = document.getElementById("hud-input");
       if (!modal || !input) return;
+      
       modal.style.display = "flex";
+      // Force reflow for animation
+      void modal.offsetWidth; 
+      modal.style.opacity = "1";
+      if(animContainer) {
+        animContainer.style.opacity = "1";
+        animContainer.style.transform = "scale(1) translateY(0)";
+      }
+      
       input.value = "";
       hudActiveIndex = 0;
-      filterHudCommands("");
+      
+      // Determine Smart Defaults based on current app state
+      const smartDefaults = [];
+      if (state.currentMode === "work") {
+        smartDefaults.push(HUD_COMMANDS.find(c => c.key === "start break"));
+        smartDefaults.push(HUD_COMMANDS.find(c => c.key === "stop work"));
+      } else if (state.currentMode === "break") {
+        smartDefaults.push(HUD_COMMANDS.find(c => c.key === "start work"));
+        smartDefaults.push(HUD_COMMANDS.find(c => c.key === "stop break"));
+      } else {
+        smartDefaults.push(HUD_COMMANDS.find(c => c.key === "start work"));
+        smartDefaults.push(HUD_COMMANDS.find(c => c.key === "add log"));
+      }
+      // Add a few common ones
+      smartDefaults.push(HUD_COMMANDS.find(c => c.key === "nav logbook"));
+      smartDefaults.push(HUD_COMMANDS.find(c => c.key === "theme cobalt"));
+      
+      hudFiltered = smartDefaults;
+      renderHudResults("", true);
+      
       setTimeout(() => input.focus(), 50);
     }
 
     function closeHudModal() {
       const modal = document.getElementById("hud-modal");
-      if (modal) modal.style.display = "none";
+      const animContainer = document.getElementById("hud-container-anim");
+      if (modal) {
+        modal.style.opacity = "0";
+        if(animContainer) {
+          animContainer.style.opacity = "0";
+          animContainer.style.transform = "scale(0.96) translateY(-10px)";
+        }
+        setTimeout(() => {
+          modal.style.display = "none";
+        }, 200); // Wait for transition
+      }
     }
 
     function filterHudCommands(query) {
+      if (!query.trim()) {
+        // Fallback to smart defaults
+        openHudModal(); // re-init defaults
+        return;
+      }
+      
       const q = query.trim().toLowerCase();
-      hudFiltered = HUD_COMMANDS.filter((cmd) => {
-        if (cmd.key.endsWith(" ")) {
-          return (
-            q.startsWith(cmd.key.trim()) || cmd.title.toLowerCase().includes(q)
-          );
+      const scored = [];
+      
+      // Dynamic Math Parsing Check
+      // Only evaluate if it contains numbers and operators, and is a valid math expression
+      if (/^[\d\s\+\-\*\/\(\)\.]+$/.test(query.trim()) && /[0-9]/.test(query) && /[\+\-\*\/]/.test(query)) {
+        try {
+          // eslint-disable-next-line no-new-func
+          const mathResult = new Function('return ' + query.trim())();
+          if (typeof mathResult === 'number' && !isNaN(mathResult)) {
+            scored.push({
+              score: 9999, // Guarantee top spot
+              cmd: {
+                key: "_math",
+                title: `= ${mathResult}`,
+                desc: `Evaluated: ${query.trim()} (Press Enter to copy)`,
+                category: "Calculator",
+                icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-blue)" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect><line x1="8" y1="10" x2="16" y2="10"></line><line x1="8" y1="14" x2="16" y2="14"></line><line x1="12" y1="6" x2="12" y2="18"></line></svg>`,
+                action: () => {
+                  navigator.clipboard.writeText(mathResult.toString()).then(() => {
+                    showAppToast(`Copied ${mathResult} to clipboard!`);
+                  });
+                }
+              }
+            });
+          }
+        } catch(e) {
+          // Ignore parse errors (e.g. typing "2 +")
         }
-        return cmd.key.includes(q) || cmd.title.toLowerCase().includes(q);
+      }
+
+      // Natural Language Write Engine Check
+      if (q.startsWith("add ") || q.startsWith("logshift ")) {
+        const inputStr = q.replace(/^(add|logshift)\s+/, "").trim();
+        if (inputStr.length > 0) {
+          let remainingStr = inputStr;
+          let parsedDateStr = typeof getPSTDate === 'function' ? getPSTDate() : ""; 
+          let workSec = null;
+          let loginStr = "Manual";
+          let logoutStr = "Manual";
+          
+          const now = typeof getPSTDateObj === 'function' ? getPSTDateObj() : new Date();
+          
+          // 1. Parse Date
+          if (remainingStr.toLowerCase().includes("yesterday")) {
+             const y = new Date(now.getTime() - 86400000);
+             parsedDateStr = `${String(y.getMonth() + 1).padStart(2, "0")}/${String(y.getDate()).padStart(2, "0")}/${y.getFullYear()}`;
+             remainingStr = remainingStr.replace(/yesterday/i, "").trim();
+          } else if (remainingStr.toLowerCase().includes("today")) {
+             remainingStr = remainingStr.replace(/today/i, "").trim();
+          } else {
+             const dateMatch = remainingStr.match(/\b(\d{1,2})\/(\d{1,2})(?:\/(\d{2}|\d{4}))?\b/);
+             if (dateMatch) {
+                const m = dateMatch[1].padStart(2, "0");
+                const d = dateMatch[2].padStart(2, "0");
+                const y = dateMatch[3] ? (dateMatch[3].length === 2 ? `20${dateMatch[3]}` : dateMatch[3]) : now.getFullYear();
+                parsedDateStr = `${m}/${d}/${y}`;
+                remainingStr = remainingStr.replace(dateMatch[0], "").trim();
+             }
+          }
+          
+          // 2. Parse Time Range or Duration
+          const rangeMatch = remainingStr.match(/\b(\d{1,2}(?::\d{2})?\s*(?:am|pm)?)\s*(?:to|-)\s*(\d{1,2}(?::\d{2})?\s*(?:am|pm)?)\b/i);
+          if (rangeMatch) {
+             const parseNlpTimeStr = (str) => {
+                 const m = str.toLowerCase().replace(/\s+/g, "").match(/^(\d{1,2})(?::(\d{2}))?(am|pm)?$/);
+                 if (!m) return null;
+                 let h = parseInt(m[1]);
+                 let min = m[2] ? parseInt(m[2]) : 0;
+                 const ampm = m[3];
+                 if (ampm === "pm" && h < 12) h += 12;
+                 if (ampm === "am" && h === 12) h = 0;
+                 return h * 3600 + min * 60;
+             };
+             
+             const startSec = parseNlpTimeStr(rangeMatch[1]);
+             const endSec = parseNlpTimeStr(rangeMatch[2]);
+             
+             if (startSec !== null && endSec !== null) {
+                 let diff = endSec - startSec;
+                 if (diff < 0) diff += 86400; // Crossed midnight
+                 workSec = diff;
+                 loginStr = rangeMatch[1].toUpperCase();
+                 logoutStr = rangeMatch[2].toUpperCase();
+                 remainingStr = remainingStr.replace(rangeMatch[0], "").trim();
+             }
+          } else {
+             // Fallback to explicit duration (e.g., 8h 30m, 90m)
+             const durMatch = remainingStr.match(/\b(\d+(?:\.\d+)?h\s*\d*m?|\d+m)\b/i);
+             if (durMatch) {
+                 const parsed = typeof parseGoalTimeStr === 'function' ? parseGoalTimeStr(durMatch[1]) : { hh: 0, mm: 0 };
+                 const sec = parsed.hh * 3600 + parsed.mm * 60;
+                 if (sec > 0) {
+                    workSec = sec;
+                    remainingStr = remainingStr.replace(durMatch[0], "").trim();
+                 }
+             }
+          }
+          
+          if (workSec !== null && workSec > 0) {
+             const cleanNotes = remainingStr.replace(/\s+/g, " ").trim();
+             
+             scored.push({
+               score: 10000, // Top priority
+               cmd: {
+                 key: `_nlp_add`,
+                 title: `Log: ${typeof formatDuration === 'function' ? formatDuration(workSec) : workSec + 's'} on ${parsedDateStr}`,
+                 desc: cleanNotes ? `Notes: ${cleanNotes}` : "No notes.",
+                 category: "Write Engine",
+                 icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-info)" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>`,
+                 action: () => {
+                    const rawGoalEl = document.getElementById("manual-goal");
+                    const rawGoal = rawGoalEl ? rawGoalEl.value.trim() : "8h";
+                    const parsedGoal = typeof parseGoalTimeStr === 'function' ? parseGoalTimeStr(rawGoal) : { hh: 8, mm: 0 };
+                    const goal = (parsedGoal.hh * 3600 + parsedGoal.mm * 60) || 28800;
+                    
+                    const [m, d, y] = parsedDateStr.split("/");
+                    const epochMs = Date.UTC(parseInt(y), parseInt(m)-1, parseInt(d), 12, 0, 0);
+                    const diff = workSec - goal;
+                    
+                    const entry = {
+                      id: "log_" + Math.random().toString(36).substring(2, 11) + Date.now().toString(36),
+                      date: parsedDateStr,
+                      displayDate: parsedDateStr.replace(/\/20(\d{2})$/, "/$1"),
+                      epochMs: epochMs,
+                      login: loginStr,
+                      logout: logoutStr,
+                      loginEpochMs: epochMs,
+                      logoutEpochMs: epochMs + workSec * 1000,
+                      workSec: workSec,
+                      breakSec: 0,
+                      notes: cleanNotes,
+                      goal: goal,
+                      dayGoal: goal,
+                      status: diff >= 0 ? "OVER" : "UNDER",
+                      diffStr: typeof formatDuration === 'function' ? formatDuration(Math.abs(diff)) : diff,
+                      diff: typeof formatDuration === 'function' ? formatDuration(Math.abs(diff)) : diff,
+                      isAbsence: false,
+                      lastModified: Date.now()
+                    };
+                    entry.searchStr = `${entry.displayDate} ${entry.date} nlp entry ${cleanNotes}`.toLowerCase();
+                    
+                    const logs = typeof getLogs === 'function' ? getLogs() : [];
+                    logs.unshift(entry);
+                    logs.sort((a, b) => b.epochMs - a.epochMs);
+                    
+                    if (typeof saveLogs === 'function') saveLogs(logs);
+                    if (typeof saveLogsToDB === 'function') saveLogsToDB(logs);
+                    if (typeof updateLogbookTable === 'function') updateLogbookTable();
+                    if (typeof refreshInsights === 'function') refreshInsights();
+                    if (typeof closeHudModal === 'function') closeHudModal();
+                    if (typeof showAppToast === 'function') showAppToast(`Shift dynamically logged: ${formatDuration(workSec)} on ${parsedDateStr}`);
+                 }
+               }
+             });
+          }
+        }
+      }
+
+      // Dynamic Metrics Engine Check
+      if (q.startsWith("metrics ")) {
+        const timeframe = q.replace("metrics ", "").trim();
+        let matchedLogs = [];
+        const allLogs = typeof getLogs === 'function' ? getLogs() : [];
+        let titleSuffix = "";
+        
+        if (timeframe === "all") {
+          matchedLogs = allLogs;
+          titleSuffix = "All Time";
+        } else if (timeframe === "today") {
+          const todayDate = getPSTDate();
+          matchedLogs = allLogs.filter(l => l.date === todayDate);
+          titleSuffix = "Today";
+        } else if (timeframe === "week") {
+          const nowMs = Date.now();
+          const sevenDaysMs = 7 * 24 * 60 * 60 * 1000;
+          matchedLogs = allLogs.filter(l => (nowMs - l.epochMs) <= sevenDaysMs);
+          titleSuffix = "Past 7 Days";
+        } else if (timeframe === "month") {
+          const nowMs = Date.now();
+          const thirtyDaysMs = 30 * 24 * 60 * 60 * 1000;
+          matchedLogs = allLogs.filter(l => (nowMs - l.epochMs) <= thirtyDaysMs);
+          titleSuffix = "Past 30 Days";
+        }
+        
+        if (titleSuffix) {
+          let totalW = 0;
+          let totalB = 0;
+          matchedLogs.forEach(l => { totalW += l.workSec || 0; totalB += l.breakSec || 0; });
+          const metricStr = `Work: ${formatDuration(totalW)} | Break: ${formatDuration(totalB)}`;
+          
+          scored.push({
+            score: 9998,
+            cmd: {
+              key: "_metrics",
+              title: `Metrics (${titleSuffix}): ${formatDuration(totalW)}`,
+              desc: `Total: ${matchedLogs.length} shifts. ${metricStr} (Press Enter to copy)`,
+              category: "Insights",
+              icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-info)" stroke-width="2"><path d="M12 20V10M18 20V4M6 20v-4"></path></svg>`,
+              action: () => {
+                navigator.clipboard.writeText(`Metrics [${titleSuffix}]: ${metricStr} across ${matchedLogs.length} shifts.`).then(() => {
+                  showAppToast("Metrics copied to clipboard!");
+                });
+              }
+            }
+          });
+        }
+      }
+      
+      // Dynamic Log Search Check
+      // Dynamic Log Search Check
+      if (q.startsWith("log ") || q.startsWith("logs ")) {
+        const searchStr = q.replace(/^logs? /, "").trim();
+        if (searchStr.length > 0) {
+          const allLogs = typeof getLogs === 'function' ? getLogs() : [];
+          let filteredLogs = [...allLogs];
+          
+          // Advanced Filtering Parser
+          const parts = searchStr.split(/\s+/);
+          const remainingText = [];
+          
+          let minSec = 0;
+          let maxSec = Infinity;
+          let targetStatus = null;
+          let dateFilterStart = null;
+          let dateFilterEnd = null;
+          
+          const strLower = searchStr.toLowerCase();
+          const now = getPSTDateObj();
+          
+          // Pre-process multi-word relative dates
+          if (strLower.includes("this month")) {
+             dateFilterStart = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+             dateFilterEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59).getTime();
+          } else if (strLower.includes("last month")) {
+             dateFilterStart = new Date(now.getFullYear(), now.getMonth() - 1, 1).getTime();
+             dateFilterEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59).getTime();
+          } else if (strLower.includes("this week")) {
+             const day = now.getDay() || 7;
+             dateFilterStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - day + 1).getTime();
+             dateFilterEnd = new Date(dateFilterStart + 6 * 86400000).getTime();
+          } else if (strLower.includes("today")) {
+             const todayStr = getPSTDate();
+             filteredLogs = filteredLogs.filter(l => l.date === todayStr);
+          } else if (strLower.includes("yesterday")) {
+             const y = new Date(now.getTime() - 86400000);
+             const yStr = `${String(y.getMonth() + 1).padStart(2, "0")}/${String(y.getDate()).padStart(2, "0")}/${y.getFullYear()}`;
+             filteredLogs = filteredLogs.filter(l => l.date === yStr);
+          }
+          
+          if (dateFilterStart && dateFilterEnd) {
+             filteredLogs = filteredLogs.filter(l => l.epochMs >= dateFilterStart && l.epochMs <= dateFilterEnd);
+          }
+          
+          for (let p of parts) {
+            const pLower = p.toLowerCase();
+            
+            // Status flags
+            if (pLower === "over") { targetStatus = "OVER"; continue; }
+            if (pLower === "under") { targetStatus = "UNDER"; continue; }
+            
+            // Hour bounds: >5h, <=2.5h, <90m
+            const hrMatch = pLower.match(/^(>=|<=|>|<)([0-9.]+)(h|m)?$/);
+            if (hrMatch) {
+              const op = hrMatch[1];
+              let val = parseFloat(hrMatch[2]);
+              const unit = hrMatch[3] || "h";
+              let sec = val * (unit === "m" ? 60 : 3600);
+              
+              if (op === ">" || op === ">=") minSec = Math.max(minSec, sec);
+              if (op === "<" || op === "<=") maxSec = Math.min(maxSec, sec);
+              continue;
+            }
+            
+            // Absolute Dates: MM/YYYY or MM/DD/YYYY
+            if (/^[0-9]{1,2}\/[0-9]{4}$/.test(pLower)) {
+               const [m, y] = pLower.split("/");
+               const ds = new Date(parseInt(y), parseInt(m)-1, 1).getTime();
+               const de = new Date(parseInt(y), parseInt(m), 0, 23, 59, 59).getTime();
+               filteredLogs = filteredLogs.filter(l => l.epochMs >= ds && l.epochMs <= de);
+               continue;
+            } else if (/^[0-9]{1,2}\/[0-9]{1,2}\/[0-9]{4}$/.test(pLower)) {
+               filteredLogs = filteredLogs.filter(l => {
+                  const [lm, ld, ly] = l.date.split("/");
+                  const [pm, pd, py] = pLower.split("/");
+                  return parseInt(lm) === parseInt(pm) && parseInt(ld) === parseInt(pd) && parseInt(ly) === parseInt(py);
+               });
+               continue;
+            }
+            
+            // Reconstruct remaining text, ignoring reserved multi-word date tokens
+            if (!["this", "last", "month", "week", "today", "yesterday"].includes(pLower)) {
+               remainingText.push(p);
+            }
+          }
+          
+          if (targetStatus) filteredLogs = filteredLogs.filter(l => l.status === targetStatus);
+          if (minSec > 0 || maxSec < Infinity) {
+             filteredLogs = filteredLogs.filter(l => l.workSec >= minSec && l.workSec <= maxSec);
+          }
+          
+          const cleanQuery = remainingText.join(" ");
+          const logMatches = [];
+          
+          filteredLogs.forEach(l => {
+            if (cleanQuery.length === 0) {
+              logMatches.push({ log: l, score: 1 }); 
+            } else {
+              const dateScore = hudFuzzyScore(cleanQuery, l.date || "");
+              const noteScore = hudFuzzyScore(cleanQuery, l.notes || "");
+              const statusScore = hudFuzzyScore(cleanQuery, l.status || "");
+              const maxLogScore = Math.max(dateScore, noteScore, statusScore);
+              if (maxLogScore > 0) {
+                logMatches.push({ log: l, score: maxLogScore });
+              }
+            }
+          });
+          
+          // Sort by match score first, then chronological descending
+          logMatches.sort((a, b) => b.score - a.score || b.log.epochMs - a.log.epochMs);
+          
+          // Increase from top 3 to top 5 matches to show off power
+          logMatches.slice(0, 5).forEach((match, idx) => {
+            const l = match.log;
+            scored.push({
+              score: 9990 - idx,
+              cmd: {
+                key: `_log_${l.id}`,
+                title: `Log: ${l.date} (${formatDuration(l.workSec)})`,
+                desc: l.notes ? `Notes: ${l.notes}` : `No notes. Status: ${l.status || 'N/A'}`,
+                category: "Logbook Results",
+                icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text-muted)" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>`,
+                action: () => {
+                  const summary = `Shift Log: ${l.date}\nTime: ${l.login} - ${l.logout}\nWork Time: ${formatDuration(l.workSec)}\nBreak Time: ${formatDuration(l.breakSec)}\nNotes: ${l.notes || "None"}`;
+                  navigator.clipboard.writeText(summary).then(() => {
+                    showAppToast(`Shift summary for ${l.date} copied to clipboard`);
+                  });
+                }
+              }
+            });
+          });
+        }
+      }
+
+      HUD_COMMANDS.forEach((cmd) => {
+        let maxScore = 0;
+        
+        // Handling dynamic inputs like 'goal 8'
+        if (cmd.key.endsWith(" ") && q.startsWith(cmd.key.trim())) {
+           maxScore = 1000;
+        } else {
+           const titleScore = hudFuzzyScore(q, cmd.title);
+           const keyScore = hudFuzzyScore(q, cmd.key);
+           const catScore = cmd.category ? hudFuzzyScore(q, cmd.category) : 0;
+           
+           let aliasScore = 0;
+           if (cmd.aliases) {
+             cmd.aliases.forEach(a => {
+               const s = hudFuzzyScore(q, a);
+               if (s > aliasScore) aliasScore = s;
+             });
+           }
+           
+           maxScore = Math.max(titleScore, keyScore, catScore, aliasScore);
+        }
+        
+        if (maxScore > 0) {
+          scored.push({ cmd, score: maxScore });
+        }
       });
-      renderHudResults(q);
+      
+      scored.sort((a, b) => b.score - a.score);
+      hudFiltered = scored.map(s => s.cmd);
+      
+      renderHudResults(q, false);
     }
 
-    function renderHudResults(query) {
+    function renderHudResults(query, isDefaultState) {
+
       const container = document.getElementById("hud-results");
       if (!container) return;
       if (hudFiltered.length === 0) {
-        container.innerHTML = `<div style="text-align: center; color: var(--text-muted); padding: 12px; font-size: 0.8rem;">No commands match "${escapeHTML(query)}"</div>`;
+        container.innerHTML = `<div style="text-align: center; color: var(--text-muted); padding: 20px; font-size: 0.9rem;">No commands match "${escapeHTML(query)}"</div>`;
         return;
       }
-      container.innerHTML = hudFiltered
-        .map((cmd, idx) => {
+
+      // Group by category
+      const grouped = {};
+      hudFiltered.forEach(cmd => {
+        const cat = cmd.category || "General";
+        if (!grouped[cat]) grouped[cat] = [];
+        grouped[cat].push(cmd);
+      });
+
+      let html = "";
+      let globalIdx = 0;
+      
+      if (isDefaultState) {
+         html += `<div style="font-size: 0.7rem; font-weight: bold; color: var(--text-muted); padding: 4px 12px; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px;">SUGGESTIONS</div>`;
+      }
+
+      for (const [cat, cmds] of Object.entries(grouped)) {
+        if (!isDefaultState) {
+           html += `<div style="font-size: 0.7rem; font-weight: bold; color: var(--text-muted); padding: 4px 12px; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px;">${escapeHTML(cat)}</div>`;
+        }
+        
+        cmds.forEach((cmd) => {
+          const idx = globalIdx++;
           const isSelected = idx === hudActiveIndex;
           const bg = isSelected ? "var(--element-hover)" : "transparent";
-          const border = isSelected
-            ? "1px solid var(--accent-blue)"
-            : "1px solid transparent";
-          const textMain = isSelected ? "var(--accent-blue)" : "var(--text-main)";
-          return `
-          <div onclick="executeHudIndex(${idx})" style="background: ${bg}; border: ${border}; border-radius: var(--radius-sm); padding: 8px 12px; display: flex; flex-direction: column; cursor: pointer; transition: background 0.1s ease, border-color 0.1s ease;">
-            <span style="font-weight: 700; font-size: 0.8rem; color: ${textMain};">${escapeHTML(cmd.title)}</span>
-            <span style="font-size: 0.65rem; color: var(--text-muted); margin-top: 2px;">${escapeHTML(cmd.desc)}</span>
+          const textMain = isSelected ? "var(--text-main)" : "var(--text-main)";
+          const descColor = isSelected ? "var(--text-muted)" : "var(--text-muted)";
+          
+          html += `
+          <div onclick="executeHudIndex(${idx})" style="background: ${bg}; border-radius: var(--radius-sm); padding: 10px 12px; display: flex; align-items: center; cursor: pointer; transition: background 0.1s ease; margin-bottom: 2px;">
+            <div style="display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 8px; background: var(--element-bg); margin-right: 12px; flex-shrink: 0; box-shadow: 0 1px 2px rgba(0,0,0,0.1);">
+              ${cmd.icon || ''}
+            </div>
+            <div style="display: flex; flex-direction: column; flex: 1; overflow: hidden;">
+              <span style="font-weight: 600; font-size: 0.9rem; color: ${textMain}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHTML(cmd.title)}</span>
+              <span style="font-size: 0.75rem; color: ${descColor}; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHTML(cmd.desc)}</span>
+            </div>
+            ${isSelected ? `<span style="font-size: 0.7rem; font-weight: bold; color: var(--text-muted); background: var(--element-bg); padding: 2px 6px; border-radius: 4px;">↵</span>` : ''}
           </div>
-        `;
-        })
-        .join("");
-
-      const activeRow = container.children[hudActiveIndex];
-      if (activeRow) {
-        activeRow.scrollIntoView({ block: "nearest" });
+          `;
+        });
       }
+
+      container.innerHTML = html;
+
+      // Safe scroll to active
+      setTimeout(() => {
+         const activeRow = container.querySelector(`div[onclick="executeHudIndex(${hudActiveIndex})"]`);
+         if (activeRow) {
+           activeRow.scrollIntoView({ block: "nearest", behavior: "smooth" });
+         }
+      }, 10);
     }
+
 
     function executeHudIndex(idx) {
       const cmd = hudFiltered[idx];
       if (!cmd) return;
       const input = document.getElementById("hud-input").value;
-      closeHudModal();
+      
+      if (!cmd.keepOpen) {
+        closeHudModal();
+      }
 
       if (cmd.key.endsWith(" ")) {
         const arg = input.trim().substring(cmd.key.length);
@@ -10986,7 +11986,25 @@
         openHelpModal();
       }
 
+      // '/' opens HUD Quick Palette
       if (e.key === "/") {
+        e.preventDefault();
+        openHudModal();
+      }
+
+      // Quick tab switches
+      if (e.altKey && e.key === "1") {
+        e.preventDefault();
+        switchTab("insights");
+      }
+
+      if (e.altKey && e.key === "2") {
+        e.preventDefault();
+        switchTab("logbook");
+      }
+
+      // Alt+K opens Logbook Search
+      if (e.altKey && e.key.toLowerCase() === "k") {
         const searchInput = document.getElementById("filter-search");
         if (searchInput) {
           e.preventDefault();
@@ -11004,23 +12022,6 @@
             searchInput.select();
           }, 50);
         }
-      }
-
-      // Quick tab switches
-      if (e.altKey && e.key === "1") {
-        e.preventDefault();
-        switchTab("insights");
-      }
-
-      if (e.altKey && e.key === "2") {
-        e.preventDefault();
-        switchTab("logbook");
-      }
-
-      // Alt+K opens HUD Quick Palette
-      if (e.altKey && e.key.toLowerCase() === "k") {
-        e.preventDefault();
-        openHudModal();
       }
 
       // Alt+N launches Add Manual Log modal
