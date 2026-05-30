@@ -5352,11 +5352,21 @@
 
       <div style="display: flex; justify-content: space-between; margin-bottom: 16px; align-items: baseline;">
         <span style="font-size: 0.9rem; color: var(--text-muted);">A comprehensive view of your daily work intensity over the past year.</span>
-        <span id="heatmap-streak" style="color: var(--accent-work); font-weight: 800; font-size: 1rem; font-family: var(--font-mono);"></span>
+        <span id="heatmap-streak" style="color: var(--text-main); font-weight: 500; font-size: 0.95rem; font-family: var(--font-sans);"></span>
       </div>
       
-      <div style="overflow-x: auto; padding-bottom: 16px;">
+      <div style="overflow-x: auto; overflow-y: hidden; padding: 6px 6px 12px 6px;">
         <div id="heatmap-container" style="display: grid; grid-template-rows: repeat(7, 1fr); grid-auto-flow: column; gap: 5px; min-width: max-content;"></div>
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; align-items: center; gap: 6px; font-size: 0.75rem; font-family: var(--font-sans); color: var(--text-muted); padding-top: 4px;">
+        <span style="opacity: 0.85;">Less</span>
+        <div style="width: 12px; height: 12px; border-radius: 3px; background: color-mix(in srgb, var(--text-main) 8%, transparent);" title="No Activity"></div>
+        <div style="width: 12px; height: 12px; border-radius: 3px; background: color-mix(in srgb, var(--accent-blue) 30%, transparent);" title="Low Activity (< 50% Goal)"></div>
+        <div style="width: 12px; height: 12px; border-radius: 3px; background: color-mix(in srgb, var(--accent-work) 55%, var(--accent-blue));" title="Medium Activity (50% - 99% Goal)"></div>
+        <div style="width: 12px; height: 12px; border-radius: 3px; background: var(--accent-work);" title="Goal Met (100% Goal)"></div>
+        <div style="width: 12px; height: 12px; border-radius: 3px; background: color-mix(in srgb, var(--accent-work) 80%, var(--accent-warning));" title="Goal Exceeded (120%+ Goal)"></div>
+        <span style="opacity: 0.85; margin-left: 2px;">More</span>
       </div>
       
     </div>
@@ -9620,9 +9630,9 @@ function hudFuzzyScore(query, target) {
       for(let i = 0; i < totalDays; i++) {
          const d = new Date(startDay);
          d.setDate(startDay.getDate() + i);
-         const dateKey = `${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}/${d.getFullYear()}`;
+         const dateKey = `${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}/${String(d.getFullYear()).slice(-2)}`;
          
-         let bg = "var(--border-light)";
+         let bg = "color-mix(in srgb, var(--text-main) 8%, transparent)";
          let title = `${dateKey}: No Data`;
          
          const data = heatmapMap[dateKey];
@@ -9632,9 +9642,15 @@ function hudFuzzyScore(query, target) {
              title = `${dateKey}: ${data.type} Leave`;
            } else {
              const ratio = data.w / data.goal;
-             if (ratio >= 1) bg = "var(--accent-work)";
-             else if (ratio >= 0.5) bg = "color-mix(in srgb, var(--accent-work) 60%, transparent)";
-             else if (ratio > 0) bg = "color-mix(in srgb, var(--accent-work) 30%, transparent)";
+             if (ratio >= 1.2) {
+                bg = "color-mix(in srgb, var(--accent-work) 80%, var(--accent-warning))";
+              } else if (ratio >= 1) {
+                bg = "var(--accent-work)";
+              } else if (ratio >= 0.5) {
+                bg = "color-mix(in srgb, var(--accent-work) 55%, var(--accent-blue))";
+              } else if (ratio > 0) {
+                bg = "color-mix(in srgb, var(--accent-blue) 30%, transparent)";
+              }
              title = `${dateKey}: ${typeof formatDuration === 'function' ? formatDuration(data.w) : data.w}`;
            }
          }
@@ -9646,7 +9662,7 @@ function hudFuzzyScore(query, target) {
       for (let i = 0; i <= 364; i++) {
          const d = new Date(today);
          d.setDate(today.getDate() - i);
-         const dateKey = `${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}/${d.getFullYear()}`;
+         const dateKey = `${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}/${String(d.getFullYear()).slice(-2)}`;
          const data = heatmapMap[dateKey];
          if (data && (data.isLeave || (data.w > 0 && data.w >= (data.goal * 0.8)))) {
             currentStreak++;
@@ -11768,13 +11784,13 @@ function hudFuzzyScore(query, target) {
             if (dateMatch) {
                const m = dateMatch[1].padStart(2, "0");
                const d = dateMatch[2].padStart(2, "0");
-               const y = dateMatch[3] ? (dateMatch[3].length === 2 ? `20${dateMatch[3]}` : dateMatch[3]) : targetDate.getFullYear();
+               const y = dateMatch[3] ? dateMatch[3].slice(-2) : String(targetDate.getFullYear()).slice(-2);
                parsedDateStr = `${m}/${d}/${y}`;
             }
          }
          
          if (!parsedDateStr) {
-            parsedDateStr = `${String(targetDate.getMonth() + 1).padStart(2, "0")}/${String(targetDate.getDate()).padStart(2, "0")}/${targetDate.getFullYear()}`;
+            parsedDateStr = `${String(targetDate.getMonth() + 1).padStart(2, "0")}/${String(targetDate.getDate()).padStart(2, "0")}/${String(targetDate.getFullYear()).slice(-2)}`;
          }
          
          if (leaveStr.toLowerCase().includes("casual")) type = "Casual";
@@ -11883,7 +11899,7 @@ function hudFuzzyScore(query, target) {
           // 1. Parse Date
           if (remainingStr.toLowerCase().includes("yesterday")) {
              const y = new Date(now.getTime() - 86400000);
-             parsedDateStr = `${String(y.getMonth() + 1).padStart(2, "0")}/${String(y.getDate()).padStart(2, "0")}/${y.getFullYear()}`;
+             parsedDateStr = `${String(y.getMonth() + 1).padStart(2, "0")}/${String(y.getDate()).padStart(2, "0")}/${String(y.getFullYear()).slice(-2)}`;
              remainingStr = remainingStr.replace(/yesterday/i, "").trim();
           } else if (remainingStr.toLowerCase().includes("today")) {
              remainingStr = remainingStr.replace(/today/i, "").trim();
@@ -11892,7 +11908,7 @@ function hudFuzzyScore(query, target) {
              if (dateMatch) {
                 const m = dateMatch[1].padStart(2, "0");
                 const d = dateMatch[2].padStart(2, "0");
-                const y = dateMatch[3] ? (dateMatch[3].length === 2 ? `20${dateMatch[3]}` : dateMatch[3]) : now.getFullYear();
+                const y = dateMatch[3] ? dateMatch[3].slice(-2) : String(now.getFullYear()).slice(-2);
                 parsedDateStr = `${m}/${d}/${y}`;
                 remainingStr = remainingStr.replace(dateMatch[0], "").trim();
              }
@@ -11961,13 +11977,13 @@ function hudFuzzyScore(query, target) {
                     const goal = (parsedGoal.hh * 3600 + parsedGoal.mm * 60) || 28800;
                     
                     const [m, d, y] = parsedDateStr.split("/");
-                    const epochMs = Date.UTC(parseInt(y), parseInt(m)-1, parseInt(d), 12, 0, 0);
+                    const epochMs = Date.UTC(parseInt("20" + y), parseInt(m)-1, parseInt(d), 12, 0, 0);
                     const diff = workSec - goal;
                     
                     const entry = {
                       id: "log_" + Math.random().toString(36).substring(2, 11) + Date.now().toString(36),
                       date: parsedDateStr,
-                      displayDate: parsedDateStr.replace(/\/20(\d{2})$/, "/$1"),
+                      displayDate: parsedDateStr,
                       epochMs: epochMs,
                       login: loginStr,
                       logout: logoutStr,
@@ -12095,17 +12111,17 @@ function hudFuzzyScore(query, target) {
               category: "Invoicing",
               icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-blue)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>`,
               action: () => {
-                let csvContent = "data:text/csv;charset=utf-8,Date,Log In,Log Out,Work Duration,Break Duration,Notes\\n";
+                let csvContent = "data:text/csv;charset=utf-8,Date,Log In,Log Out,Work Duration,Break Duration,Notes\n";
                 matchedLogs.forEach(l => {
                    const wd = typeof formatDuration === 'function' ? formatDuration(l.workSec) : l.workSec;
                    const bd = typeof formatDuration === 'function' ? formatDuration(l.breakSec) : l.breakSec;
                    const cleanNotes = (l.notes || "").replace(/"/g, '""');
-                   csvContent += `"${l.date}","${l.login}","${l.logout}","${wd}","${bd}","${cleanNotes}"\\n`;
+                   csvContent += `"${l.date}","${l.login}","${l.logout}","${wd}","${bd}","${cleanNotes}"\n`;
                 });
                 const encodedUri = encodeURI(csvContent);
                 const link = document.createElement("a");
                 link.setAttribute("href", encodedUri);
-                link.setAttribute("download", `Timesheet_${titleSuffix.replace(/\\s+/g, "_")}.csv`);
+                link.setAttribute("download", `Timesheet_${titleSuffix.replace(/\s+/g, "_")}.csv`);
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
@@ -12124,10 +12140,10 @@ function hudFuzzyScore(query, target) {
               category: "Invoicing",
               icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-warning)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>`,
               action: () => {
-                let emailBody = `Timesheet Report: ${titleSuffix}\\nTotal Shifts: ${matchedLogs.length}\\nTotal Work Hours: ${typeof formatDuration === 'function' ? formatDuration(totalW) : totalW}\\n\\nBreakdown:\\n`;
+                let emailBody = `Timesheet Report: ${titleSuffix}\nTotal Shifts: ${matchedLogs.length}\nTotal Work Hours: ${typeof formatDuration === 'function' ? formatDuration(totalW) : totalW}\n\nBreakdown:\n`;
                 matchedLogs.forEach(l => {
                    const wd = typeof formatDuration === 'function' ? formatDuration(l.workSec) : l.workSec;
-                   emailBody += `- ${l.date} | ${wd} | ${l.notes || "No notes"}\\n`;
+                   emailBody += `- ${l.date} | ${wd} | ${l.notes || "No notes"}\n`;
                 });
                 const subject = `Timesheet Invoice - ${titleSuffix}`;
                 window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(emailBody)}`;
@@ -12175,7 +12191,7 @@ function hudFuzzyScore(query, target) {
              filteredLogs = filteredLogs.filter(l => l.date === todayStr);
           } else if (strLower.includes("yesterday")) {
              const y = new Date(now.getTime() - 86400000);
-             const yStr = `${String(y.getMonth() + 1).padStart(2, "0")}/${String(y.getDate()).padStart(2, "0")}/${y.getFullYear()}`;
+             const yStr = `${String(y.getMonth() + 1).padStart(2, "0")}/${String(y.getDate()).padStart(2, "0")}/${String(y.getFullYear()).slice(-2)}`;
              filteredLogs = filteredLogs.filter(l => l.date === yStr);
           }
           
