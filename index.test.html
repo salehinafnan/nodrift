@@ -414,6 +414,8 @@ function hudFuzzyScore(query, target) {
 
 
 
+
+
   </script>
   <script>
 
@@ -883,6 +885,7 @@ function hudFuzzyScore(query, target) {
             idleLock: false, idleStart: null, preIdleMode: null,
             idleOverlapSec: 0, lastActivity: null, goalNotified: false,
             idleTrackingEnabled: true, idleThresholdMinutes: 60,
+            autoBackupEnabled: false, autoEmailEnabled: false,
             idleType: null, lastHeartbeatWall: null,
             lastHeartbeatMonotonic: null, tabHiddenAt: null,
             trackingMode: "intelligent",
@@ -911,14 +914,20 @@ function hudFuzzyScore(query, target) {
           assertEqual(parsed.idleLock, true);
         });
 
-        it("Session reset preserves idle settings", () => {
+        it("Session reset preserves idle and auto-feature settings", () => {
           const prevEnabled = false;
           const prevThreshold = 30;
+          const prevAutoBackup = true;
+          const prevAutoEmail = true;
           const newState = createDefaultState();
           newState.idleTrackingEnabled = prevEnabled !== undefined ? prevEnabled : true;
           newState.idleThresholdMinutes = prevThreshold !== undefined ? prevThreshold : 60;
+          newState.autoBackupEnabled = prevAutoBackup !== undefined ? prevAutoBackup : false;
+          newState.autoEmailEnabled = prevAutoEmail !== undefined ? prevAutoEmail : false;
           assertEqual(newState.idleTrackingEnabled, false);
           assertEqual(newState.idleThresholdMinutes, 30);
+          assertEqual(newState.autoBackupEnabled, true);
+          assertEqual(newState.autoEmailEnabled, true);
         });
 
         it("Mode switch: null → work", () => {
@@ -1087,6 +1096,18 @@ function hudFuzzyScore(query, target) {
           const w1 = getWeekStartMs(Date.UTC(2026, 4, 25, 12, 0, 0));
           const w2 = getWeekStartMs(Date.UTC(2026, 5, 1, 12, 0, 0));
           assert(w1 !== w2);
+        });
+
+        it("dataVersion increment uniquely identifies cache invalidations", () => {
+          let dataVersion = 0;
+          const weekStartMs = getWeekStartMs(Date.UTC(2026, 4, 25, 12, 0, 0));
+          const todayStr = "05/25/26";
+          
+          const iKey1 = `${weekStartMs}|${todayStr}|${dataVersion}`;
+          dataVersion++; // Simulate mutation
+          const iKey2 = `${weekStartMs}|${todayStr}|${dataVersion}`;
+          
+          assert(iKey1 !== iKey2, "Incremented dataVersion should produce unique cache key");
         });
       });
 
@@ -3639,6 +3660,54 @@ function hudFuzzyScore(query, target) {
                 : false
           };
           assertEqual(newState.autoBackupEnabled, true);
+        });
+      });
+
+      // 47. SILENT AUTO-EMAIL TRIGGER LOGIC
+      // ═══════════════════════════════════════════════════════════════════════
+      describe("Silent Auto-Email Logic", () => {
+        function simulateSubmitEmail(state, workSec) {
+          let emailTriggered = false;
+          const triggerEodGmailLogCopyMock = () => {
+            emailTriggered = true;
+          };
+
+          if (workSec > 0) {
+            if (state.autoEmailEnabled) {
+              triggerEodGmailLogCopyMock();
+            }
+          }
+          return emailTriggered;
+        }
+
+        it("Triggers email automatically when autoEmailEnabled is TRUE", () => {
+          const state = { autoEmailEnabled: true };
+          const result = simulateSubmitEmail(state, 3600);
+          assertEqual(result, true);
+        });
+
+        it("Does NOT trigger email when autoEmailEnabled is FALSE", () => {
+          const state = { autoEmailEnabled: false };
+          const result = simulateSubmitEmail(state, 3600);
+          assertEqual(result, false);
+        });
+
+        it("Does NOT trigger email even if enabled if workSec is 0 (Invalid shift)", () => {
+          const state = { autoEmailEnabled: true };
+          const result = simulateSubmitEmail(state, 0);
+          assertEqual(result, false);
+        });
+
+        it("Preserves autoEmailEnabled preference during session reset", () => {
+          const oldState = { autoEmailEnabled: true, workAccumulated: 5000 };
+          const newState = {
+            workAccumulated: 0,
+            autoEmailEnabled:
+              oldState.autoEmailEnabled !== undefined
+                ? oldState.autoEmailEnabled
+                : false
+          };
+          assertEqual(newState.autoEmailEnabled, true);
         });
       });
 

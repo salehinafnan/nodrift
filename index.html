@@ -93,6 +93,7 @@
       --tab-btn-active-shadow:
         0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
       --tab-btn-active-border: none;
+      --tab-btn-active-outline: none;
       --tab-transition: color 0.15s ease, background-color 0.15s ease;
     }
 
@@ -100,7 +101,7 @@
        2. ONYX BLACK THEME (PITCH BLACK)
        ========================================================================= */
     :root[data-theme="onyx-black"] {
-      --page-bg: #000000;
+      --page-bg: #090909;
       --panel-bg: #0e0e11;
       --panel-shadow: none;
       --panel-blur: none;
@@ -109,19 +110,19 @@
       --element-bg-light: #2c2c2c;
       --border-main: #1f1f23;
       --border-light: #404040;
-      --text-main: #ffffff;
-      --text-muted: #94a3b8;
+      --text-main: #f0eff4;
+      --text-muted: #8a8a96;
       --accent-work: #10b981;
-      --accent-break: #ff4564ce;
+      --accent-break: #ff4060;
       --accent-blue: #488eff;
-      --accent-warning: #f59f0be8;
-      --btn-work-bg: #03140d;
+      --accent-warning: #f59f0b;
+      --btn-work-bg: color-mix(in srgb, var(--accent-work) 12%, var(--panel-bg));
       --btn-work-border: var(--accent-work);
       --btn-work-text: var(--accent-work);
-      --btn-break-bg: #140306;
+      --btn-break-bg: color-mix(in srgb, var(--accent-break) 12%, var(--panel-bg));
       --btn-break-border: var(--accent-break);
       --btn-break-text: var(--accent-break);
-      --btn-log-bg: #030d1c;
+      --btn-log-bg: color-mix(in srgb, var(--accent-blue) 12%, var(--panel-bg));
       --btn-log-text: var(--accent-blue);
       --btn-log-border: var(--accent-blue);
       --dropdown-bg: #070708;
@@ -129,7 +130,7 @@
       --track-bg: rgba(255, 255, 255, 0.08);
       --segmented-bg: rgba(255, 255, 255, 0.1);
       --segmented-active-bg: #222222;
-      --segmented-active-shadow: none;
+      --segmented-active-shadow: 0 1px 3px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.06);
       --segmented-border: #1f1f23;
 
       /* Button & Navigation Sizing Layouts */
@@ -158,24 +159,24 @@
       --panel-blur: none;
       --element-bg: #0a1122;
       --element-hover: #1a243d;
-      --element-bg-light: #ffffff;
+      --element-bg-light: #1a2840;
       --border-main: #253352;
       --border-light: #3d4d75;
       --text-main: #f8fafc;
-      --text-muted: #e2e8f0;
-      --accent-work: #43df7cfa;
-      --accent-break: #fc6e6eec;
+      --text-muted: #7c9bbf;
+      --accent-work: #43df7c;
+      --accent-break: #fc6e6e;
       --accent-blue: #76b9f8;
       --accent-warning: #f3a31a;
-      --btn-work-bg: #4ade80;
-      --btn-work-border: #4ade80;
-      --btn-work-text: #052e16;
-      --btn-break-bg: #f87171;
-      --btn-break-border: #f87171;
-      --btn-break-text: #450a0a;
-      --btn-log-bg: var(--accent-blue);
-      --btn-log-text: #0f172a;
+      --btn-work-bg: color-mix(in srgb, var(--accent-work) 18%, var(--panel-bg));
+      --btn-work-border: var(--accent-work);
+      --btn-work-text: var(--accent-work);
+      --btn-break-bg: color-mix(in srgb, var(--accent-break) 18%, var(--panel-bg));
+      --btn-break-border: var(--accent-break);
+      --btn-break-text: var(--accent-break);
+      --btn-log-bg: color-mix(in srgb, var(--accent-blue) 18%, var(--panel-bg));
       --btn-log-border: var(--accent-blue);
+      --btn-log-text: var(--accent-blue);
       --dropdown-bg: #0f172a;
       --modal-bg: #0f172a;
       --track-bg: rgba(255, 255, 255, 0.08);
@@ -200,7 +201,10 @@
       --tab-transition: color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
     }
 
-    :root[data-theme="cobalt-glass"] .console-panel {
+    :root[data-theme="cobalt-glass"] .console-panel,
+    :root[data-theme="cobalt-glass"] .modal-container,
+    :root[data-theme="cobalt-glass"] .stat-card,
+    :root[data-theme="cobalt-glass"] .status-badge {
       border: 1px solid rgba(255, 255, 255, 0.15);
       box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
     }
@@ -215,7 +219,7 @@
     :root[data-theme="sf-dark"] {
       --page-bg: #000000;
       --panel-bg: #1c1c1e;
-      --panel-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+      --panel-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
       --panel-blur: none;
       --element-bg: #2c2c2e;
       --element-hover: #3a3a3c;
@@ -237,26 +241,13 @@
       --btn-log-bg: rgba(10, 132, 255, 0.15);
       --btn-log-text: #0a84ff;
       --btn-log-border: #0a84ff;
-      --dropdown-bg: #1c1c1e;
-      --modal-bg: #1c1c1e;
+      --dropdown-bg: #2c2c2e;
+      --modal-bg: #252527;
       --track-bg: rgba(255, 255, 255, 0.1);
       --segmented-bg: rgba(120, 120, 128, 0.24);
       --segmented-active-bg: #2c2c2e;
       --segmented-active-shadow: 0px 1px 2px rgba(0, 0, 0, 0.4);
       --segmented-border: rgba(255, 255, 255, 0.05);
-
-      /* Layout Metric Overrides (File 2 matching dimensions) */
-      --radius-sm: 8px;
-      --radius-md: 10px;
-      --radius-lg: 14px;
-      --radius-xl: 14px;
-      --header-el-height: 42px;
-      --header-el-radius: var(--radius-md);
-      --panel-columns: 1.1fr 1fr;
-      --panel-gap: 2.5rem;
-      --segment-height: 20px;
-      --segment-gap: 6px;
-      --segment-radius: 6px;
 
       /* Button & Navigation Sizing Layouts */
       --actions-gap: 12px;
@@ -269,8 +260,9 @@
       --tab-btn-color: var(--text-muted);
       --tab-btn-active-bg: var(--element-hover);
       --tab-btn-active-color: var(--text-main);
-      --tab-btn-active-shadow: 0 3px 8px rgba(0, 0, 0, 0.4), 0 1px 3px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(255, 255, 255, 0.1);
+      --tab-btn-active-shadow: 0 2px 6px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.08);
       --tab-btn-active-border: none;
+      --tab-btn-active-outline: 1px solid rgba(255, 255, 255, 0.08);
       --tab-transition: color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
     }
 
@@ -280,14 +272,14 @@
     :root[data-theme="sf-light"] {
       --page-bg: #f2f2f7;
       --panel-bg: #ffffff;
-      --panel-shadow: 0 10px 40px rgba(0, 0, 0, 0.06);
+      --panel-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
       --panel-blur: none;
-      --element-bg: #e5e5ea;
-      --element-hover: #d1d1d6;
+      --element-bg: #ebebf0;
+      --element-hover: #dcdce0;
       --element-bg-light: #ffffff;
       --border-main: #c7c7cc;
       --border-light: #aeaeb2;
-      --text-main: #000000;
+      --text-main: #1d1d1f;
       --text-muted: #636366;
       --accent-work: #34c759;
       --accent-break: #ff3b30;
@@ -307,21 +299,8 @@
       --track-bg: rgba(0, 0, 0, 0.08);
       --segmented-bg: rgba(120, 120, 128, 0.12);
       --segmented-active-bg: #ffffff;
-      --segmented-active-shadow: 0px 1px 3px rgba(0, 0, 0, 0.08);
+      --segmented-active-shadow: 0 1px 4px rgba(0, 0, 0, 0.14), 0 0 0 0.5px rgba(0, 0, 0, 0.06);
       --segmented-border: transparent;
-
-      /* Layout Metric Overrides (File 2 matching dimensions) */
-      --radius-sm: 8px;
-      --radius-md: 10px;
-      --radius-lg: 14px;
-      --radius-xl: 14px;
-      --header-el-height: 42px;
-      --header-el-radius: var(--radius-md);
-      --panel-columns: 1.1fr 1fr;
-      --panel-gap: 2.5rem;
-      --segment-height: 20px;
-      --segment-gap: 6px;
-      --segment-radius: 6px;
 
       /* Button & Navigation Sizing Layouts */
       --actions-gap: 12px;
@@ -334,8 +313,9 @@
       --tab-btn-color: var(--text-muted);
       --tab-btn-active-bg: var(--panel-bg);
       --tab-btn-active-color: var(--text-main);
-      --tab-btn-active-shadow: 0 3px 8px rgba(0, 0, 0, 0.12), 0 1px 3px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(0, 0, 0, 0.04);
+      --tab-btn-active-shadow: 0 2px 6px rgba(0, 0, 0, 0.10), inset 0 1px 0 rgba(255, 255, 255, 0.8);
       --tab-btn-active-border: none;
+      --tab-btn-active-outline: 1px solid rgba(0, 0, 0, 0.04);
       --tab-transition: color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
     }
 
@@ -412,7 +392,7 @@
     }
 
     .input-standard:focus {
-      border-color: var(--border-light);
+      border-color: var(--accent-blue);
       background: var(--element-hover);
     }
 
@@ -600,17 +580,33 @@
       border-radius: 10px;
     }
 
-    .tab-content:hover::-webkit-scrollbar-thumb,
-    #note-text:hover::-webkit-scrollbar-thumb {
-      background: rgba(255, 255, 255, 0.15);
+    :root[data-theme="sf-dark"] .tab-content:hover::-webkit-scrollbar-thumb,
+    :root[data-theme="onyx-black"] .tab-content:hover::-webkit-scrollbar-thumb,
+    :root[data-theme="cobalt-glass"] .tab-content:hover::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.18);
     }
 
-    ::-webkit-scrollbar-thumb:hover {
+    :root[data-theme="sf-light"] .tab-content:hover::-webkit-scrollbar-thumb {
+      background: rgba(0, 0, 0, 0.18);
+    }
+
+    :root[data-theme="sf-light"] ::-webkit-scrollbar-thumb:hover {
+      background: rgba(0, 0, 0, 0.3) !important;
+    }
+
+    :root[data-theme="sf-dark"] ::-webkit-scrollbar-thumb:hover,
+    :root[data-theme="onyx-black"] ::-webkit-scrollbar-thumb:hover,
+    :root[data-theme="cobalt-glass"] ::-webkit-scrollbar-thumb:hover {
       background: rgba(255, 255, 255, 0.3) !important;
     }
 
-    ::-webkit-calendar-picker-indicator {
+    :root[data-theme="sf-dark"] ::-webkit-calendar-picker-indicator,
+    :root[data-theme="onyx-black"] ::-webkit-calendar-picker-indicator,
+    :root[data-theme="cobalt-glass"] ::-webkit-calendar-picker-indicator {
       filter: invert(1);
+    }
+
+    ::-webkit-calendar-picker-indicator {
       cursor: pointer;
     }
 
@@ -627,14 +623,6 @@
       align-items: center;
       overflow: hidden;
       position: relative;
-    }
-
-    /* Animated Ambient Auroras (Living Canvas) - Disabled for 0% CPU Software Rendering */
-    body::before,
-    body::after,
-    :root[data-theme="midnight"]::before,
-    :root[data-theme="midnight"]::after {
-      display: none !important;
     }
 
     /* REFACTORED STYLE:
@@ -1549,6 +1537,8 @@
       color: var(--tab-btn-active-color);
       box-shadow: var(--tab-btn-active-shadow);
       border: var(--tab-btn-active-border);
+      outline: var(--tab-btn-active-outline, none);
+      outline-offset: -1px;
     }
 
     .tab-btn:active {
@@ -1769,7 +1759,9 @@
       cursor: pointer;
       user-select: none;
       transition:
-        all 0.15s ease,
+        background-color 0.15s ease,
+        border-color 0.15s ease,
+        color 0.15s ease,
         transform 0.1s ease;
       box-sizing: border-box;
       font-size: 0.72rem;
@@ -1870,7 +1862,9 @@
       border: 1px solid var(--border-main);
       color: var(--text-muted);
       transition:
-        all 0.15s ease,
+        background-color 0.15s ease,
+        border-color 0.15s ease,
+        color 0.15s ease,
         transform 0.1s ease;
       font-size: 0.7rem;
       font-weight: 600;
@@ -1910,7 +1904,9 @@
       cursor: pointer;
       font-weight: 600;
       transition:
-        all 0.15s ease,
+        background-color 0.15s ease,
+        border-color 0.15s ease,
+        color 0.15s ease,
         transform 0.1s ease;
       height: 27px;
       display: flex;
@@ -6374,6 +6370,7 @@ function hudFuzzyScore(query, target) {
   
   return Math.max(0, score);
 }
+
 
 
 
