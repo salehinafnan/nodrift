@@ -936,7 +936,6 @@
     .goal-container:hover .goal-inputs,
     .goal-container:focus-within .goal-inputs {
       border-color: var(--accent-blue);
-      box-shadow: 0 2px 0 rgba(0, 0, 0, 0.2);
       background: var(--element-hover);
     }
 
@@ -1186,7 +1185,7 @@
     .goal-presets {
       position: absolute;
       top: 100%;
-      right: 0;
+      left: 50%;
       opacity: 0;
       pointer-events: none;
       display: flex;
@@ -1195,8 +1194,8 @@
       background: var(--element-hover);
       border: 1px solid var(--border-light);
       border-radius: var(--header-el-radius);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
-      transform: translateY(4px);
+      box-shadow: none;
+      transform: translateX(-50%) translateY(4px);
       z-index: 100;
       transition:
         opacity 0.2s ease,
@@ -2502,23 +2501,7 @@
     }
 
     .sidebar-footer .sq-btn.danger-icon:hover svg {
-      animation: trill 0.15s ease infinite;
-    }
-
-    @keyframes trill {
-
-      0%,
-      100% {
-        transform: rotate(0) scale(1.05);
-      }
-
-      25% {
-        transform: rotate(-8deg) scale(1.05);
-      }
-
-      75% {
-        transform: rotate(8deg) scale(1.05);
-      }
+      transform: rotate(-8deg) scale(1.05);
     }
 
     /* Separator between standard actions and danger zone */
@@ -2654,7 +2637,11 @@
       background: var(--accent-blue);
       box-shadow: none;
       transition: width 0.6s cubic-bezier(0.25, 1, 0.5, 1);
-      will-change: width;
+    }
+
+    /* Heatmap cell hover: CSS-only replacement for inline JS handlers */
+    .heatmap-cell:hover {
+      transform: scale(1.3);
     }
 
     .progress-segment.is-today {
@@ -2943,7 +2930,6 @@
       align-items: center;
       justify-content: center;
       color: var(--accent-blue);
-      filter: drop-shadow(0 0 4px rgba(96, 165, 250, 0.3));
     }
 
     #undo-btn {
@@ -3029,7 +3015,6 @@
       align-items: center;
       justify-content: center;
       color: var(--accent-work);
-      filter: drop-shadow(0 0 4px rgba(74, 222, 128, 0.5));
     }
 
     #goal-toast .goal-tag {
@@ -3074,7 +3059,6 @@
       align-items: center;
       justify-content: center;
       color: var(--accent-blue);
-      filter: drop-shadow(0 0 4px rgba(96, 165, 250, 0.3));
     }
 
     .toast-close-btn {
@@ -5329,7 +5313,7 @@
   </div>
 
   <!-- Heatmap Modal Overlay -->
-  <div id="heatmap-modal" class="modal-overlay" onclick="if(event.target === this) closeHeatmapModal();" style="z-index: 4000; align-items: center; justify-content: center; backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); background: rgba(0,0,0,0.25); opacity: 0; display: none; transition: opacity 0.15s ease-out; cursor: pointer;">
+  <div id="heatmap-modal" class="modal-overlay" onclick="if(event.target === this) closeHeatmapModal();" style="z-index: 4000; align-items: center; justify-content: center; background: rgba(0,0,0,0.75); opacity: 0; display: none; transition: opacity 0.15s ease-out; cursor: pointer;">
     <div class="modal-container" id="heatmap-container-anim"
       style="padding: var(--space-4); border-radius: var(--radius-xl); box-shadow: 0 25px 60px rgba(0, 0, 0, 0.4); background: var(--panel-bg); border: 1px solid var(--border-main); transform: scale(0.96) translateY(-10px); opacity: 0; transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease-out; overflow: hidden; cursor: default; width: max-content; max-width: 95vw; height: max-content;">
       
@@ -5373,7 +5357,7 @@
   </div>
 
   <!-- Command HUD / Quick Palette Modal Overlay -->
-  <div id="hud-modal" class="modal-overlay" onclick="if(event.target === this) closeHudModal();" style="z-index: 5000; align-items: flex-start; padding-top: 15vh; backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); background: rgba(0,0,0,0.25); opacity: 0; transition: opacity 0.15s ease-out; cursor: pointer;">
+  <div id="hud-modal" class="modal-overlay" onclick="if(event.target === this) closeHudModal();" style="z-index: 5000; align-items: flex-start; padding-top: 15vh; background: rgba(0,0,0,0.75); opacity: 0; transition: opacity 0.15s ease-out; cursor: pointer;">
     <div class="modal-container modal-width-md accent-info" id="hud-container-anim"
       style="padding: var(--space-4); border-radius: var(--radius-xl); box-shadow: 0 25px 60px rgba(0, 0, 0, 0.4); background: var(--panel-bg); border: 1px solid var(--border-main); transform: scale(0.96) translateY(-10px); opacity: 0; transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease-out; overflow: hidden; cursor: default;">
       <div
@@ -5496,7 +5480,6 @@
                 <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"
                   stroke-linecap="round" stroke-linejoin="round" style="
                       color: #38bdf8;
-                      filter: drop-shadow(0 0 2px rgba(56, 189, 248, 0.45));
                     ">
                   <polygon points="12 2 2 7 12 12 22 7 12 2" />
                   <polyline points="2 17 12 22 22 17" />
@@ -5509,7 +5492,6 @@
                 <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"
                   stroke-linecap="round" stroke-linejoin="round" style="
                       color: #8e8e93;
-                      filter: drop-shadow(0 0 2px rgba(142, 142, 147, 0.4));
                     ">
                   <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
                   <path d="M15 5h2M16 4v2" stroke-width="1.5" />
@@ -5521,7 +5503,6 @@
                 <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"
                   stroke-linecap="round" stroke-linejoin="round" style="
                       color: #ff9500;
-                      filter: drop-shadow(0 0 2px rgba(255, 149, 0, 0.4));
                     ">
                   <circle cx="12" cy="12" r="4" />
                   <path
@@ -5534,7 +5515,6 @@
                 <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"
                   stroke-linecap="round" stroke-linejoin="round" style="
                       color: #818cf8;
-                      filter: drop-shadow(0 0 2px rgba(129, 140, 248, 0.45));
                     ">
                   <path d="M12 2a10 10 0 1 0 10 10H12V2z" fill="currentColor" fill-opacity="0.12" />
                   <circle cx="12" cy="12" r="10" />
@@ -6572,10 +6552,10 @@ function hudFuzzyScore(query, target) {
       plus: `<svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" width="18" height="18"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>`,
       note: `<svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>`,
       trash: `<svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>`,
-      themeCobalt: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #38bdf8; filter: drop-shadow(0 0 2px rgba(56,189,248,0.45));"><polygon points="12 2 2 7 12 12 22 7 12 2" /><polyline points="2 17 12 22 22 17" /><polyline points="2 12 12 17 22 12" /></svg>`,
-      themeOnyx: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #8e8e93; filter: drop-shadow(0 0 2px rgba(142,142,147,0.4));"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" /><path d="M15 5h2M16 4v2" stroke-width="1.5" /></svg>`,
-      themeSfDark: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #818cf8; filter: drop-shadow(0 0 2px rgba(129,140,248,0.45));"><path d="M12 2a10 10 0 1 0 10 10H12V2z" fill="currentColor" fill-opacity="0.12" /><circle cx="12" cy="12" r="10" /></svg>`,
-      themeSfLight: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #ff9500; filter: drop-shadow(0 0 2px rgba(255,149,0,0.4));"><circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" /></svg>`,
+      themeCobalt: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #38bdf8;"><polygon points="12 2 2 7 12 12 22 7 12 2" /><polyline points="2 17 12 22 22 17" /><polyline points="2 12 12 17 22 12" /></svg>`,
+      themeOnyx: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #8e8e93;"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" /><path d="M15 5h2M16 4v2" stroke-width="1.5" /></svg>`,
+      themeSfDark: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #818cf8;"><path d="M12 2a10 10 0 1 0 10 10H12V2z" fill="currentColor" fill-opacity="0.12" /><circle cx="12" cy="12" r="10" /></svg>`,
+      themeSfLight: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #ff9500;"><circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" /></svg>`,
     };
 
     // Live session core tracking state structure
@@ -7157,6 +7137,8 @@ function hudFuzzyScore(query, target) {
     document.documentElement.setAttribute("data-theme", currentTheme);
 
     // DOM Manipulation Fast Helpers
+    const _htmlCache = new WeakMap();
+    const _clockCache = new WeakMap();
     /**
      * Executes setText logic.
      */
@@ -7165,14 +7147,17 @@ function hudFuzzyScore(query, target) {
     }
 
     /**
-     * Executes setHTML logic.
+     * High-performance setHTML using WeakMap cache to avoid reading innerHTML.
      */
     function setHTML(el, html) {
-      if (el && el.innerHTML !== html) el.innerHTML = html;
+      if (el && _htmlCache.get(el) !== html) {
+        _htmlCache.set(el, html);
+        el.innerHTML = html;
+      }
     }
 
     /**
-     * Executes setClock logic.
+     * High-performance setClock using WeakMap cache to avoid reading innerHTML.
      */
     function setClock(el, formattedTime) {
       if (!el) return;
@@ -7180,7 +7165,10 @@ function hudFuzzyScore(query, target) {
         /\s*(AM|PM)/i,
         '<span class="clock-ampm">$1</span>',
       );
-      if (el.innerHTML !== html) el.innerHTML = html;
+      if (_clockCache.get(el) !== html) {
+        _clockCache.set(el, html);
+        el.innerHTML = html;
+      }
     }
 
     /**
@@ -9574,30 +9562,45 @@ function hudFuzzyScore(query, target) {
         }
       }
 
-      if (virtualScrollLogs.length === 0) {
-        DOM.logContainer.style.height = "auto";
-        DOM.logContainer.innerHTML = `
-      <div style="text-align:center; padding: 60px 20px; color: var(--text-muted); display: flex; flex-direction: column; align-items: center; gap: 10px;">
-        <svg viewBox="0 0 24 24" width="40" height="40" stroke="currentColor" stroke-width="1.5" fill="none" style="opacity: 0.5;">
-          <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-          <line x1="16" y1="2" x2="16" y2="6"></line>
-          <line x1="8" y1="2" x2="8" y2="6"></line>
-          <line x1="3" y1="10" x2="21" y2="10"></line>
-        </svg>
-        <span style="font-size: 0.85rem; font-weight: 600;">No logs found</span>
-        <span style="font-size: 0.75rem; opacity: 0.7;">Adjust your filters or log some time!</span>
-      </div>`;
-      } else {
+      if (virtualScrollLogs.length > 0) {
         DOM.logContainer.style.height = `${virtualScrollLogs.length * itemHeight}px`;
-        renderVirtualVisibleItems();
+      } else {
+        DOM.logContainer.style.height = "0px";
+        DOM.logContainer.innerHTML =
+          '<div style="padding: 24px; text-align: center; color: var(--text-muted); width: 100%;">No logs found</div>';
       }
+      DOM.logContainer.dataset.renderKey = "";
+      renderVirtualVisibleItems();
     }
+
+    window.addEventListener(
+      "resize",
+      debounce(() => {
+        const logbookTab = document.getElementById("tab-logbook");
+        if (logbookTab) {
+          cachedViewportHeight = logbookTab.clientHeight;
+        }
+
+        // Refresh cached base font size on resize to support zoom events cleanly
+        cachedBaseFontSize = parseFloat(
+          getComputedStyle(document.documentElement).fontSize,
+        );
+
+        // Recalculate total container height and clear render key to force update
+        const itemHeight = getDynamicItemHeight();
+        if (virtualScrollLogs.length > 0) {
+          DOM.logContainer.style.height = `${virtualScrollLogs.length * itemHeight
+            }px`;
+          DOM.logContainer.dataset.renderKey = "";
+          renderVirtualVisibleItems();
+        }
+      }, 150),
+      { passive: true },
+    );
 
     /*==========================================================================
      * 14. DATA MIGRATIONS & BACKUP UTILITIES (CSV/JSON/TEXT)
      * =========================================================================*/
-
-    
 
     /**
      * Compiles weekly data aggregates.
@@ -9630,7 +9633,7 @@ function hudFuzzyScore(query, target) {
       
       for(let i = 0; i < totalDays; i++) {
          const d = new Date(startDay);
-         d.setDate(startDay.getDate() + i);
+         d.setTime(startDay.getTime() + i * 86400000);
          const dateKey = `${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}/${String(d.getFullYear()).slice(-2)}`;
          
          let bg = "color-mix(in srgb, var(--text-main) 8%, transparent)";
@@ -9660,10 +9663,10 @@ function hudFuzzyScore(query, target) {
       container.innerHTML = html;
       
       let currentStreak = 0;
+      const streakDate = new Date(today);
       for (let i = 0; i <= 364; i++) {
-         const d = new Date(today);
-         d.setDate(today.getDate() - i);
-         const dateKey = `${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}/${String(d.getFullYear()).slice(-2)}`;
+         streakDate.setTime(today.getTime() - i * 86400000);
+         const dateKey = `${String(streakDate.getMonth() + 1).padStart(2, "0")}/${String(streakDate.getDate()).padStart(2, "0")}/${String(streakDate.getFullYear()).slice(-2)}`;
          const data = heatmapMap[dateKey];
          if (data && (data.isLeave || (data.w > 0 && data.w >= (data.goal * 0.8)))) {
             currentStreak++;
@@ -11071,8 +11074,7 @@ function hudFuzzyScore(query, target) {
         if (
           el &&
           (el.style.display === "flex" ||
-            el.style.display === "block" ||
-            getComputedStyle(el).display !== "none")
+            el.style.display === "block")
         ) {
           return el;
         }
