@@ -5125,7 +5125,7 @@
       <div class="form-group">
         <label class="form-label" for="manual-date">Date (MM/DD/YY)</label>
         <div class="date-picker-group">
-          <input type="text" id="manual-date" class="input-standard" placeholder="05/16/26" onfocus="this.select()" />
+          <input type="text" id="manual-date" class="input-standard" placeholder="05/16/26" onfocus="this.select()" onkeydown="if (event.key === 'Enter') this.blur();" />
           <!-- Hidden native input triggered by button click -->
           <input type="date" id="manual-date-picker" style="
                 position: absolute;
@@ -5153,11 +5153,11 @@
       <div class="form-row">
         <div class="form-group">
           <label class="form-label" for="manual-work">Work (HH:MM)</label>
-          <input type="text" id="manual-work" class="input-standard" placeholder="08:00" onfocus="this.select()" />
+          <input type="text" id="manual-work" class="input-standard" placeholder="08:00" onfocus="this.select()" onkeydown="if (event.key === 'Enter') this.blur();" />
         </div>
         <div class="form-group">
           <label class="form-label" for="manual-break">Break (HH:MM)</label>
-          <input type="text" id="manual-break" class="input-standard" value="00:00" onfocus="this.select()" />
+          <input type="text" id="manual-break" class="input-standard" value="00:00" onfocus="this.select()" onkeydown="if (event.key === 'Enter') this.blur();" />
         </div>
       </div>
       <div class="form-group">
@@ -5207,7 +5207,7 @@
       <div class="form-group">
         <label class="form-label" for="preset-input">Target Hours (e.g. 7.5)</label>
         <input type="number" id="preset-input" class="input-standard" step="0.5" min="0" max="24"
-          onfocus="this.select()" />
+          onfocus="this.select()" onkeydown="if (event.key === 'Enter') this.blur();" />
       </div>
       <div class="action-row">
         <button class="btn-secondary" onclick="closePresetModal()">
@@ -5237,7 +5237,7 @@
         <label class="form-label" for="leave-date-input">Select Leave Date</label>
         <div class="date-picker-group">
           <input type="text" id="leave-date-input" class="input-standard" placeholder="05/16/26"
-            onfocus="this.select()" />
+            onfocus="this.select()" onkeydown="if (event.key === 'Enter') this.blur();" />
           <!-- Hidden native input triggered by button click -->
           <input type="date" id="leave-date-picker" style="
                 position: absolute;
@@ -5450,7 +5450,7 @@
           <div class="goal-container">
             <div class="status-badge goal-inputs" style="padding: 0 0.8rem">
               <span class="label">Daily Goal</span>
-              <input type="text" id="goal-time" value="8h 0m" onfocus="this.select()" />
+              <input type="text" id="goal-time" class="input-standard" value="8h 0m" onfocus="this.select()" />
               <input type="hidden" id="goal-hours" value="8" />
               <input type="hidden" id="goal-mins" value="0" />
               <svg class="goal-chevron" width="10" height="10" viewBox="0 0 10 10" fill="none"
@@ -6443,6 +6443,7 @@ function hudFuzzyScore(query, target) {
   
   return Math.max(0, score);
 }
+
 
 
 
@@ -13512,6 +13513,8 @@ function hudFuzzyScore(query, target) {
         bindInput("manual-date", parseDatePreview);
         bindInput("edit-date", parseDatePreview);
         bindInput("leave-date-input", parseDatePreview);
+        bindInput("manual-goal", parseGoalPreview);
+        bindInput("edit-goal", parseGoalPreview);
       };
 
       setupDynamicPreview();
