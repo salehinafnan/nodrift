@@ -2042,6 +2042,7 @@
       transition:
         border-color 0.15s ease,
         background-color 0.15s ease;
+      cursor: pointer;
     }
 
     .log-row:hover,
@@ -8796,11 +8797,11 @@ function hudFuzzyScore(query, target) {
       const textClass = log.status === "OVER" ? "text-work" : "text-warning";
 
       return `
-    <div class="log-row${selectedClass}">
+    <div class="log-row${selectedClass}" data-id="${log.id}">
         <div style="display: flex; justify-content: space-between; align-items: center;">
             <div style="display: flex; align-items: center; gap: 8px;">
                 <span style="font-weight: 400; font-size: var(--font-size-entry-title); color: var(--text-main);">${dayName} <span style="opacity: 0.5;">(${displayMonthDay})</span></span>
-                <span class="font-mono" style="font-size: var(--font-size-entry-meta); color: var(--text-muted);">${log.login} - ${log.logout}</span>
+                <span style="font-size: var(--font-size-entry-meta); color: var(--text-muted);">${log.login} - ${log.logout}</span>
                 ${weekendBadge}
             </div>
             <div style="display: flex; align-items: center; gap: 4px;">
@@ -8827,22 +8828,32 @@ function hudFuzzyScore(query, target) {
     // Delegated actions dispatcher inside scrolling logs area
     DOM.logContainer.addEventListener("click", (e) => {
       const btn = e.target.closest("button");
-      if (!btn) return;
-      const action = btn.dataset.action;
-      if (!action) return;
-      const logId = btn.dataset.id;
-      if (!logId) return;
+      if (btn) {
+        const action = btn.dataset.action;
+        if (!action) return;
+        const logId = btn.dataset.id;
+        if (!logId) return;
 
-      if (action === "copy") {
-        copySingleShift(logId, btn);
-      } else if (action === "edit") {
-        editSingleShift(logId);
-      } else if (action === "delete") {
-        deleteSingleShift(logId);
-      } else if (action === "view-note") {
-        const logs = getLogs();
-        const log = logs.find((l) => l.id === logId);
-        if (log && log.notes) openNoteModal(log.notes);
+        if (action === "copy") {
+          copySingleShift(logId, btn);
+        } else if (action === "edit") {
+          editSingleShift(logId);
+        } else if (action === "delete") {
+          deleteSingleShift(logId);
+        } else if (action === "view-note") {
+          const logs = getLogs();
+          const log = logs.find((l) => l.id === logId);
+          if (log && log.notes) openNoteModal(log.notes);
+        }
+        return;
+      }
+
+      const row = e.target.closest(".log-row");
+      if (row) {
+        const logId = row.dataset.id;
+        if (logId) {
+          editSingleShift(logId);
+        }
       }
     });
 
