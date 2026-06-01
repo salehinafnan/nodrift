@@ -133,7 +133,7 @@
       --segmented-active-shadow: 0 1px 3px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.06);
       --segmented-border: #1f1f23;
 
-      
+
     }
 
     /* =========================================================================
@@ -172,7 +172,7 @@
       --segmented-active-shadow: none;
       --segmented-border: #253352;
 
-      
+
     }
 
     :root[data-theme="cobalt-glass"] .console-panel,
@@ -223,7 +223,7 @@
       --segmented-active-shadow: 0px 1px 2px rgba(0, 0, 0, 0.4);
       --segmented-border: rgba(255, 255, 255, 0.05);
 
-      
+
     }
 
     /* =========================================================================
@@ -262,7 +262,7 @@
       --segmented-active-shadow: 0 1px 4px rgba(0, 0, 0, 0.14), 0 0 0 0.5px rgba(0, 0, 0, 0.06);
       --segmented-border: transparent;
 
-      
+
     }
 
     /* =========================================================================
@@ -324,7 +324,7 @@
       appearance: none;
       -webkit-appearance: none;
       -moz-appearance: none;
-      background-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238e8e9f' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><use href="#icon-5c61686e"></use></svg>");
+      background-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238e8e9f' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><use href='#icon-5c61686e'></use></svg>");
       background-repeat: no-repeat;
       background-position: right 1rem center;
       background-size: 1.1em;
@@ -3041,7 +3041,9 @@
 
     /* ── TABLET  (≤ 900px) ────────────────────────────────────────────────── */
     @media (max-width: 900px) {
-      html, body {
+
+      html,
+      body {
         overscroll-behavior-y: none;
       }
 
@@ -3353,6 +3355,7 @@
         gap: 6px;
         display: -webkit-box;
         -webkit-line-clamp: 2;
+        line-clamp: 2;
         -webkit-box-orient: vertical;
         white-space: normal;
         overflow: hidden;
@@ -3645,6 +3648,7 @@
         font-size: 0 !important;
         min-width: 10px !important;
       }
+
       .last-seen-status::before {
         width: 8px !important;
         height: 8px !important;
@@ -4087,7 +4091,8 @@
     /* =========================================================================
        TRUE MOBILE UI OVERHAUL (BOTTOM NAV & MOBILE MENU)
        ========================================================================= */
-    #mobile-bottom-nav, #mobile-menu-view {
+    #mobile-bottom-nav,
+    #mobile-menu-view {
       display: none;
     }
 
@@ -4102,16 +4107,24 @@
         display: flex;
         flex-direction: column;
       }
-      .main-ui, .sidebar, #mobile-menu-view {
+
+      .main-ui,
+      .sidebar,
+      #mobile-menu-view {
         flex: 1;
         overflow-y: auto;
         padding: 20px;
         padding-bottom: calc(85px + env(safe-area-inset-bottom, 0px));
-        display: none; 
+        display: none;
+        scroll-padding-top: 20px;
       }
-      
-      .status-bar .goal-container, 
-      .status-bar .theme-container, 
+
+      .main-ui {
+        justify-content: center;
+      }
+
+      .status-bar .goal-container,
+      .status-bar .theme-container,
       .status-bar .tz-container {
         position: absolute;
         opacity: 0;
@@ -4119,12 +4132,15 @@
         width: 0;
         height: 0;
       }
+
       .status-bar .clock-divider,
       .status-bar .tz-static-label,
       #bst-clock {
         display: none !important;
       }
-      .tab-nav, .sidebar-footer {
+
+      .tab-nav,
+      .sidebar-footer {
         display: none !important;
       }
 
@@ -4132,23 +4148,25 @@
         justify-content: center;
         padding-bottom: 20px;
       }
-      
+
       .timers-wrapper {
         align-items: center;
-        margin-top: 5vh;
+        margin-top: 1.5vh;
       }
+
       .timer-val {
         font-size: clamp(3.5rem, 18vw, 5.5rem) !important;
         font-weight: 200;
         letter-spacing: -1.5px;
       }
+
       #break-timer {
         font-size: clamp(2.5rem, 12vw, 3.5rem) !important;
       }
-      
+
       .actions {
         position: fixed;
-        bottom: calc(80px + env(safe-area-inset-bottom, 0px));
+        bottom: calc(130px + env(safe-area-inset-bottom, 0px));
         left: 50%;
         transform: translateX(-50%);
         width: 92%;
@@ -4161,16 +4179,20 @@
         border: none !important;
         padding: 0 !important;
       }
+
       .actions button {
         border-radius: 50px !important;
-        box-shadow: 0 8px 25px rgba(0,0,0,0.2) !important;
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2) !important;
         height: 64px !important;
         font-size: 1.15rem !important;
         font-weight: 700 !important;
       }
-      #start-btn, #pause-btn {
+
+      #start-btn,
+      #pause-btn {
         flex: 2;
       }
+
       #submit-btn {
         flex: 1;
         border-radius: 50px !important;
@@ -4185,28 +4207,32 @@
         display: flex;
         flex-direction: column;
         gap: 10px;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
       }
-      .log-row > div {
+
+      .log-row>div {
         width: 100% !important;
       }
-      
+
       #mobile-menu-view {
         flex-direction: column;
         gap: 24px;
       }
+
       .mobile-menu-header {
         font-size: 1.6rem;
         font-weight: 700;
         margin-bottom: 12px;
         color: var(--text-main);
       }
+
       .mobile-list-group {
         background: var(--element-bg);
         border: 1px solid var(--border-light);
         border-radius: 14px;
         overflow: hidden;
       }
+
       .mobile-list-item {
         display: flex;
         align-items: center;
@@ -4215,23 +4241,28 @@
         cursor: pointer;
         transition: background 0.15s;
       }
+
       .mobile-list-item:active {
         background: var(--element-hover);
       }
+
       .mobile-list-item:last-child {
         border-bottom: none;
       }
+
       .mobile-list-icon {
         color: var(--accent-blue);
         margin-right: 16px;
         display: flex;
       }
+
       .mobile-list-text {
         flex: 1;
         font-size: 1.1rem;
         font-weight: 500;
         color: var(--text-main);
       }
+
       .mobile-list-chevron {
         color: var(--text-muted);
         display: flex;
@@ -4253,6 +4284,7 @@
         justify-content: space-around;
         align-items: center;
       }
+
       .mobile-nav-btn {
         background: none;
         border: none;
@@ -4268,15 +4300,19 @@
         transition: color 0.2s;
         padding: 0;
       }
+
       .mobile-nav-btn svg {
         transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
       }
+
       .mobile-nav-btn.active {
         color: var(--accent-blue);
       }
+
       .mobile-nav-btn.active svg {
         transform: scale(1.15) translateY(-2px);
       }
+
       .mobile-nav-btn span {
         font-size: 0.65rem;
         font-weight: 600;
@@ -4286,73 +4322,306 @@
 </head>
 
 <body>
-<svg style="display: none;" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
-  <defs>
-    <symbol id="icon-ae5b4c00" viewBox="0 0 24 24"><circle cx='12' cy='12' r='10'></circle><polyline points='12 6 12 12 16 14'></polyline></symbol>
-    <symbol id="icon-5c61686e" viewBox="0 0 24 24"><polyline points='6 9 12 15 18 9'></polyline></symbol>
-    <symbol id="icon-2cc8af4e" viewBox="0 0 24 24"> <polyline points="1 4 1 10 7 10"></polyline> <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path> </symbol>
-    <symbol id="icon-cc177d5f" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></symbol>
-    <symbol id="icon-04fa1773" viewBox="0 0 24 24"> <circle cx="12" cy="12" r="10"></circle> <line x1="12" y1="16" x2="12" y2="12"></line> <line x1="12" y1="8" x2="12.01" y2="8"></line> </symbol>
-    <symbol id="icon-ae89f43e" viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></symbol>
-    <symbol id="icon-6f90a674" viewBox="0 0 24 24"> <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect> <line x1="16" y1="2" x2="16" y2="6"></line> <line x1="8" y1="2" x2="8" y2="6"></line> <line x1="3" y1="10" x2="21" y2="10"></line> </symbol>
-    <symbol id="icon-3a752b39" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></symbol>
-    <symbol id="icon-4de7aa53" viewBox="0 0 24 24"> <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path> <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path> <path d="M4 22h16"></path> <path d="M10 14.66V17c0 .55-.45 1-1 1H4v2h16v-2h-5c-.55 0-1-.45-1-1v-2.34"></path> <path d="M12 2a5 5 0 0 1 5 5v3.5a5 5 0 0 1-10 0V7a5 5 0 0 1 5-5z"></path> </symbol>
-    <symbol id="icon-cfe7f835" viewBox="0 0 24 24"> <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect> <line x1="3" y1="9" x2="21" y2="9"></line> <line x1="9" y1="21" x2="9" y2="9"></line> </symbol>
-    <symbol id="icon-56bb360a" viewBox="0 0 24 24"> <circle cx="11" cy="11" r="8"></circle> <line x1="21" y1="21" x2="16.65" y2="16.65"></line> </symbol>
-    <symbol id="icon-a3f67e4d" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"></polyline></symbol>
-    <symbol id="icon-3c1c2eb6" viewBox="0 0 24 24"> <polygon points="12 2 2 7 12 12 22 7 12 2" /> <polyline points="2 17 12 22 22 17" /> <polyline points="2 12 12 17 22 12" /> </symbol>
-    <symbol id="icon-cebb1e32" viewBox="0 0 24 24"> <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" /> <path d="M15 5h2M16 4v2" stroke-width="1.5" /> </symbol>
-    <symbol id="icon-47bc3e7c" viewBox="0 0 24 24"> <circle cx="12" cy="12" r="4" /> <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" /> </symbol>
-    <symbol id="icon-c86d529b" viewBox="0 0 24 24"> <path d="M12 2a10 10 0 1 0 10 10H12V2z" fill="currentColor" fill-opacity="0.12" /> <circle cx="12" cy="12" r="10" /> </symbol>
-    <symbol id="icon-b1233e9f" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"></polygon></symbol>
-    <symbol id="icon-d140e762" viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></symbol>
-    <symbol id="icon-698f6a1b" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect></symbol>
-    <symbol id="icon-fd86eb48" viewBox="0 0 24 24"><line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line><line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line><line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line><line x1="1" y1="14" x2="7" y2="14"></line><line x1="9" y1="8" x2="15" y2="8"></line><line x1="17" y1="16" x2="23" y2="16"></line></symbol>
-    <symbol id="icon-36af783a" viewBox="0 0 24 24"> <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect> <line x1="16" y1="2" x2="16" y2="6"></line> <line x1="8" y1="2" x2="8" y2="6"></line> <line x1="3" y1="10" x2="21" y2="10"></line> <line x1="12" y1="14" x2="12" y2="18"></line> <line x1="10" y1="16" x2="14" y2="16"></line> </symbol>
-    <symbol id="icon-d76bcc50" viewBox="0 0 24 24"> <polyline points="15 18 9 12 15 6"></polyline> </symbol>
-    <symbol id="icon-7da9ac84" viewBox="0 0 24 24"> <polyline points="9 18 15 12 9 6"></polyline> </symbol>
-    <symbol id="icon-0b357eda" viewBox="0 0 24 24"> <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path> <polyline points="14 2 14 8 20 8"></polyline> <line x1="16" y1="13" x2="8" y2="13"></line> <line x1="16" y1="17" x2="8" y2="17"></line> <polyline points="10 9 9 9 8 9"></polyline> </symbol>
-    <symbol id="icon-f699d873" viewBox="0 0 24 24"> <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path> <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect> </symbol>
-    <symbol id="icon-d0747b80" viewBox="0 0 24 24"> <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path> <polyline points="7 10 12 15 17 10"></polyline> <line x1="12" y1="15" x2="12" y2="3"></line> </symbol>
-    <symbol id="icon-459ec513" viewBox="0 0 24 24"> <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path> <polyline points="17 8 12 3 7 8"></polyline> <line x1="12" y1="3" x2="12" y2="15"></line> </symbol>
-    <symbol id="icon-6bf1980a" viewBox="0 0 24 24"> <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path> <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path> <circle cx="12" cy="10" r="1" fill="currentColor"></circle> <path d="M12 14v2" stroke-linecap="round"></path> </symbol>
-    <symbol id="icon-a0221e6f" viewBox="0 0 24 24"> <circle cx="12" cy="12" r="3"></circle> <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"> </path> </symbol>
-    <symbol id="icon-dc2cf02d" viewBox="0 0 24 24"> <polyline points="3 6 5 6 21 6"></polyline> <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path> </symbol>
-    <symbol id="icon-a323ea2d" viewBox="0 0 24 24"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></symbol>
-    <symbol id="icon-610fc1b7" viewBox="0 0 24 24"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></symbol>
-    <symbol id="icon-59ac4ca9" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></symbol>
-    <symbol id="icon-6ea0858b" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></symbol>
-    <symbol id="icon-6e0c3b0f" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></symbol>
-    <symbol id="icon-b8385845" viewBox="0 0 24 24"><polygon points="12 2 2 7 12 12 22 7 12 2" /><polyline points="2 17 12 22 22 17" /><polyline points="2 12 12 17 22 12" /></symbol>
-    <symbol id="icon-ef8e4b16" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" /><path d="M15 5h2M16 4v2" stroke-width="1.5" /></symbol>
-    <symbol id="icon-d457aa18" viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 10 10H12V2z" fill="currentColor" fill-opacity="0.12" /><circle cx="12" cy="12" r="10" /></symbol>
-    <symbol id="icon-c10237b5" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" /></symbol>
-    <symbol id="icon-6758316a" viewBox="0 0 24 24"><circle cx='12' cy='12' r='10' fill='${encodeURIComponent(color)}' fill-opacity='${opacity}'/></symbol>
-    <symbol id="icon-265dafd3" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></symbol>
-    <symbol id="icon-a7df8588" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></symbol>
-    <symbol id="icon-c8e93a10" viewBox="0 0 24 24"> <line x1="4" y1="21" x2="4" y2="14"></line> <line x1="4" y1="10" x2="4" y2="3"></line> <line x1="12" y1="21" x2="12" y2="12"></line> <line x1="12" y1="8" x2="12" y2="3"></line> <line x1="20" y1="21" x2="20" y2="16"></line> <line x1="20" y1="12" x2="20" y2="3"></line> <line x1="1" y1="14" x2="7" y2="14"></line> <line x1="9" y1="8" x2="15" y2="8"></line> <line x1="17" y1="16" x2="23" y2="16"></line> </symbol>
-    <symbol id="icon-256ee864" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></symbol>
-    <symbol id="icon-bc1d7da2" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></symbol>
-    <symbol id="icon-f5566772" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></symbol>
-    <symbol id="icon-5b2822e3" viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"></line></symbol>
-    <symbol id="icon-f109317b" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></symbol>
-    <symbol id="icon-67e6f224" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></symbol>
-    <symbol id="icon-404ab491" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></symbol>
-    <symbol id="icon-e1ac78fb" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></symbol>
-    <symbol id="icon-49bf4a24" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></symbol>
-    <symbol id="icon-9c8ee3dd" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></symbol>
-    <symbol id="icon-2d43a51b" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></symbol>
-    <symbol id="icon-941c04e2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></symbol>
-    <symbol id="icon-433a13fc" viewBox="0 0 24 24"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></symbol>
-    <symbol id="icon-0d06e9d3" viewBox="0 0 24 24"><line x1="12" y1="20" x2="12" y2="10"></line><line x1="18" y1="20" x2="18" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></symbol>
-    <symbol id="icon-412a4e8e" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect><line x1="8" y1="10" x2="16" y2="10"></line><line x1="8" y1="14" x2="16" y2="14"></line><line x1="12" y1="6" x2="12" y2="18"></line></symbol>
-    <symbol id="icon-c8a1f2ec" viewBox="0 0 24 24"><path d="M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2z"></path></symbol>
-    <symbol id="icon-df363be2" viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></symbol>
-    <symbol id="icon-f5c2fb99" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></symbol>
-    <symbol id="icon-b2dfb488" viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></symbol>
-    <symbol id="icon-564f8c3a" viewBox="0 0 24 24"> <polyline points="23 4 23 10 17 10"></polyline> <polyline points="1 20 1 14 7 14"></polyline> <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path> </symbol>
-  </defs>
-</svg>
+  <svg style="display: none;" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <symbol id="icon-ae5b4c00" viewBox="0 0 24 24">
+        <circle cx='12' cy='12' r='10'></circle>
+        <polyline points='12 6 12 12 16 14'></polyline>
+      </symbol>
+      <symbol id="icon-5c61686e" viewBox="0 0 24 24">
+        <polyline points='6 9 12 15 18 9'></polyline>
+      </symbol>
+      <symbol id="icon-2cc8af4e" viewBox="0 0 24 24">
+        <polyline points="1 4 1 10 7 10"></polyline>
+        <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+      </symbol>
+      <symbol id="icon-cc177d5f" viewBox="0 0 24 24">
+        <line x1="18" y1="6" x2="6" y2="18"></line>
+        <line x1="6" y1="6" x2="18" y2="18"></line>
+      </symbol>
+      <symbol id="icon-04fa1773" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="12" y1="16" x2="12" y2="12"></line>
+        <line x1="12" y1="8" x2="12.01" y2="8"></line>
+      </symbol>
+      <symbol id="icon-ae89f43e" viewBox="0 0 24 24">
+        <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
+        <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
+      </symbol>
+      <symbol id="icon-6f90a674" viewBox="0 0 24 24">
+        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+        <line x1="16" y1="2" x2="16" y2="6"></line>
+        <line x1="8" y1="2" x2="8" y2="6"></line>
+        <line x1="3" y1="10" x2="21" y2="10"></line>
+      </symbol>
+      <symbol id="icon-3a752b39" viewBox="0 0 24 24">
+        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+        <line x1="16" y1="2" x2="16" y2="6"></line>
+        <line x1="8" y1="2" x2="8" y2="6"></line>
+        <line x1="3" y1="10" x2="21" y2="10"></line>
+      </symbol>
+      <symbol id="icon-4de7aa53" viewBox="0 0 24 24">
+        <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path>
+        <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path>
+        <path d="M4 22h16"></path>
+        <path d="M10 14.66V17c0 .55-.45 1-1 1H4v2h16v-2h-5c-.55 0-1-.45-1-1v-2.34"></path>
+        <path d="M12 2a5 5 0 0 1 5 5v3.5a5 5 0 0 1-10 0V7a5 5 0 0 1 5-5z"></path>
+      </symbol>
+      <symbol id="icon-cfe7f835" viewBox="0 0 24 24">
+        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+        <line x1="3" y1="9" x2="21" y2="9"></line>
+        <line x1="9" y1="21" x2="9" y2="9"></line>
+      </symbol>
+      <symbol id="icon-56bb360a" viewBox="0 0 24 24">
+        <circle cx="11" cy="11" r="8"></circle>
+        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+      </symbol>
+      <symbol id="icon-a3f67e4d" viewBox="0 0 24 24">
+        <polyline points="6 9 12 15 18 9"></polyline>
+      </symbol>
+      <symbol id="icon-3c1c2eb6" viewBox="0 0 24 24">
+        <polygon points="12 2 2 7 12 12 22 7 12 2" />
+        <polyline points="2 17 12 22 22 17" />
+        <polyline points="2 12 12 17 22 12" />
+      </symbol>
+      <symbol id="icon-cebb1e32" viewBox="0 0 24 24">
+        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+        <path d="M15 5h2M16 4v2" stroke-width="1.5" />
+      </symbol>
+      <symbol id="icon-47bc3e7c" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="4" />
+        <path
+          d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
+      </symbol>
+      <symbol id="icon-c86d529b" viewBox="0 0 24 24">
+        <path d="M12 2a10 10 0 1 0 10 10H12V2z" fill="currentColor" fill-opacity="0.12" />
+        <circle cx="12" cy="12" r="10" />
+      </symbol>
+      <symbol id="icon-b1233e9f" viewBox="0 0 24 24">
+        <polygon points="5 3 19 12 5 21 5 3"></polygon>
+      </symbol>
+      <symbol id="icon-d140e762" viewBox="0 0 24 24">
+        <rect x="6" y="4" width="4" height="16"></rect>
+        <rect x="14" y="4" width="4" height="16"></rect>
+      </symbol>
+      <symbol id="icon-698f6a1b" viewBox="0 0 24 24">
+        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+      </symbol>
+      <symbol id="icon-fd86eb48" viewBox="0 0 24 24">
+        <line x1="4" y1="21" x2="4" y2="14"></line>
+        <line x1="4" y1="10" x2="4" y2="3"></line>
+        <line x1="12" y1="21" x2="12" y2="12"></line>
+        <line x1="12" y1="8" x2="12" y2="3"></line>
+        <line x1="20" y1="21" x2="20" y2="16"></line>
+        <line x1="20" y1="12" x2="20" y2="3"></line>
+        <line x1="1" y1="14" x2="7" y2="14"></line>
+        <line x1="9" y1="8" x2="15" y2="8"></line>
+        <line x1="17" y1="16" x2="23" y2="16"></line>
+      </symbol>
+      <symbol id="icon-36af783a" viewBox="0 0 24 24">
+        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+        <line x1="16" y1="2" x2="16" y2="6"></line>
+        <line x1="8" y1="2" x2="8" y2="6"></line>
+        <line x1="3" y1="10" x2="21" y2="10"></line>
+        <line x1="12" y1="14" x2="12" y2="18"></line>
+        <line x1="10" y1="16" x2="14" y2="16"></line>
+      </symbol>
+      <symbol id="icon-d76bcc50" viewBox="0 0 24 24">
+        <polyline points="15 18 9 12 15 6"></polyline>
+      </symbol>
+      <symbol id="icon-7da9ac84" viewBox="0 0 24 24">
+        <polyline points="9 18 15 12 9 6"></polyline>
+      </symbol>
+      <symbol id="icon-0b357eda" viewBox="0 0 24 24">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+        <polyline points="14 2 14 8 20 8"></polyline>
+        <line x1="16" y1="13" x2="8" y2="13"></line>
+        <line x1="16" y1="17" x2="8" y2="17"></line>
+        <polyline points="10 9 9 9 8 9"></polyline>
+      </symbol>
+      <symbol id="icon-f699d873" viewBox="0 0 24 24">
+        <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
+        <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
+      </symbol>
+      <symbol id="icon-d0747b80" viewBox="0 0 24 24">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+        <polyline points="7 10 12 15 17 10"></polyline>
+        <line x1="12" y1="15" x2="12" y2="3"></line>
+      </symbol>
+      <symbol id="icon-459ec513" viewBox="0 0 24 24">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+        <polyline points="17 8 12 3 7 8"></polyline>
+        <line x1="12" y1="3" x2="12" y2="15"></line>
+      </symbol>
+      <symbol id="icon-6bf1980a" viewBox="0 0 24 24">
+        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+        <circle cx="12" cy="10" r="1" fill="currentColor"></circle>
+        <path d="M12 14v2" stroke-linecap="round"></path>
+      </symbol>
+      <symbol id="icon-a0221e6f" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="3"></circle>
+        <path
+          d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z">
+        </path>
+      </symbol>
+      <symbol id="icon-dc2cf02d" viewBox="0 0 24 24">
+        <polyline points="3 6 5 6 21 6"></polyline>
+        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+      </symbol>
+      <symbol id="icon-a323ea2d" viewBox="0 0 24 24">
+        <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
+        <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
+      </symbol>
+      <symbol id="icon-610fc1b7" viewBox="0 0 24 24">
+        <path d="M12 20h9"></path>
+        <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+      </symbol>
+      <symbol id="icon-59ac4ca9" viewBox="0 0 24 24">
+        <line x1="12" y1="5" x2="12" y2="19"></line>
+        <line x1="5" y1="12" x2="19" y2="12"></line>
+      </symbol>
+      <symbol id="icon-6ea0858b" viewBox="0 0 24 24">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+      </symbol>
+      <symbol id="icon-6e0c3b0f" viewBox="0 0 24 24">
+        <polyline points="3 6 5 6 21 6"></polyline>
+        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+        <line x1="10" y1="11" x2="10" y2="17"></line>
+        <line x1="14" y1="11" x2="14" y2="17"></line>
+      </symbol>
+      <symbol id="icon-b8385845" viewBox="0 0 24 24">
+        <polygon points="12 2 2 7 12 12 22 7 12 2" />
+        <polyline points="2 17 12 22 22 17" />
+        <polyline points="2 12 12 17 22 12" />
+      </symbol>
+      <symbol id="icon-ef8e4b16" viewBox="0 0 24 24">
+        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+        <path d="M15 5h2M16 4v2" stroke-width="1.5" />
+      </symbol>
+      <symbol id="icon-d457aa18" viewBox="0 0 24 24">
+        <path d="M12 2a10 10 0 1 0 10 10H12V2z" fill="currentColor" fill-opacity="0.12" />
+        <circle cx="12" cy="12" r="10" />
+      </symbol>
+      <symbol id="icon-c10237b5" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="4" />
+        <path
+          d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
+      </symbol>
+      <symbol id="icon-6758316a" viewBox="0 0 24 24">
+        <circle cx='12' cy='12' r='10' fill='${encodeURIComponent(color)}' fill-opacity='${opacity}' />
+      </symbol>
+      <symbol id="icon-265dafd3" viewBox="0 0 24 24">
+        <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+        <line x1="8" y1="21" x2="16" y2="21"></line>
+        <line x1="12" y1="17" x2="12" y2="21"></line>
+      </symbol>
+      <symbol id="icon-a7df8588" viewBox="0 0 24 24">
+        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+        <circle cx="12" cy="7" r="4"></circle>
+      </symbol>
+      <symbol id="icon-c8e93a10" viewBox="0 0 24 24">
+        <line x1="4" y1="21" x2="4" y2="14"></line>
+        <line x1="4" y1="10" x2="4" y2="3"></line>
+        <line x1="12" y1="21" x2="12" y2="12"></line>
+        <line x1="12" y1="8" x2="12" y2="3"></line>
+        <line x1="20" y1="21" x2="20" y2="16"></line>
+        <line x1="20" y1="12" x2="20" y2="3"></line>
+        <line x1="1" y1="14" x2="7" y2="14"></line>
+        <line x1="9" y1="8" x2="15" y2="8"></line>
+        <line x1="17" y1="16" x2="23" y2="16"></line>
+      </symbol>
+      <symbol id="icon-256ee864" viewBox="0 0 24 24">
+        <rect x="3" y="3" width="7" height="7"></rect>
+        <rect x="14" y="3" width="7" height="7"></rect>
+        <rect x="14" y="14" width="7" height="7"></rect>
+        <rect x="3" y="14" width="7" height="7"></rect>
+      </symbol>
+      <symbol id="icon-bc1d7da2" viewBox="0 0 24 24">
+        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+      </symbol>
+      <symbol id="icon-f5566772" viewBox="0 0 24 24">
+        <line x1="18" y1="20" x2="18" y2="10"></line>
+        <line x1="12" y1="20" x2="12" y2="4"></line>
+        <line x1="6" y1="20" x2="6" y2="14"></line>
+      </symbol>
+      <symbol id="icon-5b2822e3" viewBox="0 0 24 24">
+        <line x1="5" y1="12" x2="19" y2="12"></line>
+      </symbol>
+      <symbol id="icon-f109317b" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="10"></circle>
+        <polyline points="12 6 12 12 16 14"></polyline>
+      </symbol>
+      <symbol id="icon-67e6f224" viewBox="0 0 24 24">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+        <polyline points="14 2 14 8 20 8"></polyline>
+        <line x1="16" y1="13" x2="8" y2="13"></line>
+        <line x1="16" y1="17" x2="8" y2="17"></line>
+        <polyline points="10 9 9 9 8 9"></polyline>
+      </symbol>
+      <symbol id="icon-404ab491" viewBox="0 0 24 24">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+        <polyline points="7 10 12 15 17 10"></polyline>
+        <line x1="12" y1="15" x2="12" y2="3"></line>
+      </symbol>
+      <symbol id="icon-e1ac78fb" viewBox="0 0 24 24">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+        <polyline points="17 8 12 3 7 8"></polyline>
+        <line x1="12" y1="3" x2="12" y2="15"></line>
+      </symbol>
+      <symbol id="icon-49bf4a24" viewBox="0 0 24 24">
+        <polyline points="3 6 5 6 21 6"></polyline>
+        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+      </symbol>
+      <symbol id="icon-9c8ee3dd" viewBox="0 0 24 24">
+        <circle cx="11" cy="11" r="8"></circle>
+        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+      </symbol>
+      <symbol id="icon-2d43a51b" viewBox="0 0 24 24">
+        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+      </symbol>
+      <symbol id="icon-941c04e2" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="10"></circle>
+        <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+        <line x1="12" y1="17" x2="12.01" y2="17"></line>
+      </symbol>
+      <symbol id="icon-433a13fc" viewBox="0 0 24 24">
+        <polyline points="16 18 22 12 16 6"></polyline>
+        <polyline points="8 6 2 12 8 18"></polyline>
+      </symbol>
+      <symbol id="icon-0d06e9d3" viewBox="0 0 24 24">
+        <line x1="12" y1="20" x2="12" y2="10"></line>
+        <line x1="18" y1="20" x2="18" y2="4"></line>
+        <line x1="6" y1="20" x2="6" y2="14"></line>
+      </symbol>
+      <symbol id="icon-412a4e8e" viewBox="0 0 24 24">
+        <rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect>
+        <line x1="8" y1="10" x2="16" y2="10"></line>
+        <line x1="8" y1="14" x2="16" y2="14"></line>
+        <line x1="12" y1="6" x2="12" y2="18"></line>
+      </symbol>
+      <symbol id="icon-c8a1f2ec" viewBox="0 0 24 24">
+        <path d="M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2z"></path>
+      </symbol>
+      <symbol id="icon-df363be2" viewBox="0 0 24 24">
+        <path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+      </symbol>
+      <symbol id="icon-f5c2fb99" viewBox="0 0 24 24">
+        <polyline points="20 6 9 17 4 12"></polyline>
+      </symbol>
+      <symbol id="icon-b2dfb488" viewBox="0 0 24 24">
+        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+        <polyline points="22,6 12,13 2,6"></polyline>
+      </symbol>
+      <symbol id="icon-564f8c3a" viewBox="0 0 24 24">
+        <polyline points="23 4 23 10 17 10"></polyline>
+        <polyline points="1 20 1 14 7 14"></polyline>
+        <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+      </symbol>
+    </defs>
+  </svg>
 
   <!-- =========================================================================
        DYNAMIC APPLICATION NOTIFICATIONS & ALERTS
@@ -4360,12 +4629,18 @@
   <!-- Undo EOD Submission Toast Notification -->
   <div id="undo-toast">
     <div class="undo-icon">
-      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-2cc8af4e"></use></svg>
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <use href="#icon-2cc8af4e"></use>
+      </svg>
     </div>
     <span>Shift Logged Successfully</span>
     <button id="undo-btn">Undo</button>
     <button class="toast-close-btn" onclick="closeUndoToast()">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-cc177d5f"></use></svg>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round">
+        <use href="#icon-cc177d5f"></use>
+      </svg>
     </button>
   </div>
 
@@ -4509,7 +4784,10 @@
             align-items: flex-start;
             gap: 10px;
           ">
-        <svg viewBox="0 0 24 24" fill="none" stroke="var(--accent-blue)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width: 16px; height: 16px; flex-shrink: 0; margin-top: 2px"><use href="#icon-04fa1773"></use></svg>
+        <svg viewBox="0 0 24 24" fill="none" stroke="var(--accent-blue)" stroke-width="2.5" stroke-linecap="round"
+          stroke-linejoin="round" style="width: 16px; height: 16px; flex-shrink: 0; margin-top: 2px">
+          <use href="#icon-04fa1773"></use>
+        </svg>
         <div style="
               display: flex;
               flex-direction: column;
@@ -4578,7 +4856,8 @@
   </div>
 
   <div id="tab-conflict-modal" class="modal-overlay" style="z-index: 9999; background: var(--page-bg)">
-    <div class="modal-container modal-width-sm accent-danger" role="dialog" aria-modal="true" style="text-align: center">
+    <div class="modal-container modal-width-sm accent-danger" role="dialog" aria-modal="true"
+      style="text-align: center">
       <h1 style="font-size: 3rem; margin-bottom: var(--space-3); margin-top: 0">
         ⚠️
       </h1>
@@ -4606,11 +4885,17 @@
     <div class="modal-container modal-width-lg accent-info" role="dialog" aria-modal="true">
       <h3 class="modal-header info" style="justify-content: space-between; display: flex; width: 100%">
         <span style="display: flex; align-items: center; gap: var(--space-2)">
-          <svg viewBox="0 0 24 24" class="ui-icon" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-ae89f43e"></use></svg>
+          <svg viewBox="0 0 24 24" class="ui-icon" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <use href="#icon-ae89f43e"></use>
+          </svg>
           User Guide & Help
         </span>
         <button class="toast-close-btn" onclick="closeHelpModal()" style="margin-left: auto; padding: 0">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-cc177d5f"></use></svg>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <use href="#icon-cc177d5f"></use>
+          </svg>
         </button>
       </h3>
 
@@ -4699,33 +4984,51 @@
       <!-- Tab 2: Command Center -->
       <div id="help-command-center" class="help-tab-content">
         <h4>The Command Center HUD</h4>
-        <p>Press <strong>/</strong> to open the intelligent Command Palette. It lets you drive the entire application using natural language and smart commands without ever touching your mouse.</p>
-        
+        <p>Press <strong>/</strong> to open the intelligent Command Palette. It lets you drive the entire application
+          using natural language and smart commands without ever touching your mouse.</p>
+
         <h4 style="margin-top: 1.5rem;">Advanced Database Engines</h4>
         <ul style="line-height: 1.6;">
           <li>
-            <strong>Natural Language Write Engine:</strong> Type <code>add</code> or <code>logshift</code> followed by a natural sentence to skip the manual forms and instantly construct a backdated database log.
+            <strong>Natural Language Write Engine:</strong> Type <code>add</code> or <code>logshift</code> followed by a
+            natural sentence to skip the manual forms and instantly construct a backdated database log.
             <ul style="margin-top: 4px; padding-left: var(--space-4);">
               <li><strong>Absolute Ranges (12h/24h):</strong> <code>9am to 5pm</code>, <code>14:00 - 18:00</code></li>
               <li><strong>Explicit Durations:</strong> <code>8h 30m</code>, <code>4.5h</code>, <code>90m</code></li>
-              <li><strong>Relative & Absolute Dates:</strong> <code>yesterday</code>, <code>today</code>, <code>05/12</code>, <code>05/12/2026</code></li>
-              <li><strong>Collision Warnings:</strong> If a log already exists for the parsed date, the UI throws a bright ⚠️ Conflict warning.</li>
+              <li><strong>Relative & Absolute Dates:</strong> <code>yesterday</code>, <code>today</code>,
+                <code>05/12</code>, <code>05/12/2026</code>
+              </li>
+              <li><strong>Collision Warnings:</strong> If a log already exists for the parsed date, the UI throws a
+                bright ⚠️ Conflict warning.</li>
             </ul>
-            <span style="color: var(--text-muted); font-size: 0.85rem;">Example: Type <code>add yesterday 9am to 5pm worked on UI architecture</code>. It calculates 8 hours of work time for yesterday, injects the note, and displays a HUD button. Press Enter to instantly commit it.</span>
+            <span style="color: var(--text-muted); font-size: 0.85rem;">Example: Type
+              <code>add yesterday 9am to 5pm worked on UI architecture</code>. It calculates 8 hours of work time for
+              yesterday, injects the note, and displays a HUD button. Press Enter to instantly commit it.</span>
           </li>
           <li style="margin-top: var(--space-2);">
-            <strong>Deep Log Search Engine:</strong> Type <code>log</code> followed by any combination of filters (e.g. <code>>5h</code>, <code>last month</code>, <code>over</code>, plus custom text) to extract up to 5 matching database records directly into the HUD.
-            <br/><span style="color: var(--text-muted); font-size: 0.85rem;">Example: Type <code>log meeting >4h last month</code> to find long shifts with "meeting" in the notes from last month. Press Enter to copy it.</span>
+            <strong>Deep Log Search Engine:</strong> Type <code>log</code> followed by any combination of filters (e.g.
+            <code>>5h</code>, <code>last month</code>, <code>over</code>, plus custom text) to extract up to 5 matching
+            database records directly into the HUD.
+            <br /><span style="color: var(--text-muted); font-size: 0.85rem;">Example: Type
+              <code>log meeting >4h last month</code> to find long shifts with "meeting" in the notes from last month.
+              Press Enter to copy it.</span>
           </li>
           <li style="margin-top: var(--space-2);">
-            <strong>Interactive Log Quick-Edits:</strong> Type <code>edit</code> followed by a keyword to search past shifts. Hit Enter on a result to instantly transform the HUD into a quick-edit text field for modifying notes seamlessly.
+            <strong>Interactive Log Quick-Edits:</strong> Type <code>edit</code> followed by a keyword to search past
+            shifts. Hit Enter on a result to instantly transform the HUD into a quick-edit text field for modifying
+            notes seamlessly.
           </li>
           <li style="margin-top: var(--space-2);">
-            <strong>Dynamic Metrics Aggregation:</strong> Type <code>metrics</code> followed by a timeframe (<code>today</code>, <code>week</code>, <code>month</code>, <code>all</code>) to sum up your exact Work and Break hours.
+            <strong>Dynamic Metrics Aggregation:</strong> Type <code>metrics</code> followed by a timeframe
+            (<code>today</code>, <code>week</code>, <code>month</code>, <code>all</code>) to sum up your exact Work and
+            Break hours.
           </li>
           <li style="margin-top: var(--space-2);">
-            <strong>NLP Leave Engine:</strong> Type <code>leave</code> followed by a type and date to instantly book leave directly into the database.
-            <br/><span style="color: var(--text-muted); font-size: 0.85rem;">Example: Type <code>leave sick tomorrow</code>, <code>leave casual next monday</code>, or <code>leave holiday 12/25/2026</code> to bypass modal forms completely.</span>
+            <strong>NLP Leave Engine:</strong> Type <code>leave</code> followed by a type and date to instantly book
+            leave directly into the database.
+            <br /><span style="color: var(--text-muted); font-size: 0.85rem;">Example: Type
+              <code>leave sick tomorrow</code>, <code>leave casual next monday</code>, or
+              <code>leave holiday 12/25/2026</code> to bypass modal forms completely.</span>
           </li>
         </ul>
 
@@ -4733,29 +5036,38 @@
         <h4>Smart Quirks & Utilities</h4>
         <ul style="line-height: 1.6;">
           <li>
-            <strong>Zero-Type Dashboard:</strong> Simply pressing <strong>/</strong> without typing will contextually show your Live Session Timer card along with smart toggle defaults (like Pause/Resume) depending on whether you are working or resting.
+            <strong>Zero-Type Dashboard:</strong> Simply pressing <strong>/</strong> without typing will contextually
+            show your Live Session Timer card along with smart toggle defaults (like Pause/Resume) depending on whether
+            you are working or resting.
           </li>
           <li>
-            <strong>Live Theme Auditioning:</strong> Search for themes (e.g. <code>theme cobalt</code>) and simply use your Arrow Keys to preview them in real-time across the app before hitting Enter.
+            <strong>Live Theme Auditioning:</strong> Search for themes (e.g. <code>theme cobalt</code>) and simply use
+            your Arrow Keys to preview them in real-time across the app before hitting Enter.
           </li>
           <li>
-            <strong>Smart Goal Calculus:</strong> Type <code>goal</code> followed by your desired time (e.g. <code>goal 1h 30m</code>). The UI predictively calculates and displays what percentage of the new goal your current session completes.
+            <strong>Smart Goal Calculus:</strong> Type <code>goal</code> followed by your desired time (e.g.
+            <code>goal 1h 30m</code>). The UI predictively calculates and displays what percentage of the new goal your
+            current session completes.
           </li>
           <li>
             <strong>Dynamic Calculator:</strong> Type any math expression to instantly evaluate it.
-            <br/><span style="color: var(--text-muted); font-size: 0.85rem;">Example: Type <code>150 / 60</code> and press Enter to instantly copy <code>2.5</code> to your clipboard.</span>
+            <br /><span style="color: var(--text-muted); font-size: 0.85rem;">Example: Type <code>150 / 60</code> and
+              press Enter to instantly copy <code>2.5</code> to your clipboard.</span>
           </li>
           <li>
-            <strong>Fuzzy Search & Aliases:</strong> Type acronyms or synonyms. 
-            <br/><span style="color: var(--text-muted); font-size: 0.85rem;">Example: Type <code>sw</code> to find "Start Work", or <code>nuke</code> for "Wipe All Data".</span>
+            <strong>Fuzzy Search & Aliases:</strong> Type acronyms or synonyms.
+            <br /><span style="color: var(--text-muted); font-size: 0.85rem;">Example: Type <code>sw</code> to find
+              "Start Work", or <code>nuke</code> for "Wipe All Data".</span>
           </li>
           <li>
             <strong>Quick Shift Notes:</strong> Type <code>note</code> followed by text while working.
-            <br/><span style="color: var(--text-muted); font-size: 0.85rem;">Example: Type <code>note Fixed the backend bug</code>. It silently appends this note to your running timer.</span>
+            <br /><span style="color: var(--text-muted); font-size: 0.85rem;">Example: Type
+              <code>note Fixed the backend bug</code>. It silently appends this note to your running timer.</span>
           </li>
           <li>
             <strong>Web Search:</strong> Type <code>g</code> followed by a query.
-            <br/><span style="color: var(--text-muted); font-size: 0.85rem;">Example: Type <code>g css flexbox</code> to instantly open a Google tab.</span>
+            <br /><span style="color: var(--text-muted); font-size: 0.85rem;">Example: Type <code>g css flexbox</code>
+              to instantly open a Google tab.</span>
           </li>
         </ul>
       </div>
@@ -4780,7 +5092,8 @@
           <li><strong>Escape:</strong> Exits input fields, closes modal overlays, collapses the filter drawer, and
             deselects highlighted logs.</li>
           <li><strong>Tab:</strong> Navigates fields sequentially with focus traps active inside modals.</li>
-          <li><strong>Alt + K:</strong> Opens the Logbook search box and expands the advanced filters automatically.</li>
+          <li><strong>Alt + K:</strong> Opens the Logbook search box and expands the advanced filters automatically.
+          </li>
           <li><strong>Alt + N:</strong> Launches the Add Manual Log modal instantly.</li>
           <li><strong>Alt + T:</strong> Cycles through the four design themes (Onyx Black, Cobalt Glass, etc.).</li>
           <li><strong>Alt + Plus/Minus (= / -):</strong> Fine-tunes your Daily Goal by +/- 15 mins.</li>
@@ -5213,7 +5526,10 @@
     </div>
     <span id="app-toast-content">Message</span>
     <button class="toast-close-btn" onclick="closeAppToast()">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-cc177d5f"></use></svg>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round">
+        <use href="#icon-cc177d5f"></use>
+      </svg>
     </button>
   </div>
 
@@ -5250,7 +5566,10 @@
                 pointer-events: none;
               " />
           <button type="button" class="preset-pill" onclick="safeShowPicker('edit-date-picker')" title="Open Calendar">
-            <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" style=" width: 14px; height: 14px; stroke-width: 2; flex-shrink: 0; "><use href="#icon-6f90a674"></use></svg>
+            <svg viewBox="0 0 24 24" stroke="currentColor" fill="none"
+              style=" width: 14px; height: 14px; stroke-width: 2; flex-shrink: 0; ">
+              <use href="#icon-6f90a674"></use>
+            </svg>
           </button>
         </div>
       </div>
@@ -5293,7 +5612,8 @@
       <div class="form-group">
         <label class="form-label" for="manual-date">Date (MM/DD/YY)</label>
         <div class="date-picker-group">
-          <input type="text" id="manual-date" class="input-standard" placeholder="05/16/26" onfocus="this.select()" onkeydown="if (event.key === 'Enter') this.blur();" />
+          <input type="text" id="manual-date" class="input-standard" placeholder="05/16/26" onfocus="this.select()"
+            onkeydown="if (event.key === 'Enter') this.blur();" />
           <!-- Hidden native input triggered by button click -->
           <input type="date" id="manual-date-picker" style="
                 position: absolute;
@@ -5304,18 +5624,23 @@
               " />
           <button type="button" class="preset-pill" onclick="safeShowPicker('manual-date-picker')"
             title="Open Calendar">
-            <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" style=" width: 14px; height: 14px; stroke-width: 2; flex-shrink: 0; "><use href="#icon-6f90a674"></use></svg>
+            <svg viewBox="0 0 24 24" stroke="currentColor" fill="none"
+              style=" width: 14px; height: 14px; stroke-width: 2; flex-shrink: 0; ">
+              <use href="#icon-6f90a674"></use>
+            </svg>
           </button>
         </div>
       </div>
       <div class="form-row">
         <div class="form-group">
           <label class="form-label" for="manual-work">Work (HH:MM)</label>
-          <input type="text" id="manual-work" class="input-standard" placeholder="08:00" onfocus="this.select()" onkeydown="if (event.key === 'Enter') this.blur();" />
+          <input type="text" id="manual-work" class="input-standard" placeholder="08:00" onfocus="this.select()"
+            onkeydown="if (event.key === 'Enter') this.blur();" />
         </div>
         <div class="form-group">
           <label class="form-label" for="manual-break">Break (HH:MM)</label>
-          <input type="text" id="manual-break" class="input-standard" value="00:00" onfocus="this.select()" onkeydown="if (event.key === 'Enter') this.blur();" />
+          <input type="text" id="manual-break" class="input-standard" value="00:00" onfocus="this.select()"
+            onkeydown="if (event.key === 'Enter') this.blur();" />
         </div>
       </div>
       <div class="form-group">
@@ -5381,7 +5706,10 @@
   <div id="leave-modal" class="modal-overlay" style="z-index: 3500">
     <div class="modal-container modal-width-md accent-info" role="dialog" aria-modal="true">
       <h3 class="modal-header" style="white-space: nowrap; font-size: 1.05rem">
-        <svg viewBox="0 0 24 24" class="ui-icon" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-3a752b39"></use></svg>
+        <svg viewBox="0 0 24 24" class="ui-icon" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round">
+          <use href="#icon-3a752b39"></use>
+        </svg>
         Leaves & Holidays
       </h3>
 
@@ -5389,8 +5717,8 @@
       <div class="form-group">
         <label class="form-label" for="leave-date-input">Select Leave Date</label>
         <div class="date-picker-group">
-          <input type="text" id="leave-date-input" class="input-standard" placeholder="05/16/26"
-            onfocus="this.select()" onkeydown="if (event.key === 'Enter') this.blur();" />
+          <input type="text" id="leave-date-input" class="input-standard" placeholder="05/16/26" onfocus="this.select()"
+            onkeydown="if (event.key === 'Enter') this.blur();" />
           <!-- Hidden native input triggered by button click -->
           <input type="date" id="leave-date-picker" style="
                 position: absolute;
@@ -5400,7 +5728,10 @@
                 pointer-events: none;
               " />
           <button type="button" class="preset-pill" onclick="safeShowPicker('leave-date-picker')" title="Open Calendar">
-            <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" style=" width: 14px; height: 14px; stroke-width: 2; flex-shrink: 0; "><use href="#icon-6f90a674"></use></svg>
+            <svg viewBox="0 0 24 24" stroke="currentColor" fill="none"
+              style=" width: 14px; height: 14px; stroke-width: 2; flex-shrink: 0; ">
+              <use href="#icon-6f90a674"></use>
+            </svg>
           </button>
         </div>
       </div>
@@ -5452,62 +5783,97 @@
   <!-- Daily Goal Reached celebratory toast -->
   <div id="goal-toast">
     <div class="goal-icon">
-      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-4de7aa53"></use></svg>
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <use href="#icon-4de7aa53"></use>
+      </svg>
     </div>
     <span>Daily Goal Reached!</span>
     <span class="goal-tag" id="goal-toast-time">8.0h</span>
     <button class="toast-close-btn" onclick="closeGoalToast()">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-cc177d5f"></use></svg>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round">
+        <use href="#icon-cc177d5f"></use>
+      </svg>
     </button>
   </div>
 
   <!-- Heatmap Modal Overlay -->
-  <div id="heatmap-modal" class="modal-overlay" onclick="if(event.target === this) closeHeatmapModal();" style="z-index: 4000; align-items: center; justify-content: center; background: rgba(0,0,0,0.75); opacity: 0; display: none; transition: opacity 0.15s ease-out; cursor: pointer;">
+  <div id="heatmap-modal" class="modal-overlay" onclick="if(event.target === this) closeHeatmapModal();"
+    style="z-index: 4000; align-items: center; justify-content: center; background: rgba(0,0,0,0.75); opacity: 0; display: none; transition: opacity 0.15s ease-out; cursor: pointer;">
     <div class="modal-container" role="dialog" aria-modal="true" id="heatmap-container-anim"
       style="padding: var(--space-4); border-radius: var(--radius-xl); box-shadow: 0 25px 60px rgba(0, 0, 0, 0.4); background: var(--panel-bg); border: 1px solid var(--border-main); transform: scale(0.96) translateY(-10px); opacity: 0; transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease-out; overflow: hidden; cursor: default; width: max-content; max-width: 95vw; height: max-content;">
-      
-      <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border-light); padding-bottom: var(--space-3); margin-bottom: var(--space-3);">
-        <h3 style="margin: 0; display: flex; align-items: center; gap: 8px; font-family: var(--font-sans); color: var(--text-main); font-size: 1.25rem;">
-          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-cfe7f835"></use></svg>
+
+      <div
+        style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border-light); padding-bottom: var(--space-3); margin-bottom: var(--space-3);">
+        <h3
+          style="margin: 0; display: flex; align-items: center; gap: 8px; font-family: var(--font-sans); color: var(--text-main); font-size: 1.25rem;">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <use href="#icon-cfe7f835"></use>
+          </svg>
           365-Day Heatmap
         </h3>
-        <button class="toast-close-btn" onclick="closeHeatmapModal()" style="padding: 0; margin: 0; background: none; border: none; cursor: pointer; color: var(--text-muted);">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        <button class="toast-close-btn" onclick="closeHeatmapModal()"
+          style="padding: 0; margin: 0; background: none; border: none; cursor: pointer; color: var(--text-muted);">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
         </button>
       </div>
 
       <div style="display: flex; justify-content: space-between; margin-bottom: 16px; align-items: baseline;">
-        <span style="font-size: 0.9rem; color: var(--text-muted);">A comprehensive view of your daily work intensity over the past year.</span>
-        <span id="heatmap-streak" style="color: var(--text-main); font-weight: 500; font-size: 0.95rem; font-family: var(--font-sans);"></span>
-      </div>
-      
-      <div style="overflow-x: auto; overflow-y: hidden; padding: 6px 6px 12px 6px;">
-        <div id="heatmap-container" style="display: grid; grid-template-rows: repeat(7, 1fr); grid-auto-flow: column; gap: 5px; min-width: max-content;"></div>
+        <span style="font-size: 0.9rem; color: var(--text-muted);">A comprehensive view of your daily work intensity
+          over the past year.</span>
+        <span id="heatmap-streak"
+          style="color: var(--text-main); font-weight: 500; font-size: 0.95rem; font-family: var(--font-sans);"></span>
       </div>
 
-      <div style="display: flex; justify-content: flex-end; align-items: center; gap: 6px; font-size: 0.75rem; font-family: var(--font-sans); color: var(--text-muted); padding-top: 4px;">
+      <div style="overflow-x: auto; overflow-y: hidden; padding: 6px 6px 12px 6px;">
+        <div id="heatmap-container"
+          style="display: grid; grid-template-rows: repeat(7, 1fr); grid-auto-flow: column; gap: 5px; min-width: max-content;">
+        </div>
+      </div>
+
+      <div
+        style="display: flex; justify-content: flex-end; align-items: center; gap: 6px; font-size: 0.75rem; font-family: var(--font-sans); color: var(--text-muted); padding-top: 4px;">
         <span style="opacity: 0.85;">Less</span>
-        <div style="width: 12px; height: 12px; border-radius: 3px; background: color-mix(in srgb, var(--text-main) 8%, transparent);" title="No Activity"></div>
-        <div style="width: 12px; height: 12px; border-radius: 3px; background: color-mix(in srgb, var(--accent-blue) 30%, transparent);" title="Low Activity (< 50% Goal)"></div>
-        <div style="width: 12px; height: 12px; border-radius: 3px; background: color-mix(in srgb, var(--accent-work) 55%, var(--accent-blue));" title="Medium Activity (50% - 99% Goal)"></div>
-        <div style="width: 12px; height: 12px; border-radius: 3px; background: var(--accent-work);" title="Goal Met (100% Goal)"></div>
-        <div style="width: 12px; height: 12px; border-radius: 3px; background: color-mix(in srgb, var(--accent-work) 80%, var(--accent-warning));" title="Goal Exceeded (120%+ Goal)"></div>
+        <div
+          style="width: 12px; height: 12px; border-radius: 3px; background: color-mix(in srgb, var(--text-main) 8%, transparent);"
+          title="No Activity"></div>
+        <div
+          style="width: 12px; height: 12px; border-radius: 3px; background: color-mix(in srgb, var(--accent-blue) 30%, transparent);"
+          title="Low Activity (< 50% Goal)"></div>
+        <div
+          style="width: 12px; height: 12px; border-radius: 3px; background: color-mix(in srgb, var(--accent-work) 55%, var(--accent-blue));"
+          title="Medium Activity (50% - 99% Goal)"></div>
+        <div style="width: 12px; height: 12px; border-radius: 3px; background: var(--accent-work);"
+          title="Goal Met (100% Goal)"></div>
+        <div
+          style="width: 12px; height: 12px; border-radius: 3px; background: color-mix(in srgb, var(--accent-work) 80%, var(--accent-warning));"
+          title="Goal Exceeded (120%+ Goal)"></div>
         <span style="opacity: 0.85; margin-left: 2px;">More</span>
       </div>
-      
+
     </div>
   </div>
 
   <!-- Command HUD / Quick Palette Modal Overlay -->
-  <div id="hud-modal" class="modal-overlay" onclick="if(event.target === this) closeHudModal();" style="z-index: 5000; align-items: flex-start; padding-top: 15vh; background: rgba(0,0,0,0.75); opacity: 0; transition: opacity 0.15s ease-out; cursor: pointer;">
+  <div id="hud-modal" class="modal-overlay" onclick="if(event.target === this) closeHudModal();"
+    style="z-index: 5000; align-items: flex-start; padding-top: 15vh; background: rgba(0,0,0,0.75); opacity: 0; transition: opacity 0.15s ease-out; cursor: pointer;">
     <div class="modal-container modal-width-md accent-info" role="dialog" aria-modal="true" id="hud-container-anim"
       style="padding: var(--space-4); border-radius: var(--radius-xl); box-shadow: 0 25px 60px rgba(0, 0, 0, 0.4); background: var(--panel-bg); border: 1px solid var(--border-main); transform: scale(0.96) translateY(-10px); opacity: 0; transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease-out; overflow: hidden; cursor: default;">
       <div
         style="display: flex; align-items: center; border-bottom: 1px solid var(--border-light); padding-bottom: var(--space-3); margin-bottom: var(--space-3);">
-        <svg viewBox="0 0 24 24" fill="none" stroke="var(--accent-blue)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width: 20px; height: 20px; flex-shrink: 0; margin-right: var(--space-3);"><use href="#icon-56bb360a"></use></svg>
+        <svg viewBox="0 0 24 24" fill="none" stroke="var(--accent-blue)" stroke-width="2.5" stroke-linecap="round"
+          stroke-linejoin="round" style="width: 20px; height: 20px; flex-shrink: 0; margin-right: var(--space-3);">
+          <use href="#icon-56bb360a"></use>
+        </svg>
         <input type="text" id="hud-input" class="input-standard"
-          placeholder="What do you want to do? (e.g. 'sw' for work, '+15' for goal)"
-          autocomplete="off" spellcheck="false"
+          placeholder="What do you want to do? (e.g. 'sw' for work, '+15' for goal)" autocomplete="off"
+          spellcheck="false"
           style="border: none !important; background: transparent !important; padding: 0 !important; font-size: 1rem; font-family: var(--font-sans); width: 100%; box-shadow: none !important; outline: none !important;" />
         <span class="font-mono"
           style="font-size: 0.7rem; color: var(--text-muted); background: var(--element-bg); padding: 4px 8px; border-radius: 6px; border: 1px solid var(--border-main); flex-shrink: 0; user-select: none; margin-left: var(--space-2); font-weight: bold;">ESC</span>
@@ -5539,7 +5905,10 @@
           <div class="tz-container">
             <div class="tz-trigger" tabindex="0">
               <!-- Inline chevron SVG matching the goal control chevron -->
-              <svg class="tz-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-a3f67e4d"></use></svg>
+              <svg class="tz-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <use href="#icon-a3f67e4d"></use>
+              </svg>
               <span id="tz-current-label">PST</span>
             </div>
             <div class="tz-presets">
@@ -5571,7 +5940,10 @@
               <input type="text" id="goal-time" class="input-standard" value="8h 0m" onfocus="this.select()" />
               <input type="hidden" id="goal-hours" value="8" />
               <input type="hidden" id="goal-mins" value="0" />
-              <svg class="goal-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+              <svg class="goal-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
             </div>
             <div class="goal-presets">
               <!-- Adjustment Button -->
@@ -5598,27 +5970,42 @@
           <div class="theme-container">
             <button class="theme-toggle-btn" aria-label="Toggle Theme" style="gap: 6px">
               <span id="theme-toggle-icon" style="display: flex; align-items: center"></span>
-              <svg class="goal-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+              <svg class="goal-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
             </button>
             <div class="theme-presets">
               <button class="preset-pill" onclick="setThemeDirect('cobalt-glass')"
                 style="display: inline-flex; align-items: center; gap: 8px">
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style=" color: #38bdf8; "><use href="#icon-3c1c2eb6"></use></svg>
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round" style=" color: #38bdf8; ">
+                  <use href="#icon-3c1c2eb6"></use>
+                </svg>
                 Cobalt Glass
               </button>
               <button class="preset-pill" onclick="setThemeDirect('onyx-black')"
                 style="display: inline-flex; align-items: center; gap: 8px">
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style=" color: #8e8e93; "><use href="#icon-cebb1e32"></use></svg>
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round" style=" color: #8e8e93; ">
+                  <use href="#icon-cebb1e32"></use>
+                </svg>
                 Onyx Black
               </button>
               <button class="preset-pill" onclick="setThemeDirect('sf-light')"
                 style="display: inline-flex; align-items: center; gap: 8px">
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style=" color: #ff9500; "><use href="#icon-47bc3e7c"></use></svg>
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round" style=" color: #ff9500; ">
+                  <use href="#icon-47bc3e7c"></use>
+                </svg>
                 SF Light
               </button>
               <button class="preset-pill" onclick="setThemeDirect('sf-dark')"
                 style="display: inline-flex; align-items: center; gap: 8px">
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style=" color: #818cf8; "><use href="#icon-c86d529b"></use></svg>
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round" style=" color: #818cf8; ">
+                  <use href="#icon-c86d529b"></use>
+                </svg>
                 SF Dark
               </button>
             </div>
@@ -5660,15 +6047,24 @@
       <!-- Dynamic Active Session Controllers -->
       <div class="actions">
         <button id="start-btn" class="btn-work">
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><use href="#icon-b1233e9f"></use></svg>
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0">
+            <use href="#icon-b1233e9f"></use>
+          </svg>
           <span>Work</span>
         </button>
         <button id="pause-btn" class="btn-break">
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><use href="#icon-d140e762"></use></svg>
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0">
+            <use href="#icon-d140e762"></use>
+          </svg>
           <span>Break</span>
         </button>
         <button id="submit-btn" class="btn-log" onclick="openSubmitModal()">
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><use href="#icon-698f6a1b"></use></svg>
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0">
+            <use href="#icon-698f6a1b"></use>
+          </svg>
           <span>End Shift</span>
         </button>
       </div>
@@ -5691,14 +6087,21 @@
         <div class="logbook-controls-header">
           <div style="display: flex; gap: 8px; align-items: center">
             <!-- Toggle Filters Button -->
-            <button class="header-icon-btn" id="filter-toggle-btn" onclick="toggleFilters()" title="Advanced Filters" aria-label="Icon Button">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><use href="#icon-fd86eb48"></use></svg>
+            <button class="header-icon-btn" id="filter-toggle-btn" onclick="toggleFilters()" title="Advanced Filters"
+              aria-label="Icon Button">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round" width="14" height="14">
+                <use href="#icon-fd86eb48"></use>
+              </svg>
               Filters
             </button>
 
             <!-- Manual Log Addition Button -->
-            <button class="header-icon-btn" onclick="openManualModal()" title="Add Manual Entry" aria-label="Icon Button">
-              <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2.5" width="14" height="14"><use href="#icon-36af783a"></use></svg>
+            <button class="header-icon-btn" onclick="openManualModal()" title="Add Manual Entry"
+              aria-label="Icon Button">
+              <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2.5" width="14" height="14">
+                <use href="#icon-36af783a"></use>
+              </svg>
               Add Log
             </button>
           </div>
@@ -5772,7 +6175,13 @@
                       justify-content: center;
                       flex-shrink: 0;
                     " title="Open Calendar">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 12px; height: 12px;"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                    stroke-linejoin="round" style="width: 12px; height: 12px;">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                    <line x1="16" y1="2" x2="16" y2="6"></line>
+                    <line x1="8" y1="2" x2="8" y2="6"></line>
+                    <line x1="3" y1="10" x2="21" y2="10"></line>
+                  </svg>
                 </button>
               </div>
               <div style="
@@ -5810,7 +6219,13 @@
                       justify-content: center;
                       flex-shrink: 0;
                     " title="Open Calendar">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 12px; height: 12px;"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                    stroke-linejoin="round" style="width: 12px; height: 12px;">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                    <line x1="16" y1="2" x2="16" y2="6"></line>
+                    <line x1="8" y1="2" x2="8" y2="6"></line>
+                    <line x1="3" y1="10" x2="21" y2="10"></line>
+                  </svg>
                 </button>
               </div>
             </div>
@@ -6071,7 +6486,10 @@
                   align-items: center;
                   justify-content: center;
                 " aria-label="Icon Button">
-              <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2.5" style="width: 12px; height: 12px"><use href="#icon-d76bcc50"></use></svg>
+              <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2.5"
+                style="width: 12px; height: 12px">
+                <use href="#icon-d76bcc50"></use>
+              </svg>
             </button>
 
             <!-- Week Month Label (Double-click to jump to today/current week) -->
@@ -6088,7 +6506,10 @@
                   align-items: center;
                   justify-content: center;
                 " aria-label="Icon Button">
-              <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2.5" style="width: 12px; height: 12px"><use href="#icon-7da9ac84"></use></svg>
+              <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2.5"
+                style="width: 12px; height: 12px">
+                <use href="#icon-7da9ac84"></use>
+              </svg>
             </button>
           </div>
         </div>
@@ -6103,21 +6524,27 @@
         <div class="footer-icons">
           <div class="icon-stack">
             <button aria-label="Export CSV" class="icon-btn sq-btn" onclick="exportCSV()" aria-label="Icon Button">
-              <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2"><use href="#icon-0b357eda"></use></svg>
+              <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2">
+                <use href="#icon-0b357eda"></use>
+              </svg>
             </button>
             <span class="icon-tag">CSV</span>
           </div>
 
           <div class="icon-stack">
             <button aria-label="Copy Logs" class="icon-btn sq-btn" onclick="copyLog()" aria-label="Icon Button">
-              <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2"><use href="#icon-f699d873"></use></svg>
+              <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2">
+                <use href="#icon-f699d873"></use>
+              </svg>
             </button>
             <span class="icon-tag">Copy</span>
           </div>
 
           <div class="icon-stack">
             <button aria-label="Backup JSON" class="icon-btn sq-btn" onclick="exportJSON()" aria-label="Icon Button">
-              <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2"><use href="#icon-d0747b80"></use></svg>
+              <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2">
+                <use href="#icon-d0747b80"></use>
+              </svg>
             </button>
             <span class="icon-tag">Save</span>
           </div>
@@ -6125,13 +6552,16 @@
           <div class="icon-stack">
             <button aria-label="Restore JSON" class="icon-btn sq-btn"
               onclick="document.getElementById('import-file').click()" aria-label="Icon Button">
-              <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2"><use href="#icon-459ec513"></use></svg>
+              <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2">
+                <use href="#icon-459ec513"></use>
+              </svg>
             </button>
             <span class="icon-tag">Load</span>
           </div>
 
           <div class="icon-stack">
-            <button aria-label="Manage Leaves & Holidays" class="icon-btn sq-btn" onclick="openLeaveModal()" aria-label="Icon Button">
+            <button aria-label="Manage Leaves & Holidays" class="icon-btn sq-btn" onclick="openLeaveModal()"
+              aria-label="Icon Button">
               <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2">
                 <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
                 <line x1="16" y1="2" x2="16" y2="6"></line>
@@ -6143,8 +6573,10 @@
           </div>
 
           <div class="icon-stack">
-            <button aria-label="Consistency Heatmap" class="icon-btn sq-btn" onclick="openHeatmapModal()" aria-label="Icon Button">
-              <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <button aria-label="Consistency Heatmap" class="icon-btn sq-btn" onclick="openHeatmapModal()"
+              aria-label="Icon Button">
+              <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
                 <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
                 <line x1="3" y1="9" x2="21" y2="9"></line>
                 <line x1="9" y1="21" x2="9" y2="9"></line>
@@ -6154,8 +6586,11 @@
           </div>
 
           <div class="icon-stack">
-            <button aria-label="User Guide & Help" class="icon-btn sq-btn" id="help-btn" onclick="openHelpModal()" aria-label="Icon Button">
-              <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2"><use href="#icon-6bf1980a"></use></svg>
+            <button aria-label="User Guide & Help" class="icon-btn sq-btn" id="help-btn" onclick="openHelpModal()"
+              aria-label="Icon Button">
+              <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2">
+                <use href="#icon-6bf1980a"></use>
+              </svg>
             </button>
             <span class="icon-tag">Help</span>
           </div>
@@ -6163,7 +6598,10 @@
           <div class="icon-stack">
             <button aria-label="Application Settings" class="icon-btn sq-btn" id="settings-config-btn"
               onclick="toggleSettingsPopup(event)" aria-label="Icon Button">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-a0221e6f"></use></svg>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
+                <use href="#icon-a0221e6f"></use>
+              </svg>
             </button>
             <span class="icon-tag">Settings</span>
 
@@ -6290,8 +6728,11 @@
           <!-- This closing div was missing and fixes the stacking issue! -->
 
           <div class="icon-stack">
-            <button aria-label="Factory Reset" class="icon-btn sq-btn danger-icon" onclick="clearAllData()" aria-label="Icon Button">
-              <svg viewBox="0 0 24 24" stroke="#f87171" fill="none" stroke-width="2"><use href="#icon-dc2cf02d"></use></svg>
+            <button aria-label="Factory Reset" class="icon-btn sq-btn danger-icon" onclick="clearAllData()"
+              aria-label="Icon Button">
+              <svg viewBox="0 0 24 24" stroke="#f87171" fill="none" stroke-width="2">
+                <use href="#icon-dc2cf02d"></use>
+              </svg>
             </button>
             <span class="icon-tag" style="color: var(--accent-break)">Wipe</span>
           </div>
@@ -6306,69 +6747,128 @@
        ========================================================================= -->
   <div id="mobile-menu-view">
     <h2 class="mobile-menu-header">Settings & Tools</h2>
-    
+
     <div class="mobile-list-group">
       <div class="mobile-list-item" onclick="document.querySelector('.theme-container').click()">
-        <div class="mobile-list-icon"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-5c61686e"></use></svg></div>
+        <div class="mobile-list-icon"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor"
+            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <use href="#icon-5c61686e"></use>
+          </svg></div>
         <div class="mobile-list-text">Theme</div>
-        <div class="mobile-list-chevron"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg></div>
+        <div class="mobile-list-chevron"><svg viewBox="0 0 24 24" width="18" height="18" fill="none"
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="9 18 15 12 9 6"></polyline>
+          </svg></div>
       </div>
       <div class="mobile-list-item" onclick="document.querySelector('.tz-container').click()">
-        <div class="mobile-list-icon"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-04fa1773"></use></svg></div>
+        <div class="mobile-list-icon"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor"
+            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <use href="#icon-04fa1773"></use>
+          </svg></div>
         <div class="mobile-list-text">Timezone</div>
-        <div class="mobile-list-chevron"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg></div>
+        <div class="mobile-list-chevron"><svg viewBox="0 0 24 24" width="18" height="18" fill="none"
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="9 18 15 12 9 6"></polyline>
+          </svg></div>
       </div>
       <div class="mobile-list-item" onclick="document.querySelector('.goal-container').click()">
-        <div class="mobile-list-icon"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-4de7aa53"></use></svg></div>
+        <div class="mobile-list-icon"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor"
+            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <use href="#icon-4de7aa53"></use>
+          </svg></div>
         <div class="mobile-list-text">Daily Goal</div>
-        <div class="mobile-list-chevron"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg></div>
+        <div class="mobile-list-chevron"><svg viewBox="0 0 24 24" width="18" height="18" fill="none"
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="9 18 15 12 9 6"></polyline>
+          </svg></div>
       </div>
       <div class="mobile-list-item" onclick="toggleSettingsPopup(event)">
-        <div class="mobile-list-icon"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-a0221e6f"></use></svg></div>
+        <div class="mobile-list-icon"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor"
+            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <use href="#icon-a0221e6f"></use>
+          </svg></div>
         <div class="mobile-list-text">Advanced Settings</div>
-        <div class="mobile-list-chevron"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg></div>
+        <div class="mobile-list-chevron"><svg viewBox="0 0 24 24" width="18" height="18" fill="none"
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="9 18 15 12 9 6"></polyline>
+          </svg></div>
       </div>
     </div>
 
     <div class="mobile-list-group">
       <div class="mobile-list-item" onclick="openLeaveModal()">
-        <div class="mobile-list-icon"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg></div>
+        <div class="mobile-list-icon"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor"
+            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+            <line x1="16" y1="2" x2="16" y2="6"></line>
+            <line x1="8" y1="2" x2="8" y2="6"></line>
+            <line x1="3" y1="10" x2="21" y2="10"></line>
+          </svg></div>
         <div class="mobile-list-text">Leaves & Holidays</div>
-        <div class="mobile-list-chevron"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg></div>
+        <div class="mobile-list-chevron"><svg viewBox="0 0 24 24" width="18" height="18" fill="none"
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="9 18 15 12 9 6"></polyline>
+          </svg></div>
       </div>
       <div class="mobile-list-item" onclick="openHeatmapModal()">
-        <div class="mobile-list-icon"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="21"></line></svg></div>
+        <div class="mobile-list-icon"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor"
+            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+            <line x1="3" y1="9" x2="21" y2="9"></line>
+            <line x1="9" y1="21" x2="9" y2="21"></line>
+          </svg></div>
         <div class="mobile-list-text">Consistency Heatmap</div>
-        <div class="mobile-list-chevron"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg></div>
+        <div class="mobile-list-chevron"><svg viewBox="0 0 24 24" width="18" height="18" fill="none"
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="9 18 15 12 9 6"></polyline>
+          </svg></div>
       </div>
     </div>
 
     <div class="mobile-list-group">
       <div class="mobile-list-item" onclick="exportCSV()">
-        <div class="mobile-list-icon"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-0b357eda"></use></svg></div>
+        <div class="mobile-list-icon"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor"
+            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <use href="#icon-0b357eda"></use>
+          </svg></div>
         <div class="mobile-list-text">Export CSV</div>
       </div>
       <div class="mobile-list-item" onclick="copyLog()">
-        <div class="mobile-list-icon"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-f699d873"></use></svg></div>
+        <div class="mobile-list-icon"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor"
+            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <use href="#icon-f699d873"></use>
+          </svg></div>
         <div class="mobile-list-text">Copy Logs Summary</div>
       </div>
       <div class="mobile-list-item" onclick="exportJSON()">
-        <div class="mobile-list-icon"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-d0747b80"></use></svg></div>
+        <div class="mobile-list-icon"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor"
+            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <use href="#icon-d0747b80"></use>
+          </svg></div>
         <div class="mobile-list-text">Backup Data (JSON)</div>
       </div>
       <div class="mobile-list-item" onclick="document.getElementById('import-file').click()">
-        <div class="mobile-list-icon"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-459ec513"></use></svg></div>
+        <div class="mobile-list-icon"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor"
+            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <use href="#icon-459ec513"></use>
+          </svg></div>
         <div class="mobile-list-text">Restore Data (JSON)</div>
       </div>
     </div>
 
     <div class="mobile-list-group">
       <div class="mobile-list-item" onclick="openHelpModal()">
-        <div class="mobile-list-icon"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-6bf1980a"></use></svg></div>
+        <div class="mobile-list-icon"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor"
+            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <use href="#icon-6bf1980a"></use>
+          </svg></div>
         <div class="mobile-list-text">User Guide & Help</div>
       </div>
       <div class="mobile-list-item" onclick="clearAllData()" style="color: var(--accent-break);">
-        <div class="mobile-list-icon"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-dc2cf02d"></use></svg></div>
+        <div class="mobile-list-icon"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor"
+            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <use href="#icon-dc2cf02d"></use>
+          </svg></div>
         <div class="mobile-list-text">Factory Reset</div>
       </div>
     </div>
@@ -6379,19 +6879,31 @@
        ========================================================================= -->
   <nav id="mobile-bottom-nav">
     <button class="mobile-nav-btn active" data-mobile-target="tracker" onclick="switchMobileTab('tracker')">
-      <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-04fa1773"></use></svg>
+      <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round">
+        <use href="#icon-04fa1773"></use>
+      </svg>
       <span>Tracker</span>
     </button>
     <button class="mobile-nav-btn" data-mobile-target="logbook" onclick="switchMobileTab('logbook')">
-      <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-265dafd3"></use></svg>
+      <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round">
+        <use href="#icon-265dafd3"></use>
+      </svg>
       <span>Logbook</span>
     </button>
     <button class="mobile-nav-btn" data-mobile-target="insights" onclick="switchMobileTab('insights')">
-      <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-df363be2"></use></svg>
+      <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round">
+        <use href="#icon-df363be2"></use>
+      </svg>
       <span>Insights</span>
     </button>
     <button class="mobile-nav-btn" data-mobile-target="menu" onclick="switchMobileTab('menu')">
-      <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-a0221e6f"></use></svg>
+      <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round">
+        <use href="#icon-a0221e6f"></use>
+      </svg>
       <span>Menu</span>
     </button>
   </nav>
@@ -6400,165 +6912,166 @@
     // =========================================================================
     // V5 UTILITY FUNCTIONS (INLINED)
     // ==========================================
-/**
- * V5 Utility Functions
- * Contains pure functions separated from DOM for testability.
- */
+    /**
+     * V5 Utility Functions
+     * Contains pure functions separated from DOM for testability.
+     */
 
-function formatDuration(sec) {
-  if (isNaN(sec)) return "00:00:00";
-  // Add a microscopic 1-nanosecond buffer (1e-9) before flooring.
-  // This neutralizes IEEE 754 precision drift without causing clock jitter.
-  sec = Math.max(0, Math.floor(sec + 1e-9));
-  const h = Math.floor(sec / 3600).toString().padStart(2, "0");
-  const m = Math.floor((sec % 3600) / 60).toString().padStart(2, "0");
-  const s = Math.floor(sec % 60).toString().padStart(2, "0");
-  return `${h}:${m}:${s}`;
-}
-
-function parseTime(str) {
-  if (!str || typeof str !== "string") return null;
-  const p = str.trim().split(":");
-  let h = 0, m = 0, s = 0;
-  if (p.length === 2) {
-    h = parseInt(p[0], 10);
-    m = parseInt(p[1], 10);
-    if (isNaN(h) || isNaN(m) || h < 0 || m < 0) return null;
-    return h * 3600 + m * 60;
-  } else if (p.length === 3) {
-    h = parseInt(p[0], 10);
-    m = parseInt(p[1], 10);
-    s = parseInt(p[2], 10);
-    if (isNaN(h) || isNaN(m) || isNaN(s) || h < 0 || m < 0 || s < 0) return null;
-    return h * 3600 + m * 60 + s;
-  }
-  return null;
-}
-
-function formatFriendlyDuration(sec, emptyPlaceholder = '<span style="opacity: 0.25; font-weight: 400;">-</span>') {
-  if (sec === undefined || sec === null || sec <= 0) return emptyPlaceholder;
-  sec = Math.floor(sec);
-  const h = Math.floor(sec / 3600);
-  const m = Math.floor((sec % 3600) / 60);
-  const s = sec % 60;
-  if (h > 0) {
-    return m > 0 ? `${h}h ${m}m` : `${h}h`;
-  } else {
-    if (m > 0) {
-      return s > 0 ? `${m}m ${s}s` : `${m}m`;
-    } else {
-      return s > 0 ? `${s}s` : emptyPlaceholder;
+    function formatDuration(sec) {
+      if (isNaN(sec)) return "00:00:00";
+      // Add a microscopic 1-nanosecond buffer (1e-9) before flooring.
+      // This neutralizes IEEE 754 precision drift without causing clock jitter.
+      sec = Math.max(0, Math.floor(sec + 1e-9));
+      const h = Math.floor(sec / 3600).toString().padStart(2, "0");
+      const m = Math.floor((sec % 3600) / 60).toString().padStart(2, "0");
+      const s = Math.floor(sec % 60).toString().padStart(2, "0");
+      return `${h}:${m}:${s}`;
     }
-  }
-}
 
-function escapeHTML(str) {
-  if (!str) return "";
-  return String(str).replace(/[&<>'"]/g, (tag) => ({
-    "&": "&amp;",
-    "<": "&lt;",
-    ">": "&gt;",
-    "'": "&#39;",
-    '"': "&quot;",
-  })[tag] || tag);
-}
-
-function parseGoalTimeStr(val) {
-  let hh = 0;
-  let mm = 0;
-  const cleanVal = String(val).trim().replace(",", ".");
-  if (!cleanVal) return { hh: 8, mm: 0 };
-  const naturalMatch = cleanVal.match(/^(?:(\d+(?:\.\d+)?)\s*h)?\s*(?:(\d+)\s*m)?$/i);
-  const colonMatch = cleanVal.match(/^(\d+):(\d{1,2})$/);
-  const decimalMatch = cleanVal.match(/^(\d+(?:\.\d+))$/);
-  if (colonMatch) {
-    hh = parseInt(colonMatch[1], 10);
-    mm = parseInt(colonMatch[2], 10);
-  } else if (decimalMatch) {
-    const total = parseFloat(decimalMatch[1]);
-    hh = Math.floor(total);
-    mm = Math.round((total - hh) * 60);
-  } else if (naturalMatch && (naturalMatch[1] || naturalMatch[2])) {
-    const rawH = parseFloat(naturalMatch[1] || 0);
-    hh = Math.floor(rawH);
-    mm = Math.round((rawH - hh) * 60) + parseInt(naturalMatch[2] || 0, 10);
-  } else {
-    const digits = cleanVal.replace(/\D/g, "");
-    if (digits) {
-      if (digits.length <= 2) { hh = parseInt(digits, 10) || 0; mm = 0; }
-      else if (digits.length === 3) { hh = parseInt(digits.slice(0, 1), 10) || 0; mm = parseInt(digits.slice(1), 10) || 0; }
-      else { hh = parseInt(digits.slice(0, 2), 10) || 0; mm = parseInt(digits.slice(2, 4), 10) || 0; }
-    } else { hh = 8; }
-  }
-  hh += Math.floor(mm / 60);
-  mm = mm % 60;
-  hh = Math.min(24, Math.max(0, hh));
-  mm = Math.min(59, Math.max(0, mm));
-  return { hh, mm };
-}
-
-function getGoalSeconds(h, m) {
-  const hVal = Math.max(0, parseFloat(h) || 0);
-  const mVal = Math.max(0, parseFloat(m) || 0);
-  const total = hVal * 3600 + mVal * 60;
-  return total > 0 ? total : 1;
-}
-
-function parseTimeToMinutes(timeStr) {
-  if (!timeStr || timeStr === "Manual" || timeStr === "Entry" || timeStr === "—" || timeStr === "-") return null;
-  const match = String(timeStr).match(/^(\d{2}):(\d{2})\s*(AM|PM)$/i);
-  if (!match) return null;
-  let hours = parseInt(match[1], 10);
-  const minutes = parseInt(match[2], 10);
-  const ampm = match[3].toUpperCase();
-  if (ampm === "PM" && hours < 12) hours += 12;
-  if (ampm === "AM" && hours === 12) hours = 0;
-  return hours * 60 + minutes;
-}
-
-function debounce(func, wait) {
-  let timeout;
-  return function (...args) {
-    clearTimeout(timeout);
-    timeout = setTimeout(() => func.apply(this, args), wait);
-  };
-}
-
-function hudFuzzyScore(query, target) {
-  if (!query || !target) return 0;
-  const q = String(query).toLowerCase();
-  const t = String(target).toLowerCase();
-  
-  let qIdx = 0;
-  let tIdx = 0;
-  let score = 0;
-  let consecutive = 0;
-  
-  while (qIdx < q.length && tIdx < t.length) {
-    if (q[qIdx] === t[tIdx]) {
-      score += 10;
-      score += consecutive * 5; 
-      
-      if (tIdx === 0 || t[tIdx - 1] === ' ' || t[tIdx - 1] === '-') {
-        score += 15;
+    function parseTime(str) {
+      if (!str || typeof str !== "string") return null;
+      const p = str.trim().split(":");
+      let h = 0, m = 0, s = 0;
+      if (p.length === 2) {
+        h = parseInt(p[0], 10);
+        m = parseInt(p[1], 10);
+        if (isNaN(h) || isNaN(m) || h < 0 || m < 0) return null;
+        return h * 3600 + m * 60;
+      } else if (p.length === 3) {
+        h = parseInt(p[0], 10);
+        m = parseInt(p[1], 10);
+        s = parseInt(p[2], 10);
+        if (isNaN(h) || isNaN(m) || isNaN(s) || h < 0 || m < 0 || s < 0) return null;
+        return h * 3600 + m * 60 + s;
       }
-      
-      consecutive++;
-      qIdx++;
-    } else {
-      consecutive = 0;
-      score -= 1; 
+      return null;
     }
-    tIdx++;
-  }
-  
-  if (qIdx < q.length) return 0; 
-  
-  if (t.includes(q)) score += 20;
-  if (t === q) score += 50;
-  
-  return Math.max(0, score);
-}
+
+    function formatFriendlyDuration(sec, emptyPlaceholder = '<span style="opacity: 0.25; font-weight: 400;">-</span>') {
+      if (sec === undefined || sec === null || sec <= 0) return emptyPlaceholder;
+      sec = Math.floor(sec);
+      const h = Math.floor(sec / 3600);
+      const m = Math.floor((sec % 3600) / 60);
+      const s = sec % 60;
+      if (h > 0) {
+        return m > 0 ? `${h}h ${m}m` : `${h}h`;
+      } else {
+        if (m > 0) {
+          return s > 0 ? `${m}m ${s}s` : `${m}m`;
+        } else {
+          return s > 0 ? `${s}s` : emptyPlaceholder;
+        }
+      }
+    }
+
+    function escapeHTML(str) {
+      if (!str) return "";
+      return String(str).replace(/[&<>'"]/g, (tag) => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        "'": "&#39;",
+        '"': "&quot;",
+      })[tag] || tag);
+    }
+
+    function parseGoalTimeStr(val) {
+      let hh = 0;
+      let mm = 0;
+      const cleanVal = String(val).trim().replace(",", ".");
+      if (!cleanVal) return { hh: 8, mm: 0 };
+      const naturalMatch = cleanVal.match(/^(?:(\d+(?:\.\d+)?)\s*h)?\s*(?:(\d+)\s*m)?$/i);
+      const colonMatch = cleanVal.match(/^(\d+):(\d{1,2})$/);
+      const decimalMatch = cleanVal.match(/^(\d+(?:\.\d+))$/);
+      if (colonMatch) {
+        hh = parseInt(colonMatch[1], 10);
+        mm = parseInt(colonMatch[2], 10);
+      } else if (decimalMatch) {
+        const total = parseFloat(decimalMatch[1]);
+        hh = Math.floor(total);
+        mm = Math.round((total - hh) * 60);
+      } else if (naturalMatch && (naturalMatch[1] || naturalMatch[2])) {
+        const rawH = parseFloat(naturalMatch[1] || 0);
+        hh = Math.floor(rawH);
+        mm = Math.round((rawH - hh) * 60) + parseInt(naturalMatch[2] || 0, 10);
+      } else {
+        const digits = cleanVal.replace(/\D/g, "");
+        if (digits) {
+          if (digits.length <= 2) { hh = parseInt(digits, 10) || 0; mm = 0; }
+          else if (digits.length === 3) { hh = parseInt(digits.slice(0, 1), 10) || 0; mm = parseInt(digits.slice(1), 10) || 0; }
+          else { hh = parseInt(digits.slice(0, 2), 10) || 0; mm = parseInt(digits.slice(2, 4), 10) || 0; }
+        } else { hh = 8; }
+      }
+      hh += Math.floor(mm / 60);
+      mm = mm % 60;
+      hh = Math.min(24, Math.max(0, hh));
+      mm = Math.min(59, Math.max(0, mm));
+      return { hh, mm };
+    }
+
+    function getGoalSeconds(h, m) {
+      const hVal = Math.max(0, parseFloat(h) || 0);
+      const mVal = Math.max(0, parseFloat(m) || 0);
+      const total = hVal * 3600 + mVal * 60;
+      return total > 0 ? total : 1;
+    }
+
+    function parseTimeToMinutes(timeStr) {
+      if (!timeStr || timeStr === "Manual" || timeStr === "Entry" || timeStr === "—" || timeStr === "-") return null;
+      const match = String(timeStr).match(/^(\d{2}):(\d{2})\s*(AM|PM)$/i);
+      if (!match) return null;
+      let hours = parseInt(match[1], 10);
+      const minutes = parseInt(match[2], 10);
+      const ampm = match[3].toUpperCase();
+      if (ampm === "PM" && hours < 12) hours += 12;
+      if (ampm === "AM" && hours === 12) hours = 0;
+      return hours * 60 + minutes;
+    }
+
+    function debounce(func, wait) {
+      let timeout;
+      return function (...args) {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => func.apply(this, args), wait);
+      };
+    }
+
+    function hudFuzzyScore(query, target) {
+      if (!query || !target) return 0;
+      const q = String(query).toLowerCase();
+      const t = String(target).toLowerCase();
+
+      let qIdx = 0;
+      let tIdx = 0;
+      let score = 0;
+      let consecutive = 0;
+
+      while (qIdx < q.length && tIdx < t.length) {
+        if (q[qIdx] === t[tIdx]) {
+          score += 10;
+          score += consecutive * 5;
+
+          if (tIdx === 0 || t[tIdx - 1] === ' ' || t[tIdx - 1] === '-') {
+            score += 15;
+          }
+
+          consecutive++;
+          qIdx++;
+        } else {
+          consecutive = 0;
+          score -= 1;
+        }
+        tIdx++;
+      }
+
+      if (qIdx < q.length) return 0;
+
+      if (t.includes(q)) score += 20;
+      if (t === q) score += 50;
+
+      return Math.max(0, score);
+    }
+
 
 
 
@@ -9739,10 +10252,10 @@ function hudFuzzyScore(query, target) {
       const container = document.getElementById("heatmap-container");
       const streakEl = document.getElementById("heatmap-streak");
       if (!container) return;
-      
+
       const allLogs = typeof getLogs === 'function' ? getLogs() : [];
       const leaves = typeof getLeaveDates === 'function' ? getLeaveDates() : [];
-      
+
       const heatmapMap = {};
       allLogs.forEach(l => {
         if (!heatmapMap[l.date]) heatmapMap[l.date] = { w: 0, goal: l.dayGoal || 28800 };
@@ -9752,69 +10265,69 @@ function hudFuzzyScore(query, target) {
         if (!heatmapMap[l.date]) heatmapMap[l.date] = { w: 0, goal: 28800, isLeave: true, type: l.type };
         else { heatmapMap[l.date].isLeave = true; heatmapMap[l.date].type = l.type; }
       });
-      
+
       const today = new Date();
       const startDay = new Date(today);
       startDay.setDate(today.getDate() - 364);
       startDay.setDate(startDay.getDate() - startDay.getDay()); // Snap to nearest Sunday
-      
+
       const totalDays = Math.floor((today - startDay) / 86400000) + 1;
       let html = "";
-      
-      for(let i = 0; i < totalDays; i++) {
-         const d = new Date(startDay);
-         d.setTime(startDay.getTime() + i * 86400000);
-         const dateKey = `${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}/${String(d.getFullYear()).slice(-2)}`;
-         
-         let bg = "color-mix(in srgb, var(--text-main) 8%, transparent)";
-         let title = `${dateKey}: No Data`;
-         
-         const data = heatmapMap[dateKey];
-         if (data) {
-           if (data.isLeave) {
-             bg = "var(--accent-warning)";
-             title = `${dateKey}: ${data.type} Leave`;
-           } else {
-             const ratio = data.w / data.goal;
-             if (ratio >= 1.2) {
-                bg = "color-mix(in srgb, var(--accent-work) 80%, var(--accent-warning))";
-              } else if (ratio >= 1) {
-                bg = "var(--accent-work)";
-              } else if (ratio >= 0.5) {
-                bg = "color-mix(in srgb, var(--accent-work) 55%, var(--accent-blue))";
-              } else if (ratio > 0) {
-                bg = "color-mix(in srgb, var(--accent-blue) 30%, transparent)";
-              }
-             title = `${dateKey}: ${typeof formatDuration === 'function' ? formatDuration(data.w) : data.w}`;
-           }
-         }
-         html += `<div style="width: 14px; height: 14px; border-radius: 3px; background: ${bg}; transition: transform 0.1s ease; cursor: crosshair;" title="${title}" onmouseover="this.style.transform='scale(1.3)'" onmouseout="this.style.transform='scale(1)'"></div>`;
+
+      for (let i = 0; i < totalDays; i++) {
+        const d = new Date(startDay);
+        d.setTime(startDay.getTime() + i * 86400000);
+        const dateKey = `${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}/${String(d.getFullYear()).slice(-2)}`;
+
+        let bg = "color-mix(in srgb, var(--text-main) 8%, transparent)";
+        let title = `${dateKey}: No Data`;
+
+        const data = heatmapMap[dateKey];
+        if (data) {
+          if (data.isLeave) {
+            bg = "var(--accent-warning)";
+            title = `${dateKey}: ${data.type} Leave`;
+          } else {
+            const ratio = data.w / data.goal;
+            if (ratio >= 1.2) {
+              bg = "color-mix(in srgb, var(--accent-work) 80%, var(--accent-warning))";
+            } else if (ratio >= 1) {
+              bg = "var(--accent-work)";
+            } else if (ratio >= 0.5) {
+              bg = "color-mix(in srgb, var(--accent-work) 55%, var(--accent-blue))";
+            } else if (ratio > 0) {
+              bg = "color-mix(in srgb, var(--accent-blue) 30%, transparent)";
+            }
+            title = `${dateKey}: ${typeof formatDuration === 'function' ? formatDuration(data.w) : data.w}`;
+          }
+        }
+        html += `<div style="width: 14px; height: 14px; border-radius: 3px; background: ${bg}; transition: transform 0.1s ease; cursor: crosshair;" title="${title}" onmouseover="this.style.transform='scale(1.3)'" onmouseout="this.style.transform='scale(1)'"></div>`;
       }
       container.innerHTML = html;
-      
+
       let currentStreak = 0;
       const streakDate = new Date(today);
       for (let i = 0; i <= 364; i++) {
-         streakDate.setTime(today.getTime() - i * 86400000);
-         const dateKey = `${String(streakDate.getMonth() + 1).padStart(2, "0")}/${String(streakDate.getDate()).padStart(2, "0")}/${String(streakDate.getFullYear()).slice(-2)}`;
-         const data = heatmapMap[dateKey];
-         if (data && (data.isLeave || (data.w > 0 && data.w >= (data.goal * 0.8)))) {
-            currentStreak++;
-         } else if (i === 0 && (!data || data.w === 0)) {
-            // Skip today if empty
-         } else {
-            break;
-         }
+        streakDate.setTime(today.getTime() - i * 86400000);
+        const dateKey = `${String(streakDate.getMonth() + 1).padStart(2, "0")}/${String(streakDate.getDate()).padStart(2, "0")}/${String(streakDate.getFullYear()).slice(-2)}`;
+        const data = heatmapMap[dateKey];
+        if (data && (data.isLeave || (data.w > 0 && data.w >= (data.goal * 0.8)))) {
+          currentStreak++;
+        } else if (i === 0 && (!data || data.w === 0)) {
+          // Skip today if empty
+        } else {
+          break;
+        }
       }
       if (streakEl) streakEl.innerText = `${currentStreak} Day Streak`;
-      
+
       // Auto-scroll to the end (today)
       requestAnimationFrame(() => {
-         const wrapper = container.parentElement;
-         if (wrapper) wrapper.scrollLeft = wrapper.scrollWidth;
+        const wrapper = container.parentElement;
+        if (wrapper) wrapper.scrollLeft = wrapper.scrollWidth;
       });
     }
-    
+
     function openHeatmapModal() {
       if (typeof renderHeatmap === 'function') renderHeatmap();
       const modal = document.getElementById("heatmap-modal");
@@ -9827,7 +10340,7 @@ function hudFuzzyScore(query, target) {
       anim.style.opacity = "1";
       anim.style.transform = "scale(1) translateY(0)";
     }
-    
+
     function closeHeatmapModal() {
       const modal = document.getElementById("heatmap-modal");
       const anim = document.getElementById("heatmap-container-anim");
@@ -9855,7 +10368,7 @@ function hudFuzzyScore(query, target) {
       const iKey = `${weekStartMs}|${todayStr}|${dataVersion}`;
       if (iKey === insightsCacheKey) return;
       insightsCacheKey = iKey;
-      
+
       if (typeof renderHeatmap === 'function') renderHeatmap();
 
       const weeklyLogs = weeklyCache.get(weekStartMs) || [];
@@ -11360,7 +11873,7 @@ function hudFuzzyScore(query, target) {
           } else {
             const hMatch = str.match(/([0-9.]+)\s*h/);
             const mMatch = str.match(/([0-9.]+)\s*m/);
-            
+
             if (hMatch || mMatch) {
               if (hMatch) {
                 const hFloat = parseFloat(hMatch[1]);
@@ -11378,11 +11891,11 @@ function hudFuzzyScore(query, target) {
               }
             }
           }
-          
+
           if (parsed) {
             h += Math.floor(m / 60);
             m = Math.round(m % 60);
-            
+
             if (h === 0 && m === 0) {
               showAppToast("Goal must be greater than zero.");
               return;
@@ -11396,10 +11909,10 @@ function hudFuzzyScore(query, target) {
             DOM.goalMins.value = m;
             localStorage.setItem("goal_hours", h);
             localStorage.setItem("goal_mins", m);
-            
+
             const goalTimeEl = document.getElementById("goal-time");
             if (goalTimeEl) goalTimeEl.value = `${h}h ${m}m`;
-            
+
             if (typeof updatePresetHighlights === 'function') updatePresetHighlights();
             if (typeof renderTimersOnly === 'function') renderTimersOnly();
             if (typeof insightsCacheKey !== 'undefined') insightsCacheKey = null;
@@ -11638,7 +12151,7 @@ function hudFuzzyScore(query, target) {
           const goalM = parseFloat(localStorage.getItem(GOAL_M_KEY)) || 0;
           const goalSec = (goalH * 3600) + (goalM * 60);
           const percent = goalSec > 0 ? ((wSec / goalSec) * 100).toFixed(1) : 0;
-          
+
           const txt = `Status: ${formatDuration(wSec)} worked (${percent}% of goal).`;
           navigator.clipboard.writeText(txt).then(() => {
             showAppToast("Status Report copied to clipboard!");
@@ -11706,19 +12219,19 @@ function hudFuzzyScore(query, target) {
           const validTypes = ["sick", "casual", "holiday", "unpaid"];
           const matched = validTypes.find(t => t.startsWith(type)) || "Casual";
           const formattedType = matched.charAt(0).toUpperCase() + matched.slice(1);
-          
+
           const today = getPSTDateObj();
           const ds = `${String(today.getUTCMonth() + 1).padStart(2, "0")}/${String(today.getUTCDate()).padStart(2, "0")}/${today.getUTCFullYear()}`;
-          
+
           const entry = { id: Date.now().toString(), date: ds, type: formattedType };
-          
+
           if (typeof getLeaveDates === 'function' && typeof saveLeaveDates === 'function') {
             const dates = getLeaveDates();
             dates.push(entry);
             saveLeaveDates(dates);
             if (typeof renderLeaveDates === 'function') renderLeaveDates();
           }
-          
+
           showAppToast(`Logged ${formattedType} leave for today (${ds}).`);
           if (typeof renderTimersOnly === 'function') renderTimersOnly();
         },
@@ -11777,7 +12290,7 @@ function hudFuzzyScore(query, target) {
     let hudFiltered = [];
 
     // Custom Fuzzy Scoring Algorithm for "Mind-Reading" Search
-    
+
 
     let hudLiveTimerInterval = null;
 
@@ -11786,21 +12299,21 @@ function hudFuzzyScore(query, target) {
       const animContainer = document.getElementById("hud-container-anim");
       const input = document.getElementById("hud-input");
       if (!modal || !input) return;
-      
+
       window.originalThemeBeforeHud = currentTheme;
 
       modal.style.display = "flex";
       // Force reflow for animation
-      void modal.offsetWidth; 
+      void modal.offsetWidth;
       modal.style.opacity = "1";
-      if(animContainer) {
+      if (animContainer) {
         animContainer.style.opacity = "1";
         animContainer.style.transform = "scale(1) translateY(0)";
       }
-      
+
       input.value = "";
       hudActiveIndex = 0;
-      
+
       // Determine Smart Defaults based on current app state
       const smartDefaults = [];
       if (state.currentMode === "work") {
@@ -11814,18 +12327,18 @@ function hudFuzzyScore(query, target) {
         smartDefaults.push(HUD_COMMANDS.find(c => c.key === "start work"));
         smartDefaults.push(HUD_COMMANDS.find(c => c.key === "add log"));
       }
-      
+
       const seen = new Set(smartDefaults.filter(Boolean).map(c => c.key));
       HUD_COMMANDS.forEach(cmd => {
         if (!cmd.key.startsWith("_") && !seen.has(cmd.key)) {
-           smartDefaults.push(cmd);
-           seen.add(cmd.key);
+          smartDefaults.push(cmd);
+          seen.add(cmd.key);
         }
       });
-      
+
       hudFiltered = smartDefaults.filter(Boolean);
       renderHudResults("", true);
-      
+
       if (hudLiveTimerInterval) clearInterval(hudLiveTimerInterval);
       hudLiveTimerInterval = setInterval(() => {
         const liveVal = document.getElementById("hud-live-timer-val");
@@ -11846,12 +12359,12 @@ function hudFuzzyScore(query, target) {
         document.documentElement.setAttribute('data-theme', window.originalThemeBeforeHud);
         window.originalThemeBeforeHud = null;
       }
-      
+
       const modal = document.getElementById("hud-modal");
       const animContainer = document.getElementById("hud-container-anim");
       if (modal) {
         modal.style.opacity = "0";
-        if(animContainer) {
+        if (animContainer) {
           animContainer.style.opacity = "0";
           animContainer.style.transform = "scale(0.96) translateY(-10px)";
         }
@@ -11867,10 +12380,10 @@ function hudFuzzyScore(query, target) {
         openHudModal(); // re-init defaults
         return;
       }
-      
+
       const q = query.trim().toLowerCase();
       const scored = [];
-      
+
       // Dynamic Math Parsing Check
       // Only evaluate if it contains numbers and operators, and is a valid math expression
       if (/^[\d\s\+\-\*\/\(\)\.]+$/.test(query.trim()) && /[0-9]/.test(query) && /[\+\-\*\/]/.test(query)) {
@@ -11894,127 +12407,127 @@ function hudFuzzyScore(query, target) {
               }
             });
           }
-        } catch(e) {
+        } catch (e) {
           // Ignore parse errors (e.g. typing "2 +")
         }
       }
 
       // Natural Language Leave Engine
       if (q.startsWith("leave ")) {
-         let leaveStr = q.replace("leave ", "").trim();
-         let targetDate = typeof getPSTDateObj === 'function' ? getPSTDateObj() : new Date();
-         let parsedDateStr = "";
-         let type = "Sick";
-         
-         if (leaveStr.includes("tomorrow")) {
-            targetDate.setDate(targetDate.getDate() + 1);
-         } else if (leaveStr.includes("next monday")) {
-            targetDate.setDate(targetDate.getDate() + ((1 + 7 - targetDate.getDay()) % 7 || 7));
-         } else if (leaveStr.includes("today")) {
-            // keep today
-         } else {
-            const dateMatch = leaveStr.match(/\b(\d{1,2})\/(\d{1,2})(?:\/(\d{2}|\d{4}))?\b/);
-            if (dateMatch) {
-               const m = dateMatch[1].padStart(2, "0");
-               const d = dateMatch[2].padStart(2, "0");
-               const y = dateMatch[3] ? dateMatch[3].slice(-2) : String(targetDate.getFullYear()).slice(-2);
-               parsedDateStr = `${m}/${d}/${y}`;
+        let leaveStr = q.replace("leave ", "").trim();
+        let targetDate = typeof getPSTDateObj === 'function' ? getPSTDateObj() : new Date();
+        let parsedDateStr = "";
+        let type = "Sick";
+
+        if (leaveStr.includes("tomorrow")) {
+          targetDate.setDate(targetDate.getDate() + 1);
+        } else if (leaveStr.includes("next monday")) {
+          targetDate.setDate(targetDate.getDate() + ((1 + 7 - targetDate.getDay()) % 7 || 7));
+        } else if (leaveStr.includes("today")) {
+          // keep today
+        } else {
+          const dateMatch = leaveStr.match(/\b(\d{1,2})\/(\d{1,2})(?:\/(\d{2}|\d{4}))?\b/);
+          if (dateMatch) {
+            const m = dateMatch[1].padStart(2, "0");
+            const d = dateMatch[2].padStart(2, "0");
+            const y = dateMatch[3] ? dateMatch[3].slice(-2) : String(targetDate.getFullYear()).slice(-2);
+            parsedDateStr = `${m}/${d}/${y}`;
+          }
+        }
+
+        if (!parsedDateStr) {
+          parsedDateStr = `${String(targetDate.getMonth() + 1).padStart(2, "0")}/${String(targetDate.getDate()).padStart(2, "0")}/${String(targetDate.getFullYear()).slice(-2)}`;
+        }
+
+        if (leaveStr.toLowerCase().includes("casual")) type = "Casual";
+        if (leaveStr.toLowerCase().includes("holiday")) type = "Holiday";
+        if (leaveStr.toLowerCase().includes("unpaid")) type = "Unpaid";
+
+        scored.push({
+          score: 10001,
+          cmd: {
+            key: "_nlp_leave",
+            title: `Book Leave: ${type} on ${parsedDateStr}`,
+            desc: "Press Enter to add to leave database",
+            category: "Leave Engine",
+            icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-break)" stroke-width="2"><use href="#icon-c8a1f2ec"></use></svg>`,
+            action: () => {
+              const leaves = typeof getLeaveDates === 'function' ? getLeaveDates() : [];
+              leaves.push({ date: parsedDateStr, type: type });
+              if (typeof saveLeaveDates === 'function') saveLeaveDates(leaves);
+              if (typeof renderLeaveDates === 'function') renderLeaveDates();
+              closeHudModal();
+              showAppToast(`${type} Leave booked for ${parsedDateStr}`);
             }
-         }
-         
-         if (!parsedDateStr) {
-            parsedDateStr = `${String(targetDate.getMonth() + 1).padStart(2, "0")}/${String(targetDate.getDate()).padStart(2, "0")}/${String(targetDate.getFullYear()).slice(-2)}`;
-         }
-         
-         if (leaveStr.toLowerCase().includes("casual")) type = "Casual";
-         if (leaveStr.toLowerCase().includes("holiday")) type = "Holiday";
-         if (leaveStr.toLowerCase().includes("unpaid")) type = "Unpaid";
-         
-         scored.push({
-           score: 10001,
-           cmd: {
-             key: "_nlp_leave",
-             title: `Book Leave: ${type} on ${parsedDateStr}`,
-             desc: "Press Enter to add to leave database",
-             category: "Leave Engine",
-             icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-break)" stroke-width="2"><use href="#icon-c8a1f2ec"></use></svg>`,
-             action: () => {
-                const leaves = typeof getLeaveDates === 'function' ? getLeaveDates() : [];
-                leaves.push({ date: parsedDateStr, type: type });
-                if (typeof saveLeaveDates === 'function') saveLeaveDates(leaves);
-                if (typeof renderLeaveDates === 'function') renderLeaveDates();
-                closeHudModal();
-                showAppToast(`${type} Leave booked for ${parsedDateStr}`);
-             }
-           }
-         });
+          }
+        });
       }
 
       // Interactive Log Edit Engine
       if (q.startsWith("edit ")) {
-         const searchStr = q.replace("edit ", "").trim();
-         const allLogs = typeof getLogs === 'function' ? getLogs() : [];
-         if (searchStr.length > 0) {
-            let logMatches = [];
-            allLogs.forEach(l => {
-              const score = Math.max(hudFuzzyScore(searchStr, l.date), hudFuzzyScore(searchStr, l.notes || ""));
-              if (score > 0) logMatches.push({ log: l, score: score });
+        const searchStr = q.replace("edit ", "").trim();
+        const allLogs = typeof getLogs === 'function' ? getLogs() : [];
+        if (searchStr.length > 0) {
+          let logMatches = [];
+          allLogs.forEach(l => {
+            const score = Math.max(hudFuzzyScore(searchStr, l.date), hudFuzzyScore(searchStr, l.notes || ""));
+            if (score > 0) logMatches.push({ log: l, score: score });
+          });
+          logMatches.sort((a, b) => b.score - a.score);
+          logMatches.slice(0, 3).forEach((match, idx) => {
+            scored.push({
+              score: 9950 - idx,
+              cmd: {
+                key: `_edit_${match.log.id}`,
+                title: `Edit Log: ${match.log.date}`,
+                desc: `Current Notes: ${match.log.notes || "None"} (Press Enter to edit)`,
+                category: "Quick Edits",
+                keepOpen: true,
+                icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-warning)" stroke-width="2"><use href="#icon-df363be2"></use></svg>`,
+                action: () => {
+                  const input = document.getElementById("hud-input");
+                  if (input) {
+                    input.value = `edit_log_${match.log.id} : ${match.log.notes || ""}`;
+                    input.dispatchEvent(new Event("input"));
+                  }
+                }
+              }
             });
-            logMatches.sort((a,b) => b.score - a.score);
-            logMatches.slice(0, 3).forEach((match, idx) => {
-               scored.push({
-                 score: 9950 - idx,
-                 cmd: {
-                   key: `_edit_${match.log.id}`,
-                   title: `Edit Log: ${match.log.date}`,
-                   desc: `Current Notes: ${match.log.notes || "None"} (Press Enter to edit)`,
-                   category: "Quick Edits",
-                   keepOpen: true,
-                   icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-warning)" stroke-width="2"><use href="#icon-df363be2"></use></svg>`,
-                   action: () => {
-                     const input = document.getElementById("hud-input");
-                     if (input) {
-                        input.value = `edit_log_${match.log.id} : ${match.log.notes || ""}`;
-                        input.dispatchEvent(new Event("input"));
-                     }
-                   }
-                 }
-               });
-            });
-         }
+          });
+        }
       }
-      
+
       // Stage 3 Edit Commit Parser
       if (q.startsWith("edit_log_")) {
-         const match = q.match(/^edit_log_(log_[a-z0-9]+)\s*:\s*(.*)$/i);
-         if (match) {
-            const logId = match[1];
-            const newNotes = match[2].trim();
-            scored.push({
-               score: 10005,
-               cmd: {
-                 key: "_edit_commit",
-                 title: `Save Notes to Log`,
-                 desc: `New Notes: "${newNotes}"`,
-                 category: "Quick Edits",
-                 icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-blue)" stroke-width="2"><use href="#icon-f5c2fb99"></use></svg>`,
-                 action: () => {
-                    const allLogs = typeof getLogs === 'function' ? getLogs() : [];
-                    const log = allLogs.find(l => l.id === logId);
-                    if (log) {
-                       log.notes = newNotes;
-                       log.searchStr = `${log.displayDate} ${log.date} ${log.notes}`.toLowerCase();
-                       log.lastModified = Date.now();
-                       if (typeof saveLogs === 'function') saveLogs(allLogs);
-                       if (typeof saveLogsToDB === 'function') saveLogsToDB(allLogs);
-                       if (typeof updateLogbookTable === 'function') updateLogbookTable();
-                       closeHudModal();
-                       showAppToast(`Log notes updated successfully.`);
-                    }
-                 }
-               }
-            });
-         }
+        const match = q.match(/^edit_log_(log_[a-z0-9]+)\s*:\s*(.*)$/i);
+        if (match) {
+          const logId = match[1];
+          const newNotes = match[2].trim();
+          scored.push({
+            score: 10005,
+            cmd: {
+              key: "_edit_commit",
+              title: `Save Notes to Log`,
+              desc: `New Notes: "${newNotes}"`,
+              category: "Quick Edits",
+              icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-blue)" stroke-width="2"><use href="#icon-f5c2fb99"></use></svg>`,
+              action: () => {
+                const allLogs = typeof getLogs === 'function' ? getLogs() : [];
+                const log = allLogs.find(l => l.id === logId);
+                if (log) {
+                  log.notes = newNotes;
+                  log.searchStr = `${log.displayDate} ${log.date} ${log.notes}`.toLowerCase();
+                  log.lastModified = Date.now();
+                  if (typeof saveLogs === 'function') saveLogs(allLogs);
+                  if (typeof saveLogsToDB === 'function') saveLogsToDB(allLogs);
+                  if (typeof updateLogbookTable === 'function') updateLogbookTable();
+                  closeHudModal();
+                  showAppToast(`Log notes updated successfully.`);
+                }
+              }
+            }
+          });
+        }
       }
 
       // Natural Language Write Engine Check
@@ -12022,132 +12535,132 @@ function hudFuzzyScore(query, target) {
         const inputStr = q.replace(/^(add|logshift)\s+/, "").trim();
         if (inputStr.length > 0) {
           let remainingStr = inputStr;
-          let parsedDateStr = typeof getPSTDate === 'function' ? getPSTDate() : ""; 
+          let parsedDateStr = typeof getPSTDate === 'function' ? getPSTDate() : "";
           let workSec = null;
           let loginStr = "Manual";
           let logoutStr = "Manual";
-          
+
           const now = typeof getPSTDateObj === 'function' ? getPSTDateObj() : new Date();
-          
+
           // 1. Parse Date
           if (remainingStr.toLowerCase().includes("yesterday")) {
-             const y = new Date(now.getTime() - 86400000);
-             parsedDateStr = `${String(y.getMonth() + 1).padStart(2, "0")}/${String(y.getDate()).padStart(2, "0")}/${String(y.getFullYear()).slice(-2)}`;
-             remainingStr = remainingStr.replace(/yesterday/i, "").trim();
+            const y = new Date(now.getTime() - 86400000);
+            parsedDateStr = `${String(y.getMonth() + 1).padStart(2, "0")}/${String(y.getDate()).padStart(2, "0")}/${String(y.getFullYear()).slice(-2)}`;
+            remainingStr = remainingStr.replace(/yesterday/i, "").trim();
           } else if (remainingStr.toLowerCase().includes("today")) {
-             remainingStr = remainingStr.replace(/today/i, "").trim();
+            remainingStr = remainingStr.replace(/today/i, "").trim();
           } else {
-             const dateMatch = remainingStr.match(/\b(\d{1,2})\/(\d{1,2})(?:\/(\d{2}|\d{4}))?\b/);
-             if (dateMatch) {
-                const m = dateMatch[1].padStart(2, "0");
-                const d = dateMatch[2].padStart(2, "0");
-                const y = dateMatch[3] ? dateMatch[3].slice(-2) : String(now.getFullYear()).slice(-2);
-                parsedDateStr = `${m}/${d}/${y}`;
-                remainingStr = remainingStr.replace(dateMatch[0], "").trim();
-             }
+            const dateMatch = remainingStr.match(/\b(\d{1,2})\/(\d{1,2})(?:\/(\d{2}|\d{4}))?\b/);
+            if (dateMatch) {
+              const m = dateMatch[1].padStart(2, "0");
+              const d = dateMatch[2].padStart(2, "0");
+              const y = dateMatch[3] ? dateMatch[3].slice(-2) : String(now.getFullYear()).slice(-2);
+              parsedDateStr = `${m}/${d}/${y}`;
+              remainingStr = remainingStr.replace(dateMatch[0], "").trim();
+            }
           }
-          
+
           // 2. Parse Time Range or Duration
           const rangeMatch = remainingStr.match(/\b(\d{1,2}(?::\d{2})?\s*(?:am|pm)?)\s*(?:to|-)\s*(\d{1,2}(?::\d{2})?\s*(?:am|pm)?)\b/i);
           if (rangeMatch) {
-             const parseNlpTimeStr = (str) => {
-                 const m = str.toLowerCase().replace(/\s+/g, "").match(/^(\d{1,2})(?::(\d{2}))?(am|pm)?$/);
-                 if (!m) return null;
-                 let h = parseInt(m[1]);
-                 let min = m[2] ? parseInt(m[2]) : 0;
-                 const ampm = m[3];
-                 if (ampm === "pm" && h < 12) h += 12;
-                 if (ampm === "am" && h === 12) h = 0;
-                 return h * 3600 + min * 60;
-             };
-             
-             const startSec = parseNlpTimeStr(rangeMatch[1]);
-             const endSec = parseNlpTimeStr(rangeMatch[2]);
-             
-             if (startSec !== null && endSec !== null) {
-                 let diff = endSec - startSec;
-                 if (diff < 0) diff += 86400; // Crossed midnight
-                 workSec = diff;
-                 loginStr = rangeMatch[1].toUpperCase();
-                 logoutStr = rangeMatch[2].toUpperCase();
-                 remainingStr = remainingStr.replace(rangeMatch[0], "").trim();
-             }
+            const parseNlpTimeStr = (str) => {
+              const m = str.toLowerCase().replace(/\s+/g, "").match(/^(\d{1,2})(?::(\d{2}))?(am|pm)?$/);
+              if (!m) return null;
+              let h = parseInt(m[1]);
+              let min = m[2] ? parseInt(m[2]) : 0;
+              const ampm = m[3];
+              if (ampm === "pm" && h < 12) h += 12;
+              if (ampm === "am" && h === 12) h = 0;
+              return h * 3600 + min * 60;
+            };
+
+            const startSec = parseNlpTimeStr(rangeMatch[1]);
+            const endSec = parseNlpTimeStr(rangeMatch[2]);
+
+            if (startSec !== null && endSec !== null) {
+              let diff = endSec - startSec;
+              if (diff < 0) diff += 86400; // Crossed midnight
+              workSec = diff;
+              loginStr = rangeMatch[1].toUpperCase();
+              logoutStr = rangeMatch[2].toUpperCase();
+              remainingStr = remainingStr.replace(rangeMatch[0], "").trim();
+            }
           } else {
-             // Fallback to explicit duration (e.g., 8h 30m, 90m)
-             const durMatch = remainingStr.match(/\b(\d+(?:\.\d+)?h\s*\d*m?|\d+m)\b/i);
-             if (durMatch) {
-                 const parsed = typeof parseGoalTimeStr === 'function' ? parseGoalTimeStr(durMatch[1]) : { hh: 0, mm: 0 };
-                 const sec = parsed.hh * 3600 + parsed.mm * 60;
-                 if (sec > 0) {
-                    workSec = sec;
-                    remainingStr = remainingStr.replace(durMatch[0], "").trim();
-                 }
-             }
+            // Fallback to explicit duration (e.g., 8h 30m, 90m)
+            const durMatch = remainingStr.match(/\b(\d+(?:\.\d+)?h\s*\d*m?|\d+m)\b/i);
+            if (durMatch) {
+              const parsed = typeof parseGoalTimeStr === 'function' ? parseGoalTimeStr(durMatch[1]) : { hh: 0, mm: 0 };
+              const sec = parsed.hh * 3600 + parsed.mm * 60;
+              if (sec > 0) {
+                workSec = sec;
+                remainingStr = remainingStr.replace(durMatch[0], "").trim();
+              }
+            }
           }
-          
+
           if (workSec !== null && workSec > 0) {
-             const cleanNotes = remainingStr.replace(/\s+/g, " ").trim();
-             
-             const existingLogs = typeof getLogs === 'function' ? getLogs() : [];
-             const conflicts = existingLogs.filter(l => l.date === parsedDateStr);
-             let overlapWarning = "";
-             if (conflicts.length > 0) {
-               overlapWarning = `⚠️ Collision Detected: ${conflicts.length} log(s) already exist for ${parsedDateStr}.`;
-             }
-             
-             scored.push({
-               score: 10000, // Top priority
-               cmd: {
-                 key: `_nlp_add`,
-                 title: overlapWarning ? `<span style="color:var(--accent-break);">Log: ${typeof formatDuration === 'function' ? formatDuration(workSec) : workSec + 's'} on ${parsedDateStr}</span>` : `Log: ${typeof formatDuration === 'function' ? formatDuration(workSec) : workSec + 's'} on ${parsedDateStr}`,
-                 desc: overlapWarning ? `<span style="color:var(--accent-break);font-weight:bold;">${overlapWarning}</span> ${cleanNotes}` : (cleanNotes ? `Notes: ${cleanNotes}` : "No notes."),
-                 category: "Write Engine",
-                 icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-blue)" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>`,
-                 action: () => {
-                    const rawGoalEl = document.getElementById("manual-goal");
-                    const rawGoal = rawGoalEl ? rawGoalEl.value.trim() : "8h";
-                    const parsedGoal = typeof parseGoalTimeStr === 'function' ? parseGoalTimeStr(rawGoal) : { hh: 8, mm: 0 };
-                    const goal = (parsedGoal.hh * 3600 + parsedGoal.mm * 60) || 28800;
-                    
-                    const [m, d, y] = parsedDateStr.split("/");
-                    const epochMs = Date.UTC(parseInt("20" + y), parseInt(m)-1, parseInt(d), 12, 0, 0);
-                    const diff = workSec - goal;
-                    
-                    const entry = {
-                      id: "log_" + Math.random().toString(36).substring(2, 11) + Date.now().toString(36),
-                      date: parsedDateStr,
-                      displayDate: parsedDateStr,
-                      epochMs: epochMs,
-                      login: loginStr,
-                      logout: logoutStr,
-                      loginEpochMs: epochMs,
-                      logoutEpochMs: epochMs + workSec * 1000,
-                      workSec: workSec,
-                      breakSec: 0,
-                      notes: cleanNotes,
-                      goal: goal,
-                      dayGoal: goal,
-                      status: diff >= 0 ? "OVER" : "UNDER",
-                      diffStr: typeof formatDuration === 'function' ? formatDuration(Math.abs(diff)) : diff,
-                      diff: typeof formatDuration === 'function' ? formatDuration(Math.abs(diff)) : diff,
-                      isAbsence: false,
-                      lastModified: Date.now()
-                    };
-                    entry.searchStr = `${entry.displayDate} ${entry.date} nlp entry ${cleanNotes}`.toLowerCase();
-                    
-                    const logs = typeof getLogs === 'function' ? getLogs() : [];
-                    logs.unshift(entry);
-                    logs.sort((a, b) => b.epochMs - a.epochMs);
-                    
-                    if (typeof saveLogs === 'function') saveLogs(logs);
-                    if (typeof saveLogsToDB === 'function') saveLogsToDB(logs);
-                    if (typeof updateLogbookTable === 'function') updateLogbookTable();
-                    if (typeof refreshInsights === 'function') refreshInsights();
-                    if (typeof closeHudModal === 'function') closeHudModal();
-                    if (typeof showAppToast === 'function') showAppToast(`Shift dynamically logged: ${formatDuration(workSec)} on ${parsedDateStr}`);
-                 }
-               }
-             });
+            const cleanNotes = remainingStr.replace(/\s+/g, " ").trim();
+
+            const existingLogs = typeof getLogs === 'function' ? getLogs() : [];
+            const conflicts = existingLogs.filter(l => l.date === parsedDateStr);
+            let overlapWarning = "";
+            if (conflicts.length > 0) {
+              overlapWarning = `⚠️ Collision Detected: ${conflicts.length} log(s) already exist for ${parsedDateStr}.`;
+            }
+
+            scored.push({
+              score: 10000, // Top priority
+              cmd: {
+                key: `_nlp_add`,
+                title: overlapWarning ? `<span style="color:var(--accent-break);">Log: ${typeof formatDuration === 'function' ? formatDuration(workSec) : workSec + 's'} on ${parsedDateStr}</span>` : `Log: ${typeof formatDuration === 'function' ? formatDuration(workSec) : workSec + 's'} on ${parsedDateStr}`,
+                desc: overlapWarning ? `<span style="color:var(--accent-break);font-weight:bold;">${overlapWarning}</span> ${cleanNotes}` : (cleanNotes ? `Notes: ${cleanNotes}` : "No notes."),
+                category: "Write Engine",
+                icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-blue)" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>`,
+                action: () => {
+                  const rawGoalEl = document.getElementById("manual-goal");
+                  const rawGoal = rawGoalEl ? rawGoalEl.value.trim() : "8h";
+                  const parsedGoal = typeof parseGoalTimeStr === 'function' ? parseGoalTimeStr(rawGoal) : { hh: 8, mm: 0 };
+                  const goal = (parsedGoal.hh * 3600 + parsedGoal.mm * 60) || 28800;
+
+                  const [m, d, y] = parsedDateStr.split("/");
+                  const epochMs = Date.UTC(parseInt("20" + y), parseInt(m) - 1, parseInt(d), 12, 0, 0);
+                  const diff = workSec - goal;
+
+                  const entry = {
+                    id: "log_" + Math.random().toString(36).substring(2, 11) + Date.now().toString(36),
+                    date: parsedDateStr,
+                    displayDate: parsedDateStr,
+                    epochMs: epochMs,
+                    login: loginStr,
+                    logout: logoutStr,
+                    loginEpochMs: epochMs,
+                    logoutEpochMs: epochMs + workSec * 1000,
+                    workSec: workSec,
+                    breakSec: 0,
+                    notes: cleanNotes,
+                    goal: goal,
+                    dayGoal: goal,
+                    status: diff >= 0 ? "OVER" : "UNDER",
+                    diffStr: typeof formatDuration === 'function' ? formatDuration(Math.abs(diff)) : diff,
+                    diff: typeof formatDuration === 'function' ? formatDuration(Math.abs(diff)) : diff,
+                    isAbsence: false,
+                    lastModified: Date.now()
+                  };
+                  entry.searchStr = `${entry.displayDate} ${entry.date} nlp entry ${cleanNotes}`.toLowerCase();
+
+                  const logs = typeof getLogs === 'function' ? getLogs() : [];
+                  logs.unshift(entry);
+                  logs.sort((a, b) => b.epochMs - a.epochMs);
+
+                  if (typeof saveLogs === 'function') saveLogs(logs);
+                  if (typeof saveLogsToDB === 'function') saveLogsToDB(logs);
+                  if (typeof updateLogbookTable === 'function') updateLogbookTable();
+                  if (typeof refreshInsights === 'function') refreshInsights();
+                  if (typeof closeHudModal === 'function') closeHudModal();
+                  if (typeof showAppToast === 'function') showAppToast(`Shift dynamically logged: ${formatDuration(workSec)} on ${parsedDateStr}`);
+                }
+              }
+            });
           }
         }
       }
@@ -12158,7 +12671,7 @@ function hudFuzzyScore(query, target) {
         let matchedLogs = [];
         const allLogs = typeof getLogs === 'function' ? getLogs() : [];
         let titleSuffix = "";
-        
+
         if (timeframe === "all") {
           matchedLogs = allLogs;
           titleSuffix = "All Time";
@@ -12177,13 +12690,13 @@ function hudFuzzyScore(query, target) {
           matchedLogs = allLogs.filter(l => (nowMs - l.epochMs) <= thirtyDaysMs);
           titleSuffix = "Past 30 Days";
         }
-        
+
         if (titleSuffix) {
           let totalW = 0;
           let totalB = 0;
           matchedLogs.forEach(l => { totalW += l.workSec || 0; totalB += l.breakSec || 0; });
           const metricStr = `Work: ${formatDuration(totalW)} | Break: ${formatDuration(totalB)}`;
-          
+
           scored.push({
             score: 9998,
             cmd: {
@@ -12201,14 +12714,14 @@ function hudFuzzyScore(query, target) {
           });
         }
       }
-      
+
       // Dynamic Timesheet Invoicing Check
       if (q.startsWith("export ") || q.startsWith("invoice ")) {
         const timeframe = q.replace(/^(export|invoice)\s+/, "").trim();
         let matchedLogs = [];
         const allLogs = typeof getLogs === 'function' ? getLogs() : [];
         let titleSuffix = "";
-        
+
         if (timeframe === "all") {
           matchedLogs = allLogs;
           titleSuffix = "All Time";
@@ -12227,14 +12740,14 @@ function hudFuzzyScore(query, target) {
           matchedLogs = allLogs.filter(l => (nowMs - l.epochMs) <= thirtyDaysMs);
           titleSuffix = "Past 30 Days";
         }
-        
+
         if (titleSuffix && matchedLogs.length > 0) {
           let totalW = 0;
           matchedLogs.forEach(l => { totalW += l.workSec || 0; });
-          
+
           const titleLabel = `Export ${titleSuffix} (${matchedLogs.length} shifts)`;
           const descLabel = `Total Work: ${typeof formatDuration === 'function' ? formatDuration(totalW) : totalW}`;
-          
+
           scored.push({
             score: 9998,
             cmd: {
@@ -12246,10 +12759,10 @@ function hudFuzzyScore(query, target) {
               action: () => {
                 let csvContent = "data:text/csv;charset=utf-8,Date,Log In,Log Out,Work Duration,Break Duration,Notes\n";
                 matchedLogs.forEach(l => {
-                   const wd = typeof formatDuration === 'function' ? formatDuration(l.workSec) : l.workSec;
-                   const bd = typeof formatDuration === 'function' ? formatDuration(l.breakSec) : l.breakSec;
-                   const cleanNotes = (l.notes || "").replace(/"/g, '""');
-                   csvContent += `"${l.date}","${l.login}","${l.logout}","${wd}","${bd}","${cleanNotes}"\n`;
+                  const wd = typeof formatDuration === 'function' ? formatDuration(l.workSec) : l.workSec;
+                  const bd = typeof formatDuration === 'function' ? formatDuration(l.breakSec) : l.breakSec;
+                  const cleanNotes = (l.notes || "").replace(/"/g, '""');
+                  csvContent += `"${l.date}","${l.login}","${l.logout}","${wd}","${bd}","${cleanNotes}"\n`;
                 });
                 const encodedUri = encodeURI(csvContent);
                 const link = document.createElement("a");
@@ -12263,7 +12776,7 @@ function hudFuzzyScore(query, target) {
               }
             }
           });
-          
+
           scored.push({
             score: 9997,
             cmd: {
@@ -12275,8 +12788,8 @@ function hudFuzzyScore(query, target) {
               action: () => {
                 let emailBody = `Timesheet Report: ${titleSuffix}\nTotal Shifts: ${matchedLogs.length}\nTotal Work Hours: ${typeof formatDuration === 'function' ? formatDuration(totalW) : totalW}\n\nBreakdown:\n`;
                 matchedLogs.forEach(l => {
-                   const wd = typeof formatDuration === 'function' ? formatDuration(l.workSec) : l.workSec;
-                   emailBody += `- ${l.date} | ${wd} | ${l.notes || "No notes"}\n`;
+                  const wd = typeof formatDuration === 'function' ? formatDuration(l.workSec) : l.workSec;
+                  emailBody += `- ${l.date} | ${wd} | ${l.notes || "No notes"}\n`;
                 });
                 const subject = `Timesheet Invoice - ${titleSuffix}`;
                 window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(emailBody)}`;
@@ -12287,58 +12800,58 @@ function hudFuzzyScore(query, target) {
           });
         }
       }
-      
+
       // Dynamic Log Search Check
       if (q.startsWith("log ") || q.startsWith("logs ")) {
         const searchStr = q.replace(/^logs? /, "").trim();
         if (searchStr.length > 0) {
           const allLogs = typeof getLogs === 'function' ? getLogs() : [];
           let filteredLogs = [...allLogs];
-          
+
           // Advanced Filtering Parser
           const parts = searchStr.split(/\s+/);
           const remainingText = [];
-          
+
           let minSec = 0;
           let maxSec = Infinity;
           let targetStatus = null;
           let dateFilterStart = null;
           let dateFilterEnd = null;
-          
+
           const strLower = searchStr.toLowerCase();
           const now = getPSTDateObj();
-          
+
           // Pre-process multi-word relative dates
           if (strLower.includes("this month")) {
-             dateFilterStart = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
-             dateFilterEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59).getTime();
+            dateFilterStart = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+            dateFilterEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59).getTime();
           } else if (strLower.includes("last month")) {
-             dateFilterStart = new Date(now.getFullYear(), now.getMonth() - 1, 1).getTime();
-             dateFilterEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59).getTime();
+            dateFilterStart = new Date(now.getFullYear(), now.getMonth() - 1, 1).getTime();
+            dateFilterEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59).getTime();
           } else if (strLower.includes("this week")) {
-             const day = now.getDay() || 7;
-             dateFilterStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - day + 1).getTime();
-             dateFilterEnd = new Date(dateFilterStart + 6 * 86400000).getTime();
+            const day = now.getDay() || 7;
+            dateFilterStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - day + 1).getTime();
+            dateFilterEnd = new Date(dateFilterStart + 6 * 86400000).getTime();
           } else if (strLower.includes("today")) {
-             const todayStr = getPSTDate();
-             filteredLogs = filteredLogs.filter(l => l.date === todayStr);
+            const todayStr = getPSTDate();
+            filteredLogs = filteredLogs.filter(l => l.date === todayStr);
           } else if (strLower.includes("yesterday")) {
-             const y = new Date(now.getTime() - 86400000);
-             const yStr = `${String(y.getMonth() + 1).padStart(2, "0")}/${String(y.getDate()).padStart(2, "0")}/${String(y.getFullYear()).slice(-2)}`;
-             filteredLogs = filteredLogs.filter(l => l.date === yStr);
+            const y = new Date(now.getTime() - 86400000);
+            const yStr = `${String(y.getMonth() + 1).padStart(2, "0")}/${String(y.getDate()).padStart(2, "0")}/${String(y.getFullYear()).slice(-2)}`;
+            filteredLogs = filteredLogs.filter(l => l.date === yStr);
           }
-          
+
           if (dateFilterStart && dateFilterEnd) {
-             filteredLogs = filteredLogs.filter(l => l.epochMs >= dateFilterStart && l.epochMs <= dateFilterEnd);
+            filteredLogs = filteredLogs.filter(l => l.epochMs >= dateFilterStart && l.epochMs <= dateFilterEnd);
           }
-          
+
           for (let p of parts) {
             const pLower = p.toLowerCase();
-            
+
             // Status flags
             if (pLower === "over") { targetStatus = "OVER"; continue; }
             if (pLower === "under") { targetStatus = "UNDER"; continue; }
-            
+
             // Hour bounds: >5h, <=2.5h, <90m
             const hrMatch = pLower.match(/^(>=|<=|>|<)([0-9.]+)(h|m)?$/);
             if (hrMatch) {
@@ -12346,45 +12859,45 @@ function hudFuzzyScore(query, target) {
               let val = parseFloat(hrMatch[2]);
               const unit = hrMatch[3] || "h";
               let sec = val * (unit === "m" ? 60 : 3600);
-              
+
               if (op === ">" || op === ">=") minSec = Math.max(minSec, sec);
               if (op === "<" || op === "<=") maxSec = Math.min(maxSec, sec);
               continue;
             }
-            
+
             // Absolute Dates: MM/YYYY or MM/DD/YYYY
             if (/^[0-9]{1,2}\/[0-9]{4}$/.test(pLower)) {
-               const [m, y] = pLower.split("/");
-               const ds = new Date(parseInt(y), parseInt(m)-1, 1).getTime();
-               const de = new Date(parseInt(y), parseInt(m), 0, 23, 59, 59).getTime();
-               filteredLogs = filteredLogs.filter(l => l.epochMs >= ds && l.epochMs <= de);
-               continue;
+              const [m, y] = pLower.split("/");
+              const ds = new Date(parseInt(y), parseInt(m) - 1, 1).getTime();
+              const de = new Date(parseInt(y), parseInt(m), 0, 23, 59, 59).getTime();
+              filteredLogs = filteredLogs.filter(l => l.epochMs >= ds && l.epochMs <= de);
+              continue;
             } else if (/^[0-9]{1,2}\/[0-9]{1,2}\/[0-9]{4}$/.test(pLower)) {
-               filteredLogs = filteredLogs.filter(l => {
-                  const [lm, ld, ly] = l.date.split("/");
-                  const [pm, pd, py] = pLower.split("/");
-                  return parseInt(lm) === parseInt(pm) && parseInt(ld) === parseInt(pd) && parseInt(ly) === parseInt(py);
-               });
-               continue;
+              filteredLogs = filteredLogs.filter(l => {
+                const [lm, ld, ly] = l.date.split("/");
+                const [pm, pd, py] = pLower.split("/");
+                return parseInt(lm) === parseInt(pm) && parseInt(ld) === parseInt(pd) && parseInt(ly) === parseInt(py);
+              });
+              continue;
             }
-            
+
             // Reconstruct remaining text, ignoring reserved multi-word date tokens
             if (!["this", "last", "month", "week", "today", "yesterday"].includes(pLower)) {
-               remainingText.push(p);
+              remainingText.push(p);
             }
           }
-          
+
           if (targetStatus) filteredLogs = filteredLogs.filter(l => l.status === targetStatus);
           if (minSec > 0 || maxSec < Infinity) {
-             filteredLogs = filteredLogs.filter(l => l.workSec >= minSec && l.workSec <= maxSec);
+            filteredLogs = filteredLogs.filter(l => l.workSec >= minSec && l.workSec <= maxSec);
           }
-          
+
           const cleanQuery = remainingText.join(" ");
           const logMatches = [];
-          
+
           filteredLogs.forEach(l => {
             if (cleanQuery.length === 0) {
-              logMatches.push({ log: l, score: 1 }); 
+              logMatches.push({ log: l, score: 1 });
             } else {
               const dateScore = hudFuzzyScore(cleanQuery, l.date || "");
               const noteScore = hudFuzzyScore(cleanQuery, l.notes || "");
@@ -12395,10 +12908,10 @@ function hudFuzzyScore(query, target) {
               }
             }
           });
-          
+
           // Sort by match score first, then chronological descending
           logMatches.sort((a, b) => b.score - a.score || b.log.epochMs - a.log.epochMs);
-          
+
           // Increase from top 3 to top 5 matches to show off power
           logMatches.slice(0, 5).forEach((match, idx) => {
             const l = match.log;
@@ -12424,46 +12937,46 @@ function hudFuzzyScore(query, target) {
 
       HUD_COMMANDS.forEach((cmd) => {
         let maxScore = 0;
-        
+
         // Handling dynamic inputs like 'goal 8'
         if (cmd.key === "goal " && q.startsWith("goal ")) {
-           maxScore = 1000;
-           const arg = q.substring(5).trim();
-           if (arg) {
-              const num = parseFloat(arg);
-              if (!isNaN(num) && num > 0) {
-                 const curSec = typeof getCurrentWorkSeconds === 'function' ? getCurrentWorkSeconds() : 0;
-                 const goalSec = num * 3600;
-                 const pct = Math.round((curSec / goalSec) * 100);
-                 cmd.desc = `Set custom goal to ${num}h (Current session progress would be ${pct}%)`;
-              }
-           }
+          maxScore = 1000;
+          const arg = q.substring(5).trim();
+          if (arg) {
+            const num = parseFloat(arg);
+            if (!isNaN(num) && num > 0) {
+              const curSec = typeof getCurrentWorkSeconds === 'function' ? getCurrentWorkSeconds() : 0;
+              const goalSec = num * 3600;
+              const pct = Math.round((curSec / goalSec) * 100);
+              cmd.desc = `Set custom goal to ${num}h (Current session progress would be ${pct}%)`;
+            }
+          }
         } else if (cmd.key.endsWith(" ") && q.startsWith(cmd.key.trim())) {
-           maxScore = 1000;
+          maxScore = 1000;
         } else {
-           const titleScore = hudFuzzyScore(q, cmd.title);
-           const keyScore = hudFuzzyScore(q, cmd.key);
-           const catScore = cmd.category ? hudFuzzyScore(q, cmd.category) : 0;
-           
-           let aliasScore = 0;
-           if (cmd.aliases) {
-             cmd.aliases.forEach(a => {
-               const s = hudFuzzyScore(q, a);
-               if (s > aliasScore) aliasScore = s;
-             });
-           }
-           
-           maxScore = Math.max(titleScore, keyScore, catScore, aliasScore);
+          const titleScore = hudFuzzyScore(q, cmd.title);
+          const keyScore = hudFuzzyScore(q, cmd.key);
+          const catScore = cmd.category ? hudFuzzyScore(q, cmd.category) : 0;
+
+          let aliasScore = 0;
+          if (cmd.aliases) {
+            cmd.aliases.forEach(a => {
+              const s = hudFuzzyScore(q, a);
+              if (s > aliasScore) aliasScore = s;
+            });
+          }
+
+          maxScore = Math.max(titleScore, keyScore, catScore, aliasScore);
         }
-        
+
         if (maxScore > 0) {
           scored.push({ cmd, score: maxScore });
         }
       });
-      
+
       scored.sort((a, b) => b.score - a.score);
       hudFiltered = scored.map(s => s.cmd);
-      
+
       renderHudResults(q, false);
     }
 
@@ -12486,29 +12999,29 @@ function hudFuzzyScore(query, target) {
 
       let html = "";
       let globalIdx = 0;
-      
+
       if (isDefaultState) {
-         if (state.currentMode === 'work') {
-           html += `<div id="hud-live-timer" style="margin-bottom: 8px; background: var(--element-bg); border-radius: var(--radius-md); padding: 12px; display: flex; justify-content: space-between; align-items: center; border: 1px solid var(--border-main);">
+        if (state.currentMode === 'work') {
+          html += `<div id="hud-live-timer" style="margin-bottom: 8px; background: var(--element-bg); border-radius: var(--radius-md); padding: 12px; display: flex; justify-content: space-between; align-items: center; border: 1px solid var(--border-main);">
                       <div style="display:flex; align-items:center; gap:8px;">
                         <span style="display:inline-block; width:10px; height:10px; background:var(--accent-work); border-radius:50%; box-shadow: 0 0 8px var(--accent-work);"></span>
                         <span style="font-weight:600; color:var(--text-main);">Live Session</span>
                       </div>
                       <div id="hud-live-timer-val" style="font-family: var(--number-font); font-variant-numeric: tabular-nums; font-size:1.2rem; font-weight:bold; color:var(--text-main);">${typeof formatDuration === 'function' ? formatDuration(getCurrentWorkSeconds()) : ''}</div>
                     </div>`;
-         }
+        }
       }
 
       for (const [cat, cmds] of Object.entries(grouped)) {
         html += `<div style="font-size: 0.7rem; font-weight: bold; color: var(--text-muted); padding: 4px 12px; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px;">${escapeHTML(cat)}</div>`;
-        
+
         cmds.forEach((cmd) => {
           const idx = globalIdx++;
           const isSelected = idx === hudActiveIndex;
           const bg = isSelected ? "var(--element-hover)" : "transparent";
           const textMain = isSelected ? "var(--text-main)" : "var(--text-main)";
           const descColor = isSelected ? "var(--text-muted)" : "var(--text-muted)";
-          
+
           html += `
           <div onclick="executeHudIndex(${idx})" style="background: ${bg}; border-radius: var(--radius-sm); padding: 10px 12px; display: flex; align-items: center; cursor: pointer; transition: background 0.1s ease; margin-bottom: 2px;">
             <div style="display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 8px; background: var(--element-bg); margin-right: 12px; flex-shrink: 0; box-shadow: 0 1px 2px rgba(0,0,0,0.1);">
@@ -12528,10 +13041,10 @@ function hudFuzzyScore(query, target) {
 
       // Safe scroll to active
       setTimeout(() => {
-         const activeRow = container.querySelector(`div[onclick="executeHudIndex(${hudActiveIndex})"]`);
-         if (activeRow) {
-           activeRow.scrollIntoView({ block: "nearest", behavior: "smooth" });
-         }
+        const activeRow = container.querySelector(`div[onclick="executeHudIndex(${hudActiveIndex})"]`);
+        if (activeRow) {
+          activeRow.scrollIntoView({ block: "nearest", behavior: "smooth" });
+        }
       }, 10);
     }
 
@@ -12540,7 +13053,7 @@ function hudFuzzyScore(query, target) {
       const cmd = hudFiltered[idx];
       if (!cmd) return;
       const input = document.getElementById("hud-input").value;
-      
+
       if (!cmd.keepOpen) {
         closeHudModal();
       }
@@ -13212,7 +13725,7 @@ function hudFuzzyScore(query, target) {
     /**
      * Executes parseGoalTimeStr logic.
      */
-    
+
 
     const handleGoalTimeBlur = () => {
       const goalTimeEl = document.getElementById("goal-time");
@@ -14025,12 +14538,12 @@ function hudFuzzyScore(query, target) {
     /**
      * Executes escapeHTML logic.
      */
-    
+
 
     /**
      * Executes debounce logic.
      */
-    
+
 
     /**
      * Executes switchTab logic.
@@ -14107,22 +14620,22 @@ function hudFuzzyScore(query, target) {
     /**
      * Executes getGoalSeconds logic.
      */
-    
+
 
     /**
      * Executes formatDuration logic.
      */
-    
+
 
     /**
      * Executes parseTime logic.
      */
-    
+
 
     /**
      * Executes formatFriendlyDuration logic.
      */
-    
+
 
     /**
      * Executes initializeTickers logic.
@@ -14444,7 +14957,7 @@ function hudFuzzyScore(query, target) {
       // =========================================================================
       // MOBILE UI LOGIC & HAPTICS
       // =========================================================================
-      window.switchMobileTab = function(tab) {
+      window.switchMobileTab = function (tab) {
         document.querySelectorAll('.mobile-nav-btn').forEach(btn => btn.classList.remove('active'));
         const targetBtn = document.querySelector(`.mobile-nav-btn[data-mobile-target="${tab}"]`);
         if (targetBtn) targetBtn.classList.add('active');
@@ -14452,21 +14965,21 @@ function hudFuzzyScore(query, target) {
         const mainUi = document.querySelector('.main-ui');
         const sidebar = document.querySelector('.sidebar');
         const menuView = document.getElementById('mobile-menu-view');
-        
-        if(mainUi) mainUi.style.display = 'none';
-        if(sidebar) sidebar.style.display = 'none';
-        if(menuView) menuView.style.display = 'none';
+
+        if (mainUi) mainUi.style.display = 'none';
+        if (sidebar) sidebar.style.display = 'none';
+        if (menuView) menuView.style.display = 'none';
 
         if (tab === 'tracker') {
-          if(mainUi) mainUi.style.display = 'flex';
+          if (mainUi) mainUi.style.display = 'flex';
         } else if (tab === 'logbook') {
-          if(sidebar) sidebar.style.display = 'flex';
+          if (sidebar) sidebar.style.display = 'flex';
           if (window.switchTab) window.switchTab('logbook');
         } else if (tab === 'insights') {
-          if(sidebar) sidebar.style.display = 'flex';
+          if (sidebar) sidebar.style.display = 'flex';
           if (window.switchTab) window.switchTab('insights');
         } else if (tab === 'menu') {
-          if(menuView) menuView.style.display = 'flex';
+          if (menuView) menuView.style.display = 'flex';
         }
       };
 
@@ -14475,9 +14988,9 @@ function hudFuzzyScore(query, target) {
           const mainUi = document.querySelector('.main-ui');
           const sidebar = document.querySelector('.sidebar');
           const menuView = document.getElementById('mobile-menu-view');
-          if(mainUi) mainUi.style.display = '';
-          if(sidebar) sidebar.style.display = '';
-          if(menuView) menuView.style.display = 'none';
+          if (mainUi) mainUi.style.display = '';
+          if (sidebar) sidebar.style.display = '';
+          if (menuView) menuView.style.display = 'none';
         } else {
           let activeTab = 'tracker';
           const activeBtn = document.querySelector('.mobile-nav-btn.active');
@@ -14501,14 +15014,11 @@ function hudFuzzyScore(query, target) {
       const mBtnStart = document.getElementById('start-btn');
       const mBtnPause = document.getElementById('pause-btn');
       const mBtnSubmit = document.getElementById('submit-btn');
-      if(mBtnStart) mBtnStart.addEventListener('click', doHaptic);
-      if(mBtnPause) mBtnPause.addEventListener('click', doHaptic);
-      if(mBtnSubmit) mBtnSubmit.addEventListener('click', doHaptic);
+      if (mBtnStart) mBtnStart.addEventListener('click', doHaptic);
+      if (mBtnPause) mBtnPause.addEventListener('click', doHaptic);
+      if (mBtnSubmit) mBtnSubmit.addEventListener('click', doHaptic);
     })();
   </script>
 </body>
 
 </html>
-
-
-
