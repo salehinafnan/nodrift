@@ -3526,6 +3526,18 @@
         font-size: 16px;
         /* Prevents iOS zoom on focus */
       }
+
+      .hide-on-mobile {
+        display: none !important;
+      }
+
+      .log-top-left[style] {
+        display: -webkit-box !important;
+      }
+
+      .log-bottom-left[style] {
+        display: flex !important;
+      }
     }
 
     /* ── NARROW MOBILE  (≤ 480px) ─────────────────────────────────────────── */
@@ -9451,9 +9463,9 @@
       return `
     <div class="log-row${selectedClass}" data-id="${log.id}">
         <div style="display: flex; justify-content: space-between; align-items: center;">
-            <div style="display: flex; align-items: center; gap: 8px;">
-                <span style="font-weight: 400; font-size: var(--font-size-entry-title); color: var(--text-main);">${dayName} <span style="opacity: 0.5;">(${displayMonthDay})</span></span>
-                <span style="font-size: var(--font-size-entry-meta); color: var(--text-muted);">${log.login} - ${log.logout}</span>
+            <div class="log-top-left" style="display: flex; align-items: center; gap: 8px;">
+                <span style="font-weight: 400; font-size: var(--font-size-entry-title); color: var(--text-main);"><span class="hide-on-mobile">${dayName} </span><span style="opacity: 0.5;">${displayMonthDay}</span></span>
+                <span class="hide-on-mobile" style="font-size: var(--font-size-entry-meta); color: var(--text-muted);">${log.login} - ${log.logout}</span>
                 ${weekendBadge}
             </div>
             <div style="display: flex; align-items: center; gap: 4px;">
@@ -9463,13 +9475,13 @@
         </div>
         
         <div style="display: flex; justify-content: space-between; align-items: center; margin-top: var(--space-1);">
-            <div class="font-mono" style="display: flex; gap: var(--space-3); font-size: var(--font-size-entry-stats);">
+            <div class="log-bottom-left font-mono" style="display: flex; gap: var(--space-3); font-size: var(--font-size-entry-stats);">
                 <span style="display: inline-flex; align-items: center; min-width: 75px;"><span class="badge badge-w">W</span> ${formatFriendlyDuration(log.workSec)}</span>
                 <span style="display: inline-flex; align-items: center; min-width: 65px;"><span class="badge badge-b">B</span> ${formatFriendlyDuration(log.breakSec)}</span>
             </div>
             <div class="icon-actions">
                 <button class="${noteIconClass}" ${noteBtnAttr}>${SVGs.note}</button>
-                <button aria-label="Copy Log" class="icon-btn" data-action="copy" data-id="${log.id}" aria-label="Icon Button">${SVGs.copy}</button>
+                <button aria-label="Copy Log" class="icon-btn hide-on-mobile" data-action="copy" data-id="${log.id}" aria-label="Icon Button">${SVGs.copy}</button>
                 <button aria-label="Edit Times" class="icon-btn" data-action="edit" data-id="${log.id}" aria-label="Icon Button">${SVGs.edit}</button>
                 <button aria-label="Delete Shift" class="icon-btn danger-text" data-action="delete" data-id="${log.id}" aria-label="Icon Button">${SVGs.trash}</button>
             </div>
@@ -10559,8 +10571,8 @@
               <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
                 <span style="font-weight: ${isToday ? "700" : "400"
             }; font-size: var(--font-size-entry-title);">
-                  ${dayNames[dayOfWeekIndex]
-            } <span style="opacity: 0.5;">(${displayDateNoYear})</span>${weekendBadge}${leaveBadge}
+                  <span class="hide-on-mobile">${dayNames[dayOfWeekIndex]
+            } </span><span style="opacity: 0.5;">${displayDateNoYear}</span>${weekendBadge}${leaveBadge}
                 </span>
                 <div class="font-mono stats-alignment-wrapper" style="font-size: var(--font-size-entry-stats); color: var(--text-main); display: flex; gap: 12px;">
                    <div class="stat-column work-col" style="display:flex; align-items:center;"><span class="badge badge-w badge-w-lg">W</span> —</div>
@@ -10579,8 +10591,8 @@
                   <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
                     <span style="font-weight: ${isToday ? "700" : "400"
                 }; font-size: var(--font-size-entry-title);">
-                      ${dayNames[dayOfWeekIndex]
-                } <span style="opacity: 0.5;">(${displayDateNoYear})</span>${weekendBadge}
+                      <span class="hide-on-mobile">${dayNames[dayOfWeekIndex]
+                } </span><span style="opacity: 0.5;">${displayDateNoYear}</span>${weekendBadge}
                     </span>
                     <div class="font-mono stats-alignment-wrapper" style="font-size: var(--font-size-entry-stats); color: var(--text-main); display: flex; gap: 12px;">
                        <div class="stat-column work-col" style="display:flex; align-items:center;"><span class="badge badge-w badge-w-lg">W</span> <span ${isToday ? 'id="today-work-val"' : ""
@@ -10650,8 +10662,8 @@
                 <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
                   <span style="font-weight: ${isToday ? "700" : "400"
               }; font-size: var(--font-size-entry-title);">
-                    ${dayNames[dayOfWeekIndex]
-              } <span style="opacity: 0.5;">(${displayDateNoYear})</span>${weekendBadge}
+                    <span class="hide-on-mobile">${dayNames[dayOfWeekIndex]
+              } </span><span style="opacity: 0.5;">${displayDateNoYear}</span>${weekendBadge}
                   </span>
                   <div class="font-mono stats-alignment-wrapper" style="font-size: var(--font-size-entry-stats); color: var(--text-main); display: flex; gap: 12px;">
                     <div class="stat-column work-col" style="display:flex; align-items:center;">
