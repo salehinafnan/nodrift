@@ -8,16 +8,24 @@ function formatDuration(sec) {
   // Add a microscopic 1-nanosecond buffer (1e-9) before flooring.
   // This neutralizes IEEE 754 precision drift without causing clock jitter.
   sec = Math.max(0, Math.floor(sec + 1e-9));
-  const h = Math.floor(sec / 3600).toString().padStart(2, "0");
-  const m = Math.floor((sec % 3600) / 60).toString().padStart(2, "0");
-  const s = Math.floor(sec % 60).toString().padStart(2, "0");
+  const h = Math.floor(sec / 3600)
+    .toString()
+    .padStart(2, "0");
+  const m = Math.floor((sec % 3600) / 60)
+    .toString()
+    .padStart(2, "0");
+  const s = Math.floor(sec % 60)
+    .toString()
+    .padStart(2, "0");
   return `${h}:${m}:${s}`;
 }
 
 function parseTime(str) {
   if (!str || typeof str !== "string") return null;
   const p = str.trim().split(":");
-  let h = 0, m = 0, s = 0;
+  let h = 0,
+    m = 0,
+    s = 0;
   if (p.length === 2) {
     h = parseInt(p[0], 10);
     m = parseInt(p[1], 10);
@@ -27,13 +35,14 @@ function parseTime(str) {
     h = parseInt(p[0], 10);
     m = parseInt(p[1], 10);
     s = parseInt(p[2], 10);
-    if (isNaN(h) || isNaN(m) || isNaN(s) || h < 0 || m < 0 || s < 0) return null;
+    if (isNaN(h) || isNaN(m) || isNaN(s) || h < 0 || m < 0 || s < 0)
+      return null;
     return h * 3600 + m * 60 + s;
   }
   return null;
 }
 
-function formatFriendlyDuration(sec, emptyPlaceholder = '<span style="opacity: 0.25; font-weight: 400;">-</span>') {
+function formatFriendlyDuration(sec, emptyPlaceholder = "—") {
   if (sec === undefined || sec === null || sec <= 0) return emptyPlaceholder;
   sec = Math.floor(sec);
   const h = Math.floor(sec / 3600);
@@ -52,13 +61,17 @@ function formatFriendlyDuration(sec, emptyPlaceholder = '<span style="opacity: 0
 
 function escapeHTML(str) {
   if (!str) return "";
-  return String(str).replace(/[&<>'"]/g, (tag) => ({
-    "&": "&amp;",
-    "<": "&lt;",
-    ">": "&gt;",
-    "'": "&#39;",
-    '"': "&quot;",
-  })[tag] || tag);
+  return String(str).replace(
+    /[&<>'"]/g,
+    (tag) =>
+      ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        "'": "&#39;",
+        '"': "&quot;",
+      })[tag] || tag,
+  );
 }
 
 function parseGoalTimeStr(val) {
@@ -66,7 +79,9 @@ function parseGoalTimeStr(val) {
   let mm = 0;
   const cleanVal = String(val).trim().replace(",", ".");
   if (!cleanVal) return { hh: 8, mm: 0 };
-  const naturalMatch = cleanVal.match(/^(?:(\d+(?:\.\d+)?)\s*h)?\s*(?:(\d+)\s*m)?$/i);
+  const naturalMatch = cleanVal.match(
+    /^(?:(\d+(?:\.\d+)?)\s*h)?\s*(?:(\d+)\s*m)?$/i,
+  );
   const colonMatch = cleanVal.match(/^(\d+):(\d{1,2})$/);
   const decimalMatch = cleanVal.match(/^(\d+(?:\.\d+))$/);
   if (colonMatch) {
@@ -83,10 +98,19 @@ function parseGoalTimeStr(val) {
   } else {
     const digits = cleanVal.replace(/\D/g, "");
     if (digits) {
-      if (digits.length <= 2) { hh = parseInt(digits, 10) || 0; mm = 0; }
-      else if (digits.length === 3) { hh = parseInt(digits.slice(0, 1), 10) || 0; mm = parseInt(digits.slice(1), 10) || 0; }
-      else { hh = parseInt(digits.slice(0, 2), 10) || 0; mm = parseInt(digits.slice(2, 4), 10) || 0; }
-    } else { hh = 8; }
+      if (digits.length <= 2) {
+        hh = parseInt(digits, 10) || 0;
+        mm = 0;
+      } else if (digits.length === 3) {
+        hh = parseInt(digits.slice(0, 1), 10) || 0;
+        mm = parseInt(digits.slice(1), 10) || 0;
+      } else {
+        hh = parseInt(digits.slice(0, 2), 10) || 0;
+        mm = parseInt(digits.slice(2, 4), 10) || 0;
+      }
+    } else {
+      hh = 8;
+    }
   }
   hh += Math.floor(mm / 60);
   mm = mm % 60;
@@ -103,7 +127,14 @@ function getGoalSeconds(h, m) {
 }
 
 function parseTimeToMinutes(timeStr) {
-  if (!timeStr || timeStr === "Manual" || timeStr === "Entry" || timeStr === "—" || timeStr === "-") return null;
+  if (
+    !timeStr ||
+    timeStr === "Manual" ||
+    timeStr === "Entry" ||
+    timeStr === "—" ||
+    timeStr === "-"
+  )
+    return null;
   const match = String(timeStr).match(/^(\d{2}):(\d{2})\s*(AM|PM)$/i);
   if (!match) return null;
   let hours = parseInt(match[1], 10);
@@ -126,34 +157,34 @@ function hudFuzzyScore(query, target) {
   if (!query || !target) return 0;
   const q = String(query).toLowerCase();
   const t = String(target).toLowerCase();
-  
+
   let qIdx = 0;
   let tIdx = 0;
   let score = 0;
   let consecutive = 0;
-  
+
   while (qIdx < q.length && tIdx < t.length) {
     if (q[qIdx] === t[tIdx]) {
       score += 10;
-      score += consecutive * 5; 
-      
-      if (tIdx === 0 || t[tIdx - 1] === ' ' || t[tIdx - 1] === '-') {
+      score += consecutive * 5;
+
+      if (tIdx === 0 || t[tIdx - 1] === " " || t[tIdx - 1] === "-") {
         score += 15;
       }
-      
+
       consecutive++;
       qIdx++;
     } else {
       consecutive = 0;
-      score -= 1; 
+      score -= 1;
     }
     tIdx++;
   }
-  
-  if (qIdx < q.length) return 0; 
-  
+
+  if (qIdx < q.length) return 0;
+
   if (t.includes(q)) score += 20;
   if (t === q) score += 50;
-  
+
   return Math.max(0, score);
 }
