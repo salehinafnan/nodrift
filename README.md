@@ -2,9 +2,7 @@
 
 # Work Hour Tracker
 
-**A 14,000-line, precision-engineered, local-first time tracking engine.**
-
-Zero backend. Zero latency. Total privacy. One file.
+**Zero backend. Zero latency. Total privacy. One file.**
 
 ![License](https://img.shields.io/badge/License-MIT-blue?style=flat-square)
 ![Lines](https://img.shields.io/badge/Lines-14%2C152-blueviolet?style=flat-square)
