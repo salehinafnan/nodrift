@@ -3,7 +3,7 @@
 
 <head>
   <meta charset="UTF-8" />
-  <title>V5 Extreme Stress Test Suite</title>
+  <title>Extreme Stress Test Suite</title>
   <style>
     * {
       box-sizing: border-box;
@@ -219,8 +219,8 @@
 </head>
 
 <body>
-  <h1>🧪 V5 Extreme Stress Test Suite</h1>
-  <p class="subtitle">Comprehensive edge-case and stress tests for every operation in Work Hour Tracker V3</p>
+  <h1>🧪 Extreme Stress Test Suite</h1>
+  <p class="subtitle">Comprehensive edge-case and stress tests for every operation in Work Hour Tracker</p>
   <button id="run-btn" onclick="runAllTests()">▶ Run All Tests</button>
 
   <div class="summary-bar">
@@ -250,10 +250,10 @@
 
   <script>
     // =========================================================================
-    // V5 UTILITY FUNCTIONS (INLINED)
+    // UTILITY FUNCTIONS (INLINED)
     // ==========================================
 /**
- * V5 Utility Functions
+ * Utility Functions
  * Contains pure functions separated from DOM for testability.
  */
 
@@ -416,6 +416,9 @@ function hudFuzzyScore(query, target) {
 
 
 
+
+
+
   </script>
   <script>
 
@@ -501,8 +504,8 @@ function hudFuzzyScore(query, target) {
 
 
 
-    function defineV5Tests() {
-      describe("hudFuzzyScore (V5 Feature)", () => {
+    function defineNewTests() {
+      describe("hudFuzzyScore (New Feature)", () => {
         it("Exact match gets highest score", () => {
           const s1 = hudFuzzyScore("log", "log");
           assert(s1 >= 80, "Exact match should be >= 80");
@@ -536,7 +539,7 @@ function hudFuzzyScore(query, target) {
         });
       });
 
-      describe("Brutal Date Parsing & Formatting Overflows (V5)", () => {
+      describe("Brutal Date Parsing & Formatting Overflows", () => {
          it("Extremely large goal seconds parsed safely", () => {
             const res = getGoalSeconds("9999", "9999");
             assert(!isNaN(res) && res > 0);
@@ -550,7 +553,7 @@ function hudFuzzyScore(query, target) {
 
 
     function defineAllTests() {
-      defineV5Tests();
+      defineNewTests();
 
       // ═══════════════════════════════════════════════════════════════════════
       // 1. formatDuration — EXTREME EDGE CASES

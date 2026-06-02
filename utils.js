@@ -1,5 +1,5 @@
 /**
- * V5 Utility Functions
+ * Utility Functions
  * Contains pure functions separated from DOM for testability.
  */
 

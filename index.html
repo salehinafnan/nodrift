@@ -2,10 +2,6 @@
 <html lang="en" data-theme="sf-dark" style="font-size: clamp(14px, 1vw, 20px)">
   <head>
     <meta charset="UTF-8" />
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1.0, viewport-fit=cover"
-    />
     <meta name="color-scheme" content="dark" />
     <title>Work Hour Tracker</title>
 
@@ -595,7 +591,7 @@
         background: var(--page-bg);
         background-attachment: fixed;
         color: var(--text-main);
-        min-height: 100dvh; /* Upgraded to dynamic viewport */
+        min-height: 100vh;
         display: flex;
         justify-content: center;
         align-items: center;
@@ -658,7 +654,7 @@
       .console-panel {
         width: 92%;
         max-width: 90rem;
-        height: 85dvh; /* Upgraded to dynamic viewport */
+        height: 85vh;
         background: var(--panel-bg);
         border: 1px solid var(--border-main);
         border-radius: var(--radius-xl);
@@ -3095,763 +3091,8 @@
       }
 
       /* ==========================================================================
-         RESPONSIVE BREAKPOINTS — INDUSTRY-STANDARD MOBILE-FIRST OVERRIDES
+         PRINT STYLES
          ========================================================================== */
-
-      /* ── TABLET & MOBILE (≤ 900px) ────────────────────────────────────────── */
-      @media (max-width: 900px) {
-        html {
-          font-size: 16px;
-        }
-
-        body {
-          overflow: hidden !important;
-          height: 100dvh;
-          align-items: center;
-          padding: 12px;
-          padding-bottom: calc(
-            var(--mobile-tab-bar-height, 64px) + 24px
-          ) !important;
-          -webkit-overflow-scrolling: touch;
-        }
-
-        .mobile-tab-bar {
-          display: flex;
-        }
-
-        .console-panel {
-          grid-template-columns: 1fr;
-          padding: 16px;
-          height: 100%;
-          min-height: auto;
-          max-height: none;
-          width: 100%;
-          border-radius: 1rem;
-          gap: 0;
-        }
-
-        .main-ui,
-        .sidebar {
-          height: 100%;
-          min-height: 0;
-        }
-
-        .sidebar {
-          border-left: none;
-          border-top: none;
-          padding-left: 0;
-          padding-top: 0;
-          display: flex;
-          flex-direction: column;
-        }
-
-        .mobile-hidden {
-          display: none !important;
-        }
-
-        .tab-nav {
-          display: none !important;
-        }
-
-        .sidebar-footer {
-          display: none !important;
-        }
-
-        /* Status bar — wrap naturally on two rows */
-        .status-bar {
-          flex-wrap: wrap;
-          gap: 10px;
-          justify-content: flex-start;
-        }
-
-        .status-badge {
-          flex-shrink: 1;
-          min-width: 0;
-        }
-
-        .tab-content {
-          max-height: none !important;
-          height: 100%;
-          flex: 1;
-          overflow-y: auto;
-          -webkit-overflow-scrolling: touch;
-          overscroll-behavior: contain;
-        }
-
-        /* Modals: constrain to viewport */
-        .modal-container {
-          max-height: 85vh;
-          overflow-y: auto;
-          -webkit-overflow-scrolling: touch;
-        }
-
-        /* Settings popup repositioning */
-        .idle-popup {
-          position: fixed;
-          bottom: auto;
-          top: 50%;
-          left: 50%;
-          transform: translate(-50%, -50%);
-          width: min(90vw, 22rem);
-          z-index: 2000;
-        }
-
-        .idle-popup::before {
-          display: none;
-        }
-
-        /* Goal presets, TZ presets, and Theme presets: bottom sheet pattern with transitions */
-        .goal-presets,
-        .tz-presets,
-        .theme-presets {
-          position: fixed;
-          bottom: 0;
-          top: auto;
-          left: 0;
-          right: 0;
-          transform: translateY(100%);
-          opacity: 0;
-          pointer-events: none;
-          border-radius: var(--radius-xl) var(--radius-xl) 0 0;
-          flex-direction: row;
-          flex-wrap: wrap;
-          justify-content: center;
-          padding: 16px 16px calc(16px + env(safe-area-inset-bottom, 0px));
-          gap: 8px;
-          z-index: 300;
-          box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.4);
-          transition:
-            transform 0.3s cubic-bezier(0.16, 1, 0.3, 1),
-            opacity 0.3s ease;
-        }
-
-        /* Map JS style modifications directly to CSS bottom-sheet animations */
-        .goal-presets[style*="opacity: 1"],
-        .tz-presets[style*="opacity: 1"],
-        .theme-presets[style*="opacity: 1"] {
-          transform: translateY(0) !important;
-          opacity: 1 !important;
-          pointer-events: auto !important;
-        }
-
-        .goal-presets::before,
-        .tz-presets::before,
-        .theme-presets::before {
-          display: none;
-        }
-
-        .preset-pill {
-          padding: 10px 16px;
-          font-size: 0.85rem;
-          min-height: 44px;
-          display: flex;
-          align-items: center;
-        }
-
-        /* Full-width transparent native calendar triggers on mobile/tablet */
-        .date-picker-group {
-          position: relative;
-        }
-
-        .date-picker-group input[type="date"] {
-          position: absolute !important;
-          inset: 0 !important;
-          width: 100% !important;
-          height: 100% !important;
-          opacity: 0 !important;
-          pointer-events: auto !important;
-          z-index: 5 !important;
-          cursor: pointer;
-        }
-
-        /* Inputs zooming prevention */
-        select.input-standard,
-        .filter-select,
-        .filter-input,
-        input[type="text"],
-        input[type="date"],
-        input[type="number"],
-        textarea {
-          font-size: 16px !important;
-        }
-      }
-
-      /* ── MOBILE  (≤ 600px) ────────────────────────────────────────────────── */
-      @media (max-width: 600px) {
-        /* Reveal mobile HUD trigger */
-        .hud-mobile-btn {
-          display: flex !important;
-        }
-
-        body {
-          padding: 6px;
-          padding-bottom: calc(
-            var(--mobile-tab-bar-height, 64px) + 12px +
-              env(safe-area-inset-bottom)
-          ) !important;
-        }
-
-        .console-panel {
-          padding: 14px;
-          border-radius: 0.75rem;
-          gap: 1.2rem;
-        }
-
-        /* === STATUS BAR === */
-        .status-bar {
-          flex-direction: column;
-          gap: 8px;
-          align-items: stretch;
-        }
-
-        .status-badge {
-          width: 100%;
-          justify-content: center;
-          flex-wrap: wrap;
-          height: auto;
-          min-height: var(--header-el-height);
-          padding: 0.5rem 0.75rem;
-        }
-
-        .status-badge.status-time {
-          gap: 6px;
-          justify-content: center;
-        }
-
-        /* Clock divider hidden on mobile – line break via flex wrap */
-        .clock-divider {
-          display: none;
-        }
-
-        .last-seen-status {
-          margin-left: auto;
-        }
-
-        /* Goal + Theme row: full-width horizontal */
-        .status-bar-actions {
-          width: 100%;
-          display: flex !important;
-          gap: 8px !important;
-          align-items: stretch !important;
-        }
-
-        .goal-container {
-          flex: 1;
-        }
-
-        .goal-container .status-badge {
-          width: 100%;
-        }
-
-        .theme-toggle-btn,
-        .hud-mobile-btn {
-          flex-shrink: 0;
-          width: var(--header-el-height);
-          height: var(--header-el-height);
-        }
-
-        /* === TIMERS === */
-        .timer-val {
-          font-size: clamp(2.4rem, 12vw, 4rem);
-          justify-content: center;
-        }
-
-        #break-timer {
-          font-size: clamp(2rem, 10vw, 3.2rem);
-        }
-
-        .timer-group .label-xs,
-        .timer-group.inverted .label-xs {
-          text-align: center;
-        }
-
-        .timers-wrapper {
-          gap: 0.6rem;
-          margin: 0.25rem 0;
-        }
-
-        /* Progress text: stack vertically */
-        .progress-centerpiece > .font-mono {
-          flex-direction: column;
-          gap: 2px;
-          align-items: center;
-          text-align: center;
-          font-size: 0.7rem !important;
-        }
-
-        /* === ACTION BUTTONS (UPGRADED NATIVE PINNED BAR) === */
-        .actions {
-          position: static;
-          background: transparent;
-          backdrop-filter: none;
-          -webkit-backdrop-filter: none;
-          padding: 0;
-          margin-top: 1rem;
-          border-top: none;
-          gap: 10px;
-          box-shadow: none;
-          min-height: auto;
-        }
-
-        .actions button {
-          width: 100%;
-          height: var(--button-height);
-          font-size: 1.05rem;
-          min-height: 54px;
-        }
-
-        /* === SIDEBAR === */
-        .tab-content {
-          padding-right: 0;
-          overflow: visible;
-        }
-
-        #tab-logbook,
-        #tab-insights {
-          max-height: none;
-          overflow-y: visible;
-        }
-
-        .logbook-controls-header {
-          flex-wrap: wrap;
-          gap: 8px;
-          align-items: flex-start;
-        }
-
-        #log-count-display {
-          flex: 1;
-        }
-
-        .log-row {
-          padding: 0.6rem 0.8rem;
-        }
-
-        /* Enforce strict single-line truncation inside virtualized rows on mobile views */
-        .log-top-left {
-          gap: 6px;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-        }
-
-        .log-top-left strong,
-        .log-top-left span {
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-        }
-
-        .log-bottom-left {
-          flex-wrap: nowrap;
-          gap: 6px 10px;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-        }
-
-        /* Fatter touch targets for Logbook actions */
-        .icon-actions {
-          gap: 8px;
-        }
-
-        .icon-btn {
-          padding: 10px;
-          min-width: 40px;
-          min-height: 40px;
-        }
-
-        /* Filter drawer: stack rows */
-        .advanced-filters {
-          gap: 8px;
-          padding: 10px 8px;
-        }
-
-        .filter-row {
-          flex-wrap: wrap;
-          gap: 6px;
-        }
-
-        .filter-row > * {
-          min-width: calc(50% - 6px) !important;
-          flex: 1 1 calc(50% - 6px) !important;
-        }
-
-        .filter-hours-group {
-          flex-wrap: wrap !important;
-        }
-
-        /* Stats cards */
-        .stats-grid {
-          grid-template-columns: 1fr;
-        }
-
-        .stats-alignment-wrapper {
-          min-width: 0;
-          justify-content: flex-start;
-        }
-
-        .work-col {
-          width: auto;
-          min-width: 5.5rem;
-        }
-
-        .break-col {
-          width: auto;
-          min-width: 4.5rem;
-        }
-
-        /* Weekly progress card */
-        .progress-segment {
-          height: 22px;
-        }
-
-        /* Breakdown rows */
-        .breakdown-row {
-          height: auto;
-          min-height: 48px;
-          padding: 8px 10px;
-        }
-
-        /* Sidebar footer icons */
-        .sidebar-footer {
-          padding-top: 1rem;
-        }
-
-        .footer-icons {
-          gap: 8px;
-          flex-wrap: wrap;
-        }
-
-        .icon-stack {
-          width: auto;
-          min-width: 40px;
-        }
-
-        .sidebar-footer .sq-btn {
-          width: 40px;
-          height: 40px;
-          min-width: 40px;
-          min-height: 40px;
-        }
-
-        .icon-tag {
-          font-size: 9px;
-        }
-
-        .footer-divider {
-          display: none;
-        }
-
-        /* === MODALS === */
-        .modal-overlay {
-          padding: 10px;
-          align-items: flex-end;
-          /* Slide-up sheet pattern on mobile */
-        }
-
-        /* Apple HIG Bottom Sheet styling */
-        .modal-container {
-          max-width: 100%;
-          max-height: 90dvh;
-          overflow-y: auto;
-          border-radius: var(--radius-xl) var(--radius-xl) 0 0;
-          padding: calc(var(--space-5) + 12px) var(--space-4) var(--space-5);
-          margin-top: auto;
-        }
-
-        .modal-container::before {
-          content: "";
-          position: absolute;
-          top: 10px;
-          left: 50%;
-          transform: translateX(-50%);
-          width: 36px;
-          height: 4px;
-          border-radius: 4px;
-          background: var(--text-muted);
-          opacity: 0.3;
-        }
-
-        .modal-width-sm,
-        .modal-width-md {
-          max-width: 100% !important;
-        }
-
-        .form-row {
-          flex-direction: column;
-          gap: var(--space-3);
-        }
-
-        .action-row {
-          flex-direction: column;
-          gap: var(--space-2);
-        }
-
-        .action-row > button {
-          min-height: 48px;
-        }
-
-        /* Toasts: full width, horizontal safe margins */
-        #undo-toast,
-        #sync-toast,
-        #goal-toast,
-        #app-toast {
-          left: 10px;
-          right: 10px;
-          transform: none;
-          width: auto;
-          border-radius: 12px;
-          font-size: 0.8rem;
-        }
-
-        /* Dropdowns inside filter area */
-        select.input-standard,
-        .filter-select,
-        .filter-input {
-          font-size: 16px !important;
-          /* Prevents iOS zoom on focus */
-        }
-
-        input[type="text"],
-        input[type="date"],
-        input[type="number"],
-        textarea {
-          font-size: 16px !important;
-          /* Prevents iOS zoom on focus */
-        }
-      }
-
-      /* ── NARROW MOBILE  (≤ 480px) ─────────────────────────────────────────── */
-      @media (max-width: 480px) {
-        .tz-static-label,
-        #bst-clock {
-          display: none;
-        }
-      }
-
-      /* ── SMALL MOBILE  (≤ 400px) ──────────────────────────────────────────── */
-      @media (max-width: 400px) {
-        body {
-          padding: 4px;
-        }
-
-        .console-panel {
-          padding: 10px;
-          border-radius: 0.5rem;
-          gap: 1rem;
-        }
-
-        .timer-val {
-          font-size: clamp(2rem, 14vw, 3rem);
-        }
-
-        #break-timer {
-          font-size: clamp(1.6rem, 11vw, 2.4rem);
-        }
-
-        .status-badge {
-          padding: 0.4rem 0.5rem;
-        }
-
-        #primary-clock,
-        #bst-clock {
-          font-size: 1rem;
-        }
-
-        .tz-trigger,
-        .tz-static-label {
-          font-size: 0.7rem;
-        }
-
-        .goal-inputs input[type="text"] {
-          font-size: 1rem;
-          width: 7ch;
-        }
-
-        .goal-inputs span.label {
-          font-size: 0.7rem;
-        }
-
-        .actions button {
-          height: 3.2rem;
-          font-size: 0.95rem;
-        }
-
-        .tab-btn {
-          font-size: 0.78rem;
-        }
-
-        .log-row {
-          padding: 0.4rem 0.5rem;
-        }
-
-        .log-top-left strong {
-          font-size: 0.75rem;
-        }
-
-        .log-top-left span {
-          font-size: 0.6rem;
-        }
-
-        .log-bottom-left {
-          font-size: 0.65rem;
-          gap: 4px 8px;
-        }
-
-        .stat-val {
-          font-size: 0.95rem;
-        }
-
-        .breakdown-row {
-          padding: 6px 8px;
-          min-height: 42px;
-        }
-
-        .modal-container {
-          padding: var(--space-4) var(--space-3);
-        }
-
-        .modal-header {
-          font-size: 1rem;
-        }
-
-        .sidebar-footer .sq-btn {
-          width: 36px;
-          height: 36px;
-          min-width: 36px;
-          min-height: 36px;
-        }
-
-        .sidebar-footer .sq-btn svg {
-          width: 14px;
-          height: 14px;
-        }
-
-        /* Micro-screen spacing optimization: hide text tags and secondary icons */
-        .icon-tag {
-          display: none !important;
-        }
-
-        .clock-divider {
-          display: none !important;
-        }
-
-        .last-seen-status {
-          display: none !important;
-        }
-
-        .icon-stack {
-          min-width: 36px;
-          gap: 0;
-        }
-      }
-
-      /* ── TOUCH DEVICE OPTIMIZATIONS ───────────────────────────────────────── */
-      @media (hover: none) and (pointer: coarse) {
-        /* Remove hover-only transforms that cause jank on touch */
-        button:hover:not(:disabled) {
-          transform: none;
-          filter: none;
-        }
-
-        button:active:not(:disabled) {
-          transform: scale(0.94);
-          opacity: 0.8;
-          transition: none;
-        }
-
-        .icon-btn:hover:not(:disabled) {
-          transform: none;
-        }
-
-        .header-icon-btn:hover {
-          background-color: transparent;
-        }
-
-        /* Ensure all interactive elements meet 44×44 minimum */
-        .icon-btn,
-        .header-icon-btn,
-        .preset-pill,
-        .filter-checkbox-chip,
-        .clear-filter-btn,
-        .preset-action-btn {
-          min-height: 44px;
-          min-width: 44px;
-        }
-
-        /* Disable hover-triggered dropdowns, rely on click/tap via JS */
-        .goal-container:hover .goal-presets,
-        .tz-container:hover .tz-presets {
-          opacity: 0;
-          pointer-events: none;
-        }
-
-        /* Override scrollbar to native */
-        ::-webkit-scrollbar {
-          width: 4px;
-        }
-
-        ::-webkit-scrollbar-thumb {
-          background: rgba(255, 255, 255, 0.15);
-        }
-      }
-
-      /* ── SAFE AREA (NOTCHED DEVICES) ──────────────────────────────────────── */
-      @supports (padding: env(safe-area-inset-bottom)) {
-        body {
-          padding-top: max(6px, env(safe-area-inset-top));
-          padding-left: env(safe-area-inset-left);
-          padding-right: env(safe-area-inset-right);
-          padding-bottom: env(safe-area-inset-bottom);
-        }
-
-        .modal-overlay {
-          padding-bottom: env(safe-area-inset-bottom);
-        }
-
-        #undo-toast,
-        #app-toast {
-          margin-bottom: env(safe-area-inset-bottom);
-        }
-      }
-
-      /* ── LANDSCAPE PHONE (short+wide) ─────────────────────────────────────── */
-      @media (max-height: 500px) and (orientation: landscape) {
-        body {
-          padding: 4px;
-        }
-
-        .console-panel {
-          grid-template-columns: 1fr 1fr;
-          height: auto;
-          padding: 12px;
-          gap: 12px;
-        }
-
-        .sidebar {
-          border-left: 1px solid var(--border-main);
-          border-top: none;
-          padding-left: 12px;
-          padding-top: 0;
-        }
-
-        .timer-val {
-          font-size: clamp(1.8rem, 6vw, 3rem);
-        }
-
-        #break-timer {
-          font-size: clamp(1.5rem, 5vw, 2.4rem);
-        }
-
-        .actions {
-          flex-direction: row;
-        }
-
-        .actions button {
-          min-height: 48px;
-          height: 3.2rem;
-        }
-      }
 
       /* ── PRINT ────────────────────────────────────────────────────────────── */
       @media print {
@@ -4190,213 +3431,6 @@
       .theme-container:focus-within .goal-chevron {
         transform: rotate(180deg);
         color: var(--text-main);
-      }
-
-      /* =========================================================================
-       14. MOBILE TAB BAR & PREMIUM APP LAYOUTS
-       ========================================================================= */
-      :root {
-        --mobile-tab-bar-height: 64px;
-      }
-      .mobile-tab-bar {
-        position: fixed;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        height: var(--mobile-tab-bar-height);
-        background: color-mix(in srgb, var(--panel-bg) 94%, transparent);
-        backdrop-filter: blur(20px);
-        -webkit-backdrop-filter: blur(20px);
-        border-top: 1px solid var(--border-main);
-        display: none;
-        justify-content: space-around;
-        align-items: center;
-        z-index: 1000;
-        padding-bottom: env(safe-area-inset-bottom, 0px);
-        box-sizing: border-box;
-      }
-      .mobile-tab-item {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        gap: 4px;
-        background: transparent !important;
-        border: none !important;
-        padding: 4px 0 !important;
-        color: var(--text-muted) !important;
-        cursor: pointer;
-        transition:
-          color 0.15s ease,
-          transform 0.1s ease;
-        height: 100%;
-        border-radius: 0 !important;
-      }
-      .mobile-tab-item.active {
-        color: var(--accent-blue) !important;
-      }
-      .mobile-tab-item svg {
-        width: 20px;
-        height: 20px;
-        stroke: currentColor;
-        stroke-width: 2.2;
-        fill: none;
-        transition: transform 0.15s ease;
-      }
-      .mobile-tab-item.active svg {
-        stroke: var(--accent-blue) !important;
-        transform: scale(1.08);
-      }
-      .mobile-tab-item span {
-        font-size: 0.65rem;
-        font-weight: 600;
-      }
-      .mobile-tab-item:active {
-        transform: scale(0.95) !important;
-      }
-
-      /* Premium iOS-style Settings Tab Layout */
-      .mobile-settings-section {
-        margin-bottom: 24px;
-        text-align: left;
-      }
-      .mobile-settings-section .section-title {
-        font-size: 0.75rem;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        color: var(--text-muted);
-        margin-left: 12px;
-        margin-bottom: 8px;
-        font-weight: 700;
-      }
-      .mobile-settings-card {
-        background: var(--element-bg);
-        border: 1px solid var(--border-main);
-        border-radius: var(--radius-lg);
-        overflow: hidden;
-      }
-      .settings-list-item {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 12px 16px;
-        border-bottom: 1px solid var(--border-main);
-        color: var(--text-main);
-        font-size: 0.9rem;
-      }
-      .settings-list-item:last-child {
-        border-bottom: none;
-      }
-      .settings-list-item span {
-        font-weight: 500;
-      }
-      .settings-action-btn {
-        width: 100%;
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        padding: 12px 16px;
-        background: var(--element-bg);
-        border: none;
-        border-bottom: 1px solid var(--border-main);
-        color: var(--text-main);
-        font-size: 0.9rem;
-        text-align: left;
-        cursor: pointer;
-        transition: background-color 0.15s ease;
-        border-radius: 0;
-      }
-      .settings-action-btn:last-child {
-        border-bottom: none;
-      }
-      .settings-action-btn:hover {
-        background: var(--element-hover);
-      }
-      .settings-action-btn svg {
-        width: 18px;
-        height: 18px;
-        color: var(--accent-blue);
-      }
-      .settings-action-btn.danger-text svg {
-        color: var(--accent-break);
-      }
-      .settings-grid-actions {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 8px;
-        padding: 8px;
-        background: var(--element-bg);
-        border-radius: var(--radius-lg);
-        border: 1px solid var(--border-main);
-      }
-      .settings-grid-actions .settings-action-btn {
-        border: 1px solid var(--border-main);
-        border-radius: var(--radius-md);
-        background: var(--panel-bg);
-        justify-content: center;
-        flex-direction: column;
-        align-items: center;
-        gap: 6px;
-        padding: 10px;
-        font-size: 0.8rem;
-        height: auto;
-      }
-      .settings-grid-actions .settings-action-btn svg {
-        width: 20px;
-        height: 20px;
-      }
-
-      /* Slide-up animations for Apple bottom sheets */
-      @keyframes modalSlideUp {
-        from {
-          transform: translateY(100%);
-        }
-        to {
-          transform: translateY(0);
-        }
-      }
-      @media (max-width: 900px) {
-        .modal-overlay {
-          align-items: flex-end !important;
-          padding: 0 !important;
-        }
-        .modal-container {
-          border-radius: var(--radius-xl) var(--radius-xl) 0 0 !important;
-          animation: modalSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-          margin-bottom: 0 !important;
-          width: 100% !important;
-          max-width: 100% !important;
-        }
-      }
-
-      /* Drag handle styling for bottom sheets */
-      .modal-drag-handle {
-        width: 36px;
-        height: 4px;
-        border-radius: 2px;
-        background: var(--text-muted);
-        opacity: 0.3;
-        margin: 0 auto 12px auto;
-        display: none;
-      }
-      @media (max-width: 900px) {
-        .modal-drag-handle {
-          display: block;
-        }
-      }
-
-      /* Ergonomic touch active feedback states */
-      @media (hover: none) and (pointer: coarse) {
-        button:active,
-        .preset-pill:active,
-        .filter-checkbox-chip:active,
-        .clear-filter-btn:active,
-        .settings-action-btn:active {
-          transform: scale(0.96) !important;
-          filter: brightness(0.85) !important;
-          transition: none !important;
-        }
       }
     </style>
   </head>
@@ -6892,31 +5926,6 @@
               </div>
             </div>
             <div class="theme-container">
-              <!-- New Mobile Search/HUD Trigger -->
-              <button
-                class="theme-toggle-btn hud-mobile-btn"
-                aria-label="Open Command Center"
-                onclick="openHudModal()"
-                style="
-                  display: none;
-                  justify-content: center;
-                  align-items: center;
-                "
-              >
-                <svg
-                  viewBox="0 0 24 24"
-                  width="16"
-                  height="16"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                >
-                  <use href="#icon-9c8ee3dd"></use>
-                </svg>
-              </button>
-
               <button
                 class="theme-toggle-btn"
                 aria-label="Toggle Theme"
@@ -7773,297 +6782,6 @@
           ></div>
         </div>
 
-        <!-- Mobile Settings Tab View -->
-        <div
-          id="tab-settings-mobile"
-          class="tab-content"
-          style="display: none; padding: 4px"
-        >
-          <div class="mobile-settings-section">
-            <div class="section-title">Smart Inactivity Settings</div>
-            <div
-              class="mobile-settings-card"
-              id="mobile-settings-slot"
-              style="padding: 12px 16px"
-            >
-              <!-- Content reparented dynamically from #settings-config-popup -->
-            </div>
-          </div>
-
-          <div class="mobile-settings-section">
-            <div class="section-title">Design & Appearance</div>
-            <div class="mobile-settings-card">
-              <div class="settings-list-item">
-                <span>Timezone Preference</span>
-                <select
-                  id="mobile-tz-select"
-                  class="input-standard"
-                  style="
-                    width: auto;
-                    height: 32px;
-                    padding: 2px 20px 2px 8px;
-                    font-size: 0.8rem;
-                    background-position: right 0.5rem center;
-                  "
-                >
-                  <option value="America/Los_Angeles">
-                    PST (America/Los_Angeles)
-                  </option>
-                  <option value="America/Denver">MST (America/Denver)</option>
-                  <option value="America/Chicago">CST (America/Chicago)</option>
-                  <option value="America/New_York">
-                    EST (America/New_York)
-                  </option>
-                </select>
-              </div>
-              <div
-                class="settings-list-item"
-                style="
-                  flex-direction: column;
-                  align-items: flex-start;
-                  gap: 8px;
-                "
-              >
-                <span style="margin-bottom: 2px">Active Color Theme</span>
-                <div
-                  class="theme-presets"
-                  style="
-                    position: static;
-                    opacity: 1;
-                    pointer-events: auto;
-                    display: flex;
-                    flex-direction: row;
-                    flex-wrap: wrap;
-                    box-shadow: none;
-                    padding: 0;
-                    background: transparent;
-                    border: none;
-                    width: 100%;
-                    gap: 6px;
-                    transform: none;
-                    z-index: 1;
-                  "
-                >
-                  <button
-                    class="preset-pill"
-                    onclick="setThemeDirect('cobalt-glass')"
-                    style="
-                      flex: 1;
-                      display: inline-flex;
-                      align-items: center;
-                      justify-content: center;
-                      gap: 6px;
-                      font-size: 0.72rem;
-                      min-height: 38px;
-                    "
-                  >
-                    <svg
-                      viewBox="0 0 24 24"
-                      width="14"
-                      height="14"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2"
-                      style="color: #38bdf8"
-                    >
-                      <use href="#icon-b8385845"></use>
-                    </svg>
-                    Cobalt
-                  </button>
-                  <button
-                    class="preset-pill"
-                    onclick="setThemeDirect('onyx-black')"
-                    style="
-                      flex: 1;
-                      display: inline-flex;
-                      align-items: center;
-                      justify-content: center;
-                      gap: 6px;
-                      font-size: 0.72rem;
-                      min-height: 38px;
-                    "
-                  >
-                    <svg
-                      viewBox="0 0 24 24"
-                      width="14"
-                      height="14"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2"
-                      style="color: #8e8e93"
-                    >
-                      <use href="#icon-ef8e4b16"></use>
-                    </svg>
-                    Onyx
-                  </button>
-                  <button
-                    class="preset-pill"
-                    onclick="setThemeDirect('sf-light')"
-                    style="
-                      flex: 1;
-                      display: inline-flex;
-                      align-items: center;
-                      justify-content: center;
-                      gap: 6px;
-                      font-size: 0.72rem;
-                      min-height: 38px;
-                    "
-                  >
-                    <svg
-                      viewBox="0 0 24 24"
-                      width="14"
-                      height="14"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2"
-                      style="color: #ff9500"
-                    >
-                      <use href="#icon-c10237b5"></use>
-                    </svg>
-                    Light
-                  </button>
-                  <button
-                    class="preset-pill"
-                    onclick="setThemeDirect('sf-dark')"
-                    style="
-                      flex: 1;
-                      display: inline-flex;
-                      align-items: center;
-                      justify-content: center;
-                      gap: 6px;
-                      font-size: 0.72rem;
-                      min-height: 38px;
-                    "
-                  >
-                    <svg
-                      viewBox="0 0 24 24"
-                      width="14"
-                      height="14"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2"
-                      style="color: #818cf8"
-                    >
-                      <use href="#icon-d457aa18"></use>
-                    </svg>
-                    Dark
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="mobile-settings-section">
-            <div class="section-title">Overlay Overviews</div>
-            <div class="mobile-settings-card">
-              <button class="settings-action-btn" onclick="openLeaveModal()">
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                >
-                  <use href="#icon-6f90a674"></use>
-                </svg>
-                <span>Leaves & Holidays</span>
-              </button>
-              <button class="settings-action-btn" onclick="openHeatmapModal()">
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                >
-                  <use href="#icon-cfe7f835"></use>
-                </svg>
-                <span>365-Day Intensity Heatmap</span>
-              </button>
-              <button class="settings-action-btn" onclick="openHelpModal()">
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                >
-                  <use href="#icon-6bf1980a"></use>
-                </svg>
-                <span>User Guide & Help Manual</span>
-              </button>
-            </div>
-          </div>
-
-          <div class="mobile-settings-section">
-            <div class="section-title">Backups & Data Management</div>
-            <div class="settings-grid-actions" style="margin-bottom: 10px">
-              <button class="settings-action-btn" onclick="exportCSV()">
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                >
-                  <use href="#icon-0b357eda"></use>
-                </svg>
-                <span>Export CSV</span>
-              </button>
-              <button class="settings-action-btn" onclick="copyLog()">
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                >
-                  <use href="#icon-f699d873"></use>
-                </svg>
-                <span>Copy Logs</span>
-              </button>
-              <button class="settings-action-btn" onclick="exportJSON()">
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                >
-                  <use href="#icon-d0747b80"></use>
-                </svg>
-                <span>Backup JSON</span>
-              </button>
-              <button
-                class="settings-action-btn"
-                onclick="document.getElementById('import-file').click()"
-              >
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                >
-                  <use href="#icon-459ec513"></use>
-                </svg>
-                <span>Restore JSON</span>
-              </button>
-            </div>
-            <div class="mobile-settings-card">
-              <button
-                class="settings-action-btn danger-text"
-                onclick="clearAllData()"
-              >
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="#f87171"
-                  stroke-width="2"
-                >
-                  <use href="#icon-dc2cf02d"></use>
-                </svg>
-                <span style="color: var(--accent-break)"
-                  >Factory Reset (Wipe Data)</span
-                >
-              </button>
-            </div>
-          </div>
-        </div>
-
         <!-- Data Export / Restore / Wipe Panel -->
         <div class="sidebar-footer">
           <!-- Left Bottom: Two Lines Metadata -->
@@ -8456,228 +7174,173 @@
         </div>
       </div>
     </div>
-    <!-- Mobile Tab Navigation Bar -->
-    <nav class="mobile-tab-bar">
-      <button
-        class="mobile-tab-item active"
-        onclick="switchMobileTab('dashboard')"
-      >
-        <svg viewBox="0 0 24 24"><use href="#icon-f109317b"></use></svg>
-        <span>Timer</span>
-      </button>
-      <button class="mobile-tab-item" onclick="switchMobileTab('logbook')">
-        <svg viewBox="0 0 24 24"><use href="#icon-3a752b39"></use></svg>
-        <span>Logbook</span>
-      </button>
-      <button class="mobile-tab-item" onclick="switchMobileTab('insights')">
-        <svg viewBox="0 0 24 24"><use href="#icon-0d06e9d3"></use></svg>
-        <span>Insights</span>
-      </button>
-      <button class="mobile-tab-item" onclick="switchMobileTab('settings')">
-        <svg viewBox="0 0 24 24"><use href="#icon-a0221e6f"></use></svg>
-        <span>Settings</span>
-      </button>
-    </nav>
 
     <script>
       // =========================================================================
-      // V5 UTILITY FUNCTIONS (INLINED)
+      // UTILITY FUNCTIONS (INLINED)
       // ==========================================
-      /**
-       * V5 Utility Functions
-       * Contains pure functions separated from DOM for testability.
-       */
+/**
+ * Utility Functions
+ * Contains pure functions separated from DOM for testability.
+ */
 
-      function formatDuration(sec) {
-        if (isNaN(sec)) return "00:00:00";
-        // Add a microscopic 1-nanosecond buffer (1e-9) before flooring.
-        // This neutralizes IEEE 754 precision drift without causing clock jitter.
-        sec = Math.max(0, Math.floor(sec + 1e-9));
-        const h = Math.floor(sec / 3600)
-          .toString()
-          .padStart(2, "0");
-        const m = Math.floor((sec % 3600) / 60)
-          .toString()
-          .padStart(2, "0");
-        const s = Math.floor(sec % 60)
-          .toString()
-          .padStart(2, "0");
-        return `${h}:${m}:${s}`;
+function formatDuration(sec) {
+  if (isNaN(sec)) return "00:00:00";
+  // Add a microscopic 1-nanosecond buffer (1e-9) before flooring.
+  // This neutralizes IEEE 754 precision drift without causing clock jitter.
+  sec = Math.max(0, Math.floor(sec + 1e-9));
+  const h = Math.floor(sec / 3600).toString().padStart(2, "0");
+  const m = Math.floor((sec % 3600) / 60).toString().padStart(2, "0");
+  const s = Math.floor(sec % 60).toString().padStart(2, "0");
+  return `${h}:${m}:${s}`;
+}
+
+function parseTime(str) {
+  if (!str || typeof str !== "string") return null;
+  const p = str.trim().split(":");
+  let h = 0, m = 0, s = 0;
+  if (p.length === 2) {
+    h = parseInt(p[0], 10);
+    m = parseInt(p[1], 10);
+    if (isNaN(h) || isNaN(m) || h < 0 || m < 0) return null;
+    return h * 3600 + m * 60;
+  } else if (p.length === 3) {
+    h = parseInt(p[0], 10);
+    m = parseInt(p[1], 10);
+    s = parseInt(p[2], 10);
+    if (isNaN(h) || isNaN(m) || isNaN(s) || h < 0 || m < 0 || s < 0) return null;
+    return h * 3600 + m * 60 + s;
+  }
+  return null;
+}
+
+function formatFriendlyDuration(sec, emptyPlaceholder = '<span style="opacity: 0.25; font-weight: 400;">-</span>') {
+  if (sec === undefined || sec === null || sec <= 0) return emptyPlaceholder;
+  sec = Math.floor(sec);
+  const h = Math.floor(sec / 3600);
+  const m = Math.floor((sec % 3600) / 60);
+  const s = sec % 60;
+  if (h > 0) {
+    return m > 0 ? `${h}h ${m}m` : `${h}h`;
+  } else {
+    if (m > 0) {
+      return s > 0 ? `${m}m ${s}s` : `${m}m`;
+    } else {
+      return s > 0 ? `${s}s` : emptyPlaceholder;
+    }
+  }
+}
+
+function escapeHTML(str) {
+  if (!str) return "";
+  return String(str).replace(/[&<>'"]/g, (tag) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    "'": "&#39;",
+    '"': "&quot;",
+  })[tag] || tag);
+}
+
+function parseGoalTimeStr(val) {
+  let hh = 0;
+  let mm = 0;
+  const cleanVal = String(val).trim().replace(",", ".");
+  if (!cleanVal) return { hh: 8, mm: 0 };
+  const naturalMatch = cleanVal.match(/^(?:(\d+(?:\.\d+)?)\s*h)?\s*(?:(\d+)\s*m)?$/i);
+  const colonMatch = cleanVal.match(/^(\d+):(\d{1,2})$/);
+  const decimalMatch = cleanVal.match(/^(\d+(?:\.\d+))$/);
+  if (colonMatch) {
+    hh = parseInt(colonMatch[1], 10);
+    mm = parseInt(colonMatch[2], 10);
+  } else if (decimalMatch) {
+    const total = parseFloat(decimalMatch[1]);
+    hh = Math.floor(total);
+    mm = Math.round((total - hh) * 60);
+  } else if (naturalMatch && (naturalMatch[1] || naturalMatch[2])) {
+    const rawH = parseFloat(naturalMatch[1] || 0);
+    hh = Math.floor(rawH);
+    mm = Math.round((rawH - hh) * 60) + parseInt(naturalMatch[2] || 0, 10);
+  } else {
+    const digits = cleanVal.replace(/\D/g, "");
+    if (digits) {
+      if (digits.length <= 2) { hh = parseInt(digits, 10) || 0; mm = 0; }
+      else if (digits.length === 3) { hh = parseInt(digits.slice(0, 1), 10) || 0; mm = parseInt(digits.slice(1), 10) || 0; }
+      else { hh = parseInt(digits.slice(0, 2), 10) || 0; mm = parseInt(digits.slice(2, 4), 10) || 0; }
+    } else { hh = 8; }
+  }
+  hh += Math.floor(mm / 60);
+  mm = mm % 60;
+  hh = Math.min(24, Math.max(0, hh));
+  mm = Math.min(59, Math.max(0, mm));
+  return { hh, mm };
+}
+
+function getGoalSeconds(h, m) {
+  const hVal = Math.max(0, parseFloat(h) || 0);
+  const mVal = Math.max(0, parseFloat(m) || 0);
+  const total = hVal * 3600 + mVal * 60;
+  return total > 0 ? total : 1;
+}
+
+function parseTimeToMinutes(timeStr) {
+  if (!timeStr || timeStr === "Manual" || timeStr === "Entry" || timeStr === "—" || timeStr === "-") return null;
+  const match = String(timeStr).match(/^(\d{2}):(\d{2})\s*(AM|PM)$/i);
+  if (!match) return null;
+  let hours = parseInt(match[1], 10);
+  const minutes = parseInt(match[2], 10);
+  const ampm = match[3].toUpperCase();
+  if (ampm === "PM" && hours < 12) hours += 12;
+  if (ampm === "AM" && hours === 12) hours = 0;
+  return hours * 60 + minutes;
+}
+
+function debounce(func, wait) {
+  let timeout;
+  return function (...args) {
+    clearTimeout(timeout);
+    timeout = setTimeout(() => func.apply(this, args), wait);
+  };
+}
+
+function hudFuzzyScore(query, target) {
+  if (!query || !target) return 0;
+  const q = String(query).toLowerCase();
+  const t = String(target).toLowerCase();
+  
+  let qIdx = 0;
+  let tIdx = 0;
+  let score = 0;
+  let consecutive = 0;
+  
+  while (qIdx < q.length && tIdx < t.length) {
+    if (q[qIdx] === t[tIdx]) {
+      score += 10;
+      score += consecutive * 5; 
+      
+      if (tIdx === 0 || t[tIdx - 1] === ' ' || t[tIdx - 1] === '-') {
+        score += 15;
       }
+      
+      consecutive++;
+      qIdx++;
+    } else {
+      consecutive = 0;
+      score -= 1; 
+    }
+    tIdx++;
+  }
+  
+  if (qIdx < q.length) return 0; 
+  
+  if (t.includes(q)) score += 20;
+  if (t === q) score += 50;
+  
+  return Math.max(0, score);
+}
 
-      function parseTime(str) {
-        if (!str || typeof str !== "string") return null;
-        const p = str.trim().split(":");
-        let h = 0,
-          m = 0,
-          s = 0;
-        if (p.length === 2) {
-          h = parseInt(p[0], 10);
-          m = parseInt(p[1], 10);
-          if (isNaN(h) || isNaN(m) || h < 0 || m < 0) return null;
-          return h * 3600 + m * 60;
-        } else if (p.length === 3) {
-          h = parseInt(p[0], 10);
-          m = parseInt(p[1], 10);
-          s = parseInt(p[2], 10);
-          if (isNaN(h) || isNaN(m) || isNaN(s) || h < 0 || m < 0 || s < 0)
-            return null;
-          return h * 3600 + m * 60 + s;
-        }
-        return null;
-      }
 
-      function formatFriendlyDuration(
-        sec,
-        emptyPlaceholder = '<span style="opacity: 0.25; font-weight: 400;">-</span>',
-      ) {
-        if (sec === undefined || sec === null || sec <= 0)
-          return emptyPlaceholder;
-        sec = Math.floor(sec);
-        const h = Math.floor(sec / 3600);
-        const m = Math.floor((sec % 3600) / 60);
-        const s = sec % 60;
-        if (h > 0) {
-          return m > 0 ? `${h}h ${m}m` : `${h}h`;
-        } else {
-          if (m > 0) {
-            return s > 0 ? `${m}m ${s}s` : `${m}m`;
-          } else {
-            return s > 0 ? `${s}s` : emptyPlaceholder;
-          }
-        }
-      }
 
-      function escapeHTML(str) {
-        if (!str) return "";
-        return String(str).replace(
-          /[&<>'"]/g,
-          (tag) =>
-            ({
-              "&": "&amp;",
-              "<": "&lt;",
-              ">": "&gt;",
-              "'": "&#39;",
-              '"': "&quot;",
-            })[tag] || tag,
-        );
-      }
-
-      function parseGoalTimeStr(val) {
-        let hh = 0;
-        let mm = 0;
-        const cleanVal = String(val).trim().replace(",", ".");
-        if (!cleanVal) return { hh: 8, mm: 0 };
-        const naturalMatch = cleanVal.match(
-          /^(?:(\d+(?:\.\d+)?)\s*h)?\s*(?:(\d+)\s*m)?$/i,
-        );
-        const colonMatch = cleanVal.match(/^(\d+):(\d{1,2})$/);
-        const decimalMatch = cleanVal.match(/^(\d+(?:\.\d+))$/);
-        if (colonMatch) {
-          hh = parseInt(colonMatch[1], 10);
-          mm = parseInt(colonMatch[2], 10);
-        } else if (decimalMatch) {
-          const total = parseFloat(decimalMatch[1]);
-          hh = Math.floor(total);
-          mm = Math.round((total - hh) * 60);
-        } else if (naturalMatch && (naturalMatch[1] || naturalMatch[2])) {
-          const rawH = parseFloat(naturalMatch[1] || 0);
-          hh = Math.floor(rawH);
-          mm =
-            Math.round((rawH - hh) * 60) + parseInt(naturalMatch[2] || 0, 10);
-        } else {
-          const digits = cleanVal.replace(/\D/g, "");
-          if (digits) {
-            if (digits.length <= 2) {
-              hh = parseInt(digits, 10) || 0;
-              mm = 0;
-            } else if (digits.length === 3) {
-              hh = parseInt(digits.slice(0, 1), 10) || 0;
-              mm = parseInt(digits.slice(1), 10) || 0;
-            } else {
-              hh = parseInt(digits.slice(0, 2), 10) || 0;
-              mm = parseInt(digits.slice(2, 4), 10) || 0;
-            }
-          } else {
-            hh = 8;
-          }
-        }
-        hh += Math.floor(mm / 60);
-        mm = mm % 60;
-        hh = Math.min(24, Math.max(0, hh));
-        mm = Math.min(59, Math.max(0, mm));
-        return { hh, mm };
-      }
-
-      function getGoalSeconds(h, m) {
-        const hVal = Math.max(0, parseFloat(h) || 0);
-        const mVal = Math.max(0, parseFloat(m) || 0);
-        const total = hVal * 3600 + mVal * 60;
-        return total > 0 ? total : 1;
-      }
-
-      function parseTimeToMinutes(timeStr) {
-        if (
-          !timeStr ||
-          timeStr === "Manual" ||
-          timeStr === "Entry" ||
-          timeStr === "—" ||
-          timeStr === "-"
-        )
-          return null;
-        const match = String(timeStr).match(/^(\d{2}):(\d{2})\s*(AM|PM)$/i);
-        if (!match) return null;
-        let hours = parseInt(match[1], 10);
-        const minutes = parseInt(match[2], 10);
-        const ampm = match[3].toUpperCase();
-        if (ampm === "PM" && hours < 12) hours += 12;
-        if (ampm === "AM" && hours === 12) hours = 0;
-        return hours * 60 + minutes;
-      }
-
-      function debounce(func, wait) {
-        let timeout;
-        return function (...args) {
-          clearTimeout(timeout);
-          timeout = setTimeout(() => func.apply(this, args), wait);
-        };
-      }
-
-      function hudFuzzyScore(query, target) {
-        if (!query || !target) return 0;
-        const q = String(query).toLowerCase();
-        const t = String(target).toLowerCase();
-
-        let qIdx = 0;
-        let tIdx = 0;
-        let score = 0;
-        let consecutive = 0;
-
-        while (qIdx < q.length && tIdx < t.length) {
-          if (q[qIdx] === t[tIdx]) {
-            score += 10;
-            score += consecutive * 5;
-
-            if (tIdx === 0 || t[tIdx - 1] === " " || t[tIdx - 1] === "-") {
-              score += 15;
-            }
-
-            consecutive++;
-            qIdx++;
-          } else {
-            consecutive = 0;
-            score -= 1;
-          }
-          tIdx++;
-        }
-
-        if (qIdx < q.length) return 0;
-
-        if (t.includes(q)) score += 20;
-        if (t === q) score += 50;
-
-        return Math.max(0, score);
-      }
     </script>
     <script>
       // Global safety interceptors to prevent crashes in private modes, storage limits, or security restrictions
@@ -9601,44 +8264,44 @@
 
       // High-performance inline Web Worker compiled in-memory via Virtual Blob
       const workerCode = `
-    self.onmessage = function(e) {
-      const { txId, data: logs } = e.data
-      const weeklyGroups = {}
-      const dailyAnchors = {}
+        self.onmessage = function(e) {
+          const { txId, data: logs } = e.data
+          const weeklyGroups = {}
+          const dailyAnchors = {}
 
-      // Sort logs by loginEpochMs ascending (oldest shift first)
-      logs.sort((a, b) => (a.loginEpochMs || 0) - (b.loginEpochMs || 0))
+          // Sort logs by loginEpochMs ascending (oldest shift first)
+          logs.sort((a, b) => (a.loginEpochMs || 0) - (b.loginEpochMs || 0))
 
-      for (let i = 0; i < logs.length; i++) {
-        const log = logs[i]
-        if (!log.epochMs || log.epochMs <= 0) continue
+          for (let i = 0; i < logs.length; i++) {
+            const log = logs[i]
+            if (!log.epochMs || log.epochMs <= 0) continue
 
-        // Calculate the day count and determine the day of the week
-        const daysSinceEpoch = Math.floor(log.epochMs / 86400000)
-        const dayOfWeek = (daysSinceEpoch + 4) % 7
-        const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek
+            // Calculate the day count and determine the day of the week
+            const daysSinceEpoch = Math.floor(log.epochMs / 86400000)
+            const dayOfWeek = (daysSinceEpoch + 4) % 7
+            const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek
 
-        // Fixed: We add 43200000ms (12 hours) to the key to match the 12:00:00 UTC anchor
-        // used in the UI and Manual Log upgrades.
-        const key = ((daysSinceEpoch + diffToMonday) * 86400000) + 43200000
+            // Fixed: We add 43200000ms (12 hours) to the key to match the 12:00:00 UTC anchor
+            // used in the UI and Manual Log upgrades.
+            const key = ((daysSinceEpoch + diffToMonday) * 86400000) + 43200000
 
-        if (!weeklyGroups[key]) weeklyGroups[key] = []
-        weeklyGroups[key].push(log)
+            if (!weeklyGroups[key]) weeklyGroups[key] = []
+            weeklyGroups[key].push(log)
 
-        const dateKey = log.date
-        // Since we process in oldest-first order, the first encountered target holds the oldest goal
-        if (!dailyAnchors[dateKey] && log.dayGoal) {
-          dailyAnchors[dateKey] = log.dayGoal
+            const dateKey = log.date
+            // Since we process in oldest-first order, the first encountered target holds the oldest goal
+            if (!dailyAnchors[dateKey] && log.dayGoal) {
+              dailyAnchors[dateKey] = log.dayGoal
+            }
+          }
+
+          for (let key in weeklyGroups) {
+            weeklyGroups[key].sort((a, b) => b.epochMs - a.epochMs)
+          }
+
+          self.postMessage({ txId, weeklyGroups, dailyAnchors })
         }
-      }
-
-      for (let key in weeklyGroups) {
-        weeklyGroups[key].sort((a, b) => b.epochMs - a.epochMs)
-      }
-
-      self.postMessage({ txId, weeklyGroups, dailyAnchors })
-    }
-  `;
+      `;
       const blob = new Blob([workerCode], { type: "application/javascript" });
       const workerUrl = URL.createObjectURL(blob);
       const analyticsWorker = new Worker(workerUrl);
@@ -11061,32 +9724,32 @@
         const textClass = log.status === "OVER" ? "text-work" : "text-warning";
 
         return `
-    <div class="log-row${selectedClass}" data-id="${log.id}">
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-            <div style="display: flex; align-items: center; gap: 8px;">
-                <span style="font-weight: 400; font-size: var(--font-size-entry-title); color: var(--text-main);">${dayName} <span style="opacity: 0.5;">(${displayMonthDay})</span></span>
-                <span style="font-size: var(--font-size-entry-meta); color: var(--text-muted);">${log.login} - ${log.logout}</span>
-                ${weekendBadge}
+        <div class="log-row${selectedClass}" data-id="${log.id}">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span style="font-weight: 400; font-size: var(--font-size-entry-title); color: var(--text-main);">${dayName} <span style="opacity: 0.5;">(${displayMonthDay})</span></span>
+                    <span style="font-size: var(--font-size-entry-meta); color: var(--text-muted);">${log.login} - ${log.logout}</span>
+                    ${weekendBadge}
+                </div>
+                <div style="display: flex; align-items: center; gap: 4px;">
+                    <span class="badge ${badgeClass}">${ouLetter}</span>
+                    <span class="${textClass}" style="font-weight: 600; font-size: var(--font-size-entry-stats);">${friendlyDiff}</span>
+                </div>
             </div>
-            <div style="display: flex; align-items: center; gap: 4px;">
-                <span class="badge ${badgeClass}">${ouLetter}</span>
-                <span class="${textClass}" style="font-weight: 600; font-size: var(--font-size-entry-stats);">${friendlyDiff}</span>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: var(--space-1);">
+                <div class="font-mono" style="display: flex; gap: var(--space-3); font-size: var(--font-size-entry-stats);">
+                    <span style="display: inline-flex; align-items: center; min-width: 75px;"><span class="badge badge-w">W</span> ${formatFriendlyDuration(log.workSec)}</span>
+                    <span style="display: inline-flex; align-items: center; min-width: 65px;"><span class="badge badge-b">B</span> ${formatFriendlyDuration(log.breakSec)}</span>
+                </div>
+                <div class="icon-actions">
+                    <button class="${noteIconClass}" ${noteBtnAttr}>${SVGs.note}</button>
+                    <button aria-label="Copy Log" class="icon-btn" data-action="copy" data-id="${log.id}" aria-label="Icon Button">${SVGs.copy}</button>
+                    <button aria-label="Edit Times" class="icon-btn" data-action="edit" data-id="${log.id}" aria-label="Icon Button">${SVGs.edit}</button>
+                    <button aria-label="Delete Shift" class="icon-btn danger-text" data-action="delete" data-id="${log.id}" aria-label="Icon Button">${SVGs.trash}</button>
+                </div>
             </div>
-        </div>
-        
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: var(--space-1);">
-            <div class="font-mono" style="display: flex; gap: var(--space-3); font-size: var(--font-size-entry-stats);">
-                <span style="display: inline-flex; align-items: center; min-width: 75px;"><span class="badge badge-w">W</span> ${formatFriendlyDuration(log.workSec)}</span>
-                <span style="display: inline-flex; align-items: center; min-width: 65px;"><span class="badge badge-b">B</span> ${formatFriendlyDuration(log.breakSec)}</span>
-            </div>
-            <div class="icon-actions">
-                <button class="${noteIconClass}" ${noteBtnAttr}>${SVGs.note}</button>
-                <button aria-label="Copy Log" class="icon-btn" data-action="copy" data-id="${log.id}" aria-label="Icon Button">${SVGs.copy}</button>
-                <button aria-label="Edit Times" class="icon-btn" data-action="edit" data-id="${log.id}" aria-label="Icon Button">${SVGs.edit}</button>
-                <button aria-label="Delete Shift" class="icon-btn danger-text" data-action="delete" data-id="${log.id}" aria-label="Icon Button">${SVGs.trash}</button>
-            </div>
-        </div>
-    </div>`;
+        </div>`;
       }
 
       // Delegated actions dispatcher inside scrolling logs area
@@ -11146,15 +9809,15 @@
         if (activeCount > 0) {
           btn.classList.add("filter-active");
           btn.innerHTML = `
-      <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" width="18" height="18"><use href="#icon-c8e93a10"></use></svg>
-      Filters (${activeCount})
-    `;
+          <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" width="18" height="18"><use href="#icon-c8e93a10"></use></svg>
+          Filters (${activeCount})
+        `;
         } else {
           btn.classList.remove("filter-active");
           btn.innerHTML = `
-      <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" width="18" height="18"><use href="#icon-c8e93a10"></use></svg>
-      Filters
-    `;
+          <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" width="18" height="18"><use href="#icon-c8e93a10"></use></svg>
+          Filters
+        `;
         }
 
         DOM.filterHoursVal.disabled = DOM.filterHoursOp.value === "ALL";
@@ -11217,11 +9880,11 @@
         container.innerHTML = chips
           .map(
             (c) => `
-    <span class="filter-chip">
-      ${escapeHTML(c.label)}
-      <span class="filter-chip-remove" onclick="clearSingleFilter('${c.id}')">✕</span>
-    </span>
-  `,
+        <span class="filter-chip">
+          ${escapeHTML(c.label)}
+          <span class="filter-chip-remove" onclick="clearSingleFilter('${c.id}')">✕</span>
+        </span>
+      `,
           )
           .join("");
       }
@@ -12190,28 +10853,6 @@
             const leaveBadge = `<span class="badge badge-leave">${leaveLabel}</span>`;
 
             breakdownHTML += `
-            <div class="breakdown-row" style="${rowStyle}">
-              <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-                <span style="font-weight: ${
-                  isToday ? "700" : "400"
-                }; font-size: var(--font-size-entry-title);">
-                  ${
-                    dayNames[dayOfWeekIndex]
-                  } <span style="opacity: 0.5;">(${displayDateNoYear})</span>${weekendBadge}${leaveBadge}
-                </span>
-                <div class="font-mono stats-alignment-wrapper" style="font-size: var(--font-size-entry-stats); color: var(--text-main); display: flex; gap: 12px;">
-                   <div class="stat-column work-col" style="display:flex; align-items:center;"><span class="badge badge-w badge-w-lg">W</span> —</div>
-                   <div class="stat-column break-col" style="display:flex; align-items:center;"><span class="badge badge-b badge-b-lg">B</span> —</div>
-                </div>
-              </div>
-            </div>`;
-          } else {
-            const isEmptyDay =
-              dayW === 0 && dayB === 0 && (!isToday || !state.loginTimestamp);
-
-            if (isEmptyDay) {
-              if (!isWeekend) {
-                breakdownHTML += `
                 <div class="breakdown-row" style="${rowStyle}">
                   <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
                     <span style="font-weight: ${
@@ -12219,18 +10860,40 @@
                     }; font-size: var(--font-size-entry-title);">
                       ${
                         dayNames[dayOfWeekIndex]
-                      } <span style="opacity: 0.5;">(${displayDateNoYear})</span>${weekendBadge}
+                      } <span style="opacity: 0.5;">(${displayDateNoYear})</span>${weekendBadge}${leaveBadge}
                     </span>
                     <div class="font-mono stats-alignment-wrapper" style="font-size: var(--font-size-entry-stats); color: var(--text-main); display: flex; gap: 12px;">
-                       <div class="stat-column work-col" style="display:flex; align-items:center;"><span class="badge badge-w badge-w-lg">W</span> <span ${
-                         isToday ? 'id="today-work-val"' : ""
-                       }>—</span></div>
-                       <div class="stat-column break-col" style="display:flex; align-items:center;"><span class="badge badge-b badge-b-lg">B</span> <span ${
-                         isToday ? 'id="today-break-val"' : ""
-                       }>—</span></div>
+                       <div class="stat-column work-col" style="display:flex; align-items:center;"><span class="badge badge-w badge-w-lg">W</span> —</div>
+                       <div class="stat-column break-col" style="display:flex; align-items:center;"><span class="badge badge-b badge-b-lg">B</span> —</div>
                     </div>
                   </div>
                 </div>`;
+          } else {
+            const isEmptyDay =
+              dayW === 0 && dayB === 0 && (!isToday || !state.loginTimestamp);
+
+            if (isEmptyDay) {
+              if (!isWeekend) {
+                breakdownHTML += `
+                    <div class="breakdown-row" style="${rowStyle}">
+                      <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                        <span style="font-weight: ${
+                          isToday ? "700" : "400"
+                        }; font-size: var(--font-size-entry-title);">
+                          ${
+                            dayNames[dayOfWeekIndex]
+                          } <span style="opacity: 0.5;">(${displayDateNoYear})</span>${weekendBadge}
+                        </span>
+                        <div class="font-mono stats-alignment-wrapper" style="font-size: var(--font-size-entry-stats); color: var(--text-main); display: flex; gap: 12px;">
+                           <div class="stat-column work-col" style="display:flex; align-items:center;"><span class="badge badge-w badge-w-lg">W</span> <span ${
+                             isToday ? 'id="today-work-val"' : ""
+                           }>—</span></div>
+                           <div class="stat-column break-col" style="display:flex; align-items:center;"><span class="badge badge-b badge-b-lg">B</span> <span ${
+                             isToday ? 'id="today-break-val"' : ""
+                           }>—</span></div>
+                        </div>
+                      </div>
+                    </div>`;
               }
             } else {
               const dayLogs = logsByDate[dateStr];
@@ -12287,46 +10950,46 @@
               const textClass = isOver ? "text-work" : "text-warning";
 
               breakdownHTML += `
-              <div class="breakdown-row" style="${rowStyle}">
-                <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-                  <span style="font-weight: ${
-                    isToday ? "700" : "400"
-                  }; font-size: var(--font-size-entry-title);">
-                    ${
-                      dayNames[dayOfWeekIndex]
-                    } <span style="opacity: 0.5;">(${displayDateNoYear})</span>${weekendBadge}
-                  </span>
-                  <div class="font-mono stats-alignment-wrapper" style="font-size: var(--font-size-entry-stats); color: var(--text-main); display: flex; gap: 12px;">
-                    <div class="stat-column work-col" style="display:flex; align-items:center;">
-                      <span class="badge badge-w badge-w-lg">W</span> <span ${
-                        isToday ? 'id="today-work-val"' : ""
-                      }>${formatFriendlyDuration(dayW)}</span>
+                  <div class="breakdown-row" style="${rowStyle}">
+                    <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                      <span style="font-weight: ${
+                        isToday ? "700" : "400"
+                      }; font-size: var(--font-size-entry-title);">
+                        ${
+                          dayNames[dayOfWeekIndex]
+                        } <span style="opacity: 0.5;">(${displayDateNoYear})</span>${weekendBadge}
+                      </span>
+                      <div class="font-mono stats-alignment-wrapper" style="font-size: var(--font-size-entry-stats); color: var(--text-main); display: flex; gap: 12px;">
+                        <div class="stat-column work-col" style="display:flex; align-items:center;">
+                          <span class="badge badge-w badge-w-lg">W</span> <span ${
+                            isToday ? 'id="today-work-val"' : ""
+                          }>${formatFriendlyDuration(dayW)}</span>
+                        </div>
+                        <div class="stat-column break-col" style="display:flex; align-items:center;">
+                          <span class="badge badge-b badge-b-lg">B</span> <span ${
+                            isToday ? 'id="today-break-val"' : ""
+                          }>${formatFriendlyDuration(dayB)}</span>
+                        </div>
+                      </div>
                     </div>
-                    <div class="stat-column break-col" style="display:flex; align-items:center;">
-                      <span class="badge badge-b badge-b-lg">B</span> <span ${
-                        isToday ? 'id="today-break-val"' : ""
-                      }>${formatFriendlyDuration(dayB)}</span>
+                    <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; font-size: var(--font-size-entry-meta); color: var(--text-muted); margin-top: 4px;">
+                      <span>${loginStr} - ${logoutStr}</span>
+                      <div class="font-mono stats-alignment-wrapper" style="font-size: var(--font-size-entry-meta); color: var(--text-muted); display: flex; gap: 12px;">
+                        <div class="stat-column work-col" style="display:flex; align-items:center;">
+                          <span ${
+                            isToday ? 'id="today-variance-badge"' : ""
+                          } class="badge ${badgeClass}">${ouLetter}</span><span ${
+                            isToday ? 'id="today-variance-val"' : ""
+                          } class="${textClass}" style="font-weight: 600;">${varianceTime}</span>
+                        </div>
+                        <div class="stat-column break-col" style="display:flex; align-items:center;">
+                          <span class="badge badge-f">F</span><span ${
+                            isToday ? 'id="today-focus-val"' : ""
+                          } style="font-weight: 600; color: var(--text-muted);">${focusText}</span>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                </div>
-                <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; font-size: var(--font-size-entry-meta); color: var(--text-muted); margin-top: 4px;">
-                  <span>${loginStr} - ${logoutStr}</span>
-                  <div class="font-mono stats-alignment-wrapper" style="font-size: var(--font-size-entry-meta); color: var(--text-muted); display: flex; gap: 12px;">
-                    <div class="stat-column work-col" style="display:flex; align-items:center;">
-                      <span ${
-                        isToday ? 'id="today-variance-badge"' : ""
-                      } class="badge ${badgeClass}">${ouLetter}</span><span ${
-                        isToday ? 'id="today-variance-val"' : ""
-                      } class="${textClass}" style="font-weight: 600;">${varianceTime}</span>
-                    </div>
-                    <div class="stat-column break-col" style="display:flex; align-items:center;">
-                      <span class="badge badge-f">F</span><span ${
-                        isToday ? 'id="today-focus-val"' : ""
-                      } style="font-weight: 600; color: var(--text-muted);">${focusText}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>`;
+                  </div>`;
             }
           }
         }
@@ -14920,12 +13583,12 @@
         if (isDefaultState) {
           if (state.currentMode === "work") {
             html += `<div id="hud-live-timer" style="margin-bottom: 8px; background: var(--element-bg); border-radius: var(--radius-md); padding: 12px; display: flex; justify-content: space-between; align-items: center; border: 1px solid var(--border-main);">
-                      <div style="display:flex; align-items:center; gap:8px;">
-                        <span style="display:inline-block; width:10px; height:10px; background:var(--accent-work); border-radius:50%; box-shadow: 0 0 8px var(--accent-work);"></span>
-                        <span style="font-weight:600; color:var(--text-main);">Live Session</span>
-                      </div>
-                      <div id="hud-live-timer-val" style="font-family: var(--number-font); font-variant-numeric: tabular-nums; font-size:1.2rem; font-weight:bold; color:var(--text-main);">${typeof formatDuration === "function" ? formatDuration(getCurrentWorkSeconds()) : ""}</div>
-                    </div>`;
+                          <div style="display:flex; align-items:center; gap:8px;">
+                            <span style="display:inline-block; width:10px; height:10px; background:var(--accent-work); border-radius:50%; box-shadow: 0 0 8px var(--accent-work);"></span>
+                            <span style="font-weight:600; color:var(--text-main);">Live Session</span>
+                          </div>
+                          <div id="hud-live-timer-val" style="font-family: var(--number-font); font-variant-numeric: tabular-nums; font-size:1.2rem; font-weight:bold; color:var(--text-main);">${typeof formatDuration === "function" ? formatDuration(getCurrentWorkSeconds()) : ""}</div>
+                        </div>`;
           }
         }
 
@@ -14944,17 +13607,17 @@
               : "var(--text-muted)";
 
             html += `
-          <div onclick="executeHudIndex(${idx})" style="background: ${bg}; border-radius: var(--radius-sm); padding: 10px 12px; display: flex; align-items: center; cursor: pointer; transition: background 0.1s ease; margin-bottom: 2px;">
-            <div style="display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 8px; background: var(--element-bg); margin-right: 12px; flex-shrink: 0; box-shadow: 0 1px 2px rgba(0,0,0,0.1);">
-              ${cmd.icon || ""}
-            </div>
-            <div style="display: flex; flex-direction: column; flex: 1; overflow: hidden;">
-              <span style="font-weight: 600; font-size: 0.9rem; color: ${textMain}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${cmd.title}</span>
-              <span style="font-size: 0.75rem; color: ${descColor}; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${cmd.desc}</span>
-            </div>
-            ${isSelected ? `<span style="font-size: 0.7rem; font-weight: bold; color: var(--text-muted); background: var(--element-bg); padding: 2px 6px; border-radius: 4px;">↵</span>` : ""}
-          </div>
-          `;
+              <div onclick="executeHudIndex(${idx})" style="background: ${bg}; border-radius: var(--radius-sm); padding: 10px 12px; display: flex; align-items: center; cursor: pointer; transition: background 0.1s ease; margin-bottom: 2px;">
+                <div style="display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 8px; background: var(--element-bg); margin-right: 12px; flex-shrink: 0; box-shadow: 0 1px 2px rgba(0,0,0,0.1);">
+                  ${cmd.icon || ""}
+                </div>
+                <div style="display: flex; flex-direction: column; flex: 1; overflow: hidden;">
+                  <span style="font-weight: 600; font-size: 0.9rem; color: ${textMain}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${cmd.title}</span>
+                  <span style="font-size: 0.75rem; color: ${descColor}; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${cmd.desc}</span>
+                </div>
+                ${isSelected ? `<span style="font-size: 0.7rem; font-weight: bold; color: var(--text-muted); background: var(--element-bg); padding: 2px 6px; border-radius: 4px;">↵</span>` : ""}
+              </div>
+              `;
           });
         }
 
@@ -15860,14 +14523,14 @@
           if (type === "Public Holiday") badgeClass = "badge-leave-holiday";
 
           html += `
-              <div style="display: flex; justify-content: space-between; align-items: center; background: var(--panel-bg); border: 1px solid var(--border-main); padding: var(--space-1) var(--space-3); border-radius: var(--radius-sm); font-size: var(--text-sm); font-family: var(--font-mono); color: var(--text-main);">
-                <div style="display: flex; align-items: center; gap: 8px;">
-                  <span>${safeDate}</span>
-                  <span class="badge ${badgeClass}" style="font-family: var(--font-sans); margin-left: 0;">${safeType}</span>
-                </div>
-                <button style="background: transparent; border: none; color: var(--accent-break); font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; width: 16px; height: 16px; line-height: 1;" onclick="removeLeaveDate('${safeDate}')" title="Remove Leave">✕</button>
-              </div>
-            `;
+                  <div style="display: flex; justify-content: space-between; align-items: center; background: var(--panel-bg); border: 1px solid var(--border-main); padding: var(--space-1) var(--space-3); border-radius: var(--radius-sm); font-size: var(--text-sm); font-family: var(--font-mono); color: var(--text-main);">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                      <span>${safeDate}</span>
+                      <span class="badge ${badgeClass}" style="font-family: var(--font-sans); margin-left: 0;">${safeType}</span>
+                    </div>
+                    <button style="background: transparent; border: none; color: var(--accent-break); font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; width: 16px; height: 16px; line-height: 1;" onclick="removeLeaveDate('${safeDate}')" title="Remove Leave">✕</button>
+                  </div>
+                `;
         });
         listContainer.innerHTML = html;
       }
@@ -16374,18 +15037,18 @@
 
         // Add a dismiss button for all toasts
         const closeBtnHtml = `
-        <button class="toast-close-btn" onclick="closeSyncToast()">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-cc177d5f"></use></svg>
-        </button>
-      `;
+            <button class="toast-close-btn" onclick="closeSyncToast()">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-cc177d5f"></use></svg>
+            </button>
+          `;
 
         toast.innerHTML = `
-            <div style="display: flex; align-items: center; gap: 12px;">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent-warning); flex-shrink: 0;"><use href="#icon-564f8c3a"></use></svg>
-              <span>${msg}</span>
-              ${closeBtnHtml}
-            </div>
-          `;
+                <div style="display: flex; align-items: center; gap: 12px;">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent-warning); flex-shrink: 0;"><use href="#icon-564f8c3a"></use></svg>
+                  <span>${msg}</span>
+                  ${closeBtnHtml}
+                </div>
+              `;
         toast.style.top = "30px";
 
         syncToastId = (syncToastId + 1) % Number.MAX_SAFE_INTEGER;
@@ -16799,305 +15462,7 @@
         // Synchronize delta tracking anchor on app launch
         // Start the background Web Worker timer thread
         startUITimer();
-
-        // ── TOUCH DEVICE: tap-toggle for hover dropdowns with backdrop scrim ──
-        if (window.matchMedia("(hover: none) and (pointer: coarse)").matches) {
-          const goalContainer = document.querySelector(".goal-container");
-          const goalPresets = document.querySelector(".goal-presets");
-          const tzContainer = document.querySelector(".tz-container");
-          const tzPresets = document.querySelector(".tz-presets");
-
-          // Reusable backdrop scrim — blocks accidental taps behind bottom sheets
-          const scrim = document.createElement("div");
-          scrim.style.cssText =
-            "position:fixed;inset:0;z-index:299;background:rgba(0,0,0,0.3);display:none;-webkit-tap-highlight-color:transparent;";
-          document.body.appendChild(scrim);
-
-          function showScrim() {
-            scrim.style.display = "block";
-          }
-          function hideScrim() {
-            scrim.style.display = "none";
-          }
-
-          function toggleDropdown(presets) {
-            const isOpen = presets.style.opacity === "1";
-            closeAllDropdowns();
-            if (!isOpen) {
-              presets.style.opacity = "1";
-              presets.style.pointerEvents = "auto";
-              showScrim();
-            }
-          }
-
-          const themeContainer = document.querySelector(".theme-container");
-          const themePresets = document.querySelector(".theme-presets");
-
-          function closeAllDropdowns() {
-            if (goalPresets) {
-              goalPresets.style.opacity = "0";
-              goalPresets.style.pointerEvents = "none";
-            }
-            if (tzPresets) {
-              tzPresets.style.opacity = "0";
-              tzPresets.style.pointerEvents = "none";
-            }
-            if (themePresets) {
-              themePresets.style.opacity = "0";
-              themePresets.style.pointerEvents = "none";
-            }
-            hideScrim();
-          }
-
-          if (goalContainer && goalPresets) {
-            goalContainer.addEventListener("click", function (e) {
-              if (e.target.closest(".goal-presets")) return;
-              e.stopPropagation();
-              toggleDropdown(goalPresets);
-            });
-          }
-
-          if (tzContainer && tzPresets) {
-            tzContainer.addEventListener("click", function (e) {
-              if (e.target.closest(".tz-presets")) return;
-              e.stopPropagation();
-              toggleDropdown(tzPresets);
-            });
-          }
-
-          if (themeContainer && themePresets) {
-            themeContainer.addEventListener("click", function (e) {
-              if (e.target.closest(".theme-presets")) return;
-              e.stopPropagation();
-              toggleDropdown(themePresets);
-            });
-          }
-
-          // Tapping the scrim or anywhere outside closes the bottom sheet
-          scrim.addEventListener("click", closeAllDropdowns);
-          document.addEventListener("click", function (e) {
-            if (
-              !e.target.closest(".goal-container") &&
-              !e.target.closest(".tz-container") &&
-              !e.target.closest(".theme-container")
-            ) {
-              closeAllDropdowns();
-            }
-          });
-        }
-
-        // Initialize mobile UI reparenting, resize handlers, and touch gestures
-        reparentSettings();
-        handleWindowResize();
-        initBottomSheetGestures();
-        window.addEventListener("resize", handleWindowResize);
-
-        // Timezone preference synchronization
-        const mobileTzSelect = document.getElementById("mobile-tz-select");
-        if (mobileTzSelect) {
-          mobileTzSelect.addEventListener("change", (e) => {
-            DOM.primaryTz.value = e.target.value;
-            DOM.primaryTz.dispatchEvent(new Event("change"));
-          });
-        }
       })();
-
-      // =========================================================================
-      // MOBILE OVERHAUL FUNCTIONS
-      // =========================================================================
-
-      /**
-       * Dynamically shifts settings content between popup (desktop) and slot (mobile)
-       */
-      function reparentSettings() {
-        const popup = document.getElementById("settings-config-popup");
-        const mobileContainer = document.getElementById("mobile-settings-slot");
-        if (!popup || !mobileContainer) return;
-
-        const isMobile = window.innerWidth <= 900;
-        if (isMobile) {
-          if (popup.children.length > 0) {
-            while (popup.firstChild) {
-              mobileContainer.appendChild(popup.firstChild);
-            }
-          }
-        } else {
-          if (mobileContainer.children.length > 0) {
-            while (mobileContainer.firstChild) {
-              popup.appendChild(mobileContainer.firstChild);
-            }
-          }
-        }
-      }
-
-      /**
-       * Handles resizing transitions between desktop layout and mobile single-view layout
-       */
-      function handleWindowResize() {
-        reparentSettings();
-
-        const isMobile = window.innerWidth <= 900;
-        const mainUi = document.querySelector(".main-ui");
-        const sidebar = document.querySelector(".sidebar");
-        const logbookTab = document.getElementById("tab-logbook");
-        const insightsTab = document.getElementById("tab-insights");
-        const settingsTab = document.getElementById("tab-settings-mobile");
-
-        if (!isMobile) {
-          // Reset mobile overrides for desktop view
-          if (mainUi) mainUi.classList.remove("mobile-hidden");
-          if (sidebar) sidebar.classList.remove("mobile-hidden");
-          if (settingsTab) settingsTab.style.display = "none";
-
-          // Restore desktop active tab visibility
-          const activeDesktopTab = document.querySelector(".tab-btn.active");
-          if (activeDesktopTab) {
-            const target = activeDesktopTab.getAttribute("data-target");
-            if (target === "insights" && insightsTab) {
-              insightsTab.style.display = "flex";
-              if (logbookTab) logbookTab.style.display = "none";
-            } else if (target === "logbook" && logbookTab) {
-              if (insightsTab) insightsTab.style.display = "none";
-              logbookTab.style.display = "block";
-            }
-          }
-        } else {
-          // On transition to mobile, default to 'dashboard' tab if no mobile tab is active
-          const activeMobileTab = document.querySelector(
-            ".mobile-tab-item.active",
-          );
-          if (activeMobileTab) {
-            const onclickAttr = activeMobileTab.getAttribute("onclick");
-            const tabMatch = onclickAttr
-              ? onclickAttr.match(/'([^']+)'/)
-              : null;
-            if (tabMatch) {
-              switchMobileTab(tabMatch[1]);
-            }
-          } else {
-            switchMobileTab("dashboard");
-          }
-        }
-      }
-
-      /**
-       * Switches active mobile screen view
-       */
-      window.switchMobileTab = function (tabName) {
-        const mainUi = document.querySelector(".main-ui");
-        const sidebar = document.querySelector(".sidebar");
-        const logbookTab = document.getElementById("tab-logbook");
-        const insightsTab = document.getElementById("tab-insights");
-        const settingsTab = document.getElementById("tab-settings-mobile");
-
-        // Update bottom tab buttons active class
-        document.querySelectorAll(".mobile-tab-item").forEach((item) => {
-          const onclickAttr = item.getAttribute("onclick");
-          if (onclickAttr && onclickAttr.includes(tabName)) {
-            item.classList.add("active");
-          } else {
-            item.classList.remove("active");
-          }
-        });
-
-        if (tabName === "dashboard") {
-          if (mainUi) mainUi.classList.remove("mobile-hidden");
-          if (sidebar) sidebar.classList.add("mobile-hidden");
-        } else {
-          if (mainUi) mainUi.classList.add("mobile-hidden");
-          if (sidebar) sidebar.classList.remove("mobile-hidden");
-
-          if (tabName === "logbook") {
-            if (logbookTab) logbookTab.style.display = "block";
-            if (insightsTab) insightsTab.style.display = "none";
-            if (settingsTab) settingsTab.style.display = "none";
-            switchTab("logbook"); // Trigger standard tab content handler
-          } else if (tabName === "insights") {
-            if (logbookTab) logbookTab.style.display = "none";
-            if (insightsTab) insightsTab.style.display = "flex";
-            if (settingsTab) settingsTab.style.display = "none";
-            switchTab("insights"); // Trigger standard tab content handler
-          } else if (tabName === "settings") {
-            if (logbookTab) logbookTab.style.display = "none";
-            if (insightsTab) insightsTab.style.display = "none";
-            if (settingsTab) settingsTab.style.display = "block";
-            // Sync mobile timezone selector
-            const mobileTzSelect = document.getElementById("mobile-tz-select");
-            if (mobileTzSelect) {
-              mobileTzSelect.value = DOM.primaryTz.value;
-            }
-          }
-        }
-      };
-
-      /**
-       * Sets up drag gestures and physics for bottom sheets on mobile devices
-       */
-      function initBottomSheetGestures() {
-        document.querySelectorAll(".modal-overlay").forEach((overlay) => {
-          const container = overlay.querySelector(".modal-container");
-          if (!container) return;
-
-          let startY = 0;
-          let currentY = 0;
-          let isDragging = false;
-
-          container.addEventListener(
-            "touchstart",
-            (e) => {
-              if (window.innerWidth > 900) return;
-              if (container.scrollTop > 0) return;
-
-              const touch = e.touches[0];
-              startY = touch.clientY;
-              isDragging = true;
-              container.style.transition = "none";
-            },
-            { passive: true },
-          );
-
-          container.addEventListener(
-            "touchmove",
-            (e) => {
-              if (!isDragging) return;
-
-              const touch = e.touches[0];
-              const deltaY = touch.clientY - startY;
-
-              if (deltaY > 0) {
-                container.style.transform = `translateY(${deltaY}px)`;
-                currentY = deltaY;
-              }
-            },
-            { passive: true },
-          );
-
-          container.addEventListener("touchend", () => {
-            if (!isDragging) return;
-            isDragging = false;
-
-            container.style.transition =
-              "transform 0.25s cubic-bezier(0.16, 1, 0.3, 1)";
-
-            if (currentY > 100) {
-              const closeBtn = container.querySelector(
-                '.toast-close-btn, button[onclick*="close"], .btn-secondary',
-              );
-              if (closeBtn) {
-                closeBtn.click();
-              } else {
-                overlay.style.display = "none";
-              }
-              setTimeout(() => {
-                container.style.transform = "none";
-              }, 300);
-            } else {
-              container.style.transform = "translateY(0)";
-            }
-            currentY = 0;
-          });
-        });
-      }
     </script>
   </body>
 </html>

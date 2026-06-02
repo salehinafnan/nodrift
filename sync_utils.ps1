@@ -1,22 +1,13 @@
-# PowerShell Script to Sync V5_utils.js with the inlined sections in V5.html and V5.test.html
-# This lets you keep all utility functions in one place (V5_utils.js) during development, 
+# PowerShell Script to Sync utils.js with the inlined sections in index.html and index.test.html
+# This lets you keep all utility functions in one place (utils.js) during development, 
 # and compile them into 100% self-contained single files with a single double-click.
 
 $UtilsPath = Join-Path $PSScriptRoot "utils.js"
-if (-not (Test-Path $UtilsPath)) {
-    $UtilsPath = Join-Path $PSScriptRoot "V5_utils.js"
-}
 $AppPath = Join-Path $PSScriptRoot "index.html"
-if (-not (Test-Path $AppPath)) {
-    $AppPath = Join-Path $PSScriptRoot "V5.html"
-}
 $TestPath = Join-Path $PSScriptRoot "index.test.html"
-if (-not (Test-Path $TestPath)) {
-    $TestPath = Join-Path $PSScriptRoot "V5.test.html"
-}
 
 if (-not (Test-Path $UtilsPath)) {
-    Write-Error "V5_utils.js not found!"
+    Write-Error "utils.js not found!"
     exit 1
 }
 
@@ -27,7 +18,7 @@ $UtilsContent = $UtilsContent -replace "\r?\n", "`r`n"
 
 # Define the replacement pattern
 # Matches everything between the start comment block and the closing script tag
-$StartBlock = "// ==========================================[\s\S]*?// V5 UTILITY FUNCTIONS \(INLINED\)[\s\S]*?// =========================================="
+$StartBlock = "// ==========================================[\s\S]*?// UTILITY FUNCTIONS \(INLINED\)[\s\S]*?// =========================================="
 $Pattern = "(?s)($StartBlock).*?(?=\s*<\/script>)"
 
 function Sync-File {
