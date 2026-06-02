@@ -4264,6 +4264,31 @@
       }
     }
 
+    /* Mobile Nav Button Styling */
+    .mobile-nav-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      flex: 1;
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      font-family: var(--font-sans);
+      cursor: pointer;
+      padding: 8px 0;
+      transition: color 0.15s ease;
+    }
+
+    .mobile-nav-btn.active {
+      color: var(--accent-blue);
+    }
+
+    .mobile-nav-btn svg {
+      transition: stroke 0.15s ease;
+    }
   </style>
 </head>
 
@@ -6687,8 +6712,16 @@
       </div>
     </div>
 
-    
-  
+    <!-- Tab Content Area: Mobile Menu -->
+    <div id="mobile-menu-view" class="tab-content" style="display: none">
+      <div style="display: flex; flex-direction: column; gap: 20px; align-items: center; justify-content: center; height: 100%; padding: 20px;">
+        <button class="btn-secondary" onclick="exportCSV()" style="width: 100%; padding: 15px; border-radius: var(--radius-md);">Export CSV</button>
+        <button class="btn-secondary" onclick="copyLog()" style="width: 100%; padding: 15px; border-radius: var(--radius-md);">Copy Logs</button>
+        <button class="btn-secondary" onclick="toggleSettingsPopup(event)" style="width: 100%; padding: 15px; border-radius: var(--radius-md);">App Settings</button>
+        <button class="btn-secondary" onclick="document.getElementById('help-modal').style.display='flex'" style="width: 100%; padding: 15px; border-radius: var(--radius-md);">Help & Shortcuts</button>
+      </div>
+    </div>
+
   <script>
     // =========================================================================
     // V5 UTILITY FUNCTIONS (INLINED)
@@ -7017,7 +7050,7 @@
     };
 
     // Shared State Backups and Transaction Variables
-    let appToastTimeout;
+    var appToastTimeout;
     let confirmCallback = null;
     let undoTimeout;
     let lastStateBackup = null;
@@ -7400,7 +7433,7 @@
      * =========================================================================*/
     const LEASE_KEY = "production_active_lease_v2";
     const STAGING_KEY = "production_staging_lease_v2";
-    const tabSyncChannel = new BroadcastChannel("work_tracker_sync");
+    const tabSyncChannel = typeof BroadcastChannel !== "undefined" ? new BroadcastChannel("work_tracker_sync") : null;
     const instanceId = Math.random().toString(36).substring(2, 15);
 
     // Event-driven listening via native storage event (consumes 0% CPU while idle)
@@ -7410,15 +7443,17 @@
       }
     });
 
-    tabSyncChannel.onmessage = (e) => {
-      if (e.data.id === instanceId) return;
+    if (tabSyncChannel) {
+      tabSyncChannel.onmessage = (e) => {
+        if (e.data.id === instanceId) return;
 
-      if (e.data.type === "takeover") {
-        // We have been evicted by another tab. Transition to conflict mode.
-        isTabConflict = true;
-        document.getElementById("tab-conflict-modal").style.display = "flex";
-      }
-    };
+        if (e.data.type === "takeover") {
+          // We have been evicted by another tab. Transition to conflict mode.
+          isTabConflict = true;
+          document.getElementById("tab-conflict-modal").style.display = "flex";
+        }
+      };
+    }
 
     /**
      * Checks the master lease in storage and evicts this tab if another instance owns it.
@@ -7460,6 +7495,17 @@
      * Attempt to claim the master lease using staging and randomized backoff.
      */
     async function acquireLease() {
+      // Evict any stale lease left by a dead tab (older than 5s)
+      try {
+        const stale = localStorage.getItem(LEASE_KEY);
+        if (stale) {
+          const parsed = JSON.parse(stale);
+          if (Date.now() - parsed.lastHeartbeat > 5000) {
+            localStorage.removeItem(LEASE_KEY);
+            localStorage.removeItem(STAGING_KEY);
+          }
+        }
+      } catch (e) {}
       return new Promise((resolve) => {
         try {
           localStorage.setItem(STAGING_KEY, instanceId);
@@ -7518,6 +7564,11 @@
         localStorage.setItem(LEASE_KEY, JSON.stringify(lease));
       } catch (e) {
         console.warn("Failed to renew lease:", e);
+        setTimeout(() => {
+          if (tabSyncChannel) {
+            tabSyncChannel.postMessage({ type: "takeover", id: instanceId });
+          }
+        });
       }
     }
 
@@ -7867,7 +7918,8 @@
       }
 
       renderInsights();
-      if (document.getElementById("tab-logbook").style.display !== "none") {
+      const logbookTab = document.getElementById("tab-logbook");
+      if (logbookTab && logbookTab.offsetWidth > 0) {
         renderLogbook();
       }
     };
@@ -11475,6 +11527,7 @@
 
     window.addEventListener("pagehide", () => {
       saveState(true);
+      try { localStorage.removeItem(LEASE_KEY); localStorage.removeItem(STAGING_KEY); } catch (e) {}
     });
 
     /*==========================================================================
@@ -14151,6 +14204,7 @@
 
     window.addEventListener("beforeunload", () => {
       saveState(true); // Guarantee final active seconds are cemented before tab death
+      try { localStorage.removeItem(LEASE_KEY); localStorage.removeItem(STAGING_KEY); } catch (e) {}
     });
 
     let syncToastTimeout;
