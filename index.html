@@ -3,6 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="color-scheme" content="dark" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self' 'unsafe-inline' blob:; style-src 'self' 'unsafe-inline'; connect-src 'none'; img-src 'self' data:; font-src 'self' data:;"
+    />
     <title>Work Hour Tracker</title>
 
     <!-- Fonts removed: Relying strictly on high-performance native system fonts -->
@@ -4076,6 +4080,7 @@
             class="input-standard"
             list="note-suggestions"
             placeholder="Enter notes here..."
+            maxlength="2000"
           />
           <datalist id="note-suggestions"></datalist>
         </div>
@@ -5276,7 +5281,11 @@
         </div>
         <div class="form-group">
           <label class="form-label" for="edit-notes">Notes (Optional)</label>
-          <textarea id="edit-notes" class="input-standard"></textarea>
+          <textarea
+            id="edit-notes"
+            class="input-standard"
+            maxlength="2000"
+          ></textarea>
         </div>
         <div class="action-row">
           <button class="btn-secondary" onclick="closeEditModal()">
@@ -5384,7 +5393,11 @@
         </div>
         <div class="form-group">
           <label class="form-label" for="manual-notes">Notes (Optional)</label>
-          <textarea id="manual-notes" class="input-standard"></textarea>
+          <textarea
+            id="manual-notes"
+            class="input-standard"
+            maxlength="2000"
+          ></textarea>
         </div>
         <div class="action-row">
           <button class="btn-secondary" onclick="closeManualModal()">
@@ -8424,7 +8437,59 @@
       /**
        * Attempt to claim the master lease using staging and randomized backoff.
        */
+      // Tracks whether the Web Locks API is managing our active lease
+      let usingWebLocks = false;
+      let webLockReleaser = null;
+
       async function acquireLease() {
+        // Web Locks API path: browser-managed mutual exclusion, zero race conditions
+        if (
+          typeof navigator !== "undefined" &&
+          navigator.locks &&
+          navigator.locks.request
+        ) {
+          return new Promise((resolve) => {
+            navigator.locks
+              .request(
+                "work_tracker_primary_lock",
+                { ifAvailable: true },
+                async (lock) => {
+                  if (lock) {
+                    // Lock acquired — this tab is the sole owner
+                    usingWebLocks = true;
+                    isTabConflict = false;
+                    document.getElementById(
+                      "tab-conflict-modal",
+                    ).style.display = "none";
+                    resolve(true);
+                    // Hold the lock for the lifetime of the tab via an unresolved promise
+                    return new Promise((holdResolve) => {
+                      webLockReleaser = holdResolve;
+                    });
+                  } else {
+                    // Lock unavailable — another tab owns it
+                    usingWebLocks = true;
+                    isTabConflict = true;
+                    document.getElementById(
+                      "tab-conflict-modal",
+                    ).style.display = "flex";
+                    resolve(false);
+                  }
+                },
+              )
+              .catch(() => {
+                // Web Locks request itself failed — fall through to localStorage
+                usingWebLocks = false;
+                acquireLeaseViaStorage().then(resolve);
+              });
+          });
+        }
+
+        // localStorage fallback for browsers without Web Locks support
+        return acquireLeaseViaStorage();
+      }
+
+      function acquireLeaseViaStorage() {
         return new Promise((resolve) => {
           try {
             const existingLeaseStr = localStorage.getItem(LEASE_KEY);
@@ -8487,6 +8552,9 @@
        */
       function renewLease() {
         if (isTabConflict) return;
+        // Web Locks API holds the lock passively for the tab's lifetime — no periodic renewal needed
+        if (usingWebLocks) return;
+
         const now = Date.now();
         // Only renew lease and touch localStorage once every 2 seconds (50% disk I/O reduction)
         if (now - lastLeaseRenewTime < 2000) return;
@@ -9909,6 +9977,12 @@
        * and opens a Gmail compose tab (or default mail client) to paste them.
        */
       function triggerEodGmailLogCopy() {
+        if (!navigator.onLine) {
+          showAppToast(
+            "You're offline. Connect to internet to send the EOD email.",
+          );
+          return;
+        }
         const allLogs = getLogs();
         const filteredLogs = getFilteredLogs();
 
@@ -12435,6 +12509,69 @@
        */
       let tempImportData = null;
 
+      /**
+       * Validates the structural integrity of an imported JSON backup payload.
+       * Rejects malformed, corrupted, or prototype-polluting payloads before
+       * they can reach state or storage.
+       * @param {*} data - Parsed JSON object to validate.
+       * @returns {string|null} Error message string if invalid, null if valid.
+       */
+      function validateImportPayload(data) {
+        // Reject non-plain-object roots
+        if (!data || typeof data !== "object" || Array.isArray(data)) {
+          return "Backup root must be a plain object.";
+        }
+
+        // Prototype pollution guard: re-serialize and check for dangerous keys
+        const serialized = JSON.stringify(data);
+        if (
+          serialized.includes("__proto__") ||
+          serialized.includes("constructor") ||
+          serialized.includes("prototype")
+        ) {
+          return "Backup contains forbidden prototype keys.";
+        }
+
+        // Validate logs array if present
+        if (data.logs !== undefined) {
+          if (!Array.isArray(data.logs)) {
+            return "'logs' field must be an array.";
+          }
+          for (let i = 0; i < data.logs.length; i++) {
+            const l = data.logs[i];
+            if (!l || typeof l !== "object") {
+              return `Log entry at index ${i} is not a valid object.`;
+            }
+            if (typeof l.date !== "string" || !l.date.includes("/")) {
+              return `Log entry at index ${i} has an invalid date format.`;
+            }
+            if (
+              l.workSec !== undefined &&
+              (!Number.isFinite(l.workSec) || l.workSec < 0)
+            ) {
+              return `Log entry at index ${i} has an invalid workSec value.`;
+            }
+            if (
+              l.breakSec !== undefined &&
+              (!Number.isFinite(l.breakSec) || l.breakSec < 0)
+            ) {
+              return `Log entry at index ${i} has an invalid breakSec value.`;
+            }
+            if (
+              l.loginEpochMs !== undefined &&
+              l.logoutEpochMs !== undefined &&
+              Number.isFinite(l.loginEpochMs) &&
+              Number.isFinite(l.logoutEpochMs) &&
+              l.loginEpochMs > l.logoutEpochMs
+            ) {
+              return `Log entry at index ${i} has loginEpochMs after logoutEpochMs.`;
+            }
+          }
+        }
+
+        return null; // Valid
+      }
+
       function importJSON(e) {
         const file = e.target.files[0];
         if (!file) return;
@@ -12444,6 +12581,11 @@
           reader.onload = (event) => {
             try {
               const data = JSON.parse(event.target.result);
+              const validationError = validateImportPayload(data);
+              if (validationError) {
+                showAppToast(`Import rejected: ${validationError}`);
+                return;
+              }
               tempImportData = data;
 
               if (data.logs) {
