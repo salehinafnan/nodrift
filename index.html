@@ -517,17 +517,16 @@
         outline: none;
       }
 
-      /* Transition-smooth dynamic weight alignment for icons on hover */
+      /* Transition-smooth dynamic weight alignment for icons on hover - Optimised for CPU */
       .header-icon-btn svg,
       .sq-btn svg {
-        transition:
-          stroke 0.15s ease,
-          transform 0.15s ease;
+        transition: none !important;
       }
 
       .header-icon-btn:hover svg,
       .sq-btn:hover svg {
         stroke: var(--text-main);
+        transform: none !important;
       }
 
       /* =========================================================================
@@ -742,6 +741,7 @@
         white-space: nowrap;
         display: flex;
         align-items: center;
+        padding: 0 1.2rem 0 0.8rem;
       }
 
       #primary-clock,
@@ -783,7 +783,7 @@
         white-space: nowrap;
         font-variant-numeric: tabular-nums;
         margin-left: 10px;
-        justify-content: center;
+        justify-content: flex-end;
       }
 
       .last-seen-status::before {
@@ -1262,7 +1262,7 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        gap: 0.8rem;
+        gap: 0.5rem;
         height: var(--button-height);
         box-shadow: none;
         font-size: 1.1rem;
@@ -1483,6 +1483,62 @@
         height: 100%;
         overflow: hidden;
         min-height: 0;
+        position: relative !important;
+      }
+
+      /* Subtle, premium Scroll-to-Top borderless action above footer, centered */
+      /* Subtle, premium Scroll-to-Top action matching current application icon states */
+      .scroll-top-btn {
+        position: absolute;
+        bottom: 72px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: clamp(28px, 2.4vw, 38px);
+        height: clamp(28px, 2.4vw, 38px);
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        z-index: 2000;
+        opacity: 0;
+        pointer-events: none;
+        box-sizing: border-box;
+        transition:
+          opacity 0.15s ease,
+          color 0.15s ease,
+          transform 0.15s ease;
+      }
+
+      .scroll-top-btn svg {
+        width: clamp(15px, 1.2vw, 19px) !important;
+        height: clamp(15px, 1.2vw, 19px) !important;
+        flex-shrink: 0 !important;
+        fill: none !important;
+        stroke: var(--text-muted) !important;
+        stroke-width: 2.5 !important;
+        stroke-linecap: round !important;
+        stroke-linejoin: round !important;
+        transition: stroke 0.15s ease;
+      }
+
+      .scroll-top-btn.visible {
+        opacity: 0.85;
+        pointer-events: auto !important;
+      }
+
+      .scroll-top-btn:hover {
+        opacity: 1;
+      }
+
+      .scroll-top-btn:hover svg {
+        stroke: var(--accent-blue) !important;
+      }
+
+      .scroll-top-btn:active {
+        transform: translateX(-50%) scale(0.92);
       }
 
       .tab-nav {
@@ -2120,23 +2176,19 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        transition:
-          background-color 0.3s cubic-bezier(0.16, 1, 0.3, 1),
-          border-color 0.3s cubic-bezier(0.16, 1, 0.3, 1),
-          color 0.3s cubic-bezier(0.16, 1, 0.3, 1),
-          opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1),
-          transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        transition: none !important;
       }
 
       .icon-btn:hover:not(:disabled) {
         color: var(--text-main);
         background: var(--element-hover);
         border-color: var(--border-light);
-        transform: translateY(-1px);
+        transform: none !important;
       }
 
       .icon-btn:active:not(:disabled) {
-        transform: scale(0.92) translateY(0);
+        background: var(--border-main);
+        transform: none !important;
       }
 
       .icon-btn svg {
@@ -2248,7 +2300,7 @@
         justify-content: center;
         cursor: pointer;
         box-sizing: border-box;
-        transition: all 0.2s cubic-bezier(0.25, 1, 0.5, 1);
+        transition: none !important;
       }
 
       .sidebar-footer .sq-btn svg {
@@ -2260,7 +2312,6 @@
         background: var(--element-hover);
         border-color: var(--border-light);
         color: var(--text-main);
-        /* Transform translations removed */
       }
 
       .sidebar-footer .sq-btn:hover svg {
@@ -2268,7 +2319,8 @@
       }
 
       .sidebar-footer .sq-btn:active {
-        transform: scale(0.93) translateY(0);
+        background: var(--border-main);
+        transform: none !important;
       }
 
       /* Settings Config Popup Styling */
@@ -2451,31 +2503,33 @@
         cursor: not-allowed;
       }
 
-      /* Micro-Animations based on button purpose */
+      /* Micro-Animations based on button purpose - Replaced with CPU-friendly static color shifts */
       [title="Export CSV"]:hover svg {
-        transform: translateY(1.5px);
+        stroke: var(--accent-blue);
       }
 
       [title="Copy Logs"]:hover svg {
-        transform: scale(1.12) translateY(-0.5px);
+        stroke: var(--accent-blue);
       }
 
       [title="Backup JSON"]:hover svg {
-        transform: translateY(1.5px);
+        stroke: var(--accent-blue);
       }
 
       [title="Restore JSON"]:hover svg {
-        transform: translateY(-1.5px);
+        stroke: var(--accent-blue);
       }
 
-      /* Destructive Zone Hierarchy & Reactions */
+      /* Destructive Zone Hierarchy & Reactions - Transitions removed for CPU optimization */
       .sidebar-footer .sq-btn.danger-icon {
         background: rgba(248, 113, 113, 0.04);
         border-color: rgba(248, 113, 113, 0.12);
+        transition: none !important;
       }
 
       .sidebar-footer .sq-btn.danger-icon svg {
         stroke: var(--accent-break) !important;
+        transition: none !important;
       }
 
       .sidebar-footer .sq-btn.danger-icon:hover {
@@ -2484,7 +2538,8 @@
       }
 
       .sidebar-footer .sq-btn.danger-icon:hover svg {
-        transform: rotate(-8deg) scale(1.05);
+        stroke: var(--accent-break) !important;
+        transform: none !important;
       }
 
       /* Separator between standard actions and danger zone */
@@ -2646,13 +2701,13 @@
 
       .progress-segment.is-leave {
         background: repeating-linear-gradient(
-          45deg,
-          color-mix(in srgb, var(--text-main) 4%, transparent),
-          color-mix(in srgb, var(--text-main) 4%, transparent) 6px,
-          color-mix(in srgb, var(--text-main) 12%, transparent) 6px,
-          color-mix(in srgb, var(--text-main) 12%, transparent) 12px
+          -45deg,
+          color-mix(in srgb, var(--text-muted) 15%, transparent),
+          color-mix(in srgb, var(--text-muted) 15%, transparent) 8px,
+          color-mix(in srgb, var(--text-muted) 40%, transparent) 8px,
+          color-mix(in srgb, var(--text-muted) 40%, transparent) 16px
         );
-        border: 1px dashed color-mix(in srgb, var(--text-main) 25%, transparent);
+        border: 1px dashed var(--text-muted);
         opacity: 1;
       }
 
@@ -2721,7 +2776,7 @@
       }
 
       .modal-width-lg {
-        width: 800px !important;
+        width: 1080px !important;
         height: 800px !important;
         max-width: 95vw !important;
         max-height: 90vh !important;
@@ -2749,8 +2804,8 @@
       }
 
       .help-tab-btn {
-        flex: 1 0 auto;
-        padding: 8px 16px;
+        flex: 1;
+        padding: 8px 12px;
         border-radius: calc(var(--radius-md) - 2px);
         background: transparent;
         color: var(--tab-btn-color, var(--text-muted));
@@ -3132,7 +3187,7 @@
         font-weight: var(--timer-weight);
         letter-spacing: var(--timer-spacing);
         margin-bottom: 0;
-        transition: color 0.3s ease;
+        transition: color 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         font-family: var(--number-font);
         font-variant-numeric: tabular-nums;
         font-feature-settings: "tnum" 1;
@@ -3451,7 +3506,7 @@
         </symbol>
         <symbol id="icon-2cc8af4e" viewBox="0 0 24 24">
           <polyline points="1 4 1 10 7 10"></polyline>
-          <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+          <path d="M3 14A9 9 0 1 0 5.1 5.6L1 10"></path>
         </symbol>
         <symbol id="icon-cc177d5f" viewBox="0 0 24 24">
           <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -3460,20 +3515,20 @@
         <symbol id="icon-04fa1773" viewBox="0 0 24 24">
           <circle cx="12" cy="12" r="10"></circle>
           <line x1="12" y1="16" x2="12" y2="12"></line>
-          <line x1="12" y1="8" x2="12.01" y2="8"></line>
+          <line x1="12" y1="8" x2="12" y2="8"></line>
         </symbol>
         <symbol id="icon-ae89f43e" viewBox="0 0 24 24">
           <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
           <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
         </symbol>
         <symbol id="icon-6f90a674" viewBox="0 0 24 24">
-          <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+          <rect x="3" y="4" width="18" height="18" rx="2"></rect>
           <line x1="16" y1="2" x2="16" y2="6"></line>
           <line x1="8" y1="2" x2="8" y2="6"></line>
           <line x1="3" y1="10" x2="21" y2="10"></line>
         </symbol>
         <symbol id="icon-3a752b39" viewBox="0 0 24 24">
-          <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+          <rect x="3" y="4" width="18" height="18" rx="2"></rect>
           <line x1="16" y1="2" x2="16" y2="6"></line>
           <line x1="8" y1="2" x2="8" y2="6"></line>
           <line x1="3" y1="10" x2="21" y2="10"></line>
@@ -3483,75 +3538,68 @@
           <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path>
           <path d="M4 22h16"></path>
           <path
-            d="M10 14.66V17c0 .55-.45 1-1 1H4v2h16v-2h-5c-.55 0-1-.45-1-1v-2.34"
+            d="M10 14.6V17c0 .5-.4 1-1 1H4v2h16v-2h-5c-.5 0-1-.4-1-1v-2.4"
           ></path>
           <path
             d="M12 2a5 5 0 0 1 5 5v3.5a5 5 0 0 1-10 0V7a5 5 0 0 1 5-5z"
           ></path>
         </symbol>
         <symbol id="icon-cfe7f835" viewBox="0 0 24 24">
-          <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-          <line x1="3" y1="9" x2="21" y2="9"></line>
-          <line x1="9" y1="21" x2="9" y2="9"></line>
+          <rect x="3" y="3" width="7" height="7" rx="1"></rect>
+          <rect x="14" y="3" width="7" height="7" rx="1"></rect>
+          <rect x="14" y="14" width="7" height="7" rx="1"></rect>
+          <rect x="3" y="14" width="7" height="7" rx="1"></rect>
         </symbol>
         <symbol id="icon-56bb360a" viewBox="0 0 24 24">
           <circle cx="11" cy="11" r="8"></circle>
-          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          <line x1="21" y1="21" x2="16.6" y2="16.6"></line>
         </symbol>
         <symbol id="icon-a3f67e4d" viewBox="0 0 24 24">
           <polyline points="6 9 12 15 18 9"></polyline>
         </symbol>
         <symbol id="icon-3c1c2eb6" viewBox="0 0 24 24">
-          <polygon points="12 2 2 7 12 12 22 7 12 2" />
-          <polyline points="2 17 12 22 22 17" />
-          <polyline points="2 12 12 17 22 12" />
+          <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+          <polyline points="2 17 12 22 22 17"></polyline>
+          <polyline points="2 12 12 17 22 12"></polyline>
         </symbol>
         <symbol id="icon-cebb1e32" viewBox="0 0 24 24">
-          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
-          <path d="M15 5h2M16 4v2" stroke-width="1.5" />
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+          <path d="M15 5h2M16 4v2" stroke-width="1.5"></path>
         </symbol>
         <symbol id="icon-47bc3e7c" viewBox="0 0 24 24">
-          <circle cx="12" cy="12" r="4" />
+          <circle cx="12" cy="12" r="4"></circle>
           <path
-            d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"
-          />
+            d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.6 17.6l1.4 1.4M2 12h2M20 12h2M6.3 17.6l-1.4 1.4M19 4.9l-1.4 1.4"
+          ></path>
         </symbol>
         <symbol id="icon-c86d529b" viewBox="0 0 24 24">
           <path
             d="M12 2a10 10 0 1 0 10 10H12V2z"
             fill="currentColor"
             fill-opacity="0.12"
-          />
-          <circle cx="12" cy="12" r="10" />
+          ></path>
+          <circle cx="12" cy="12" r="10"></circle>
         </symbol>
         <symbol id="icon-b1233e9f" viewBox="0 0 24 24">
-          <polygon points="5 3 19 12 5 21 5 3"></polygon>
+          <polygon points="6 4 18 12 6 20"></polygon>
         </symbol>
         <symbol id="icon-d140e762" viewBox="0 0 24 24">
-          <rect x="6" y="4" width="4" height="16"></rect>
-          <rect x="14" y="4" width="4" height="16"></rect>
+          <rect x="6" y="4" width="4" height="16" rx="1"></rect>
+          <rect x="14" y="4" width="4" height="16" rx="1"></rect>
         </symbol>
         <symbol id="icon-698f6a1b" viewBox="0 0 24 24">
-          <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+          <rect x="5" y="5" width="14" height="14" rx="1"></rect>
         </symbol>
         <symbol id="icon-fd86eb48" viewBox="0 0 24 24">
-          <line x1="4" y1="21" x2="4" y2="14"></line>
-          <line x1="4" y1="10" x2="4" y2="3"></line>
-          <line x1="12" y1="21" x2="12" y2="12"></line>
-          <line x1="12" y1="8" x2="12" y2="3"></line>
-          <line x1="20" y1="21" x2="20" y2="16"></line>
-          <line x1="20" y1="12" x2="20" y2="3"></line>
-          <line x1="1" y1="14" x2="7" y2="14"></line>
-          <line x1="9" y1="8" x2="15" y2="8"></line>
-          <line x1="17" y1="16" x2="23" y2="16"></line>
+          <polygon points="3 4 21 4 14 12 14 20 10 20 10 12"></polygon>
         </symbol>
         <symbol id="icon-36af783a" viewBox="0 0 24 24">
-          <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-          <line x1="16" y1="2" x2="16" y2="6"></line>
-          <line x1="8" y1="2" x2="8" y2="6"></line>
-          <line x1="3" y1="10" x2="21" y2="10"></line>
-          <line x1="12" y1="14" x2="12" y2="18"></line>
-          <line x1="10" y1="16" x2="14" y2="16"></line>
+          <path
+            d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"
+          ></path>
+          <polyline points="14 2 14 8 20 8"></polyline>
+          <line x1="12" y1="18" x2="12" y2="12"></line>
+          <line x1="9" y1="15" x2="15" y2="15"></line>
         </symbol>
         <symbol id="icon-d76bcc50" viewBox="0 0 24 24">
           <polyline points="15 18 9 12 15 6"></polyline>
@@ -3566,21 +3614,20 @@
           <polyline points="14 2 14 8 20 8"></polyline>
           <line x1="16" y1="13" x2="8" y2="13"></line>
           <line x1="16" y1="17" x2="8" y2="17"></line>
-          <polyline points="10 9 9 9 8 9"></polyline>
         </symbol>
         <symbol id="icon-f699d873" viewBox="0 0 24 24">
+          <rect x="9" y="9" width="11" height="11" rx="1"></rect>
           <path
-            d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"
+            d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"
           ></path>
-          <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
         </symbol>
         <symbol id="icon-d0747b80" viewBox="0 0 24 24">
-          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+          <path d="M21 15v4a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-4"></path>
           <polyline points="7 10 12 15 17 10"></polyline>
           <line x1="12" y1="15" x2="12" y2="3"></line>
         </symbol>
         <symbol id="icon-459ec513" viewBox="0 0 24 24">
-          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+          <path d="M21 15v4a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-4"></path>
           <polyline points="17 8 12 3 7 8"></polyline>
           <line x1="12" y1="3" x2="12" y2="15"></line>
         </symbol>
@@ -3589,8 +3636,6 @@
           <path
             d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"
           ></path>
-          <circle cx="12" cy="10" r="1" fill="currentColor"></circle>
-          <path d="M12 14v2" stroke-linecap="round"></path>
         </symbol>
         <symbol id="icon-a0221e6f" viewBox="0 0 24 24">
           <circle cx="12" cy="12" r="3"></circle>
@@ -3608,13 +3653,11 @@
           <path
             d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"
           ></path>
-          <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
+          <rect x="8" y="2" width="8" height="4" rx="1"></rect>
         </symbol>
         <symbol id="icon-610fc1b7" viewBox="0 0 24 24">
           <path d="M12 20h9"></path>
-          <path
-            d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"
-          ></path>
+          <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
         </symbol>
         <symbol id="icon-59ac4ca9" viewBox="0 0 24 24">
           <line x1="12" y1="5" x2="12" y2="19"></line>
@@ -3634,27 +3677,27 @@
           <line x1="14" y1="11" x2="14" y2="17"></line>
         </symbol>
         <symbol id="icon-b8385845" viewBox="0 0 24 24">
-          <polygon points="12 2 2 7 12 12 22 7 12 2" />
-          <polyline points="2 17 12 22 22 17" />
-          <polyline points="2 12 12 17 22 12" />
+          <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+          <polyline points="2 17 12 22 22 17"></polyline>
+          <polyline points="2 12 12 17 22 12"></polyline>
         </symbol>
         <symbol id="icon-ef8e4b16" viewBox="0 0 24 24">
-          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
-          <path d="M15 5h2M16 4v2" stroke-width="1.5" />
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+          <path d="M15 5h2M16 4v2" stroke-width="1.5"></path>
         </symbol>
         <symbol id="icon-d457aa18" viewBox="0 0 24 24">
           <path
             d="M12 2a10 10 0 1 0 10 10H12V2z"
             fill="currentColor"
             fill-opacity="0.12"
-          />
-          <circle cx="12" cy="12" r="10" />
+          ></path>
+          <circle cx="12" cy="12" r="10"></circle>
         </symbol>
         <symbol id="icon-c10237b5" viewBox="0 0 24 24">
-          <circle cx="12" cy="12" r="4" />
+          <circle cx="12" cy="12" r="4"></circle>
           <path
-            d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"
-          />
+            d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.6 17.6l1.4 1.4M2 12h2M20 12h2M6.3 17.6l-1.4 1.4M19 4.9l-1.4 1.4"
+          ></path>
         </symbol>
         <symbol id="icon-6758316a" viewBox="0 0 24 24">
           <circle
@@ -3663,10 +3706,10 @@
             r="10"
             fill="${encodeURIComponent(color)}"
             fill-opacity="${opacity}"
-          />
+          ></circle>
         </symbol>
         <symbol id="icon-265dafd3" viewBox="0 0 24 24">
-          <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+          <rect x="2" y="3" width="20" height="14" rx="2"></rect>
           <line x1="8" y1="21" x2="16" y2="21"></line>
           <line x1="12" y1="17" x2="12" y2="21"></line>
         </symbol>
@@ -3716,15 +3759,14 @@
           <polyline points="14 2 14 8 20 8"></polyline>
           <line x1="16" y1="13" x2="8" y2="13"></line>
           <line x1="16" y1="17" x2="8" y2="17"></line>
-          <polyline points="10 9 9 9 8 9"></polyline>
         </symbol>
         <symbol id="icon-404ab491" viewBox="0 0 24 24">
-          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+          <path d="M21 15v4a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-4"></path>
           <polyline points="7 10 12 15 17 10"></polyline>
           <line x1="12" y1="15" x2="12" y2="3"></line>
         </symbol>
         <symbol id="icon-e1ac78fb" viewBox="0 0 24 24">
-          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+          <path d="M21 15v4a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-4"></path>
           <polyline points="17 8 12 3 7 8"></polyline>
           <line x1="12" y1="3" x2="12" y2="15"></line>
         </symbol>
@@ -3736,20 +3778,18 @@
         </symbol>
         <symbol id="icon-9c8ee3dd" viewBox="0 0 24 24">
           <circle cx="11" cy="11" r="8"></circle>
-          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          <line x1="21" y1="21" x2="16.6" y2="16.6"></line>
         </symbol>
         <symbol id="icon-2d43a51b" viewBox="0 0 24 24">
           <path
             d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"
           ></path>
-          <path
-            d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"
-          ></path>
+          <path d="M18.5 2.5a2.1 2.1 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
         </symbol>
         <symbol id="icon-941c04e2" viewBox="0 0 24 24">
           <circle cx="12" cy="12" r="10"></circle>
-          <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
-          <line x1="12" y1="17" x2="12.01" y2="17"></line>
+          <path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3"></path>
+          <line x1="12" y1="17" x2="12" y2="17"></line>
         </symbol>
         <symbol id="icon-433a13fc" viewBox="0 0 24 24">
           <polyline points="16 18 22 12 16 6"></polyline>
@@ -3761,7 +3801,7 @@
           <line x1="6" y1="20" x2="6" y2="14"></line>
         </symbol>
         <symbol id="icon-412a4e8e" viewBox="0 0 24 24">
-          <rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect>
+          <rect x="4" y="4" width="16" height="16" rx="2"></rect>
           <line x1="8" y1="10" x2="16" y2="10"></line>
           <line x1="8" y1="14" x2="16" y2="14"></line>
           <line x1="12" y1="6" x2="12" y2="18"></line>
@@ -3773,7 +3813,7 @@
         </symbol>
         <symbol id="icon-df363be2" viewBox="0 0 24 24">
           <path
-            d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"
+            d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"
           ></path>
         </symbol>
         <symbol id="icon-f5c2fb99" viewBox="0 0 24 24">
@@ -3783,13 +3823,13 @@
           <path
             d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"
           ></path>
-          <polyline points="22,6 12,13 2,6"></polyline>
+          <polyline points="22 6 12 13 2 6"></polyline>
         </symbol>
         <symbol id="icon-564f8c3a" viewBox="0 0 24 24">
           <polyline points="23 4 23 10 17 10"></polyline>
           <polyline points="1 20 1 14 7 14"></polyline>
           <path
-            d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"
+            d="M3.5 9a9 9 0 0 1 14.9-3.4L23 10M1 14l4.6 4.4A9 9 0 0 0 20.5 15"
           ></path>
         </symbol>
       </defs>
@@ -4180,6 +4220,129 @@
         <div class="action-row">
           <button class="btn-danger-outline" onclick="forceTakeover()">
             Take Over Here
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Backup Collision Conflict Wizard Modal -->
+    <div id="conflict-wizard-modal" class="modal-overlay" style="z-index: 3600">
+      <div
+        class="modal-container modal-width-md accent-warning"
+        role="dialog"
+        aria-modal="true"
+      >
+        <h3 class="modal-header warning">Import Conflict Detected</h3>
+        <p
+          class="modal-body-text"
+          style="margin-bottom: var(--space-3); max-width: 100%"
+        >
+          The backup contains
+          <strong id="conflict-count" class="text-warning">0</strong> shifts
+          that overlap with your existing dates. Choose how to resolve this
+          collision:
+        </p>
+        <div
+          style="
+            background: var(--element-bg);
+            border: 1px solid var(--border-main);
+            border-radius: var(--radius-md);
+            padding: var(--space-3);
+            margin-bottom: var(--space-4);
+            max-height: 180px;
+            overflow-y: auto;
+            text-align: left;
+            font-size: var(--text-xs);
+            color: var(--text-muted);
+          "
+          id="conflict-list-container"
+        >
+          <!-- Populated dynamically with side-by-side date comparison lists -->
+        </div>
+        <div
+          class="action-row"
+          style="flex-direction: column; gap: var(--space-2)"
+        >
+          <button
+            class="btn-success-outline"
+            onclick="resolveImportConflict('keep-local')"
+            style="
+              width: 100%;
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              justify-content: center;
+              padding: var(--space-2) var(--space-3);
+              height: auto;
+            "
+          >
+            <span style="font-weight: 700; font-size: var(--text-sm)"
+              >Keep Current Local</span
+            >
+            <span
+              style="
+                font-size: 10px;
+                font-weight: 400;
+                opacity: 0.8;
+                margin-top: 2px;
+              "
+              >Discard overlapping backup records; preserve existing local
+              shifts</span
+            >
+          </button>
+          <button
+            class="btn-info-outline"
+            onclick="resolveImportConflict('overwrite')"
+            style="
+              width: 100%;
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              justify-content: center;
+              padding: var(--space-2) var(--space-3);
+              height: auto;
+            "
+          >
+            <span style="font-weight: 700; font-size: var(--text-sm)"
+              >Overwrite with Backup</span
+            >
+            <span
+              style="
+                font-size: 10px;
+                font-weight: 400;
+                opacity: 0.8;
+                margin-top: 2px;
+              "
+              >Replace overlapping local shifts with the backup's records</span
+            >
+          </button>
+          <button
+            class="btn-secondary"
+            onclick="resolveImportConflict('keep-both')"
+            style="
+              width: 100%;
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              justify-content: center;
+              padding: var(--space-2) var(--space-3);
+              height: auto;
+              border-color: var(--border-light);
+            "
+          >
+            <span style="font-weight: 700; font-size: var(--text-sm)"
+              >Keep Both (Create Duplicates)</span
+            >
+            <span
+              style="
+                font-size: 10px;
+                font-weight: 400;
+                opacity: 0.8;
+                margin-top: 2px;
+              "
+              >Import everything, creating duplicates for overlapping
+              dates</span
+            >
           </button>
         </div>
       </div>
@@ -5249,8 +5412,30 @@
           "
         ></div>
         <div class="action-row">
-          <button class="btn-info-outline" onclick="closeNoteModal()">
+          <button class="btn-secondary" onclick="closeNoteModal()">
             Close
+          </button>
+          <button
+            class="btn-info-outline"
+            onclick="triggerNoteEdit()"
+            style="
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              gap: 6px;
+            "
+          >
+            <svg
+              viewBox="0 0 24 24"
+              class="ui-icon"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              style="width: 14px; height: 14px"
+            >
+              <use href="#icon-df363be2"></use>
+            </svg>
+            <span>Edit Note</span>
           </button>
         </div>
       </div>
@@ -5480,6 +5665,7 @@
         aria-modal="true"
         id="heatmap-container-anim"
         style="
+          position: relative;
           padding: var(--space-4);
           border-radius: var(--radius-xl);
           box-shadow: 0 25px 60px rgba(0, 0, 0, 0.4);
@@ -5497,6 +5683,80 @@
           height: max-content;
         "
       >
+        <!-- Floating Heatmap Tooltip -->
+        <div
+          id="heatmap-tooltip"
+          style="
+            position: absolute;
+            display: none;
+            background: var(--dropdown-bg);
+            border: 1px solid var(--border-light);
+            border-radius: 8px;
+            padding: 8px 12px;
+            color: var(--text-main);
+            font-size: 0.72rem;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+            z-index: 6000;
+            pointer-events: none;
+            width: 200px;
+            text-align: left;
+            line-height: 1.4;
+          "
+        ></div>
+
+        <style>
+          .heatmap-year-container {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+          }
+
+          .heatmap-year-trigger {
+            font-size: 1.25rem;
+            font-weight: 700;
+            font-family: var(--font-sans);
+            color: var(--accent-blue);
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            cursor: pointer;
+            padding: 2px 8px;
+            border-radius: 6px;
+            user-select: none;
+            transition: background-color 0.15s ease;
+          }
+
+          .heatmap-year-trigger:hover {
+            background-color: var(--element-hover);
+          }
+
+          .heatmap-year-chevron {
+            transition:
+              transform 0.25s ease,
+              color 0.2s;
+          }
+
+          .heatmap-year-container:hover .heatmap-year-chevron {
+            transform: rotate(180deg);
+            color: var(--text-main);
+          }
+
+          .heatmap-year-container:hover #heatmap-year-presets,
+          .heatmap-year-container:focus-within #heatmap-year-presets {
+            opacity: 1 !important;
+            pointer-events: auto !important;
+            transform: translateX(-50%) translateY(8px) !important;
+          }
+
+          #heatmap-year-presets::before {
+            content: "";
+            position: absolute;
+            top: -10px;
+            left: 0;
+            right: 0;
+            height: 10px;
+          }
+        </style>
         <div
           style="
             display: flex;
@@ -5530,7 +5790,54 @@
             >
               <use href="#icon-cfe7f835"></use>
             </svg>
-            365-Day Heatmap
+            <span>Heatmap - </span>
+            <div class="heatmap-year-container">
+              <div
+                id="heatmap-year-trigger"
+                class="heatmap-year-trigger"
+                tabindex="0"
+              >
+                <span id="heatmap-year-current-label">YYYY</span>
+                <svg
+                  class="heatmap-year-chevron"
+                  width="12"
+                  height="12"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+              </div>
+              <div
+                id="heatmap-year-presets"
+                style="
+                  position: absolute;
+                  top: 100%;
+                  left: 50%;
+                  opacity: 0;
+                  pointer-events: none;
+                  display: flex;
+                  flex-direction: column;
+                  gap: 4px;
+                  padding: 6px;
+                  background: var(--dropdown-bg);
+                  border: 1px solid var(--border-light);
+                  border-radius: var(--radius-md);
+                  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+                  transform: translateX(-50%) translateY(4px);
+                  z-index: 7000;
+                  transition:
+                    opacity 0.2s ease,
+                    transform 0.2s ease;
+                "
+              >
+                <!-- populated dynamically -->
+              </div>
+            </div>
           </h3>
           <button
             class="toast-close-btn"
@@ -5563,15 +5870,11 @@
         <div
           style="
             display: flex;
-            justify-content: space-between;
+            justify-content: flex-end;
             margin-bottom: 16px;
             align-items: baseline;
           "
         >
-          <span style="font-size: 0.9rem; color: var(--text-muted)"
-            >A comprehensive view of your daily work intensity over the past
-            year.</span
-          >
           <span
             id="heatmap-streak"
             style="
@@ -5591,88 +5894,158 @@
           "
         >
           <div
-            id="heatmap-container"
             style="
-              display: grid;
-              grid-template-rows: repeat(7, 1fr);
-              grid-auto-flow: column;
-              gap: 5px;
+              display: flex;
+              flex-direction: column;
+              gap: 4px;
               min-width: max-content;
             "
-          ></div>
+          >
+            <div
+              id="heatmap-months"
+              style="
+                position: relative;
+                height: 16px;
+                margin-left: 38px;
+                font-size: 0.7rem;
+                color: var(--text-muted);
+                user-select: none;
+              "
+            ></div>
+            <div style="display: flex; gap: 8px">
+              <div
+                style="
+                  display: grid;
+                  grid-template-rows: repeat(7, 14px);
+                  gap: 5px;
+                  font-size: 0.7rem;
+                  color: var(--text-muted);
+                  text-align: right;
+                  width: 30px;
+                  line-height: 14px;
+                  user-select: none;
+                  padding-right: 4px;
+                "
+              >
+                <div>Mon</div>
+                <div>Tue</div>
+                <div>Wed</div>
+                <div>Thu</div>
+                <div>Fri</div>
+                <div>Sat</div>
+                <div>Sun</div>
+              </div>
+              <div
+                id="heatmap-container"
+                style="
+                  display: grid;
+                  grid-template-rows: repeat(7, 14px);
+                  grid-auto-flow: column;
+                  gap: 5px;
+                  min-width: max-content;
+                "
+              ></div>
+            </div>
+          </div>
         </div>
 
         <div
           style="
             display: flex;
-            justify-content: flex-end;
+            justify-content: space-between;
             align-items: center;
-            gap: 6px;
             font-size: 0.75rem;
             font-family: var(--font-sans);
             color: var(--text-muted);
-            padding-top: 4px;
+            padding-top: 12px;
+            border-top: 1px solid var(--border-light);
+            margin-top: 12px;
+            gap: 16px;
+            flex-wrap: wrap;
           "
         >
-          <span style="opacity: 0.85">Less</span>
+          <!-- Left: YTD Annual Aggregates -->
           <div
+            id="heatmap-ytd-stats"
             style="
-              width: 12px;
-              height: 12px;
-              border-radius: 3px;
-              background: color-mix(in srgb, var(--text-main) 8%, transparent);
+              display: flex;
+              gap: 16px;
+              color: var(--text-muted);
+              font-size: 0.75rem;
+              font-weight: 500;
             "
-            title="No Activity"
           ></div>
-          <div
-            style="
-              width: 12px;
-              height: 12px;
-              border-radius: 3px;
-              background: color-mix(
-                in srgb,
-                var(--accent-blue) 30%,
-                transparent
-              );
-            "
-            title="Low Activity (< 50% Goal)"
-          ></div>
-          <div
-            style="
-              width: 12px;
-              height: 12px;
-              border-radius: 3px;
-              background: color-mix(
-                in srgb,
-                var(--accent-work) 55%,
-                var(--accent-blue)
-              );
-            "
-            title="Medium Activity (50% - 99% Goal)"
-          ></div>
-          <div
-            style="
-              width: 12px;
-              height: 12px;
-              border-radius: 3px;
-              background: var(--accent-work);
-            "
-            title="Goal Met (100% Goal)"
-          ></div>
-          <div
-            style="
-              width: 12px;
-              height: 12px;
-              border-radius: 3px;
-              background: color-mix(
-                in srgb,
-                var(--accent-work) 80%,
-                var(--accent-warning)
-              );
-            "
-            title="Goal Exceeded (120%+ Goal)"
-          ></div>
-          <span style="opacity: 0.85; margin-left: 2px">More</span>
+
+          <!-- Right: Legend with dynamic colors -->
+          <div style="display: flex; align-items: center; gap: 6px">
+            <span style="opacity: 0.85">Less</span>
+            <div
+              style="
+                width: 12px;
+                height: 12px;
+                border-radius: 3px;
+                background: color-mix(
+                  in srgb,
+                  var(--text-main) 8%,
+                  transparent
+                );
+              "
+              title="No Activity"
+            ></div>
+            <div
+              id="legend-low"
+              style="
+                width: 12px;
+                height: 12px;
+                border-radius: 3px;
+                background: color-mix(
+                  in srgb,
+                  var(--accent-blue) 30%,
+                  transparent
+                );
+              "
+              title="Low Activity (< 50% Goal)"
+            ></div>
+            <div
+              id="legend-med"
+              style="
+                width: 12px;
+                height: 12px;
+                border-radius: 3px;
+                background: color-mix(
+                  in srgb,
+                  var(--accent-work) 55%,
+                  var(--accent-blue)
+                );
+              "
+              title="Medium Activity (50% - 99% Goal)"
+            ></div>
+            <div
+              id="legend-high"
+              style="
+                width: 12px;
+                height: 12px;
+                border-radius: 3px;
+                background: var(--accent-work);
+              "
+              title="Goal Met (100% Goal)"
+            ></div>
+            <div
+              id="legend-exceeded"
+              style="
+                width: 12px;
+                height: 12px;
+                border-radius: 3px;
+                background: color-mix(
+                  in srgb,
+                  var(--accent-work) 80%,
+                  var(--accent-warning)
+                );
+              "
+              title="Goal Exceeded (120%+ Goal)"
+            ></div>
+            <span style="opacity: 0.85; margin-left: 2px">More</span>
+          </div>
         </div>
       </div>
     </div>
@@ -5741,18 +6114,22 @@
             type="text"
             id="hud-input"
             class="input-standard"
-            placeholder="What do you want to do? (e.g. 'sw' for work, '+15' for goal)"
+            placeholder="Type a command or search..."
             autocomplete="off"
             spellcheck="false"
             style="
               border: none !important;
               background: transparent !important;
-              padding: 0 !important;
-              font-size: 1rem;
+              padding: 0 0 0 8px !important;
+              border-radius: 0 !important;
+              font-size: 0.85rem;
               font-family: var(--font-sans);
-              width: 100%;
+              flex: 1;
+              min-width: 0;
+              width: auto;
               box-shadow: none !important;
               outline: none !important;
+              text-align: left !important;
             "
           />
           <span
@@ -5780,7 +6157,7 @@
             display: flex;
             flex-direction: column;
             gap: 4px;
-            padding-right: 4px;
+            padding: 0;
           "
         >
           <!-- Dynamically populated commands -->
@@ -6074,8 +6451,8 @@
           <button id="start-btn" class="btn-work">
             <svg
               viewBox="0 0 24 24"
-              width="16"
-              height="16"
+              width="22"
+              height="22"
               fill="none"
               stroke="currentColor"
               stroke-width="2"
@@ -6090,8 +6467,8 @@
           <button id="pause-btn" class="btn-break">
             <svg
               viewBox="0 0 24 24"
-              width="16"
-              height="16"
+              width="22"
+              height="22"
               fill="none"
               stroke="currentColor"
               stroke-width="2"
@@ -6106,8 +6483,8 @@
           <button id="submit-btn" class="btn-log" onclick="openSubmitModal()">
             <svg
               viewBox="0 0 24 24"
-              width="16"
-              height="16"
+              width="22"
+              height="22"
               fill="none"
               stroke="currentColor"
               stroke-width="2"
@@ -7138,6 +7515,40 @@
                         Copies logs & opens Gmail draft at EOD.
                       </div>
                     </div>
+
+                    <div class="settings-divider" style="margin: 8px 0"></div>
+
+                    <!-- Version Control Snapshots -->
+                    <div
+                      style="
+                        display: flex;
+                        flex-direction: column;
+                        gap: 6px;
+                        padding: 2px;
+                      "
+                    >
+                      <span
+                        class="idle-popup-label"
+                        style="font-size: 0.75rem; font-weight: 700"
+                        >Restore Snapshot (Failsafe)</span
+                      >
+                      <select
+                        id="snapshot-restore-select"
+                        class="filter-select"
+                        style="
+                          width: 100%;
+                          font-size: 0.7rem;
+                          height: 27px;
+                          padding: 4px 6px;
+                        "
+                        onchange="onSnapshotSelectChange(this.value)"
+                      >
+                        <option value="">Choose a snapshot...</option>
+                      </select>
+                      <div class="settings-description">
+                        Revert database to an automatic daily backup.
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -7172,6 +7583,19 @@
             style="display: none"
           />
         </div>
+
+        <!-- Scroll to Top Button (Positioned at bottom center of right column, above footer) -->
+        <button
+          id="logbook-scroll-top-btn"
+          class="scroll-top-btn"
+          onclick="scrollToTopLogbook()"
+          title="Scroll to Top"
+          aria-label="Scroll to Top"
+        >
+          <svg viewBox="0 0 24 24">
+            <path d="M12 19V5M5 12l7-7 7 7" />
+          </svg>
+        </button>
       </div>
     </div>
 
@@ -7384,6 +7808,8 @@
               "Storage quota exceeded or write blocked. Session will continue in temporary memory.",
               e,
             );
+            window.storageWriteError = true;
+            throw e;
           }
         };
 
@@ -7491,18 +7917,18 @@
 
       // Vector Icon Resources (SVG mappings)
       const SVGs = {
-        play: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><use href="#icon-b1233e9f"></use></svg>`,
-        pause: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><use href="#icon-d140e762"></use></svg>`,
-        stop: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><use href="#icon-698f6a1b"></use></svg>`,
+        play: `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><use href="#icon-b1233e9f"></use></svg>`,
+        pause: `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><use href="#icon-d140e762"></use></svg>`,
+        stop: `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><use href="#icon-698f6a1b"></use></svg>`,
         copy: `<svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2"><use href="#icon-a323ea2d"></use></svg>`,
         edit: `<svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2"><use href="#icon-610fc1b7"></use></svg>`,
         plus: `<svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" width="18" height="18"><use href="#icon-59ac4ca9"></use></svg>`,
         note: `<svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2"><use href="#icon-6ea0858b"></use></svg>`,
         trash: `<svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2"><use href="#icon-6e0c3b0f"></use></svg>`,
-        themeCobalt: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #38bdf8;"><use href="#icon-b8385845"></use></svg>`,
-        themeOnyx: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #8e8e93;"><use href="#icon-ef8e4b16"></use></svg>`,
-        themeSfDark: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #818cf8;"><use href="#icon-d457aa18"></use></svg>`,
-        themeSfLight: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #ff9500;"><use href="#icon-c10237b5"></use></svg>`,
+        themeCobalt: `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #38bdf8;"><use href="#icon-b8385845"></use></svg>`,
+        themeOnyx: `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #8e8e93;"><use href="#icon-ef8e4b16"></use></svg>`,
+        themeSfDark: `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #818cf8;"><use href="#icon-d457aa18"></use></svg>`,
+        themeSfLight: `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #ff9500;"><use href="#icon-c10237b5"></use></svg>`,
       };
 
       // Live session core tracking state structure
@@ -7544,6 +7970,8 @@
       );
       // Added a layout cache to avoid clientHeight calls on scrolls
       let cachedViewportHeight = 0;
+      let isDatabaseHealthy = true;
+      window.storageWriteError = false;
 
       // High-frequency delta anchor and defensive lock flags
       let isTabConflict = false;
@@ -7774,14 +8202,27 @@
           return new Promise((resolve) => {
             const groupChunks = () => {
               const chunks = {};
-              logsData.forEach((log) => {
-                const dObj = new Date(log.epochMs);
-                const chunkId = `${dObj.getUTCFullYear()}-${String(
-                  dObj.getUTCMonth() + 1,
-                ).padStart(2, "0")}`;
-                if (!chunks[chunkId]) chunks[chunkId] = [];
-                chunks[chunkId].push(log);
-              });
+              const dataLen = logsData.length;
+
+              // Zero-allocation metadata grouping by extracting components from dates without instantiating Dates
+              for (let i = 0; i < dataLen; i++) {
+                const log = logsData[i];
+                const parts = log.date.split("/");
+                if (parts.length === 3) {
+                  const mm = parts[0].padStart(2, "0");
+                  const yy = parts[2];
+                  const fullYear = yy.length === 2 ? `20${yy}` : yy;
+                  const chunkId = `${fullYear}-${mm}`;
+                  if (!chunks[chunkId]) chunks[chunkId] = [];
+                  chunks[chunkId].push(log);
+                } else {
+                  // Fallback case for legacy/custom entries
+                  const dObj = new Date(log.epochMs);
+                  const chunkId = `${dObj.getUTCFullYear()}-${String(dObj.getUTCMonth() + 1).padStart(2, "0")}`;
+                  if (!chunks[chunkId]) chunks[chunkId] = [];
+                  chunks[chunkId].push(log);
+                }
+              }
 
               const tx = db.transaction("logs_chunked", "readwrite");
               const store = tx.objectStore("logs_chunked");
@@ -7851,7 +8292,7 @@
               console.warn(
                 "IndexedDB transaction timed out (deadlock detected). Falling back.",
               );
-              done([]);
+              done(null);
             }
           }, 1500);
 
@@ -7891,18 +8332,18 @@
                 };
                 reqChunk.onerror = () => {
                   console.warn("Chunk read failed");
-                  done([]);
+                  done(null);
                 };
               }
             };
             reqCheck.onerror = () => {
               console.warn("DB check failed");
-              done([]);
+              done(null);
             };
           } catch (e) {
             console.warn("loadLogsFromDB transaction error:", e);
             showAppToast("Could not read storage — data may be unavailable");
-            done([]);
+            done(null);
           }
         });
       }
@@ -7913,7 +8354,15 @@
       const LEASE_KEY = "production_active_lease_v2";
       const STAGING_KEY = "production_staging_lease_v2";
       const tabSyncChannel = new BroadcastChannel("work_tracker_sync");
-      const instanceId = Math.random().toString(36).substring(2, 15);
+      let instanceId = sessionStorage.getItem("production_tab_instance_id");
+      if (!instanceId) {
+        instanceId = Math.random().toString(36).substring(2, 15);
+        try {
+          sessionStorage.setItem("production_tab_instance_id", instanceId);
+        } catch (e) {
+          console.warn("sessionStorage is unavailable or blocked", e);
+        }
+      }
 
       // Event-driven listening via native storage event (consumes 0% CPU while idle)
       window.addEventListener("storage", (e) => {
@@ -7974,6 +8423,27 @@
       async function acquireLease() {
         return new Promise((resolve) => {
           try {
+            const existingLeaseStr = localStorage.getItem(LEASE_KEY);
+            if (existingLeaseStr) {
+              try {
+                const existingLease = JSON.parse(existingLeaseStr);
+                const now = Date.now();
+                if (
+                  existingLease.ownerId &&
+                  existingLease.ownerId !== instanceId &&
+                  now - existingLease.lastHeartbeat < 3000
+                ) {
+                  isTabConflict = true;
+                  document.getElementById("tab-conflict-modal").style.display =
+                    "flex";
+                  resolve(false);
+                  return;
+                }
+              } catch (err) {
+                console.warn("Failed to parse existing lease on load", err);
+              }
+            }
+
             localStorage.setItem(STAGING_KEY, instanceId);
             const backoff = 50 + Math.floor(Math.random() * 100);
             setTimeout(() => {
@@ -8006,11 +8476,18 @@
         });
       }
 
+      let lastLeaseRenewTime = 0;
+
       /**
-       * Renew our active lease.
+       * Renew our active lease with high-efficiency periodic writing.
        */
       function renewLease() {
         if (isTabConflict) return;
+        const now = Date.now();
+        // Only renew lease and touch localStorage once every 2 seconds (50% disk I/O reduction)
+        if (now - lastLeaseRenewTime < 2000) return;
+        lastLeaseRenewTime = now;
+
         try {
           const leaseStr = localStorage.getItem(LEASE_KEY);
           let gen = 1;
@@ -8024,7 +8501,7 @@
           }
           const lease = {
             ownerId: instanceId,
-            lastHeartbeat: Date.now(),
+            lastHeartbeat: now,
             generationCounter: gen,
           };
           localStorage.setItem(LEASE_KEY, JSON.stringify(lease));
@@ -8205,6 +8682,17 @@
           localStorage.setItem(THEME_KEY, currentTheme);
           renderStaticUI();
           renderThemeToggle();
+
+          // Dynamically update the heatmap colors if the modal is currently open
+          const heatmapModal = document.getElementById("heatmap-modal");
+          if (
+            heatmapModal &&
+            heatmapModal.style.display === "flex" &&
+            typeof renderHeatmap === "function"
+          ) {
+            renderHeatmap();
+          }
+
           if (icon) icon.classList.remove("theme-switching");
         }, 200);
       };
@@ -8260,6 +8748,12 @@
        * @param {Array} logs - Updated shift list array.
        */
       function saveLogs(logs) {
+        if (!isDatabaseHealthy) {
+          showAppToast(
+            "⚠️ Save blocked: Database read failed on startup. Please reload the page.",
+          );
+          return;
+        }
         for (let i = 0; i < logs.length; i++) {
           logs[i]._idx = i;
         }
@@ -8271,9 +8765,12 @@
         dataVersion++; // Bump version for all derivative caches
         rebuildWeeklyCache();
 
+        // Take standard failsafe snapshot on log operations
+        if (typeof triggerAutoSnapshot === "function") {
+          triggerAutoSnapshot();
+        }
+
         // FIX 3: INSTANT SYNCHRONOUS EMERGENCY BACKUP
-        // Saves only the 100 most recent logs synchronously so the browser cannot close
-        // the tab before the data is safely on the drive.
         try {
           localStorage.setItem(
             "production_logs_emergency_backup",
@@ -8281,6 +8778,8 @@
           );
         } catch (e) {
           console.warn("Emergency backup write failed", e);
+          window.storageWriteError = true;
+          showAppToast("⚠️ Storage full! Changes cannot be saved locally.");
         }
 
         // Delay database operations until the current thread yields, batching parallel changes
@@ -8345,16 +8844,24 @@
       function rebuildWeeklyCache() {
         const logs = getLogs();
         const txId = ++currentWorkerTxId;
-        // Send a lightweight representation to the worker using stable unique IDs
-        const payload = {
-          txId,
-          data: logs.map((l) => ({
+        const len = logs.length;
+        const minimizedData = new Array(len);
+
+        // Use high-speed indexed arrays to bypass heavy closure mappings
+        for (let i = 0; i < len; i++) {
+          const l = logs[i];
+          minimizedData[i] = {
             epochMs: l.epochMs,
             date: l.date,
             dayGoal: l.dayGoal,
             id: l.id,
             loginEpochMs: l.loginEpochMs || l.epochMs,
-          })),
+          };
+        }
+
+        const payload = {
+          txId,
+          data: minimizedData,
         };
         analyticsWorker.postMessage(payload);
       }
@@ -8452,18 +8959,21 @@
         return total;
       }
       // Inactivity tracker helper
+      let lastActivityRegisterTime = 0;
+
       /**
-       * Executes updateActivity logic.
+       * Executes updateActivity logic with high-performance temporal filtering.
        */
       function updateActivity() {
-        if (!state.idleLock && !activityThrottle) {
+        const now = Date.now();
+        // Throttle execution cleanly to once every 5 seconds to reduce main-thread overhead
+        if (now - lastActivityRegisterTime < 5000) return;
+        lastActivityRegisterTime = now;
+
+        if (!state.idleLock) {
           lastActivity = getTrueTime();
           state.lastActivity = lastActivity;
           state.lastHeartbeat = lastActivity;
-          activityThrottle = true;
-          setTimeout(() => {
-            activityThrottle = false;
-          }, 1000);
         }
       }
 
@@ -8617,17 +9127,6 @@
         const workSec = getCurrentWorkSeconds();
         const breakSec = getCurrentBreakSeconds();
 
-        setStyle(
-          DOM.workTimer,
-          "transition",
-          "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-        );
-        setStyle(
-          DOM.breakTimer,
-          "transition",
-          "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-        );
-
         // Retrieve corresponding label elements
         const workLabel = DOM.workTimer.previousElementSibling;
         const breakLabel = DOM.breakTimer.previousElementSibling;
@@ -8659,6 +9158,8 @@
         }
       }
 
+      let lastWeeklySummaryCheckMin = -1;
+
       /**
        * Updates the main timer and status clock displays once per second.
        *
@@ -8670,7 +9171,6 @@
        * @param {Date} [nowDate=new Date(getTrueTime())] - Current target date instance.
        */
       function renderTimersOnly(nowDate = new Date(getTrueTime())) {
-        syncGoalTimeInput();
         const nowMs = nowDate.getTime();
         const workSeconds = pendingSubmitData
           ? pendingSubmitData.workSec
@@ -8709,10 +9209,15 @@
         }
 
         updateProgress(workSeconds);
-        updateLiveWeeklySummary(false);
+
+        // Only call the heavy weekly summary calculation when the minute rolls over
+        const currentMin = nowDate.getMinutes();
+        if (currentMin !== lastWeeklySummaryCheckMin) {
+          lastWeeklySummaryCheckMin = currentMin;
+          updateLiveWeeklySummary(false);
+        }
 
         if (!document.hidden) {
-          // High-Performance Plain Text Clock update costing 0% CPU on Software Rendering
           setHTML(
             DOM.workTimer,
             formatDuration(workSeconds).replace(
@@ -8794,12 +9299,12 @@
 
         // =========================================================================
         // ARCHITECTURE NOTE: The weekly target is strictly hardcoded to 40 hours (144000s).
-        // Weekday (Mon-Fri) logged hours are summed here, completely decoupled from the active UI daily goal,
-        // which prevents changing the daily goal from altering the master weekly 40-hour requirement.
+        // Weekday (Mon-Fri) logged hours are summed here. Any paid leave days
+        // deduct 8 hours from the weekly target (Option B).
         // =========================================================================
 
         let totalW_MonFri = 0;
-        const dynamicWeeklyGoalSec = 40 * 3600; // Hardcoded to exactly 40 Hours
+        let dynamicWeeklyGoalSec = 40 * 3600; // Base 40 Hours
         const reusableDate = new Date(mondayUTC);
 
         for (let i = 0; i < 5; i++) {
@@ -8813,6 +9318,10 @@
             "0",
           )}/${reusableDate.getUTCFullYear().toString().slice(-2)}`;
 
+          if (isVacationDate(dateStr)) {
+            dynamicWeeklyGoalSec = Math.max(0, dynamicWeeklyGoalSec - 8 * 3600);
+          }
+
           const dayW = logsByDate[dateStr] ? logsByDate[dateStr].w : 0;
           totalW_MonFri += dayW;
         }
@@ -8824,7 +9333,9 @@
         const totalPercent =
           dynamicWeeklyGoalSec > 0
             ? Math.min((totalW_MonFri / dynamicWeeklyGoalSec) * 100, 100)
-            : 100;
+            : totalW_MonFri > 0
+              ? 100
+              : 0;
 
         const summaryText = DOM.weeklySummaryText;
         const percentText = DOM.weeklyProgressPercent;
@@ -8852,6 +9363,38 @@
             0,
             dynamicWeeklyGoalSec - totalW_MonFri,
           );
+
+          // Retrieve live goals dynamically within this scope
+          const liveGoalSec = getGoalSeconds(
+            DOM.goalHours.value,
+            DOM.goalMins.value,
+          );
+
+          // Trend calculations comparing actual progress against expectations
+          let expectedSecSoFar = 0;
+          for (let i = 0; i < 5; i++) {
+            const checkIdx = i + 1;
+            if (checkIdx <= nowDay) {
+              reusableDate.setTime(mondayUTC.getTime());
+              reusableDate.setUTCDate(mondayUTC.getUTCDate() + i);
+              const dateStr = `${String(reusableDate.getUTCMonth() + 1).padStart(2, "0")}/${String(reusableDate.getUTCDate()).padStart(2, "0")}/${reusableDate.getUTCFullYear().toString().slice(-2)}`;
+              if (!isVacationDate(dateStr)) {
+                const anchorGoal = dailyAnchorMap.get(dateStr) || liveGoalSec;
+                expectedSecSoFar += anchorGoal;
+              }
+            }
+          }
+          const trendDiffSec = totalW_MonFri - expectedSecSoFar;
+          const trendDiffH = (Math.abs(trendDiffSec) / 3600).toFixed(1);
+          let trendHTML = "";
+          if (expectedSecSoFar > 0) {
+            if (trendDiffSec >= 0) {
+              trendHTML = ` <span class="text-work" style="font-weight:700;">[+${trendDiffH}h ahead]</span>`;
+            } else {
+              trendHTML = ` <span class="text-warning" style="font-weight:700;">[-${trendDiffH}h behind]</span>`;
+            }
+          }
+
           if (remainingSec > 0) {
             const todayIdx = nowDay === 0 ? 7 : nowDay;
             if (todayIdx <= 5) {
@@ -8873,16 +9416,16 @@
                 const paceMinsTotal = Math.floor(paceSec / 60);
                 const paceH = Math.floor(paceMinsTotal / 60);
                 const paceM = paceMinsTotal % 60;
-                setText(weekMsg, `Pace Required: ${paceH}h ${paceM}m / Day`);
+                weekMsg.innerHTML = `Pace Required: ${paceH}h ${paceM}m / Day${trendHTML}`;
               } else {
-                setText(weekMsg, "Pace Required: — / Day");
+                weekMsg.innerHTML = `Pace Required: — / Day${trendHTML}`;
               }
             } else {
-              setText(weekMsg, "Pace Required: — / Day");
+              weekMsg.innerHTML = `Pace Required: — / Day${trendHTML}`;
             }
             weekMsg.className = "text-muted";
           } else {
-            setText(weekMsg, "Weekly Goal Achieved!");
+            weekMsg.innerHTML = `Weekly Goal Achieved!${trendHTML}`;
             weekMsg.className = "text-work";
           }
         }
@@ -9251,7 +9794,10 @@
       /**
        * Executes openNoteModal logic.
        */
-      function openNoteModal(noteText) {
+      let activeNoteLogId = null;
+
+      function openNoteModal(noteText, logId = null) {
+        activeNoteLogId = logId;
         DOM.noteModalText.textContent = noteText;
         DOM.noteModal.style.display = "flex";
       }
@@ -9261,7 +9807,18 @@
        */
       function closeNoteModal() {
         DOM.noteModal.style.display = "none";
+        activeNoteLogId = null;
       }
+
+      /**
+       * Closes the note modal and opens the edit modal for the active log note.
+       */
+      window.triggerNoteEdit = function () {
+        if (!activeNoteLogId) return;
+        const logId = activeNoteLogId;
+        closeNoteModal();
+        editSingleShift(logId);
+      };
 
       /**
        * Direct database write for shift logs. Bypasses executeSubmit/resetSession.
@@ -9747,37 +10304,34 @@
             (log.dayGoal != null && log.dayGoal > 0 ? log.dayGoal : 8 * 3600),
         );
         const friendlyDiff = formatFriendlyDuration(rawDeltaSec, "0m");
-        const selectedClass = isSelected ? " kb-selected" : "";
 
         const ouLetter = log.status === "OVER" ? "O" : "U";
         const badgeClass = log.status === "OVER" ? "badge-over" : "badge-under";
         const textClass = log.status === "OVER" ? "text-work" : "text-warning";
 
         return `
-        <div class="log-row${selectedClass}" data-id="${log.id}">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <div style="display: flex; align-items: center; gap: 8px;">
-                    <span style="font-weight: 400; font-size: var(--font-size-entry-title); color: var(--text-main);">${dayName} <span style="opacity: 0.5;">(${displayMonthDay})</span></span>
-                    <span style="font-size: var(--font-size-entry-meta); color: var(--text-muted);">${log.login} - ${log.logout}</span>
-                    ${weekendBadge}
-                </div>
-                <div style="display: flex; align-items: center; gap: 4px;">
-                    <span class="badge ${badgeClass}">${ouLetter}</span>
-                    <span class="${textClass}" style="font-weight: 600; font-size: var(--font-size-entry-stats);">${friendlyDiff}</span>
-                </div>
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <span style="font-weight: 400; font-size: var(--font-size-entry-title); color: var(--text-main);">${dayName} <span style="opacity: 0.5;">(${displayMonthDay})</span></span>
+                <span style="font-size: var(--font-size-entry-meta); color: var(--text-muted);">${log.login} - ${log.logout}</span>
+                ${weekendBadge}
             </div>
+            <div style="display: flex; align-items: center; gap: 4px;">
+                <span class="badge ${badgeClass}">${ouLetter}</span>
+                <span class="${textClass}" style="font-weight: 600; font-size: var(--font-size-entry-stats);">${friendlyDiff}</span>
+            </div>
+        </div>
 
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: var(--space-1);">
-                <div class="font-mono" style="display: flex; gap: var(--space-3); font-size: var(--font-size-entry-stats);">
-                    <span style="display: inline-flex; align-items: center; min-width: 75px;"><span class="badge badge-w">W</span> ${formatFriendlyDuration(log.workSec)}</span>
-                    <span style="display: inline-flex; align-items: center; min-width: 65px;"><span class="badge badge-b">B</span> ${formatFriendlyDuration(log.breakSec)}</span>
-                </div>
-                <div class="icon-actions">
-                    <button class="${noteIconClass}" ${noteBtnAttr}>${SVGs.note}</button>
-                    <button aria-label="Copy Log" class="icon-btn" data-action="copy" data-id="${log.id}" aria-label="Icon Button">${SVGs.copy}</button>
-                    <button aria-label="Edit Times" class="icon-btn" data-action="edit" data-id="${log.id}" aria-label="Icon Button">${SVGs.edit}</button>
-                    <button aria-label="Delete Shift" class="icon-btn danger-text" data-action="delete" data-id="${log.id}" aria-label="Icon Button">${SVGs.trash}</button>
-                </div>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: var(--space-1);">
+            <div class="font-mono" style="display: flex; gap: var(--space-3); font-size: var(--font-size-entry-stats);">
+                <span style="display: inline-flex; align-items: center; min-width: 75px;"><span class="badge badge-w">W</span> ${formatFriendlyDuration(log.workSec)}</span>
+                <span style="display: inline-flex; align-items: center; min-width: 65px;"><span class="badge badge-b">B</span> ${formatFriendlyDuration(log.breakSec)}</span>
+            </div>
+            <div class="icon-actions">
+                <button class="${noteIconClass}" ${noteBtnAttr}>${SVGs.note}</button>
+                <button aria-label="Copy Log" class="icon-btn" data-action="copy" data-id="${log.id}" aria-label="Icon Button">${SVGs.copy}</button>
+                <button aria-label="Edit Times" class="icon-btn" data-action="edit" data-id="${log.id}" aria-label="Icon Button">${SVGs.edit}</button>
+                <button aria-label="Delete Shift" class="icon-btn danger-text" data-action="delete" data-id="${log.id}" aria-label="Icon Button">${SVGs.trash}</button>
             </div>
         </div>`;
       }
@@ -9800,7 +10354,7 @@
           } else if (action === "view-note") {
             const logs = getLogs();
             const log = logs.find((l) => l.id === logId);
-            if (log && log.notes) openNoteModal(log.notes);
+            if (log && log.notes) openNoteModal(log.notes, log.id);
           }
           return;
         }
@@ -9810,6 +10364,35 @@
           const logId = row.dataset.id;
           if (logId) {
             editSingleShift(logId);
+          }
+        }
+      });
+
+      // Inline note hover previews using the unified tooltips system
+      DOM.logContainer.addEventListener("mouseover", (e) => {
+        const btn = e.target.closest('button[data-action="view-note"]');
+        if (btn) {
+          const logId = btn.dataset.id;
+          const log = getLogs().find((l) => l.id === logId);
+          if (log && log.notes) {
+            const tooltip = document.getElementById("app-tooltip");
+            if (tooltip) {
+              tooltip.textContent = log.notes;
+              const rect = btn.getBoundingClientRect();
+              tooltip.style.left = `${rect.left + window.scrollX + rect.width / 2}px`;
+              tooltip.style.top = `${rect.top + window.scrollY}px`;
+              tooltip.classList.add("visible");
+            }
+          }
+        }
+      });
+
+      DOM.logContainer.addEventListener("mouseout", (e) => {
+        const btn = e.target.closest('button[data-action="view-note"]');
+        if (btn) {
+          const tooltip = document.getElementById("app-tooltip");
+          if (tooltip) {
+            tooltip.classList.remove("visible");
           }
         }
       });
@@ -10203,107 +10786,158 @@
       }
 
       /**
+       * Retrieves filter inputs from DOM securely (Improvement 4: Separate DOM reads).
+       */
+      function getCurrentFilterCriteria() {
+        const searchInput = document.getElementById("filter-search");
+        return {
+          timeFilter: DOM.filterTime.value,
+          status: DOM.filterStatus.value,
+          hasNotes: DOM.filterNotes.checked,
+          dateStartVal: document.getElementById("filter-date-start").value,
+          dateEndVal: document.getElementById("filter-date-end").value,
+          hoursOp: DOM.filterHoursOp.value,
+          hoursVal: parseFloat(DOM.filterHoursVal.value) || 0,
+          searchVal: searchInput ? searchInput.value.trim().toLowerCase() : "",
+        };
+      }
+
+      /**
        * Returns logs array filtered by user preferences.
        * @returns {Array} Filtered list.
        */
       function getFilteredLogs() {
         const logs = getLogs();
-        const timeFilter = DOM.filterTime.value;
-        const status = DOM.filterStatus.value;
-        const hasNotes = DOM.filterNotes.checked;
-        const dateStartVal = document.getElementById("filter-date-start").value;
-        const dateEndVal = document.getElementById("filter-date-end").value;
-        const hoursOp = DOM.filterHoursOp.value;
-        const hoursVal = parseFloat(DOM.filterHoursVal.value) || 0;
+        const criteria = getCurrentFilterCriteria();
 
-        const searchInput = document.getElementById("filter-search");
-        const searchVal = searchInput
-          ? searchInput.value.trim().toLowerCase()
-          : "";
-
+        // Quick exit for un-filtered state
         if (
-          timeFilter === "ALL" &&
-          status === "ALL" &&
-          !hasNotes &&
-          !dateStartVal &&
-          !dateEndVal &&
-          hoursOp === "ALL" &&
-          !searchVal
+          criteria.timeFilter === "ALL" &&
+          criteria.status === "ALL" &&
+          !criteria.hasNotes &&
+          !criteria.dateStartVal &&
+          !criteria.dateEndVal &&
+          criteria.hoursOp === "ALL" &&
+          !criteria.searchVal
         ) {
           return logs;
         }
 
-        const cacheKey = `${timeFilter}|${status}|${hasNotes}|${dateStartVal}|${dateEndVal}|${hoursOp}|${hoursVal}|${searchVal}|${logs.length}`;
+        // Improvement 5: Safer Cache Invalidation using dataVersion (captures edits perfectly)
+        const cacheKey = `${criteria.timeFilter}|${criteria.status}|${criteria.hasNotes}|${criteria.dateStartVal}|${criteria.dateEndVal}|${criteria.hoursOp}|${criteria.hoursVal}|${criteria.searchVal}|${dataVersion}`;
         if (filterCache && filterCacheKey === cacheKey) return filterCache;
 
-        const todayStr = getPSTDate();
-        // Use PST date to match the timezone anchor used everywhere else in the app
+        // Improvement 1: Pre-calculate Loop Invariants
+        let absoluteStartMs = 0;
+        let absoluteEndMs = Infinity;
+
+        // Pre-calculate timeframe bounds
         const nowPSTObj = getPSTDateObj();
-        const nowUTC = new Date(
-          Date.UTC(
-            nowPSTObj.getUTCFullYear(),
-            nowPSTObj.getUTCMonth(),
-            nowPSTObj.getUTCDate(),
-          ),
-        );
-        const day = nowUTC.getUTCDay();
-        const diffToMonday = day === 0 ? -6 : 1 - day;
-        const mondayUTC = new Date(nowUTC);
-        mondayUTC.setUTCDate(nowUTC.getUTCDate() + diffToMonday);
-        const weekStartMs = mondayUTC.getTime();
-        const monthStartUTC = new Date(
-          Date.UTC(
+        if (criteria.timeFilter === "TODAY") {
+          const todayStr = getPSTDate();
+          const [m, d, y] = todayStr.split("/");
+          const fullYear = y.length === 2 ? `20${y}` : y;
+          const targetMs = Date.UTC(
+            parseInt(fullYear, 10),
+            parseInt(m, 10) - 1,
+            parseInt(d, 10),
+            12,
+            0,
+            0,
+          );
+          absoluteStartMs = targetMs;
+          absoluteEndMs = targetMs;
+        } else if (criteria.timeFilter === "WEEK") {
+          const nowUTC = new Date(
+            Date.UTC(
+              nowPSTObj.getUTCFullYear(),
+              nowPSTObj.getUTCMonth(),
+              nowPSTObj.getUTCDate(),
+              12,
+              0,
+              0,
+            ),
+          );
+          const day = nowUTC.getUTCDay();
+          const diffToMonday = day === 0 ? -6 : 1 - day;
+          absoluteStartMs = nowUTC.getTime() + diffToMonday * 86400000;
+        } else if (criteria.timeFilter === "MONTH") {
+          absoluteStartMs = Date.UTC(
             nowPSTObj.getUTCFullYear(),
             nowPSTObj.getUTCMonth(),
             1,
             12,
             0,
             0,
-          ),
-        );
-        const monthStartMs = monthStartUTC.getTime();
+          );
+        }
 
-        let startMs = dateStartVal ? new Date(dateStartVal).getTime() : null;
-        let endMs = dateEndVal ? new Date(dateEndVal).getTime() : null;
+        // Improvement 2: Fix Ambiguous Date Parsing (Timezone Drift)
+        if (criteria.dateStartVal) {
+          const [y, m, d] = criteria.dateStartVal.split("-");
+          const startMs = Date.UTC(
+            parseInt(y, 10),
+            parseInt(m, 10) - 1,
+            parseInt(d, 10),
+            12,
+            0,
+            0,
+          );
+          absoluteStartMs = Math.max(absoluteStartMs, startMs);
+        }
+        if (criteria.dateEndVal) {
+          const [y, m, d] = criteria.dateEndVal.split("-");
+          const endMs = Date.UTC(
+            parseInt(y, 10),
+            parseInt(m, 10) - 1,
+            parseInt(d, 10),
+            12,
+            0,
+            0,
+          );
+          absoluteEndMs = Math.min(absoluteEndMs, endMs);
+        }
+
+        const searchTerms = criteria.searchVal
+          ? criteria.searchVal.split(/\s+/)
+          : [];
+        const termLen = searchTerms.length;
 
         const result = logs.filter((l) => {
-          let matchTime = true;
-          if (timeFilter === "TODAY")
-            matchTime = l.date === todayStr || l.displayDate === todayStr;
-          else if (timeFilter === "WEEK") matchTime = l.epochMs >= weekStartMs;
-          else if (timeFilter === "MONTH")
-            matchTime = l.epochMs >= monthStartMs;
+          // Pre-calculated Timeframe and Date Bounds evaluate instantly here
+          if (l.epochMs < absoluteStartMs || l.epochMs > absoluteEndMs)
+            return false;
 
-          const matchStatus = status === "ALL" || l.status === status;
-          const matchNotes = !hasNotes || (l.notes && l.notes.trim() !== "");
+          // Status
+          if (criteria.status !== "ALL" && l.status !== criteria.status)
+            return false;
 
-          let matchDate = true;
-          if (startMs || endMs) {
-            if (startMs && l.epochMs < startMs) matchDate = false;
-            if (endMs && l.epochMs > endMs) matchDate = false;
-          }
+          // Notes
+          if (criteria.hasNotes && (!l.notes || l.notes.trim() === ""))
+            return false;
 
-          let matchHours = true;
-          if (hoursOp !== "ALL") {
+          // Hours
+          if (criteria.hoursOp !== "ALL") {
             const workHours = l.workSec / 3600;
-            if (hoursOp === "MORE") matchHours = workHours >= hoursVal;
-            if (hoursOp === "LESS") matchHours = workHours <= hoursVal;
+            if (criteria.hoursOp === "MORE" && workHours < criteria.hoursVal)
+              return false;
+            if (criteria.hoursOp === "LESS" && workHours > criteria.hoursVal)
+              return false;
           }
 
-          let matchSearch = true;
-          if (searchVal && l.searchStr) {
-            matchSearch = l.searchStr.includes(searchVal);
+          // Zero-allocation loop search replacing high-overhead '.every' and '.includes' callbacks
+          if (termLen > 0) {
+            const sStr =
+              l.searchStr ||
+              `${l.displayDate || ""} ${l.date || ""} ${l.login || ""} ${l.logout || ""} ${l.notes || ""}`.toLowerCase();
+            for (let i = 0; i < termLen; i++) {
+              if (sStr.indexOf(searchTerms[i]) === -1) return false;
+            }
           }
 
-          return (
-            matchTime &&
-            matchStatus &&
-            matchNotes &&
-            matchDate &&
-            matchHours &&
-            matchSearch
-          );
+          return true;
         });
+
         filterCache = result;
         filterCacheKey = cacheKey;
         return result;
@@ -10352,12 +10986,32 @@
             scrollAnimationFrameActive = true;
             window.requestAnimationFrame(() => {
               renderVirtualVisibleItems();
+
+              // Toggle visibility for the premium Scroll-to-Top action
+              const btn = document.getElementById("logbook-scroll-top-btn");
+              if (btn) {
+                const logbookVisible = DOM.tabLogbook.style.display !== "none";
+                if (logbookVisible && DOM.tabLogbook.scrollTop > 150) {
+                  btn.classList.add("visible");
+                } else {
+                  btn.classList.remove("visible");
+                }
+              }
+
               scrollAnimationFrameActive = false;
             });
           }
         },
         { passive: true },
       );
+
+      // Global scroll helper to safely reset logbook pane position
+      window.scrollToTopLogbook = function () {
+        const logbookTab = document.getElementById("tab-logbook");
+        if (logbookTab) {
+          logbookTab.scrollTo({ top: 0, behavior: "smooth" });
+        }
+      };
 
       /**
        * Renders virtual elements visible in active scroll windows.
@@ -10458,18 +11112,40 @@
         lastVirtualStart = startIndex;
         lastVirtualEnd = endIndex;
 
-        let html = "";
+        const requiredCount = endIndex - startIndex + 1;
+
+        // Ensure the DOM node pool matches the exact viewport footprint
+        while (DOM.logContainer.children.length < requiredCount) {
+          const div = document.createElement("div");
+          DOM.logContainer.appendChild(div);
+        }
+        while (DOM.logContainer.children.length > requiredCount) {
+          DOM.logContainer.removeChild(DOM.logContainer.lastChild);
+        }
+
+        // Update recycled nodes using the pre-compiled layout caches
+        const children = DOM.logContainer.children;
         for (let i = startIndex; i <= endIndex; i++) {
+          const poolIndex = i - startIndex;
           const log = virtualScrollLogs[i];
           const top = i * itemHeight;
           const isSelected = i === selectedLogIdx;
-          const rowHtml = generateLogRow(log, i, isSelected);
-          html += rowHtml.replace(
-            /(<div class="log-row[^>]*)>/,
-            `$1 style="top: ${top}px;">`,
-          );
+          const child = children[poolIndex];
+
+          const rowKey = `${log.id}|${isSelected}|${log.workSec}|${log.breakSec}|${log.status}|${log.notes || ""}`;
+          if (child.dataset.rowKey !== rowKey) {
+            child.dataset.rowKey = rowKey;
+            child.className = isSelected ? "log-row kb-selected" : "log-row";
+            child.dataset.id = log.id;
+            child.style.top = `${top}px`;
+            child.innerHTML = generateLogRow(log, i, isSelected);
+          } else {
+            if (child.style.top !== `${top}px`) {
+              child.style.top = `${top}px`;
+            }
+          }
         }
-        DOM.logContainer.innerHTML = html;
+
         DOM.logContainer.dataset.renderKey = fullRenderKey;
       }
 
@@ -10555,8 +11231,75 @@
       /**
        * Compiles weekly data aggregates.
        */
+      function showHeatmapTooltip(
+        e,
+        dateKey,
+        workStr,
+        breakStr,
+        goalStr,
+        notesStr,
+      ) {
+        const tooltip = document.getElementById("heatmap-tooltip");
+        if (!tooltip) return;
+
+        tooltip.innerHTML = `
+        <div style="font-weight: 700; color: var(--accent-blue); border-bottom: 1px solid var(--border-main); padding-bottom: 4px; margin-bottom: 6px;">${dateKey}</div>
+        <div style="display: flex; justify-content: space-between; margin-bottom: 2px;">
+          <span>Work:</span> <strong style="color: var(--accent-work);">${workStr}</strong>
+        </div>
+        <div style="display: flex; justify-content: space-between; margin-bottom: 2px;">
+          <span>Break:</span> <strong style="color: var(--accent-break);">${breakStr}</strong>
+        </div>
+        <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+          <span>Goal:</span> <strong style="color: var(--text-main);">${goalStr}</strong>
+        </div>
+        <div style="color: var(--text-muted); font-size: 10px; white-space: normal; word-break: break-word; border-top: 1px solid var(--border-main); padding-top: 4px; margin-top: 4px;">
+          <strong>Notes:</strong> ${notesStr}
+        </div>
+      `;
+
+        tooltip.style.display = "block";
+        const rect = e.target.getBoundingClientRect();
+        const modal = document.getElementById("heatmap-container-anim");
+        const modalRect = modal.getBoundingClientRect();
+
+        // Position tooltip relative to the containing relative modal
+        tooltip.style.left =
+          rect.left -
+          modalRect.left +
+          rect.width / 2 -
+          tooltip.offsetWidth / 2 +
+          "px";
+        tooltip.style.top =
+          rect.top - modalRect.top - tooltip.offsetHeight - 8 + "px";
+      }
+
+      function hideHeatmapTooltip() {
+        const tooltip = document.getElementById("heatmap-tooltip");
+        if (tooltip) tooltip.style.display = "none";
+      }
+
+      window.heatmapClickFilter = function (dateStr) {
+        closeHeatmapModal();
+        switchTab("logbook");
+        const searchInput = document.getElementById("filter-search");
+        if (searchInput) {
+          searchInput.value = dateStr;
+          searchInput.dispatchEvent(new Event("input"));
+        }
+
+        // Automatically expand the filter drawer if closed
+        const panel = document.getElementById("advanced-filters");
+        const btn = document.getElementById("filter-toggle-btn");
+        if (panel && !panel.classList.contains("show")) {
+          panel.classList.add("show");
+          if (btn) btn.classList.add("active");
+        }
+      };
+
       function renderHeatmap() {
         const container = document.getElementById("heatmap-container");
+        const monthsContainer = document.getElementById("heatmap-months");
         const streakEl = document.getElementById("heatmap-streak");
         if (!container) return;
 
@@ -10567,16 +11310,28 @@
         const heatmapMap = {};
         allLogs.forEach((l) => {
           if (!heatmapMap[l.date])
-            heatmapMap[l.date] = { w: 0, goal: l.dayGoal || 28800 };
+            heatmapMap[l.date] = {
+              w: 0,
+              b: 0,
+              goal: l.dayGoal || 28800,
+              notes: l.notes || "",
+            };
           heatmapMap[l.date].w += l.workSec || 0;
+          heatmapMap[l.date].b += l.breakSec || 0;
+          if (l.notes && !heatmapMap[l.date].notes.includes(l.notes)) {
+            heatmapMap[l.date].notes +=
+              (heatmapMap[l.date].notes ? " | " : "") + l.notes;
+          }
         });
         leaves.forEach((l) => {
           if (!heatmapMap[l.date])
             heatmapMap[l.date] = {
               w: 0,
+              b: 0,
               goal: 28800,
               isLeave: true,
               type: l.type,
+              notes: "",
             };
           else {
             heatmapMap[l.date].isLeave = true;
@@ -10585,45 +11340,293 @@
         });
 
         const today = new Date();
-        const startDay = new Date(today);
-        startDay.setDate(today.getDate() - 364);
-        startDay.setDate(startDay.getDate() - startDay.getDay()); // Snap to nearest Sunday
+        const systemYear = today.getFullYear();
 
-        const totalDays = Math.floor((today - startDay) / 86400000) + 1;
+        if (typeof window.heatmapSelectedYearVal === "undefined") {
+          window.heatmapSelectedYearVal = systemYear;
+        }
+
+        window.selectHeatmapYear = function (year) {
+          window.heatmapSelectedYearVal = year;
+          const label = document.getElementById("heatmap-year-current-label");
+          if (label) label.textContent = year;
+          renderHeatmap();
+        };
+
+        // Populate custom year selector options
+        const trigger = document.getElementById("heatmap-year-trigger");
+        const presets = document.getElementById("heatmap-year-presets");
+        const label = document.getElementById("heatmap-year-current-label");
+
+        if (label) {
+          label.textContent = window.heatmapSelectedYearVal;
+        }
+
+        if (trigger && presets && presets.children.length === 0) {
+          // Find unique years from logs
+          const yearsSet = new Set();
+          yearsSet.add(systemYear);
+          allLogs.forEach((l) => {
+            if (l.date && l.date.includes("/")) {
+              const parts = l.date.split("/");
+              if (parts.length === 3) {
+                const y = parts[2];
+                const fullY =
+                  y.length === 2 ? 2000 + parseInt(y, 10) : parseInt(y, 10);
+                if (!isNaN(fullY)) yearsSet.add(fullY);
+              }
+            }
+          });
+
+          // Sort years descending
+          const sortedYears = Array.from(yearsSet).sort((a, b) => b - a);
+          presets.innerHTML = sortedYears
+            .map((y) => {
+              const isActive = y === window.heatmapSelectedYearVal;
+              const activeClass = isActive ? " active" : "";
+              return `<button class="preset-pill${activeClass}" onclick="window.selectHeatmapYear(${y})" style="width: 100%; text-align: center; border-radius: var(--radius-sm); font-size: 0.75rem;">${y}</button>`;
+            })
+            .join("");
+        }
+
+        const currentYear = window.heatmapSelectedYearVal || systemYear;
+
+        // Find January 1st of the current year
+        const jan1 = new Date(currentYear, 0, 1);
+        const startDay = new Date(jan1);
+        const startDayOfWeek = jan1.getDay();
+        const diffToMonday = startDayOfWeek === 0 ? -6 : 1 - startDayOfWeek;
+        startDay.setDate(jan1.getDate() + diffToMonday); // Snaps to Monday of Jan 1st week
+
+        // Find December 31st of the current year
+        const dec31 = new Date(currentYear, 11, 31);
+        const endDay = new Date(dec31);
+        const endDayOfWeek = dec31.getDay();
+        const diffToSunday = endDayOfWeek === 0 ? 0 : 7 - endDayOfWeek;
+        endDay.setDate(dec31.getDate() + diffToSunday); // Snaps to Sunday of Dec 31st week
+
+        const totalDays =
+          Math.round((endDay.getTime() - startDay.getTime()) / 86400000) + 1;
         let html = "";
+        let monthsHtml = "";
+        let lastMonth = -1;
+        const shortMonths = [
+          "Jan",
+          "Feb",
+          "Mar",
+          "Apr",
+          "May",
+          "Jun",
+          "Jul",
+          "Aug",
+          "Sep",
+          "Oct",
+          "Nov",
+          "Dec",
+        ];
+
+        // Set dynamic legend colors
+        const lLow = document.getElementById("legend-low");
+        const lMed = document.getElementById("legend-med");
+        const lHigh = document.getElementById("legend-high");
+        const lExceeded = document.getElementById("legend-exceeded");
+
+        if (lLow && lMed && lHigh && lExceeded) {
+          if (currentTheme === "onyx-black") {
+            lLow.style.background =
+              "color-mix(in srgb, var(--accent-work) 20%, transparent)";
+            lMed.style.background =
+              "color-mix(in srgb, var(--accent-work) 50%, transparent)";
+            lHigh.style.background = "var(--accent-work)";
+            lExceeded.style.background =
+              "color-mix(in srgb, var(--accent-work) 80%, #ffffff)";
+          } else if (currentTheme === "cobalt-glass") {
+            lLow.style.background =
+              "color-mix(in srgb, var(--accent-blue) 20%, transparent)";
+            lMed.style.background =
+              "color-mix(in srgb, var(--accent-blue) 55%, transparent)";
+            lHigh.style.background = "var(--accent-blue)";
+            lExceeded.style.background =
+              "color-mix(in srgb, var(--accent-blue) 75%, #ffffff)";
+          } else {
+            lLow.style.background =
+              "color-mix(in srgb, var(--accent-blue) 30%, transparent)";
+            lMed.style.background =
+              "color-mix(in srgb, var(--accent-work) 55%, var(--accent-blue))";
+            lHigh.style.background = "var(--accent-work)";
+            lExceeded.style.background =
+              "color-mix(in srgb, var(--accent-work) 80%, var(--accent-warning))";
+          }
+        }
+
+        // Calculate YTD stats
+        let ytdWorkSec = 0;
+        let ytdBreakSec = 0;
+        let ytdDaysCount = 0;
+        let totalFocusPercentSum = 0;
+        let focusDaysCount = 0;
+
+        allLogs.forEach((l) => {
+          if (l.date && l.date.includes("/")) {
+            const parts = l.date.split("/");
+            if (parts.length === 3) {
+              const y = parts[2];
+              const fullY =
+                y.length === 2 ? 2000 + parseInt(y, 10) : parseInt(y, 10);
+              if (fullY === currentYear) {
+                ytdWorkSec += l.workSec || 0;
+                ytdBreakSec += l.breakSec || 0;
+                ytdDaysCount++;
+                const totalSec = (l.workSec || 0) + (l.breakSec || 0);
+                if (totalSec > 0) {
+                  totalFocusPercentSum += ((l.workSec || 0) / totalSec) * 100;
+                  focusDaysCount++;
+                }
+              }
+            }
+          }
+        });
+
+        const leaveCountYTD = leaves.filter((l) => {
+          const dateStr = typeof l === "string" ? l : l.date;
+          if (dateStr && dateStr.includes("/")) {
+            const parts = dateStr.split("/");
+            if (parts.length === 3) {
+              const y = parts[2];
+              const fullY =
+                y.length === 2 ? 2000 + parseInt(y, 10) : parseInt(y, 10);
+              return fullY === currentYear;
+            }
+          }
+          return false;
+        }).length;
+
+        const avgFocus =
+          focusDaysCount > 0
+            ? Math.round(totalFocusPercentSum / focusDaysCount)
+            : 0;
+        const totalHoursVal = (ytdWorkSec / 3600).toFixed(1);
+
+        const statsEl = document.getElementById("heatmap-ytd-stats");
+        if (statsEl) {
+          statsEl.innerHTML = `
+          <span>YTD Work: <strong style="color: var(--accent-work);">${totalHoursVal}h</strong></span>
+          <span>Avg Focus: <strong style="color: var(--accent-blue);">${avgFocus}%</strong></span>
+          <span>Leaves: <strong style="color: var(--accent-warning);">${leaveCountYTD}d</strong></span>
+        `;
+        }
 
         for (let i = 0; i < totalDays; i++) {
-          const d = new Date(startDay);
-          d.setTime(startDay.getTime() + i * 86400000);
+          const d = new Date(startDay.getTime() + i * 86400000);
           const dateKey = `${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}/${String(d.getFullYear()).slice(-2)}`;
+
+          const currentMonth = d.getMonth();
+          const colIndex = Math.floor(i / 7);
+
+          // Record month transitions dynamically within the bounds of the current year
+          if (currentMonth !== lastMonth && d.getFullYear() === currentYear) {
+            monthsHtml += `<span style="position: absolute; left: ${colIndex * 19}px; white-space: nowrap;">${shortMonths[currentMonth]}</span>`;
+            lastMonth = currentMonth;
+          }
 
           let bg = "color-mix(in srgb, var(--text-main) 8%, transparent)";
           let title = `${dateKey}: No Data`;
+          let tooltipData = null;
 
-          const data = heatmapMap[dateKey];
-          if (data) {
-            if (data.isLeave) {
-              bg = "var(--accent-warning)";
-              title = `${dateKey}: ${data.type} Leave`;
-            } else {
-              const ratio = data.w / data.goal;
-              if (ratio >= 1.2) {
-                bg =
-                  "color-mix(in srgb, var(--accent-work) 80%, var(--accent-warning))";
-              } else if (ratio >= 1) {
-                bg = "var(--accent-work)";
-              } else if (ratio >= 0.5) {
-                bg =
-                  "color-mix(in srgb, var(--accent-work) 55%, var(--accent-blue))";
-              } else if (ratio > 0) {
-                bg = "color-mix(in srgb, var(--accent-blue) 30%, transparent)";
+          // Don't show data or active backgrounds for days outside of the current year
+          if (d.getFullYear() === currentYear) {
+            const data = heatmapMap[dateKey];
+            if (data) {
+              if (data.isLeave) {
+                bg = "var(--accent-warning)";
+                title = `${dateKey}: ${data.type} Leave`;
+                tooltipData = {
+                  date: dateKey,
+                  work: "—",
+                  break: "—",
+                  goal: "—",
+                  notes: `${data.type} Leave Day`,
+                };
+              } else {
+                const ratio = data.w / data.goal;
+                if (currentTheme === "onyx-black") {
+                  if (ratio >= 1.2) {
+                    bg = "color-mix(in srgb, var(--accent-work) 80%, #ffffff)";
+                  } else if (ratio >= 1) {
+                    bg = "var(--accent-work)";
+                  } else if (ratio >= 0.5) {
+                    bg =
+                      "color-mix(in srgb, var(--accent-work) 50%, transparent)";
+                  } else if (ratio > 0) {
+                    bg =
+                      "color-mix(in srgb, var(--accent-work) 20%, transparent)";
+                  }
+                } else if (currentTheme === "cobalt-glass") {
+                  if (ratio >= 1.2) {
+                    bg = "color-mix(in srgb, var(--accent-blue) 80%, #ffffff)";
+                  } else if (ratio >= 1) {
+                    bg = "var(--accent-blue)";
+                  } else if (ratio >= 0.5) {
+                    bg =
+                      "color-mix(in srgb, var(--accent-blue) 55%, transparent)";
+                  } else if (ratio > 0) {
+                    bg =
+                      "color-mix(in srgb, var(--accent-blue) 20%, transparent)";
+                  }
+                } else {
+                  if (ratio >= 1.2) {
+                    bg =
+                      "color-mix(in srgb, var(--accent-work) 80%, var(--accent-warning))";
+                  } else if (ratio >= 1) {
+                    bg = "var(--accent-work)";
+                  } else if (ratio >= 0.5) {
+                    bg =
+                      "color-mix(in srgb, var(--accent-work) 55%, var(--accent-blue))";
+                  } else if (ratio > 0) {
+                    bg =
+                      "color-mix(in srgb, var(--accent-blue) 30%, transparent)";
+                  }
+                }
+                title = `${dateKey}: ${typeof formatDuration === "function" ? formatDuration(data.w) : data.w}`;
+                tooltipData = {
+                  date: dateKey,
+                  work: formatFriendlyDuration(data.w),
+                  break: formatFriendlyDuration(data.b),
+                  goal: formatFriendlyDuration(data.goal),
+                  notes: data.notes || "No notes logged",
+                };
               }
-              title = `${dateKey}: ${typeof formatDuration === "function" ? formatDuration(data.w) : data.w}`;
+            } else {
+              tooltipData = {
+                date: dateKey,
+                work: "0m",
+                break: "0m",
+                goal: "—",
+                notes: "No Activity",
+              };
             }
+          } else {
+            // Out of year bounds padding blocks are rendered invisibly
+            bg = "transparent";
+            title = "";
           }
-          html += `<div style="width: 14px; height: 14px; border-radius: 3px; background: ${bg}; transition: transform 0.1s ease; cursor: crosshair;" title="${title}" onmouseover="this.style.transform='scale(1.3)'" onmouseout="this.style.transform='scale(1)'"></div>`;
+
+          let hoverEffects = "";
+          if (tooltipData) {
+            const escNotes = (tooltipData.notes || "").replace(/'/g, "\\'");
+            hoverEffects = `
+            onmouseover="showHeatmapTooltip(event, '${tooltipData.date}', '${tooltipData.work}', '${tooltipData.break}', '${tooltipData.goal}', '${escNotes}'); this.style.transform='scale(1.3)';"
+            onmouseout="hideHeatmapTooltip(); this.style.transform='scale(1)';"
+            onclick="heatmapClickFilter('${dateKey}')"
+          `;
+          }
+
+          html += `<div style="width: 14px; height: 14px; border-radius: 3px; background: ${bg}; transition: transform 0.1s ease; cursor: ${tooltipData ? "pointer" : "default"};" ${hoverEffects}></div>`;
         }
         container.innerHTML = html;
+        if (monthsContainer) {
+          monthsContainer.innerHTML = monthsHtml;
+        }
 
         let currentStreak = 0;
         const streakDate = new Date(today);
@@ -10644,9 +11647,9 @@
         }
         if (streakEl) streakEl.innerText = `${currentStreak} Day Streak`;
 
-        // Auto-scroll to the end (today)
+        // Auto-scroll the parent container holding the overflow layout
         requestAnimationFrame(() => {
-          const wrapper = container.parentElement;
+          const wrapper = container.closest('div[style*="overflow-x: auto"]');
           if (wrapper) wrapper.scrollLeft = wrapper.scrollWidth;
         });
       }
@@ -10812,14 +11815,14 @@
           leaveDates.some((l) => (typeof l === "string" ? l : l.date) === dStr);
 
         // =========================================================================
-        // ARCHITECTURE NOTE: The weekly goal remains hardcoded to 40 hours (dynamicWeeklyGoalSec = 40 * 3600).
-        // Mon-Fri hours are accumulated into the weekly total, while Saturday/Sunday (indices 6/0) are
-        // excluded from weekly progress but drawn in breakdown rows with their respective anchored/fallback goals.
+        // ARCHITECTURE NOTE: The weekly goal defaults to 40 hours. Mon-Fri hours
+        // are accumulated into the weekly total. Any paid leave days deduct 8 hours
+        // from the weekly target (Option B). Saturday/Sunday are excluded.
         // =========================================================================
 
         let totalW_MonFri = 0;
         let totalB_AllWeek = 0;
-        const dynamicWeeklyGoalSec = 40 * 3600; // Hardcoded to exactly 40 Hours
+        let dynamicWeeklyGoalSec = 40 * 3600; // Base 40 Hours
         let breakdownHTML = "";
         const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
         const liveGoalSec = getGoalSeconds(
@@ -10855,9 +11858,15 @@
             dayB += getCurrentBreakSeconds();
           }
 
-          // Track Mon-Fri work
+          // Track Mon-Fri work and adjust weekly goal for leaves
           if (dayOfWeekIndex >= 1 && dayOfWeekIndex <= 5) {
             totalW_MonFri += dayW;
+            if (isVacation) {
+              dynamicWeeklyGoalSec = Math.max(
+                0,
+                dynamicWeeklyGoalSec - 8 * 3600,
+              );
+            }
           }
           totalB_AllWeek += dayB;
 
@@ -11092,7 +12101,9 @@
         const totalPercent =
           dynamicWeeklyGoalSec > 0
             ? Math.min((totalW_MonFri / dynamicWeeklyGoalSec) * 100, 100)
-            : 100;
+            : totalW_MonFri > 0
+              ? 100
+              : 0;
 
         setText(
           summaryText,
@@ -11242,7 +12253,7 @@
         const log = logs.find((l) => l.id === editingLogId);
         if (!log) return;
 
-        const newDate = document.getElementById("edit-date").value.trim();
+        let newDate = document.getElementById("edit-date").value.trim();
         const newWork = document.getElementById("edit-work").value.trim();
         const newBreak = document.getElementById("edit-break").value.trim();
         const newNotes = document.getElementById("edit-notes").value.trim();
@@ -11259,6 +12270,14 @@
         // Cap at absolute 24 hours to prevent chart overflow
         if (wSec !== null) wSec = Math.min(wSec, 86400);
         if (bSec !== null) bSec = Math.min(bSec, 86400);
+
+        const editDateInput = document.getElementById("edit-date");
+        if (newDate.match(/^\d{1,2}\/\d{1,2}\/(\d{2}|\d{4})$/)) {
+          const parts = newDate.split("/");
+          const y = parts[2].length === 4 ? parts[2].slice(-2) : parts[2];
+          newDate = `${parts[0].padStart(2, "0")}/${parts[1].padStart(2, "0")}/${y}`;
+          if (editDateInput) editDateInput.value = newDate;
+        }
 
         if (
           wSec !== null &&
@@ -11400,6 +12419,8 @@
        * restructures and uploads database logs backup files.
        * @param {Event} e - Native file input upload target.
        */
+      let tempImportData = null;
+
       function importJSON(e) {
         const file = e.target.files[0];
         if (!file) return;
@@ -11409,54 +12430,9 @@
           reader.onload = (event) => {
             try {
               const data = JSON.parse(event.target.result);
-              if (data.state) {
-                const activeSessionInProgress =
-                  state.currentMode !== null || state.workAccumulated > 0;
-                if (activeSessionInProgress) {
-                  state.idleTrackingEnabled =
-                    data.state.idleTrackingEnabled !== undefined
-                      ? data.state.idleTrackingEnabled
-                      : state.idleTrackingEnabled;
-                  state.idleThresholdMinutes =
-                    data.state.idleThresholdMinutes !== undefined
-                      ? data.state.idleThresholdMinutes
-                      : state.idleThresholdMinutes;
-                  state.autoEmailEnabled =
-                    data.state.autoEmailEnabled !== undefined
-                      ? data.state.autoEmailEnabled
-                      : state.autoEmailEnabled;
-                } else {
-                  state = data.state;
-                }
-                saveState();
-              }
-              if (data.goalH !== undefined) {
-                localStorage.setItem(GOAL_H_KEY, data.goalH);
-                DOM.goalHours.value = String(
-                  parseInt(data.goalH, 10) || 0,
-                ).padStart(2, "0");
-              }
-              if (data.goalM !== undefined) {
-                localStorage.setItem(GOAL_M_KEY, data.goalM);
-                DOM.goalMins.value = String(
-                  parseInt(data.goalM, 10) || 0,
-                ).padStart(2, "0");
-              }
-              if (data.presets) {
-                localStorage.setItem(PRESET_VALUES_KEY, data.presets);
-              }
-              if (data.leaves) {
-                localStorage.setItem(LEAVE_DATES_KEY, data.leaves);
-              }
-              if (data.views) {
-                localStorage.setItem(VIEWS_KEY, data.views);
-              }
-
-              let logsAddedCount = 0;
-              let logsModifiedCount = 0;
+              tempImportData = data;
 
               if (data.logs) {
-                // Filter out any malformed logs to prevent database corruption
                 const validatedLogs = data.logs.filter(
                   (l) =>
                     l && typeof l.date === "string" && l.date.includes("/"),
@@ -11480,66 +12456,57 @@
                     0,
                     0,
                   );
+                  l.searchStr =
+                    `${l.displayDate} ${l.date} ${l.login || ""} ${l.logout || ""} ${l.notes || ""}`.toLowerCase();
                 });
 
-                // Safely merge and deduplicate imported logs against existing logs
+                // Check for date overlaps
                 const currentLogs = getLogs();
-                const logMap = new Map();
-
-                currentLogs.forEach((log) => {
-                  const key =
-                    log.id || `${log.epochMs}_${log.workSec}_${log.breakSec}`;
-                  logMap.set(key, log);
-                });
-
-                validatedLogs.forEach((log) => {
-                  const key =
-                    log.id || `${log.epochMs}_${log.workSec}_${log.breakSec}`;
-                  const existing = logMap.get(key);
-
-                  if (!existing) {
-                    logMap.set(key, log);
-                    logsAddedCount++;
-                  } else {
-                    // Protect newer local modifications from being overwritten by older backup configurations
-                    const existingModified =
-                      existing.lastModified || existing.logoutEpochMs || 0;
-                    const incomingModified =
-                      log.lastModified || log.logoutEpochMs || 0;
-
-                    if (incomingModified > existingModified) {
-                      logMap.set(key, log);
-                      logsModifiedCount++;
-                    }
-                  }
-                });
-
-                const deduplicatedLogs = Array.from(logMap.values());
-                deduplicatedLogs.sort((a, b) => b.epochMs - a.epochMs);
-
-                if (logsAddedCount > 0 || logsModifiedCount > 0) {
-                  saveLogs(deduplicatedLogs);
-                }
-              }
-
-              if (logsAddedCount > 0 || logsModifiedCount > 0) {
-                showSyncToast(
-                  `Imported: ${logsAddedCount} new, ${logsModifiedCount} updated shifts`,
+                const existingDates = new Set(currentLogs.map((l) => l.date));
+                const overlappingLogs = validatedLogs.filter((l) =>
+                  existingDates.has(l.date),
                 );
-              } else {
-                showSyncToast("Data verified. No changes detected");
-              }
 
-              renderStaticUI();
-              renderTimersOnly();
-              renderPresets();
-              loadSavedFilterViews();
+                if (overlappingLogs.length > 0) {
+                  const countEl = document.getElementById("conflict-count");
+                  if (countEl) countEl.textContent = overlappingLogs.length;
+
+                  const listEl = document.getElementById(
+                    "conflict-list-container",
+                  );
+                  if (listEl) {
+                    listEl.innerHTML = overlappingLogs
+                      .map((backupLog) => {
+                        const localLog = currentLogs.find(
+                          (l) => l.date === backupLog.date,
+                        );
+                        return `
+                      <div style="border-bottom: 1px solid var(--border-main); padding: var(--space-2) 0; display: flex; flex-direction: column; gap: 2px;">
+                        <span style="font-weight: 700; color: var(--accent-blue);">${backupLog.date}</span>
+                        <div style="display: flex; justify-content: space-between; gap: 8px;">
+                          <span>Local: ${localLog ? `${formatFriendlyDuration(localLog.workSec)} (${localLog.login}-${localLog.logout})` : "None"}</span>
+                          <span style="color: var(--accent-warning);">Backup: ${formatFriendlyDuration(backupLog.workSec)} (${backupLog.login}-${backupLog.logout})</span>
+                        </div>
+                      </div>
+                    `;
+                      })
+                      .join("");
+                  }
+                  document.getElementById(
+                    "conflict-wizard-modal",
+                  ).style.display = "flex";
+                } else {
+                  finalizeImport("overwrite");
+                }
+              } else {
+                finalizeImport("overwrite");
+              }
             } catch (err) {
               showAppToast("Error restoring data");
             }
           };
           reader.readAsText(file);
-          e.target.value = ""; // Clear file input value to allow consecutive selection of the same file
+          e.target.value = "";
         };
 
         const hasActiveSession =
@@ -11572,6 +12539,145 @@
           );
         } else {
           executeImport();
+        }
+      }
+
+      // Handles the wizard actions dynamically
+      window.resolveImportConflict = function (resolutionType) {
+        document.getElementById("conflict-wizard-modal").style.display = "none";
+        if (!tempImportData) return;
+        finalizeImport(resolutionType);
+      };
+
+      function finalizeImport(resolutionType) {
+        try {
+          const data = tempImportData;
+          tempImportData = null;
+
+          if (data.state) {
+            const activeSessionInProgress =
+              state.currentMode !== null || state.workAccumulated > 0;
+            if (activeSessionInProgress) {
+              state.idleTrackingEnabled =
+                data.state.idleTrackingEnabled !== undefined
+                  ? data.state.idleTrackingEnabled
+                  : state.idleTrackingEnabled;
+              state.idleThresholdMinutes =
+                data.state.idleThresholdMinutes !== undefined
+                  ? data.state.idleThresholdMinutes
+                  : state.idleThresholdMinutes;
+              state.autoEmailEnabled =
+                data.state.autoEmailEnabled !== undefined
+                  ? data.state.autoEmailEnabled
+                  : state.autoEmailEnabled;
+            } else {
+              state = data.state;
+            }
+            saveState();
+          }
+          if (data.goalH !== undefined) {
+            localStorage.setItem(GOAL_H_KEY, data.goalH);
+            DOM.goalHours.value = String(
+              parseInt(data.goalH, 10) || 0,
+            ).padStart(2, "0");
+          }
+          if (data.goalM !== undefined) {
+            localStorage.setItem(GOAL_M_KEY, data.goalM);
+            DOM.goalMins.value = String(parseInt(data.goalM, 10) || 0).padStart(
+              2,
+              "0",
+            );
+          }
+          if (data.presets) {
+            localStorage.setItem(PRESET_VALUES_KEY, data.presets);
+          }
+          if (data.leaves) {
+            localStorage.setItem(LEAVE_DATES_KEY, data.leaves);
+          }
+          if (data.views) {
+            localStorage.setItem(VIEWS_KEY, data.views);
+          }
+
+          let logsAddedCount = 0;
+          let logsModifiedCount = 0;
+          let logsOverwrittenCount = 0;
+
+          if (data.logs) {
+            const validatedLogs = data.logs.filter(
+              (l) => l && typeof l.date === "string" && l.date.includes("/"),
+            );
+
+            validatedLogs.forEach((l) => {
+              if (!l.id) {
+                l.id =
+                  "log_" +
+                  Math.random().toString(36).substring(2, 11) +
+                  Date.now().toString(36);
+              }
+              l.displayDate = l.date.replace(/\/20(\d{2})$/, "/$1");
+              const [m, d, y] = l.date.split("/");
+              const fullY = y.length === 2 ? `20${y}` : y;
+              l.epochMs = Date.UTC(
+                parseInt(fullY, 10),
+                parseInt(m, 10) - 1,
+                parseInt(d, 10),
+                12,
+                0,
+                0,
+              );
+              l.searchStr =
+                `${l.displayDate} ${l.date} ${l.login || ""} ${l.logout || ""} ${l.notes || ""}`.toLowerCase();
+            });
+
+            const currentLogs = getLogs();
+            let mergedLogs = [];
+
+            if (resolutionType === "keep-local") {
+              const localDates = new Set(currentLogs.map((l) => l.date));
+              const filteredBackupLogs = validatedLogs.filter(
+                (l) => !localDates.has(l.date),
+              );
+              mergedLogs = [...filteredBackupLogs, ...currentLogs];
+              logsAddedCount = filteredBackupLogs.length;
+            } else if (resolutionType === "overwrite") {
+              const backupDates = new Set(validatedLogs.map((l) => l.date));
+              const filteredLocalLogs = currentLogs.filter(
+                (l) => !backupDates.has(l.date),
+              );
+              mergedLogs = [...validatedLogs, ...filteredLocalLogs];
+              logsAddedCount =
+                validatedLogs.length -
+                (currentLogs.length - filteredLocalLogs.length);
+              logsOverwrittenCount =
+                currentLogs.length - filteredLocalLogs.length;
+            } else if (resolutionType === "keep-both") {
+              mergedLogs = [...validatedLogs, ...currentLogs];
+              logsAddedCount = validatedLogs.length;
+            }
+
+            const uniqueMap = new Map();
+            mergedLogs.forEach((l) => {
+              const key = l.id || `${l.epochMs}_${l.workSec}_${l.breakSec}`;
+              uniqueMap.set(key, l);
+            });
+
+            const finalLogs = Array.from(uniqueMap.values());
+            finalLogs.sort((a, b) => b.epochMs - a.epochMs);
+            saveLogs(finalLogs);
+          }
+
+          let toastMsg = "Data verified. No changes detected";
+          if (logsAddedCount > 0 || logsOverwrittenCount > 0) {
+            toastMsg = `Imported: ${logsAddedCount} new, ${logsOverwrittenCount} overwritten shifts`;
+          }
+          showSyncToast(toastMsg);
+
+          renderStaticUI();
+          renderTimersOnly();
+          renderPresets();
+          loadSavedFilterViews();
+        } catch (err) {
+          showAppToast("Error finalizing restore");
         }
       }
 
@@ -12036,6 +13142,17 @@
 
       window.addEventListener("pagehide", () => {
         saveState(true);
+        try {
+          const leaseStr = localStorage.getItem(LEASE_KEY);
+          if (leaseStr) {
+            const lease = JSON.parse(leaseStr);
+            if (lease.ownerId === instanceId) {
+              localStorage.removeItem(LEASE_KEY);
+            }
+          }
+        } catch (e) {
+          console.warn("Failed to release lease on pagehide", e);
+        }
       });
 
       /*==========================================================================
@@ -12434,20 +13551,6 @@
           action: () => openLeaveModal(),
         },
         {
-          key: "search ",
-          title: "Search Logbook...",
-          desc: "Type 'search bug' to filter past logs",
-          category: "Navigation",
-          aliases: ["find", "lookup", "query"],
-          keepOpen: true,
-          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text-main)" stroke-width="2"><use href="#icon-9c8ee3dd"></use></svg>`,
-          action: () => {
-            const input = document.getElementById("hud-input");
-            input.value = "search ";
-            input.dispatchEvent(new Event("input"));
-          },
-        },
-        {
           key: "add ",
           title: "Natural Language Write Engine",
           desc: "Type 'add yesterday 9am to 5pm worked on UI' to create a log",
@@ -12504,13 +13607,13 @@
               searchInput.value = arg.trim();
               searchInput.dispatchEvent(new Event("input"));
             }
+
+            // Open advanced filters automatically to show results context clearly
             const panel = document.getElementById("advanced-filters");
-            const toggleText = document.getElementById(
-              "advanced-filters-toggle-text",
-            );
-            if (panel && panel.classList.contains("hidden")) {
-              panel.classList.remove("hidden");
-              if (toggleText) toggleText.innerText = "Hide Advanced Filters";
+            const btn = document.getElementById("filter-toggle-btn");
+            if (panel && !panel.classList.contains("show")) {
+              panel.classList.add("show");
+              if (btn) btn.classList.add("active");
             }
           },
         },
@@ -13937,7 +15040,7 @@
             const log = virtualScrollLogs[selectedLogIdx];
             if (log && log.notes) {
               e.preventDefault();
-              openNoteModal(log.notes);
+              openNoteModal(log.notes, log.id);
             }
           } else if (
             (e.key === "Delete" ||
@@ -14147,6 +15250,96 @@
         const autoEmailCheckbox = document.getElementById("auto-email-toggle");
         if (autoEmailCheckbox)
           autoEmailCheckbox.checked = !!state.autoEmailEnabled;
+
+        // Sync snapshots dropdown list
+        const snapshotSelect = document.getElementById(
+          "snapshot-restore-select",
+        );
+        if (snapshotSelect) {
+          snapshotSelect.innerHTML =
+            '<option value="">Choose a snapshot...</option>';
+          try {
+            const saved = localStorage.getItem("production_snapshots_v1");
+            if (saved) {
+              const snapshots = JSON.parse(saved);
+              snapshots.forEach((s, idx) => {
+                const opt = document.createElement("option");
+                opt.value = idx;
+                const formattedTime = new Date(s.timestamp).toLocaleTimeString(
+                  [],
+                  { hour: "2-digit", minute: "2-digit" },
+                );
+                opt.textContent = `${s.date} (${formattedTime}) - ${s.logs.length} logs`;
+                snapshotSelect.appendChild(opt);
+              });
+            }
+          } catch (e) {}
+        }
+      }
+
+      // Handles the snapshot restoration flow safely
+      window.onSnapshotSelectChange = function (index) {
+        if (index === "") return;
+        try {
+          const saved = localStorage.getItem("production_snapshots_v1");
+          if (!saved) return;
+          const snapshots = JSON.parse(saved);
+          const target = snapshots[index];
+          if (!target) return;
+
+          openConfirmModal(
+            "Restore Snapshot?",
+            `Are you sure you want to restore the snapshot from ${target.date}? This will overwrite your current active logbook logs.`,
+            () => {
+              saveLogs(target.logs);
+              renderStaticUI();
+              renderTimersOnly();
+              renderLogbook();
+              renderInsights();
+              showAppToast(`Logs reverted to ${target.date} snapshot.`);
+              document.getElementById("snapshot-restore-select").value = "";
+            },
+            false,
+            "Restore",
+          );
+        } catch (e) {
+          showAppToast("Error restoring snapshot.");
+        }
+      };
+
+      // Creates daily backup snapshots
+      function triggerAutoSnapshot() {
+        try {
+          const todayStr = getPSTDate();
+          let snapshots = [];
+          const saved = localStorage.getItem("production_snapshots_v1");
+          if (saved) {
+            snapshots = JSON.parse(saved);
+          }
+          const alreadySnapshottedToday = snapshots.some(
+            (s) => s.date === todayStr,
+          );
+          if (alreadySnapshottedToday) return;
+
+          const currentLogs = getLogs();
+          if (currentLogs.length === 0) return;
+
+          snapshots.unshift({
+            date: todayStr,
+            timestamp: Date.now(),
+            logs: currentLogs,
+          });
+
+          if (snapshots.length > 5) {
+            snapshots = snapshots.slice(0, 5);
+          }
+          localStorage.setItem(
+            "production_snapshots_v1",
+            JSON.stringify(snapshots),
+          );
+        } catch (e) {
+          console.warn("Snapshot auto-save failed", e);
+        }
       }
 
       window.onAutoEmailToggleChange = function () {
@@ -14225,7 +15418,7 @@
         const manualDateInput = document.getElementById("manual-date");
         // Force blur formatting first
         handleDateInputBlur({ target: manualDateInput });
-        const dateStr = manualDateInput.value.trim();
+        let dateStr = manualDateInput.value.trim();
         const workStr = document.getElementById("manual-work").value.trim();
         const breakStr = document.getElementById("manual-break").value.trim();
         const notes = document.getElementById("manual-notes").value.trim();
@@ -14242,6 +15435,13 @@
         // Cap at absolute 24 hours to prevent chart overflow
         if (wSec !== null) wSec = Math.min(wSec, 86400);
         if (bSec !== null) bSec = Math.min(bSec, 86400);
+
+        if (dateStr.match(/^\d{1,2}\/\d{1,2}\/(\d{2}|\d{4})$/)) {
+          const parts = dateStr.split("/");
+          const y = parts[2].length === 4 ? parts[2].slice(-2) : parts[2];
+          dateStr = `${parts[0].padStart(2, "0")}/${parts[1].padStart(2, "0")}/${y}`;
+          manualDateInput.value = dateStr;
+        }
 
         if (
           wSec !== null &&
@@ -14339,6 +15539,7 @@
         2,
         "0",
       );
+      syncGoalTimeInput();
 
       const blockInvalidKeys = (e) => {
         const allowed = [
@@ -14456,10 +15657,11 @@
           return;
         }
 
-        // Force padding if user hit Enter without blurring
-        if (val.match(/^\d{1,2}\/\d{1,2}\/\d{2}$/)) {
+        // Force padding and 2-digit year conversion if user hit Enter without blurring
+        if (val.match(/^\d{1,2}\/\d{1,2}\/(\d{2}|\d{4})$/)) {
           const parts = val.split("/");
-          val = `${parts[0].padStart(2, "0")}/${parts[1].padStart(2, "0")}/${parts[2]}`;
+          const y = parts[2].length === 4 ? parts[2].slice(-2) : parts[2];
+          val = `${parts[0].padStart(2, "0")}/${parts[1].padStart(2, "0")}/${y}`;
           input.value = val;
         }
 
@@ -14925,7 +16127,11 @@
             if (dd > (isLeap ? 29 : 28)) dd = isLeap ? 29 : 28;
           }
 
-          const formattedDate = `${String(mm).padStart(2, "0")}/${String(dd).padStart(2, "0")}/${yy}`;
+          let shortY = yy;
+          if (yy.length === 4) {
+            shortY = yy.slice(-2);
+          }
+          const formattedDate = `${String(mm).padStart(2, "0")}/${String(dd).padStart(2, "0")}/${shortY}`;
           if (formattedDate.match(/^\d{2}\/\d{2}\/\d{2}$/)) {
             input.value = formattedDate;
           }
@@ -14999,6 +16205,17 @@
 
       window.addEventListener("beforeunload", () => {
         saveState(true); // Guarantee final active seconds are cemented before tab death
+        try {
+          const leaseStr = localStorage.getItem(LEASE_KEY);
+          if (leaseStr) {
+            const lease = JSON.parse(leaseStr);
+            if (lease.ownerId === instanceId) {
+              localStorage.removeItem(LEASE_KEY);
+            }
+          }
+        } catch (e) {
+          console.warn("Failed to release lease on beforeunload", e);
+        }
       });
 
       let syncToastTimeout;
@@ -15202,6 +16419,20 @@
         document
           .querySelector(`.tab-btn[data-target="${target}"]`)
           .classList.add("active");
+
+        // Hide or show the scroll-to-top action contextually
+        const scrollTopBtn = document.getElementById("logbook-scroll-top-btn");
+        if (scrollTopBtn) {
+          if (
+            target === "logbook" &&
+            DOM.tabLogbook &&
+            DOM.tabLogbook.scrollTop > 150
+          ) {
+            scrollTopBtn.classList.add("visible");
+          } else {
+            scrollTopBtn.classList.remove("visible");
+          }
+        }
       }
 
       /**
@@ -15294,6 +16525,9 @@
             localStorage.setItem(STATE_KEY, JSON.stringify(state));
           } catch (e) {
             console.warn("Storage write blocked: running in RAM-only mode", e);
+            showAppToast(
+              "⚠️ Storage full! State changes cannot be saved locally. Please export JSON.",
+            );
           }
           if (saveStateTimeout) {
             clearTimeout(saveStateTimeout);
@@ -15398,8 +16632,15 @@
        */
       (async function initApp() {
         cachedLogs = await loadLogsFromDB();
+        if (cachedLogs === null) {
+          cachedLogs = [];
+          isDatabaseHealthy = false;
+          showAppToast(
+            "⚠️ Database read failed. Writes are disabled to protect historical data.",
+          );
+        }
 
-        // Fix missing IDs on initial startup for imported/saved logs
+        // Fix missing IDs and hydrate legacy search strings on initial startup for imported/saved logs
         let keysMutated = false;
         cachedLogs.forEach((l) => {
           if (!l.id) {
@@ -15409,8 +16650,13 @@
               Date.now().toString(36);
             keysMutated = true;
           }
+          if (!l.searchStr) {
+            l.searchStr =
+              `${l.displayDate || ""} ${l.date || ""} ${l.login || ""} ${l.logout || ""} ${l.notes || ""}`.toLowerCase();
+            keysMutated = true;
+          }
         });
-        if (keysMutated) {
+        if (keysMutated && isDatabaseHealthy) {
           saveLogsToDB(cachedLogs);
         }
 
@@ -15488,6 +16734,11 @@
         renderThemeToggle();
         renderPresets();
         syncSettingsUI();
+
+        // Initialize failsafe database snapshot on startup
+        if (typeof triggerAutoSnapshot === "function") {
+          triggerAutoSnapshot();
+        }
 
         // Synchronize delta tracking anchor on app launch
         // Start the background Web Worker timer thread
