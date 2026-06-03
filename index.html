@@ -1486,12 +1486,11 @@
         position: relative !important;
       }
 
-      /* Subtle, premium Scroll-to-Top borderless action above footer, centered */
-      /* Subtle, premium Scroll-to-Top action matching current application icon states */
+      /* Subtle Scroll-to-Top borderless action above footer, centered */
       .scroll-top-btn {
         position: absolute;
         bottom: 72px;
-        left: 50%;
+        left: calc(50% + 12px);
         transform: translateX(-50%);
         width: clamp(28px, 2.4vw, 38px);
         height: clamp(28px, 2.4vw, 38px);
@@ -1521,7 +1520,9 @@
         stroke-width: 2.5 !important;
         stroke-linecap: round !important;
         stroke-linejoin: round !important;
-        transition: stroke 0.15s ease;
+        transition:
+          stroke 0.15s ease,
+          transform 0.2s ease;
       }
 
       .scroll-top-btn.visible {
@@ -1534,11 +1535,15 @@
       }
 
       .scroll-top-btn:hover svg {
-        stroke: var(--accent-blue) !important;
+        stroke: var(--text-main) !important;
       }
 
       .scroll-top-btn:active {
-        transform: translateX(-50%) scale(0.92);
+        transform: translateX(-50%) !important;
+      }
+
+      .scroll-top-btn:active svg {
+        transform: translateY(-2px);
       }
 
       .tab-nav {
@@ -2512,10 +2517,6 @@
         stroke: var(--accent-blue);
       }
 
-      [title="Backup JSON"]:hover svg {
-        stroke: var(--accent-blue);
-      }
-
       [title="Restore JSON"]:hover svg {
         stroke: var(--accent-blue);
       }
@@ -2529,6 +2530,7 @@
 
       .sidebar-footer .sq-btn.danger-icon svg {
         stroke: var(--accent-break) !important;
+        opacity: 0.85;
         transition: none !important;
       }
 
@@ -2539,6 +2541,7 @@
 
       .sidebar-footer .sq-btn.danger-icon:hover svg {
         stroke: var(--accent-break) !important;
+        opacity: 1;
         transform: none !important;
       }
 
@@ -7553,7 +7556,6 @@
                 </div>
               </div>
             </div>
-            <!-- This closing div was missing and fixes the stacking issue! -->
 
             <div class="icon-stack">
               <button
@@ -7571,7 +7573,9 @@
                   <use href="#icon-dc2cf02d"></use>
                 </svg>
               </button>
-              <span class="icon-tag" style="color: var(--accent-break)"
+              <span
+                class="icon-tag"
+                style="color: var(--accent-break); opacity: 0.65"
                 >Wipe</span
               >
             </div>
@@ -7925,10 +7929,10 @@
         plus: `<svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" width="18" height="18"><use href="#icon-59ac4ca9"></use></svg>`,
         note: `<svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2"><use href="#icon-6ea0858b"></use></svg>`,
         trash: `<svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2"><use href="#icon-6e0c3b0f"></use></svg>`,
-        themeCobalt: `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #38bdf8;"><use href="#icon-b8385845"></use></svg>`,
-        themeOnyx: `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #8e8e93;"><use href="#icon-ef8e4b16"></use></svg>`,
-        themeSfDark: `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #818cf8;"><use href="#icon-d457aa18"></use></svg>`,
-        themeSfLight: `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #ff9500;"><use href="#icon-c10237b5"></use></svg>`,
+        themeCobalt: `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #38bdf8;"><use href="#icon-b8385845"></use></svg>`,
+        themeOnyx: `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #8e8e93;"><use href="#icon-ef8e4b16"></use></svg>`,
+        themeSfDark: `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #818cf8;"><use href="#icon-d457aa18"></use></svg>`,
+        themeSfLight: `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #ff9500;"><use href="#icon-c10237b5"></use></svg>`,
       };
 
       // Live session core tracking state structure
@@ -10979,6 +10983,7 @@
 
       // High-performance passive animation frame throttle for scroll calculations
       let scrollAnimationFrameActive = false;
+      let lastLogbookScrollTop = 0;
       DOM.tabLogbook.addEventListener(
         "scroll",
         () => {
@@ -10987,17 +10992,26 @@
             window.requestAnimationFrame(() => {
               renderVirtualVisibleItems();
 
+              const currentScrollTop = DOM.tabLogbook.scrollTop;
+
               // Toggle visibility for the premium Scroll-to-Top action
               const btn = document.getElementById("logbook-scroll-top-btn");
               if (btn) {
                 const logbookVisible = DOM.tabLogbook.style.display !== "none";
-                if (logbookVisible && DOM.tabLogbook.scrollTop > 150) {
+                const isScrollingDown = currentScrollTop > lastLogbookScrollTop;
+
+                if (
+                  logbookVisible &&
+                  currentScrollTop > 150 &&
+                  isScrollingDown
+                ) {
                   btn.classList.add("visible");
-                } else {
+                } else if (!isScrollingDown || currentScrollTop <= 150) {
                   btn.classList.remove("visible");
                 }
               }
 
+              lastLogbookScrollTop = currentScrollTop;
               scrollAnimationFrameActive = false;
             });
           }
