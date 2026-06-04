@@ -9010,6 +9010,12 @@
         if (document.getElementById("tab-logbook").style.display !== "none") {
           renderLogbook();
         }
+        if (typeof autoPopulateDailyGoal === "function") {
+          autoPopulateDailyGoal(
+            state.activeDate ||
+              (typeof getPSTDate === "function" ? getPSTDate() : ""),
+          );
+        }
       };
 
       // Timezone Conversions and Getters
