@@ -201,7 +201,6 @@
       }
 
       :root[data-theme="cobalt-glass"] .console-panel,
-      :root[data-theme="cobalt-glass"] .modal-container,
       :root[data-theme="cobalt-glass"] .stat-card,
       :root[data-theme="cobalt-glass"] .status-badge {
         border: 1px solid rgba(255, 255, 255, 0.15);
@@ -745,7 +744,7 @@
         white-space: nowrap;
         display: flex;
         align-items: center;
-        padding: 0 1.2rem 0 0.8rem;
+        padding: 0 1.2rem;
       }
 
       #primary-clock,
@@ -786,7 +785,7 @@
         text-align: center;
         white-space: nowrap;
         font-variant-numeric: tabular-nums;
-        margin-left: 10px;
+        margin-left: 16px;
         justify-content: flex-end;
       }
 
@@ -806,7 +805,7 @@
         position: relative;
         display: inline-flex;
         align-items: center;
-        margin-right: 10px;
+        margin-right: 6px;
         align-self: stretch;
         height: auto;
       }
@@ -820,14 +819,15 @@
         align-items: center;
         gap: 4px;
         cursor: pointer;
-        padding: 0.25rem 0.4rem;
+        padding: 0.25rem 4px;
         border-radius: 0.5rem;
         transition: none;
         user-select: none;
         height: 100%;
       }
 
-      .tz-trigger:hover {
+      .tz-container:hover .tz-trigger,
+      .tz-container:focus-within .tz-trigger {
         background: var(--element-hover);
         color: var(--text-main);
       }
@@ -838,7 +838,8 @@
         transition: none;
       }
 
-      .tz-container:hover .tz-chevron {
+      .tz-container:hover .tz-chevron,
+      .tz-container:focus-within .tz-chevron {
         transform: rotate(180deg);
       }
 
@@ -957,7 +958,7 @@
         color: var(--text-main);
         font-weight: 700;
         font-size: 1.15rem;
-        width: 8.5ch;
+        width: 7.2ch;
         text-align: center;
         outline: none;
         padding: 0.1rem 0;
@@ -1553,7 +1554,7 @@
       .tab-nav {
         display: flex;
         gap: var(--tab-nav-gap);
-        margin-bottom: 20px;
+        margin-bottom: 12px;
         background: var(--element-bg);
         padding: var(--tab-nav-padding);
         border-radius: var(--header-el-radius);
@@ -1609,17 +1610,22 @@
       }
 
       .logbook-controls-header {
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        background: var(--panel-bg);
+        padding: 2px 0 4px 0;
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 0.9375rem;
+        margin-bottom: 12px;
         flex-shrink: 0;
       }
 
       .header-icon-btn {
         background: transparent;
         border: none;
-        color: var(--text-muted);
+        color: var(--text-main);
         padding: 6px 12px;
         border-radius: 8px;
         cursor: pointer;
@@ -1628,7 +1634,7 @@
         gap: 6px;
         font-family: var(--font-sans);
         font-size: 0.8rem;
-        font-weight: 700;
+        font-weight: normal;
         transition:
           color 0.15s ease,
           background-color 0.15s ease;
@@ -1650,8 +1656,8 @@
 
       #log-count-display {
         font-size: 0.75rem;
-        color: var(--text-muted);
-        font-weight: 600;
+        color: var(--text-main);
+        font-weight: normal;
         font-variant-numeric: tabular-nums;
       }
 
@@ -2044,22 +2050,20 @@
        ========================================================================= */
       .sticky-month-header {
         position: sticky;
-        top: 0;
+        top: 50px;
         z-index: 10;
         background: var(--element-hover);
         border: 1px solid var(--border-light);
         color: var(--accent-blue);
-        font-weight: 700;
+        font-weight: normal;
         font-size: var(--text-xs);
         padding: 6px 14px;
         border-radius: var(--radius-md);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
         pointer-events: none;
         margin-bottom: var(--space-2);
         width: fit-content;
         margin-left: auto;
         margin-right: auto;
-        text-transform: uppercase;
         letter-spacing: 0.05em;
         text-align: center;
         transition:
@@ -4485,11 +4489,13 @@
           <h4>Quick Start (3 Steps)</h4>
           <ul>
             <li>
-              <strong>Step 1 — Set your goal:</strong> Before starting, confirm
-              your <strong>Daily Goal</strong> in the header (default: 8h 0m).
-              Click the field to open goal presets, or type a custom value. The
-              goal for each day is permanently locked the moment you submit your
-              first shift, so set it correctly upfront.
+              <strong>Step 1 — Verify your goal:</strong> Before starting,
+              review your <strong>Daily Goal</strong> in the header. It
+              dynamically auto-populates to keep you on pace for a 40-hour week
+              (or 6 hours on weekends). You can click the field to open presets,
+              or type a custom value. The goal for each day is permanently
+              locked the moment you submit your first shift, so set it correctly
+              upfront.
             </li>
             <li>
               <strong>Step 2 — Track your day:</strong> Click
@@ -4766,17 +4772,45 @@
             <li>The bar turns fully green once your goal is reached.</li>
           </ul>
           <hr />
+          <h4>Dynamic Daily Goal Auto-Population</h4>
+          <p>
+            To help you stay on track for your 40-hour weekly target, the daily
+            goal automatically populates with your current pacing requirement
+            each time a new session starts:
+          </p>
+          <ul>
+            <li>
+              <strong>Weekdays (Mon–Fri):</strong> The goal calculates
+              dynamically based on the cumulative hours needed to reach the
+              40-hour weekly target [5]. For example, if you log 10 hours on
+              Monday, Tuesday's goal auto-populates to 6 hours [5]. Conversely,
+              working 7 hours on Monday auto-populates Tuesday's goal to 9 hours
+              [5]. Scheduled leaves on prior weekdays automatically deduct 8
+              hours from your cumulative weekly target [5].
+            </li>
+            <li>
+              <strong>Weekends (Sat–Sun):</strong> The weekend daily goal
+              defaults to a fixed 6 hours.
+            </li>
+            <li>
+              <strong>Manual Adjustments:</strong> The dynamic goal is only an
+              initial recommendation. You can override it at any point using
+              presets, the <strong>−15m / +15m</strong> adjusters, or by typing
+              directly in the header.
+            </li>
+          </ul>
+          <hr />
           <h4>Goal Anchor</h4>
           <p>
             When you submit your first shift on any given day, the daily goal
             active at that moment is permanently saved ("anchored") to that
-            entry. This ensures that changing tomorrow's goal does not
-            retroactively alter your historical records.
+            entry [5]. This ensures that changing tomorrow's goal does not
+            retroactively alter your historical records [5].
           </p>
           <p>
             <strong>Best practice:</strong> Always verify your Daily Goal in the
-            header before submitting your first shift of the day. If you need to
-            correct a previously anchored goal, go to the
+            header before submitting your first shift of the day [5]. If you
+            need to correct a previously anchored goal, go to the
             <strong>Logbook</strong> tab, click the <strong>Edit</strong> icon
             on that entry, and update the goal value directly.
           </p>
@@ -5772,6 +5806,12 @@
             right: 0;
             height: 10px;
           }
+
+          .heatmap-today-cell {
+            outline: 1.5px solid var(--accent-blue);
+            outline-offset: 1px;
+            z-index: 2;
+          }
         </style>
         <div
           style="
@@ -6255,8 +6295,8 @@
             style="display: flex; gap: 15px; align-items: stretch"
           >
             <div class="goal-container">
-              <div class="status-badge goal-inputs" style="padding: 0 0.8rem">
-                <span class="label">Daily Goal</span>
+              <div class="status-badge goal-inputs" style="padding: 0 1.2rem">
+                <span class="label">Goal</span>
                 <input
                   type="text"
                   id="goal-time"
@@ -8839,6 +8879,7 @@
         insightsCacheKey = null; // Force invalidate insights cache immediately to prevent race conditions
         dataVersion++; // Bump version for all derivative caches
         rebuildWeeklyCache();
+        autoPopulateDailyGoal(state.activeDate);
 
         // Take standard failsafe snapshot on log operations
         if (typeof triggerAutoSnapshot === "function") {
@@ -9033,6 +9074,119 @@
         cachedTodayLoggedSeconds = total;
         return total;
       }
+
+      /**
+       * Automatically calculates and populates the daily goal input fields.
+       * On weekends, this defaults to 6 hours.
+       * On weekdays, it determines the cumulative work hours needed to stay on track for a 40-hour week,
+       * factoring in any logged leaves on preceding weekdays.
+       */
+      function autoPopulateDailyGoal(targetDateStr) {
+        if (!targetDateStr) return;
+
+        const logs = getLogs();
+        // If there is already a logged shift for this date, calculate the intra-day remaining deficit
+        const hasLogForDate = logs.some((l) => l.date === targetDateStr);
+        if (hasLogForDate) {
+          const anchorGoalSec = dailyAnchorMap.get(targetDateStr);
+          if (anchorGoalSec !== undefined) {
+            const loggedTodaySec = getTodayLoggedWorkSeconds();
+            const remainingSec = Math.max(0, anchorGoalSec - loggedTodaySec);
+            const totalMins = Math.round(remainingSec / 60);
+            const targetH = Math.floor(totalMins / 60);
+            const targetM = totalMins % 60;
+
+            DOM.goalHours.value = String(targetH).padStart(2, "0");
+            DOM.goalMins.value = String(targetM).padStart(2, "0");
+            localStorage.setItem(GOAL_H_KEY, targetH);
+            localStorage.setItem(GOAL_M_KEY, targetM);
+            syncGoalTimeInput();
+            updatePresetHighlights();
+            if (typeof renderTimersOnly === "function") renderTimersOnly();
+          }
+          return;
+        }
+
+        const [m, d, y] = targetDateStr.split("/").map(Number);
+        const fullYear = 2000 + y;
+        const dObj = new Date(Date.UTC(fullYear, m - 1, d, 12, 0, 0));
+        const dayOfWeek = dObj.getUTCDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+
+        let targetH = 8;
+        let targetM = 0;
+
+        if (dayOfWeek === 0 || dayOfWeek === 6) {
+          // Weekend: Default directly to 6 hours
+          targetH = 6;
+          targetM = 0;
+        } else {
+          // Weekday (Monday-Friday)
+          const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+          const mondayUTC = new Date(dObj.getTime() + diffToMonday * 86400000);
+          mondayUTC.setUTCHours(12, 0, 0, 0);
+
+          const leaves =
+            typeof getLeaveDates === "function" ? getLeaveDates() : [];
+          const isVacationDate = (dStr) =>
+            leaves.some((l) => (typeof l === "string" ? l : l.date) === dStr);
+
+          // Calculate total worked hours and leave days in this week prior to today
+          let totalW_MonFri_Prior = 0;
+          let priorLeaveDaysCount = 0;
+
+          const checkDate = new Date(mondayUTC);
+          for (let i = 0; i < dayOfWeek - 1; i++) {
+            checkDate.setTime(mondayUTC.getTime());
+            checkDate.setUTCDate(mondayUTC.getUTCDate() + i);
+            const checkDateStr = `${String(
+              checkDate.getUTCMonth() + 1,
+            ).padStart(2, "0")}/${String(checkDate.getUTCDate()).padStart(
+              2,
+              "0",
+            )}/${checkDate.getUTCFullYear().toString().slice(-2)}`;
+
+            if (isVacationDate(checkDateStr)) {
+              priorLeaveDaysCount++;
+            } else {
+              // Sum work hours logged on prior weekdays
+              const dayLogs = logs.filter((l) => l.date === checkDateStr);
+              dayLogs.forEach((l) => {
+                totalW_MonFri_Prior += l.workSec;
+              });
+            }
+          }
+
+          // If today is a registered vacation/leave date, set the goal to 0
+          const todayIsVacation = isVacationDate(targetDateStr);
+          if (todayIsVacation) {
+            targetH = 0;
+            targetM = 0;
+          } else {
+            // Cumulative target for weekday index (Monday = 1, Tuesday = 2, etc.)
+            const cumulativeTargetSec = dayOfWeek * 8 * 3600;
+            const priorCreditsSec =
+              totalW_MonFri_Prior + priorLeaveDaysCount * 8 * 3600;
+            const requiredSec = Math.max(
+              0,
+              cumulativeTargetSec - priorCreditsSec,
+            );
+
+            const totalMins = Math.round(requiredSec / 60);
+            targetH = Math.floor(totalMins / 60);
+            targetM = totalMins % 60;
+          }
+        }
+
+        // Update input elements and persist preferences to local storage
+        DOM.goalHours.value = String(targetH).padStart(2, "0");
+        DOM.goalMins.value = String(targetM).padStart(2, "0");
+        localStorage.setItem(GOAL_H_KEY, targetH);
+        localStorage.setItem(GOAL_M_KEY, targetM);
+        syncGoalTimeInput();
+        updatePresetHighlights();
+        renderTimersOnly();
+      }
+
       // Inactivity tracker helper
       let lastActivityRegisterTime = 0;
 
@@ -9290,6 +9444,19 @@
         if (currentMin !== lastWeeklySummaryCheckMin) {
           lastWeeklySummaryCheckMin = currentMin;
           updateLiveWeeklySummary(false);
+        }
+
+        if (window.isHoveringTodayHeatmap && !document.hidden) {
+          const liveTodayWork =
+            (window.todayBaseWorkSec || 0) + getCurrentWorkSeconds();
+          const liveTodayBreak =
+            (window.todayBaseBreakSec || 0) + getCurrentBreakSeconds();
+          const tWorkEl = document.getElementById("tooltip-work-val");
+          const tBreakEl = document.getElementById("tooltip-break-val");
+          if (tWorkEl)
+            tWorkEl.textContent = formatFriendlyDuration(liveTodayWork);
+          if (tBreakEl)
+            tBreakEl.textContent = formatFriendlyDuration(liveTodayBreak);
         }
 
         if (!document.hidden) {
@@ -10341,6 +10508,7 @@
         };
         lastActivity = Date.now();
         saveState();
+        autoPopulateDailyGoal(state.activeDate);
         DOM.submitModal.style.display = "none";
         DOM.ghostModal.style.display = "none";
         DOM.noteModal.style.display = "none";
@@ -11336,13 +11504,13 @@
         tooltip.innerHTML = `
         <div style="font-weight: 700; color: var(--accent-blue); border-bottom: 1px solid var(--border-main); padding-bottom: 4px; margin-bottom: 6px;">${dateKey}</div>
         <div style="display: flex; justify-content: space-between; margin-bottom: 2px;">
-          <span>Work:</span> <strong style="color: var(--accent-work);">${workStr}</strong>
+          <span>Work:</span> <strong id="tooltip-work-val" style="color: var(--accent-work);">${workStr}</strong>
         </div>
         <div style="display: flex; justify-content: space-between; margin-bottom: 2px;">
-          <span>Break:</span> <strong style="color: var(--accent-break);">${breakStr}</strong>
+          <span>Break:</span> <strong id="tooltip-break-val" style="color: var(--accent-break);">${breakStr}</strong>
         </div>
         <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
-          <span>Goal:</span> <strong style="color: var(--text-main);">${goalStr}</strong>
+          <span>Goal:</span> <strong id="tooltip-goal-val" style="color: var(--text-main);">${goalStr}</strong>
         </div>
         <div style="color: var(--text-muted); font-size: 10px; white-space: normal; word-break: break-word; border-top: 1px solid var(--border-main); padding-top: 4px; margin-top: 4px;">
           <strong>Notes:</strong> ${notesStr}
@@ -11363,9 +11531,18 @@
           "px";
         tooltip.style.top =
           rect.top - modalRect.top - tooltip.offsetHeight - 8 + "px";
+
+        const todayStr = typeof getPSTDate === "function" ? getPSTDate() : "";
+        if (dateKey === todayStr) {
+          window.isHoveringTodayHeatmap = true;
+          if (typeof renderTimersOnly === "function") renderTimersOnly();
+        } else {
+          window.isHoveringTodayHeatmap = false;
+        }
       }
 
       function hideHeatmapTooltip() {
+        window.isHoveringTodayHeatmap = false;
         const tooltip = document.getElementById("heatmap-tooltip");
         if (tooltip) tooltip.style.display = "none";
       }
@@ -11429,6 +11606,12 @@
             heatmapMap[l.date].type = l.type;
           }
         });
+
+        const todayStrForBase =
+          typeof getPSTDate === "function" ? getPSTDate() : "";
+        const todayBaseData = heatmapMap[todayStrForBase];
+        window.todayBaseWorkSec = todayBaseData ? todayBaseData.w : 0;
+        window.todayBaseBreakSec = todayBaseData ? todayBaseData.b : 0;
 
         const today = new Date();
         const systemYear = today.getFullYear();
@@ -11712,7 +11895,17 @@
           `;
           }
 
-          html += `<div style="width: 14px; height: 14px; border-radius: 3px; background: ${bg}; transition: transform 0.1s ease; cursor: ${tooltipData ? "pointer" : "default"};" ${hoverEffects}></div>`;
+          let cellClass = "";
+          const todayStrForHighlight =
+            typeof getPSTDate === "function" ? getPSTDate() : "";
+          if (
+            d.getFullYear() === currentYear &&
+            dateKey === todayStrForHighlight
+          ) {
+            cellClass = 'class="heatmap-today-cell"';
+          }
+
+          html += `<div ${cellClass} style="width: 14px; height: 14px; border-radius: 3px; background: ${bg}; transition: transform 0.1s ease; cursor: ${tooltipData ? "pointer" : "default"};" ${hoverEffects}></div>`;
         }
         container.innerHTML = html;
         if (monthsContainer) {
@@ -12937,8 +13130,11 @@
         if (!state.activeDate) {
           state.activeDate = currentDatePST;
           saveState();
+          autoPopulateDailyGoal(state.activeDate);
           return;
         }
+
+        const previousActiveDate = state.activeDate;
 
         // Parse dates to check for an unexpected chronological clock rollback
         const [actM, actD, actY] = state.activeDate.split("/").map(Number);
@@ -12950,6 +13146,9 @@
         if (actEpoch > curEpoch) {
           state.activeDate = currentDatePST;
           saveState(true);
+          if (state.activeDate !== previousActiveDate) {
+            autoPopulateDailyGoal(state.activeDate);
+          }
           return;
         }
 
@@ -13122,6 +13321,10 @@
             saveState(true);
             break;
           }
+        }
+
+        if (state.activeDate !== previousActiveDate) {
+          autoPopulateDailyGoal(state.activeDate);
         }
       }
 
@@ -15017,6 +15220,43 @@
           }
         }
 
+        // Handle Enter key confirmation for visible modals
+        if (e.key === "Enter") {
+          const activeModal = getVisibleModal();
+          if (
+            activeModal &&
+            !["TEXTAREA", "BUTTON", "A"].includes(e.target.tagName) &&
+            e.target.type !== "checkbox"
+          ) {
+            e.preventDefault();
+            e.stopPropagation();
+            const modalId = activeModal.id;
+            if (modalId === "submit-modal") {
+              confirmSubmit();
+            } else if (modalId === "manual-modal") {
+              saveManualModal();
+            } else if (modalId === "edit-modal") {
+              saveEditModal();
+            } else if (modalId === "confirm-modal") {
+              const btn = document.getElementById("confirm-action-btn");
+              if (btn) btn.click();
+            } else if (modalId === "ghost-modal") {
+              confirmGhost();
+            } else if (modalId === "preset-modal") {
+              savePresetModal();
+            } else if (modalId === "leave-modal") {
+              addLeaveDate();
+            } else if (modalId === "idle-modal") {
+              resolveIdle("work");
+            } else if (modalId === "note-modal") {
+              closeNoteModal();
+            } else if (modalId === "help-modal") {
+              closeHelpModal();
+            }
+            return;
+          }
+        }
+
         const isEditable = ["INPUT", "TEXTAREA", "SELECT"].includes(
           e.target.tagName,
         );
@@ -15865,6 +16105,7 @@
         insightsCacheKey = null;
         renderInsights();
         renderLogbook();
+        autoPopulateDailyGoal(state.activeDate);
 
         showAppToast(`Added leave on ${formattedDate}`);
         input.value = "";
@@ -15883,6 +16124,7 @@
         insightsCacheKey = null;
         renderInsights();
         renderLogbook();
+        autoPopulateDailyGoal(state.activeDate);
 
         showAppToast(`Removed leave on ${formattedDate}`);
       };
@@ -16158,13 +16400,19 @@
         document
           .getElementById("preset-input")
           .addEventListener("keydown", (e) => {
-            if (e.key === "Enter") savePresetModal();
+            if (e.key === "Enter") {
+              e.stopPropagation();
+              savePresetModal();
+            }
             if (e.key === "Escape") closePresetModal();
           });
         document
           .getElementById("leave-date-input")
           .addEventListener("keydown", (e) => {
-            if (e.key === "Enter") addLeaveDate();
+            if (e.key === "Enter") {
+              e.stopPropagation();
+              addLeaveDate();
+            }
             if (e.key === "Escape") closeLeaveModal();
           });
       }
@@ -16898,6 +17146,8 @@
         if (typeof triggerAutoSnapshot === "function") {
           triggerAutoSnapshot();
         }
+
+        autoPopulateDailyGoal(state.activeDate || getPSTDate());
 
         // Synchronize delta tracking anchor on app launch
         // Start the background Web Worker timer thread
