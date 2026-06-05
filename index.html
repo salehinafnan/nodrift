@@ -312,16 +312,9 @@
 
       [data-theme^="sf-"] .preset-pill,
       [data-theme^="sf-"] .preset-action-btn,
-      [data-theme^="sf-"] .ios-pill,
       [data-theme^="sf-"] .filter-checkbox-chip,
       [data-theme^="sf-"] .clear-filter-btn {
         border-radius: var(--radius-sm);
-      }
-
-      [data-theme^="sf-"] .segmented-control {
-        border-radius: var(--radius-md);
-        gap: 2px;
-        padding: 2px;
       }
 
       /* =========================================================================
@@ -739,7 +732,7 @@
 
       .status-time {
         font-size: 0.85rem;
-        font-weight: bold;
+        font-weight: 500;
         color: var(--text-muted);
         white-space: nowrap;
         display: flex;
@@ -754,6 +747,7 @@
         font-variant-numeric: tabular-nums;
         font-family: var(--number-font);
         margin: 0;
+        contain: layout paint;
       }
 
       .clock-ampm {
@@ -956,7 +950,7 @@
         background: transparent;
         border: 1px solid transparent;
         color: var(--text-main);
-        font-weight: 700;
+        font-weight: 500;
         font-size: 1.15rem;
         width: 7.2ch;
         text-align: center;
@@ -1221,23 +1215,31 @@
         color: var(--text-muted);
         font-size: 0.75rem;
         font-weight: 700;
-        padding: 6px 12px;
-        border-radius: 6px;
+        padding: 0 12px;
+        border-radius: calc(
+          var(--segmented-radius, var(--radius-md, 10px)) -
+            var(--segmented-padding, 2px)
+        );
         cursor: pointer;
         transition: all 0.2s ease;
         white-space: nowrap;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
       }
 
       .segmented-control {
+        --segmented-radius: var(--radius-md, 10px);
+        --segmented-padding: 2px;
         background: var(--segmented-bg);
         border: 1px solid var(--segmented-border);
-        border-radius: 8px;
-        padding: 4px;
-        gap: 4px;
+        border-radius: var(--segmented-radius);
+        padding: var(--segmented-padding);
+        gap: 2px;
         position: relative;
         display: flex;
         justify-content: space-between;
-        align-items: center;
+        align-items: stretch;
         width: 100%;
       }
 
@@ -1603,6 +1605,8 @@
         overflow-x: hidden;
         -ms-overflow-style: none;
         scrollbar-width: none;
+        content-visibility: auto;
+        contain-intrinsic-size: 0 500px;
       }
 
       .tab-content::-webkit-scrollbar {
@@ -1634,7 +1638,7 @@
         gap: 6px;
         font-family: var(--font-sans);
         font-size: 0.8rem;
-        font-weight: normal;
+        font-weight: 500;
         transition:
           color 0.15s ease,
           background-color 0.15s ease;
@@ -1657,7 +1661,7 @@
       #log-count-display {
         font-size: 0.75rem;
         color: var(--text-main);
-        font-weight: normal;
+        font-weight: 500;
         font-variant-numeric: tabular-nums;
       }
 
@@ -2373,6 +2377,38 @@
         font-weight: 500;
       }
 
+      .settings-help-strip {
+        background: var(--element-bg-light, var(--element-bg));
+        border: 1px solid var(--border-main);
+        border-radius: var(--radius-md);
+        padding: 6px 10px;
+        height: 2.8rem;
+        box-sizing: border-box;
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+        overflow: hidden;
+        margin-top: 0.35rem;
+        gap: 8px;
+      }
+
+      .settings-help-icon {
+        width: 14px;
+        height: 14px;
+        color: var(--accent-blue);
+        flex-shrink: 0;
+        display: block;
+      }
+
+      .settings-help-text {
+        font-size: 0.65rem;
+        color: var(--text-muted);
+        line-height: 1.35;
+        display: block;
+        width: 100%;
+        word-wrap: break-word;
+      }
+
       .idle-popup::before {
         content: "";
         position: absolute;
@@ -2737,12 +2773,10 @@
 
       @keyframes modalContainerScaleIn {
         from {
-          transform: scale(0.96);
           opacity: 0;
         }
 
         to {
-          transform: scale(1);
           opacity: 1;
         }
       }
@@ -2753,7 +2787,7 @@
         left: 0;
         right: 0;
         bottom: 0;
-        background: rgba(5, 5, 5, 0.85);
+        background: rgba(0, 0, 0, 0.75);
         z-index: 2000;
         display: none;
         align-items: center;
@@ -3202,6 +3236,7 @@
         font-family: var(--number-font);
         font-variant-numeric: tabular-nums;
         font-feature-settings: "tnum" 1;
+        contain: layout paint;
       }
 
       .stats-alignment-wrapper {
@@ -3301,7 +3336,7 @@
         align-items: center;
         justify-content: center;
         border-radius: 4px;
-        font-weight: 700;
+        font-weight: 500;
         vertical-align: middle;
         font-family: var(--number-font) !important;
         line-height: 1;
@@ -5702,7 +5737,6 @@
         z-index: 4000;
         align-items: center;
         justify-content: center;
-        background: rgba(0, 0, 0, 0.75);
         opacity: 0;
         display: none;
         transition: opacity 0.15s ease-out;
@@ -6115,7 +6149,6 @@
         z-index: 5000;
         align-items: flex-start;
         padding-top: 15vh;
-        background: rgba(0, 0, 0, 0.75);
         opacity: 0;
         transition: opacity 0.15s ease-out;
         cursor: pointer;
@@ -6358,7 +6391,7 @@
                 </button>
               </div>
             </div>
-            <div class="theme-container">
+            <div class="theme-container" onmouseleave="revertThemePreview()">
               <button
                 class="theme-toggle-btn"
                 aria-label="Toggle Theme"
@@ -6386,6 +6419,7 @@
                 <button
                   class="preset-pill"
                   onclick="setThemeDirect('cobalt-glass')"
+                  onmouseenter="previewTheme('cobalt-glass')"
                   style="display: inline-flex; align-items: center; gap: 8px"
                 >
                   <svg
@@ -6406,6 +6440,7 @@
                 <button
                   class="preset-pill"
                   onclick="setThemeDirect('onyx-black')"
+                  onmouseenter="previewTheme('onyx-black')"
                   style="display: inline-flex; align-items: center; gap: 8px"
                 >
                   <svg
@@ -6426,6 +6461,7 @@
                 <button
                   class="preset-pill"
                   onclick="setThemeDirect('sf-light')"
+                  onmouseenter="previewTheme('sf-light')"
                   style="display: inline-flex; align-items: center; gap: 8px"
                 >
                   <svg
@@ -6446,6 +6482,7 @@
                 <button
                   class="preset-pill"
                   onclick="setThemeDirect('sf-dark')"
+                  onmouseenter="previewTheme('sf-dark')"
                   style="display: inline-flex; align-items: center; gap: 8px"
                 >
                   <svg
@@ -7335,9 +7372,7 @@
                   stroke-linecap="round"
                   stroke-linejoin="round"
                 >
-                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                  <line x1="3" y1="9" x2="21" y2="9"></line>
-                  <line x1="9" y1="21" x2="9" y2="9"></line>
+                  <use href="#icon-cfe7f835"></use>
                 </svg>
               </button>
               <span class="icon-tag">Heatmap</span>
@@ -7385,16 +7420,25 @@
               <span class="icon-tag">Settings</span>
 
               <!-- Dynamic Settings Menu Popup overlay -->
-              <div id="settings-config-popup" class="idle-popup">
-                <!-- Mode selection segment card -->
+              <div
+                id="settings-config-popup"
+                class="idle-popup"
+                style="gap: 0.35rem; padding: 0.5rem; scrollbar-width: none"
+              >
+                <!-- Card 1: Tracking Mode -->
                 <div
-                  style="display: flex; flex-direction: column; padding: 2px"
+                  style="
+                    background: var(--element-bg-light, var(--element-bg));
+                    border: 1px solid var(--border-main);
+                    border-radius: var(--radius-md);
+                    padding: 5px;
+                  "
                 >
-                  <div class="segmented-control">
+                  <div class="segmented-control" style="height: 28px">
                     <button
                       id="mode-simple"
                       class="ios-pill"
-                      style="flex: 1"
+                      style="flex: 1; font-size: 0.7rem; padding: 0"
                       onclick="setMode('simple')"
                     >
                       Simple
@@ -7402,44 +7446,64 @@
                     <button
                       id="mode-intelligent"
                       class="ios-pill"
-                      style="flex: 1"
+                      style="flex: 1; font-size: 0.7rem; padding: 0"
                       onclick="setMode('intelligent')"
                     >
                       Intelligent
                     </button>
                   </div>
-                  <div
-                    id="settings-mode-desc"
-                    class="settings-description"
-                    style="
-                      margin-top: 12px;
-                      font-size: 0.7rem;
-                      min-height: 2.6em;
-                      line-height: 1.3;
-                      color: var(--text-muted);
-                    "
-                  >
-                    Automated tracking with smart sleep & idle detection.
+                  <!-- Hidden label node preserves compatibility with JavaScript state changes -->
+                  <div id="settings-mode-desc" style="display: none"></div>
+                </div>
+
+                <!-- Card 2: Tracking Behavior -->
+                <div
+                  style="
+                    background: var(--element-bg-light, var(--element-bg));
+                    border: 1px solid var(--border-main);
+                    border-radius: var(--radius-md);
+                    padding: 6px 10px;
+                  "
+                >
+                  <div class="idle-popup-row">
+                    <span
+                      class="idle-popup-label"
+                      style="font-size: 0.72rem; font-weight: 700"
+                      >Auto-populate daily goal</span
+                    >
+                    <label class="switch">
+                      <input
+                        type="checkbox"
+                        id="goal-autopopulate-toggle"
+                        checked
+                        onchange="onGoalAutopopulateToggleChange()"
+                      />
+                      <span class="slider-toggle"></span>
+                    </label>
                   </div>
                 </div>
 
+                <!-- Collapsible Wrapper for Intelligent Mode Cards -->
                 <div id="idle-settings-wrapper" class="collapsible-wrapper">
                   <div class="collapsible-content">
-                    <div class="settings-divider" style="margin: 8px 0"></div>
-
-                    <!-- Idle settings group card -->
+                    <!-- Unified Card 3: Intelligent Mode Options -->
                     <div
                       style="
+                        background: var(--element-bg-light, var(--element-bg));
+                        border: 1px solid var(--border-main);
+                        border-radius: var(--radius-md);
+                        padding: 6px 10px;
                         display: flex;
                         flex-direction: column;
-                        gap: 10px;
-                        padding: 2px;
+                        gap: 6px;
+                        margin-top: 0.35rem;
                       "
                     >
+                      <!-- Row 1: Enable Idle Lock -->
                       <div class="idle-popup-row">
                         <span
                           class="idle-popup-label"
-                          style="font-size: 0.75rem; font-weight: 700"
+                          style="font-size: 0.72rem; font-weight: 700"
                           >Enable idle lock</span
                         >
                         <label class="switch">
@@ -7452,10 +7516,16 @@
                           <span class="slider-toggle"></span>
                         </label>
                       </div>
+
+                      <!-- Row 2: Threshold Slider (Indented / Progressive Disclosure) -->
                       <div
                         id="idle-range-container"
                         class="idle-popup-row flex-col"
-                        style="gap: 6px; width: 100%"
+                        style="
+                          gap: 4px;
+                          width: 100%;
+                          transition: all 0.15s ease;
+                        "
                       >
                         <div
                           class="idle-popup-subrow"
@@ -7467,7 +7537,7 @@
                         >
                           <span
                             class="idle-popup-label"
-                            style="font-size: 0.7rem; color: var(--text-muted)"
+                            style="font-size: 0.65rem; color: var(--text-muted)"
                             >Threshold</span
                           >
                           <span
@@ -7475,7 +7545,7 @@
                             id="idle-val-display"
                             style="
                               font-family: var(--font-mono);
-                              font-size: 0.75rem;
+                              font-size: 0.7rem;
                               font-weight: 700;
                               color: var(--accent-blue);
                             "
@@ -7490,29 +7560,26 @@
                           step="5"
                           value="60"
                           class="idle-range-input"
-                          style="width: 100%; height: 6px; border-radius: 3px"
+                          style="width: 100%; height: 5px; border-radius: 2px"
                           oninput="onIdleSliderInput(this.value)"
                           onchange="onIdleSliderChange(this.value)"
                         />
                       </div>
-                    </div>
 
-                    <div class="settings-divider" style="margin: 8px 0"></div>
+                      <div
+                        style="
+                          height: 1px;
+                          background: var(--border-main);
+                          margin: 2px 0;
+                        "
+                      ></div>
 
-                    <!-- Auto-backup settings group card -->
-                    <div
-                      style="
-                        display: flex;
-                        flex-direction: column;
-                        gap: 10px;
-                        padding: 2px;
-                      "
-                    >
+                      <!-- Row 3: Auto-save JSON Backup -->
                       <div class="idle-popup-row">
                         <span
                           class="idle-popup-label"
-                          style="font-size: 0.75rem; font-weight: 700"
-                          >Auto-save backup</span
+                          style="font-size: 0.72rem; font-weight: 700"
+                          >Auto-save JSON backup</span
                         >
                         <label class="switch">
                           <input
@@ -7523,35 +7590,21 @@
                           <span class="slider-toggle"></span>
                         </label>
                       </div>
+
                       <div
-                        class="settings-description"
                         style="
-                          margin-top: 2px;
-                          font-size: 0.65rem;
-                          color: var(--text-muted);
-                          font-weight: 500;
+                          height: 1px;
+                          background: var(--border-main);
+                          margin: 2px 0;
                         "
-                      >
-                        Automatically downloads JSON at EOD.
-                      </div>
-                    </div>
+                      ></div>
 
-                    <div class="settings-divider" style="margin: 8px 0"></div>
-
-                    <!-- Auto-email/copy settings group card -->
-                    <div
-                      style="
-                        display: flex;
-                        flex-direction: column;
-                        gap: 10px;
-                        padding: 2px;
-                      "
-                    >
+                      <!-- Row 4: Auto-email EOD Summary -->
                       <div class="idle-popup-row">
                         <span
                           class="idle-popup-label"
-                          style="font-size: 0.75rem; font-weight: 700"
-                          >Auto-email summary</span
+                          style="font-size: 0.72rem; font-weight: 700"
+                          >Auto-email EOD summary</span
                         >
                         <label class="switch">
                           <input
@@ -7562,53 +7615,60 @@
                           <span class="slider-toggle"></span>
                         </label>
                       </div>
+
                       <div
-                        class="settings-description"
                         style="
-                          margin-top: 2px;
-                          font-size: 0.65rem;
-                          color: var(--text-muted);
-                          font-weight: 500;
+                          height: 1px;
+                          background: var(--border-main);
+                          margin: 2px 0;
                         "
-                      >
-                        Copies logs & opens Gmail draft at EOD.
-                      </div>
-                    </div>
+                      ></div>
 
-                    <div class="settings-divider" style="margin: 8px 0"></div>
-
-                    <!-- Version Control Snapshots -->
-                    <div
-                      style="
-                        display: flex;
-                        flex-direction: column;
-                        gap: 6px;
-                        padding: 2px;
-                      "
-                    >
-                      <span
-                        class="idle-popup-label"
-                        style="font-size: 0.75rem; font-weight: 700"
-                        >Restore Snapshot (Failsafe)</span
+                      <!-- Row 5: Restore Snapshot dropdown -->
+                      <div
+                        style="display: flex; flex-direction: column; gap: 4px"
                       >
-                      <select
-                        id="snapshot-restore-select"
-                        class="filter-select"
-                        style="
-                          width: 100%;
-                          font-size: 0.7rem;
-                          height: 27px;
-                          padding: 4px 6px;
-                        "
-                        onchange="onSnapshotSelectChange(this.value)"
-                      >
-                        <option value="">Choose a snapshot...</option>
-                      </select>
-                      <div class="settings-description">
-                        Revert database to an automatic daily backup.
+                        <span
+                          class="idle-popup-label"
+                          style="font-size: 0.72rem; font-weight: 700"
+                          >Restore Snapshot</span
+                        >
+                        <select
+                          id="snapshot-restore-select"
+                          class="filter-select"
+                          style="
+                            width: 100%;
+                            font-size: 0.7rem;
+                            height: 26px;
+                            padding: 2px 6px;
+                          "
+                          onchange="onSnapshotSelectChange(this.value)"
+                        >
+                          <option value="">Choose a snapshot...</option>
+                        </select>
                       </div>
                     </div>
                   </div>
+                </div>
+
+                <!-- Card 4: Help Description Strip (Fixed Height for CPU efficiency) -->
+                <div class="settings-help-strip">
+                  <svg
+                    class="settings-help-icon"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="16" x2="12" y2="12"></line>
+                    <line x1="12" y1="8" x2="12" y2="8"></line>
+                  </svg>
+                  <span id="settings-help-text" class="settings-help-text"
+                    >Hover over any setting to view its description.</span
+                  >
                 </div>
               </div>
             </div>
@@ -7843,7 +7903,7 @@
             qIdx++;
           } else {
             consecutive = 0;
-            score -= 1;
+            score -= 0.1;
           }
           tIdx++;
         }
@@ -8013,6 +8073,8 @@
         lastHeartbeatMonotonic: null,
         tabHiddenAt: null,
         trackingMode: "intelligent", // 'simple' or 'intelligent'
+        goalAutopopulateEnabled: true,
+        notes: "", // Persisted session notes
       };
 
       // Shared State Backups and Transaction Variables
@@ -8058,6 +8120,10 @@
       let dataVersion = 0; // Incremented on every data mutation; used for cache keys
       const faviconLink = document.querySelector("link[rel='icon']");
       let lastFaviconKey = "";
+      // Reusable Date objects to minimize garbage collection overhead in high-frequency loops
+      const sharedTickDate = new Date();
+      const _sharedDateForPST = new Date();
+      const _sharedFinishDate = new Date();
 
       /**
        * Executes getDotSVG logic.
@@ -8783,10 +8849,38 @@
         updateThemePresetsHighlight();
       }
 
+      let themePreviewTimeout = null;
+
+      window.previewTheme = function (themeName) {
+        if (themePreviewTimeout) clearTimeout(themePreviewTimeout);
+
+        // 60ms debounce prevents CPU repaint bottlenecks during rapid mouse sweeps
+        themePreviewTimeout = setTimeout(() => {
+          if (
+            document.documentElement.getAttribute("data-theme") !== themeName
+          ) {
+            document.documentElement.setAttribute("data-theme", themeName);
+          }
+        }, 60);
+      };
+
+      window.revertThemePreview = function () {
+        if (themePreviewTimeout) clearTimeout(themePreviewTimeout);
+
+        themePreviewTimeout = setTimeout(() => {
+          if (
+            document.documentElement.getAttribute("data-theme") !== currentTheme
+          ) {
+            document.documentElement.setAttribute("data-theme", currentTheme);
+          }
+        }, 20);
+      };
+
       /**
        * Directly updates current system design layouts from target popovers
        */
       window.setThemeDirect = function (themeName) {
+        if (themePreviewTimeout) clearTimeout(themePreviewTimeout);
         const icon = document.getElementById("theme-toggle-icon");
         if (icon) icon.classList.add("theme-switching");
 
@@ -9038,7 +9132,8 @@
        */
       function getPSTDateObj() {
         try {
-          const parts = pstDateObjFormatter.formatToParts(new Date(Date.now()));
+          _sharedDateForPST.setTime(Date.now());
+          const parts = pstDateObjFormatter.formatToParts(_sharedDateForPST);
           const p = {};
           parts.forEach((part) => (p[part.type] = part.value));
 
@@ -9089,6 +9184,7 @@
        */
       function autoPopulateDailyGoal(targetDateStr) {
         if (!targetDateStr) return;
+        if (state.goalAutopopulateEnabled === false) return;
 
         const logs = getLogs();
         // If there is already a logged shift for this date, calculate the intra-day remaining deficit
@@ -9748,6 +9844,8 @@
         goalBadgeMode: "",
         etaText: "",
         etaColor: "",
+        etaTargetMin: -1,
+        cachedEtaString: "",
         todaySegmentScale: -1,
         todaySegmentBg: "",
       };
@@ -9914,8 +10012,16 @@
             etaColorClass = "text-work";
           } else {
             const remainingMs = Math.abs(dailyDiff) * 1000;
-            const finishTime = new Date(Date.now() + remainingMs);
-            etaText = `Est. EOD: ${bstEtaFormatter.format(finishTime)} BST`;
+            const targetMs = Date.now() + remainingMs;
+            const targetMin = Math.floor(targetMs / 60000);
+
+            if (domWriteCache.etaTargetMin !== targetMin) {
+              domWriteCache.etaTargetMin = targetMin;
+              _sharedFinishDate.setTime(targetMs);
+              domWriteCache.cachedEtaString =
+                bstEtaFormatter.format(_sharedFinishDate);
+            }
+            etaText = `Est. EOD: ${domWriteCache.cachedEtaString} BST`;
             etaColorClass = "text-muted";
           }
 
@@ -10009,6 +10115,10 @@
        */
       function proceedToSubmitModal() {
         populateNoteSuggestions();
+        const notesEl = document.getElementById("modal-shift-notes");
+        if (notesEl) {
+          notesEl.value = state.notes || "";
+        }
         const autoBackupWarning = document.getElementById(
           "eod-auto-backup-warning",
         );
@@ -10485,6 +10595,7 @@
         const previousIdleThreshold = state.idleThresholdMinutes;
         const previousAutoBackup = state.autoBackupEnabled;
         const previousAutoEmail = state.autoEmailEnabled;
+        const previousGoalAutopopulate = state.goalAutopopulateEnabled;
 
         state = {
           workAccumulated: 0,
@@ -10508,9 +10619,14 @@
             previousAutoBackup !== undefined ? previousAutoBackup : false,
           autoEmailEnabled:
             previousAutoEmail !== undefined ? previousAutoEmail : false,
+          goalAutopopulateEnabled:
+            previousGoalAutopopulate !== undefined
+              ? previousGoalAutopopulate
+              : true,
           lastHeartbeatWall: null,
           lastHeartbeatMonotonic: null,
           tabHiddenAt: null,
+          notes: "", // Reset notes on new session
         };
         lastActivity = Date.now();
         saveState();
@@ -11380,9 +11496,14 @@
         const requiredCount = endIndex - startIndex + 1;
 
         // Ensure the DOM node pool matches the exact viewport footprint
-        while (DOM.logContainer.children.length < requiredCount) {
-          const div = document.createElement("div");
-          DOM.logContainer.appendChild(div);
+        const currentPoolCount = DOM.logContainer.children.length;
+        if (currentPoolCount < requiredCount) {
+          const fragment = document.createDocumentFragment();
+          const missingCount = requiredCount - currentPoolCount;
+          for (let k = 0; k < missingCount; k++) {
+            fragment.appendChild(document.createElement("div"));
+          }
+          DOM.logContainer.appendChild(fragment);
         }
         while (DOM.logContainer.children.length > requiredCount) {
           DOM.logContainer.removeChild(DOM.logContainer.lastChild);
@@ -13127,11 +13248,22 @@
        * 17. RECURRING CHRONO LOOPS & SERVICE ALERTS
        * =========================================================================*/
 
+      let _lastMidnightCheckMin = -1;
+      let _cachedCurrentDatePST = null;
+
       /**
        * Prevents overnight shift breakups.
        */
       function checkMidnightReset(now = new Date()) {
-        let currentDatePST = pstDateFormatter.format(now);
+        const currentEpochMin = Math.floor(now.getTime() / 60000);
+        if (
+          currentEpochMin !== _lastMidnightCheckMin ||
+          !_cachedCurrentDatePST
+        ) {
+          _cachedCurrentDatePST = pstDateFormatter.format(now);
+          _lastMidnightCheckMin = currentEpochMin;
+        }
+        let currentDatePST = _cachedCurrentDatePST;
 
         if (!state.activeDate) {
           state.activeDate = currentDatePST;
@@ -13343,7 +13475,8 @@
         if (isTabConflict) return;
 
         const nowMs = Date.now();
-        const now = new Date(nowMs);
+        sharedTickDate.setTime(nowMs);
+        const now = sharedTickDate;
 
         // Renew our master lease lock
         renewLease();
@@ -13539,6 +13672,7 @@
           "note-modal",
           "preset-modal",
           "leave-modal",
+          "hud-modal",
         ];
         for (const id of modalIds) {
           const el = document.getElementById(id);
@@ -13600,7 +13734,7 @@
           aliases: ["end", "done", "stop working"],
           icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-work)" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect></svg>`,
           action: () => {
-            if (state.currentMode === "work") switchMode("work");
+            if (state.currentMode === "work") switchMode(null);
           },
         },
         {
@@ -13622,7 +13756,7 @@
           aliases: ["resume work", "end break", "back"],
           icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-break)" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect></svg>`,
           action: () => {
-            if (state.currentMode === "break") switchMode("break");
+            if (state.currentMode === "break") switchMode("work");
           },
         },
         {
@@ -13751,8 +13885,8 @@
 
               DOM.goalHours.value = h;
               DOM.goalMins.value = m;
-              localStorage.setItem("goal_hours", h);
-              localStorage.setItem("goal_mins", m);
+              localStorage.setItem(GOAL_H_KEY, h);
+              localStorage.setItem(GOAL_M_KEY, m);
 
               const goalTimeEl = document.getElementById("goal-time");
               if (goalTimeEl) goalTimeEl.value = `${h}h ${m}m`;
@@ -14003,19 +14137,25 @@
               return;
             }
             closeHudModal();
-            if (state.currentMode !== "work") {
-              showAppToast("Notes can only be appended while working.");
+            if (state.currentMode !== "work" && state.currentMode !== "break") {
+              showAppToast(
+                "Notes can only be appended during an active shift.",
+              );
               return;
             }
+            const cleanArg = arg.trim();
+            if (state.notes) {
+              state.notes += " | " + cleanArg;
+            } else {
+              state.notes = cleanArg;
+            }
+            saveState();
+
             const notesEl = document.getElementById("modal-shift-notes");
             if (notesEl) {
-              if (notesEl.value) {
-                notesEl.value += " | " + arg.trim();
-              } else {
-                notesEl.value = arg.trim();
-              }
-              showAppToast("Note appended to active session!");
+              notesEl.value = state.notes;
             }
+            showAppToast("Note appended to active session!");
           },
         },
         {
@@ -14122,7 +14262,8 @@
               const dates = getLeaveDates();
               dates.push(entry);
               saveLeaveDates(dates);
-              if (typeof renderLeaveDates === "function") renderLeaveDates();
+              if (typeof renderLeaveDatesList === "function")
+                renderLeaveDatesList();
             }
 
             showAppToast(`Logged ${formattedType} leave for today (${ds}).`);
@@ -14193,26 +14334,21 @@
 
       let hudLiveTimerInterval = null;
 
-      function openHudModal() {
-        const modal = document.getElementById("hud-modal");
-        const animContainer = document.getElementById("hud-container-anim");
-        const input = document.getElementById("hud-input");
-        if (!modal || !input) return;
-
-        window.originalThemeBeforeHud = currentTheme;
-
-        modal.style.display = "flex";
-        // Force reflow for animation
-        void modal.offsetWidth;
-        modal.style.opacity = "1";
-        if (animContainer) {
-          animContainer.style.opacity = "1";
-          animContainer.style.transform = "scale(1) translateY(0)";
+      function groupCommandsByCategory(commands) {
+        const grouped = {};
+        commands.forEach((cmd) => {
+          const cat = cmd.category || "General";
+          if (!grouped[cat]) grouped[cat] = [];
+          grouped[cat].push(cmd);
+        });
+        const result = [];
+        for (const cat of Object.keys(grouped)) {
+          result.push(...grouped[cat]);
         }
+        return result;
+      }
 
-        input.value = "";
-        hudActiveIndex = 0;
-
+      function loadHudDefaults() {
         // Determine Smart Defaults based on current app state
         const smartDefaults = [];
         if (state.currentMode === "work") {
@@ -14235,8 +14371,44 @@
           }
         });
 
-        hudFiltered = smartDefaults.filter(Boolean);
+        hudFiltered = groupCommandsByCategory(smartDefaults.filter(Boolean));
         renderHudResults("", true);
+      }
+
+      function updateHudThemePreview() {
+        const activeCmd = hudFiltered[hudActiveIndex];
+        if (activeCmd && activeCmd.previewAction) {
+          activeCmd.previewAction();
+        } else if (window.originalThemeBeforeHud) {
+          document.documentElement.setAttribute(
+            "data-theme",
+            window.originalThemeBeforeHud,
+          );
+        }
+      }
+
+      function openHudModal() {
+        const modal = document.getElementById("hud-modal");
+        const animContainer = document.getElementById("hud-container-anim");
+        const input = document.getElementById("hud-input");
+        if (!modal || !input) return;
+
+        window.originalThemeBeforeHud = currentTheme;
+
+        modal.style.display = "flex";
+        // Force reflow for animation
+        void modal.offsetWidth;
+        modal.style.opacity = "1";
+        if (animContainer) {
+          animContainer.style.opacity = "1";
+          animContainer.style.transform = "scale(1) translateY(0)";
+        }
+
+        input.value = "";
+        hudActiveIndex = 0;
+
+        loadHudDefaults();
+        updateHudThemePreview();
 
         if (hudLiveTimerInterval) clearInterval(hudLiveTimerInterval);
         hudLiveTimerInterval = setInterval(() => {
@@ -14277,9 +14449,10 @@
       }
 
       function filterHudCommands(query) {
+        hudActiveIndex = 0;
         if (!query.trim()) {
           // Fallback to smart defaults
-          openHudModal(); // re-init defaults
+          loadHudDefaults(); // re-init defaults
           return;
         }
 
@@ -14287,8 +14460,12 @@
         const scored = [];
 
         // Dynamic Math Parsing Check
-        // Only evaluate if it contains numbers and operators, and is a valid math expression
+        // Only evaluate if it contains numbers and operators, is a valid math expression, and is not a date (e.g. MM/DD/YY or MM/DD)
+        const isDatePattern = /^\d{1,2}\/\d{1,2}(\/\d{2,4})?$/.test(
+          query.trim(),
+        );
         if (
+          !isDatePattern &&
           /^[\d\s\+\-\*\/\(\)\.]+$/.test(query.trim()) &&
           /[0-9]/.test(query) &&
           /[\+\-\*\/]/.test(query)
@@ -14400,7 +14577,7 @@
                 cmd: {
                   key: `_edit_${match.log.id}`,
                   title: `Edit Log: ${match.log.date}`,
-                  desc: `Current Notes: ${match.log.notes || "None"} (Press Enter to edit)`,
+                  desc: `Current Notes: ${escapeHTML(match.log.notes) || "None"} (Press Enter to edit)`,
                   category: "Quick Edits",
                   keepOpen: true,
                   icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-warning)" stroke-width="2"><use href="#icon-df363be2"></use></svg>`,
@@ -14428,7 +14605,7 @@
               cmd: {
                 key: "_edit_commit",
                 title: `Save Notes to Log`,
-                desc: `New Notes: "${newNotes}"`,
+                desc: `New Notes: "${escapeHTML(newNotes)}"`,
                 category: "Quick Edits",
                 icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-blue)" stroke-width="2"><use href="#icon-f5c2fb99"></use></svg>`,
                 action: () => {
@@ -14561,9 +14738,9 @@
                     ? `<span style="color:var(--accent-break);">Log: ${typeof formatDuration === "function" ? formatDuration(workSec) : workSec + "s"} on ${parsedDateStr}</span>`
                     : `Log: ${typeof formatDuration === "function" ? formatDuration(workSec) : workSec + "s"} on ${parsedDateStr}`,
                   desc: overlapWarning
-                    ? `<span style="color:var(--accent-break);font-weight:bold;">${overlapWarning}</span> ${cleanNotes}`
+                    ? `<span style="color:var(--accent-break);font-weight:bold;">${overlapWarning}</span> ${escapeHTML(cleanNotes)}`
                     : cleanNotes
-                      ? `Notes: ${cleanNotes}`
+                      ? `Notes: ${escapeHTML(cleanNotes)}`
                       : "No notes.",
                   category: "Write Engine",
                   icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-blue)" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>`,
@@ -14578,10 +14755,11 @@
                       parsedGoal.hh * 3600 + parsedGoal.mm * 60 || 28800;
 
                     const [m, d, y] = parsedDateStr.split("/");
+                    const fullYear = y.length === 2 ? "20" + y : y;
                     const epochMs = Date.UTC(
-                      parseInt("20" + y),
-                      parseInt(m) - 1,
-                      parseInt(d),
+                      parseInt(fullYear, 10),
+                      parseInt(m, 10) - 1,
+                      parseInt(d, 10),
                       12,
                       0,
                       0,
@@ -14996,7 +15174,7 @@
                   key: `_log_${l.id}`,
                   title: `Log: ${l.date} (${formatDuration(l.workSec)})`,
                   desc: l.notes
-                    ? `Notes: ${l.notes}`
+                    ? `Notes: ${escapeHTML(l.notes)}`
                     : `No notes. Status: ${l.status || "N/A"}`,
                   category: "Logbook Results",
                   icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text-muted)" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>`,
@@ -15057,7 +15235,7 @@
         });
 
         scored.sort((a, b) => b.score - a.score);
-        hudFiltered = scored.map((s) => s.cmd);
+        hudFiltered = groupCommandsByCategory(scored.map((s) => s.cmd));
 
         renderHudResults(q, false);
       }
@@ -15094,7 +15272,7 @@
         }
 
         for (const [cat, cmds] of Object.entries(grouped)) {
-          html += `<div style="font-size: 0.7rem; font-weight: bold; color: var(--text-muted); padding: 4px 12px; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px;">${escapeHTML(cat)}</div>`;
+          html += `<div style="font-size: 0.7rem; font-weight: bold; color: var(--text-muted); padding: 4px 12px; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px; position: sticky; top: 0; background: var(--panel-bg); z-index: 10;">${escapeHTML(cat)}</div>`;
 
           cmds.forEach((cmd) => {
             const idx = globalIdx++;
@@ -15140,6 +15318,10 @@
         if (!cmd) return;
         const input = document.getElementById("hud-input").value;
 
+        if (cmd.previewAction || cmd.category === "Themes") {
+          window.originalThemeBeforeHud = null;
+        }
+
         if (!cmd.keepOpen) {
           closeHudModal();
         }
@@ -15159,33 +15341,22 @@
           hudInput.addEventListener("input", (e) => {
             hudActiveIndex = 0;
             filterHudCommands(e.target.value);
+            updateHudThemePreview();
           });
           hudInput.addEventListener("keydown", (e) => {
             if (e.key === "ArrowDown") {
               e.preventDefault();
+              if (hudFiltered.length === 0) return;
               hudActiveIndex = (hudActiveIndex + 1) % hudFiltered.length;
               renderHudResults(e.target.value);
-              const activeCmd = hudFiltered[hudActiveIndex];
-              if (activeCmd && activeCmd.previewAction)
-                activeCmd.previewAction();
-              else if (window.originalThemeBeforeHud)
-                document.documentElement.setAttribute(
-                  "data-theme",
-                  window.originalThemeBeforeHud,
-                );
+              updateHudThemePreview();
             } else if (e.key === "ArrowUp") {
               e.preventDefault();
+              if (hudFiltered.length === 0) return;
               hudActiveIndex =
                 (hudActiveIndex - 1 + hudFiltered.length) % hudFiltered.length;
               renderHudResults(e.target.value);
-              const activeCmd = hudFiltered[hudActiveIndex];
-              if (activeCmd && activeCmd.previewAction)
-                activeCmd.previewAction();
-              else if (window.originalThemeBeforeHud)
-                document.documentElement.setAttribute(
-                  "data-theme",
-                  window.originalThemeBeforeHud,
-                );
+              updateHudThemePreview();
             } else if (e.key === "Enter") {
               e.preventDefault();
               if (hudFiltered[hudActiveIndex]) {
@@ -15577,16 +15748,11 @@
       window.onIdleToggleChange = function () {
         const checkbox = document.getElementById("idle-toggle");
         const sliderContainer = document.getElementById("idle-range-container");
-        const slider = document.getElementById("idle-slider");
 
         state.idleTrackingEnabled = checkbox.checked;
 
-        if (checkbox.checked) {
-          sliderContainer.style.opacity = "1";
-          slider.removeAttribute("disabled");
-        } else {
-          sliderContainer.style.opacity = "0.3";
-          slider.setAttribute("disabled", "true");
+        if (sliderContainer) {
+          sliderContainer.style.display = checkbox.checked ? "flex" : "none";
         }
         saveState();
       };
@@ -15604,6 +15770,33 @@
         const checkbox = document.getElementById("auto-backup-toggle");
         state.autoBackupEnabled = checkbox.checked;
         saveState();
+      };
+
+      window.onGoalAutopopulateToggleChange = function () {
+        const checkbox = document.getElementById("goal-autopopulate-toggle");
+        state.goalAutopopulateEnabled = checkbox.checked;
+        saveState();
+
+        if (checkbox.checked) {
+          autoPopulateDailyGoal(state.activeDate || getPSTDate());
+        } else {
+          // Restore manually saved or default goal
+          const savedH = safeGetLocalStorage(GOAL_H_KEY, "8");
+          const savedM = safeGetLocalStorage(GOAL_M_KEY, "0");
+          DOM.goalHours.value = String(parseInt(savedH, 10) || 0).padStart(
+            2,
+            "0",
+          );
+          DOM.goalMins.value = String(parseInt(savedM, 10) || 0).padStart(
+            2,
+            "0",
+          );
+          syncGoalTimeInput();
+          updatePresetHighlights();
+          renderTimersOnly();
+          insightsCacheKey = null;
+          renderInsights();
+        }
       };
 
       /**
@@ -15639,11 +15832,15 @@
         const idleCheckbox = document.getElementById("idle-toggle");
         const slider = document.getElementById("idle-slider");
         const valDisplay = document.getElementById("idle-val-display");
+        const sliderContainer = document.getElementById("idle-range-container");
         const mins = state.idleThresholdMinutes || 60;
 
         if (idleCheckbox) idleCheckbox.checked = isIdleEnabled;
         if (slider) slider.value = mins;
         if (valDisplay) valDisplay.textContent = mins + "m";
+        if (sliderContainer) {
+          sliderContainer.style.display = isIdleEnabled ? "flex" : "none";
+        }
 
         // Sync auto-backup toggle
         const autoBackupCheckbox =
@@ -15655,6 +15852,14 @@
         const autoEmailCheckbox = document.getElementById("auto-email-toggle");
         if (autoEmailCheckbox)
           autoEmailCheckbox.checked = !!state.autoEmailEnabled;
+
+        // Sync goal auto-populate toggle
+        const goalAutopopulateCheckbox = document.getElementById(
+          "goal-autopopulate-toggle",
+        );
+        if (goalAutopopulateCheckbox)
+          goalAutopopulateCheckbox.checked =
+            state.goalAutopopulateEnabled !== false;
 
         // Sync snapshots dropdown list
         const snapshotSelect = document.getElementById(
@@ -17040,6 +17245,136 @@
         }
       }
 
+      function initSettingsHoverHelp() {
+        const helpText = document.getElementById("settings-help-text");
+        if (!helpText) return;
+
+        const descriptions = {
+          "mode-simple":
+            "Simple Mode: Manual start/stop controls. Disables automated idle lock, standby recovery, and rollovers.",
+          "mode-intelligent":
+            "Intelligent Mode: Smart tracking. Enables idle locks, standby recovery, and midnight rollovers.",
+          "goal-autopopulate-toggle":
+            "Auto-Populate: Adjusts your daily target dynamically to pace you toward a 40-hour work week.",
+          "idle-toggle":
+            "Idle Lock: Pauses tracking automatically when keyboard/mouse are inactive beyond the threshold.",
+          "idle-slider":
+            "Idle Threshold: Configures the exact minutes of inactivity required to trigger the idle lock.",
+          "auto-backup-toggle":
+            "Auto-Backup: Automatically downloads a secure JSON backup file when your shift is submitted.",
+          "auto-email-toggle":
+            "Auto-Email: Pre-copies your formatted summary and opens a draft in your mail client.",
+          "snapshot-restore-select":
+            "Snapshot Rollback: Restores your database logs to an automatically captured historical state.",
+        };
+
+        const defaultText = "Hover over any setting to view its description.";
+
+        const updateHelp = (id) => {
+          const text = descriptions[id] || defaultText;
+          if (helpText.textContent !== text) {
+            helpText.textContent = text;
+          }
+        };
+
+        const resetHelp = () => {
+          if (helpText.textContent !== defaultText) {
+            helpText.textContent = defaultText;
+          }
+        };
+
+        const bindHover = (id, targetEl) => {
+          if (!targetEl) return;
+          targetEl.addEventListener("mouseenter", () => updateHelp(id), {
+            passive: true,
+          });
+          targetEl.addEventListener("mouseleave", resetHelp, { passive: true });
+          targetEl.addEventListener("focus", () => updateHelp(id), {
+            passive: true,
+          });
+          targetEl.addEventListener("blur", resetHelp, { passive: true });
+        };
+
+        bindHover("mode-simple", document.getElementById("mode-simple"));
+        bindHover(
+          "mode-intelligent",
+          document.getElementById("mode-intelligent"),
+        );
+        bindHover(
+          "goal-autopopulate-toggle",
+          document.getElementById("goal-autopopulate-toggle"),
+        );
+        bindHover("idle-toggle", document.getElementById("idle-toggle"));
+        bindHover("idle-slider", document.getElementById("idle-slider"));
+        bindHover(
+          "auto-backup-toggle",
+          document.getElementById("auto-backup-toggle"),
+        );
+        bindHover(
+          "auto-email-toggle",
+          document.getElementById("auto-email-toggle"),
+        );
+        bindHover(
+          "snapshot-restore-select",
+          document.getElementById("snapshot-restore-select"),
+        );
+
+        const rows = [
+          {
+            id: "goal-autopopulate-toggle",
+            select: "#goal-autopopulate-toggle",
+          },
+          { id: "idle-toggle", select: "#idle-toggle" },
+          { id: "auto-backup-toggle", select: "#auto-backup-toggle" },
+          { id: "auto-email-toggle", select: "#auto-email-toggle" },
+        ];
+
+        rows.forEach((row) => {
+          const input = document.getElementById(row.id);
+          if (input) {
+            const parentRow = input.closest(".idle-popup-row");
+            if (parentRow) {
+              parentRow.addEventListener(
+                "mouseenter",
+                () => updateHelp(row.id),
+                { passive: true },
+              );
+              parentRow.addEventListener("mouseleave", resetHelp, {
+                passive: true,
+              });
+            }
+          }
+        });
+
+        const thresholdRow = document.getElementById("idle-range-container");
+        if (thresholdRow) {
+          thresholdRow.addEventListener(
+            "mouseenter",
+            () => updateHelp("idle-slider"),
+            { passive: true },
+          );
+          thresholdRow.addEventListener("mouseleave", resetHelp, {
+            passive: true,
+          });
+        }
+
+        const snapshotSelect = document.getElementById(
+          "snapshot-restore-select",
+        );
+        if (snapshotSelect && snapshotSelect.parentElement) {
+          snapshotSelect.parentElement.addEventListener(
+            "mouseenter",
+            () => updateHelp("snapshot-restore-select"),
+            { passive: true },
+          );
+          snapshotSelect.parentElement.addEventListener(
+            "mouseleave",
+            resetHelp,
+            { passive: true },
+          );
+        }
+      }
+
       /**
        * Launches first execution bootstrap cycle.
        */
@@ -17117,6 +17452,11 @@
         displayBaseDate = getPSTDateObj();
         loadState();
 
+        const logbookTab = document.getElementById("tab-logbook");
+        if (logbookTab) {
+          cachedViewportHeight = logbookTab.clientHeight;
+        }
+
         // Deterministically acquire our active lease before starting checks
         await acquireLease();
 
@@ -17147,6 +17487,7 @@
         renderThemeToggle();
         renderPresets();
         syncSettingsUI();
+        initSettingsHoverHelp();
 
         // Initialize failsafe database snapshot on startup
         if (typeof triggerAutoSnapshot === "function") {
