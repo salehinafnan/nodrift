@@ -14,7 +14,7 @@
     <!-- Inline Vector Icon (SVG Clock) -->
     <link
       rel="icon"
-      href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2360a5fa' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='10'></circle><polyline points='12 6 12 12 16 14'></polyline></svg>"
+      href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2360a5fa' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><use href='%23sprite-001'></use></svg>"
     />
 
     <style>
@@ -146,8 +146,7 @@
         --track-bg: rgba(255, 255, 255, 0.08);
         --segmented-bg: rgba(255, 255, 255, 0.1);
         --segmented-active-bg: #222222;
-        --segmented-active-shadow:
-          0 1px 3px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+        --segmented-active-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
         --segmented-border: #1f1f23;
       }
 
@@ -217,7 +216,7 @@
       :root[data-theme="sf-dark"] {
         --page-bg: #000000;
         --panel-bg: #1c1c1e;
-        --panel-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+        --panel-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
         --panel-blur: none;
         --element-bg: #2c2c2e;
         --element-hover: #3a3a3c;
@@ -254,7 +253,7 @@
       :root[data-theme="sf-light"] {
         --page-bg: #f2f2f7;
         --panel-bg: #ffffff;
-        --panel-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+        --panel-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
         --panel-blur: none;
         --element-bg: #ebebf0;
         --element-hover: #dcdce0;
@@ -338,7 +337,7 @@
         appearance: none;
         -webkit-appearance: none;
         -moz-appearance: none;
-        background-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238e8e9f' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><use href='%23icon-5c61686e'></use></svg>");
+        background-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238e8e9f' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><use href='%23sprite-002'></use></svg>");
         background-repeat: no-repeat;
         background-position: right 1rem center;
         background-size: 1.1em;
@@ -430,16 +429,15 @@
         transition:
           background-color 0.15s ease,
           border-color 0.15s ease,
-          color 0.15s ease,
-          transform 0.1s ease;
+          color 0.15s ease;
       }
 
       .action-row > button:hover:not(:disabled) {
-        transform: translateY(-1px);
+        opacity: 0.88;
       }
 
       .action-row > button:active:not(:disabled) {
-        filter: brightness(0.85);
+        opacity: 0.75;
       }
 
       .btn-secondary {
@@ -584,7 +582,7 @@
         padding: 20px;
         font-family: var(--font-sans);
         background: var(--page-bg);
-        background-attachment: fixed;
+
         color: var(--text-main);
         min-height: 100vh;
         display: flex;
@@ -658,9 +656,6 @@
         grid-template-columns: var(--panel-columns);
         gap: var(--panel-gap);
         padding: 2.2rem;
-        transition:
-          background-color 0.3s ease,
-          border-color 0.3s ease;
       }
 
       .main-ui {
@@ -693,9 +688,6 @@
         padding: 0 1.2rem;
         border-radius: var(--header-el-radius);
         box-shadow: none;
-        transition:
-          background-color 0.3s ease,
-          border-color 0.3s ease;
       }
 
       .theme-toggle-btn {
@@ -1052,6 +1044,7 @@
         /* Reset margins as the parent centerpiece handles it */
         border: none;
         position: relative;
+        contain: layout paint;
       }
 
       #break-timer {
@@ -1075,7 +1068,6 @@
         font-size: 1.05rem;
         margin-bottom: 4px;
         color: var(--text-main);
-        transition: color 0.15s ease;
       }
 
       /* Inverted spacing for the break group */
@@ -1099,7 +1091,7 @@
         background: var(--accent-blue);
         border-radius: inherit;
         box-shadow: none;
-        transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        transition: none;
         position: relative;
       }
 
@@ -3538,15 +3530,322 @@
 
   <body>
     <svg
+      id="global-svg-sprites"
+      style="display: none"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <defs>
+        <symbol id="sprite-001" viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="10"></circle>
+          <polyline points="12 6 12 12 16 14"></polyline>
+        </symbol>
+        <symbol id="sprite-002" viewBox="0 0 24 24">
+          <use href="%23icon-5c61686e"></use>
+        </symbol>
+        <symbol id="sprite-003" viewBox="0 0 24 24">
+          <use href="#icon-2cc8af4e"></use>
+        </symbol>
+        <symbol id="sprite-004" viewBox="0 0 24 24">
+          <use href="#icon-cc177d5f"></use>
+        </symbol>
+        <symbol id="sprite-005" viewBox="0 0 24 24">
+          <use href="#icon-04fa1773"></use>
+        </symbol>
+        <symbol id="sprite-006" viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="16" x2="12" y2="12"></line>
+          <line x1="12" y1="8" x2="12.01" y2="8"></line>
+        </symbol>
+        <symbol id="sprite-007" viewBox="0 0 24 24">
+          <use href="#icon-ae89f43e"></use>
+        </symbol>
+        <symbol id="sprite-008" viewBox="0 0 24 24">
+          <use href="#icon-6f90a674"></use>
+        </symbol>
+        <symbol id="sprite-009" viewBox="0 0 24 24">
+          <use href="#icon-df363be2"></use>
+        </symbol>
+        <symbol id="sprite-010" viewBox="0 0 24 24">
+          <use href="#icon-6f90a674"></use>
+        </symbol>
+        <symbol id="sprite-011" viewBox="0 0 24 24">
+          <use href="#icon-4de7aa53"></use>
+        </symbol>
+        <symbol id="sprite-012" viewBox="0 0 24 24">
+          <use href="#icon-cfe7f835"></use>
+        </symbol>
+        <symbol id="sprite-013" viewBox="0 0 24 24">
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </symbol>
+        <symbol id="sprite-014" viewBox="0 0 24 24">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </symbol>
+        <symbol id="sprite-015" viewBox="0 0 24 24">
+          <use href="#icon-56bb360a"></use>
+        </symbol>
+        <symbol id="sprite-016" viewBox="0 0 24 24">
+          <use href="#icon-5c61686e"></use>
+        </symbol>
+        <symbol id="sprite-017" viewBox="0 0 24 24">
+          <use href="#icon-3c1c2eb6"></use>
+        </symbol>
+        <symbol id="sprite-018" viewBox="0 0 24 24">
+          <use href="#icon-cebb1e32"></use>
+        </symbol>
+        <symbol id="sprite-019" viewBox="0 0 24 24">
+          <use href="#icon-47bc3e7c"></use>
+        </symbol>
+        <symbol id="sprite-020" viewBox="0 0 24 24">
+          <use href="#icon-c86d529b"></use>
+        </symbol>
+        <symbol id="sprite-021" viewBox="0 0 24 24">
+          <use href="#icon-b1233e9f"></use>
+        </symbol>
+        <symbol id="sprite-022" viewBox="0 0 24 24">
+          <use href="#icon-d140e762"></use>
+        </symbol>
+        <symbol id="sprite-023" viewBox="0 0 24 24">
+          <use href="#icon-698f6a1b"></use>
+        </symbol>
+        <symbol id="sprite-024" viewBox="0 0 24 24">
+          <use href="#icon-fd86eb48"></use>
+        </symbol>
+        <symbol id="sprite-025" viewBox="0 0 24 24">
+          <use href="#icon-36af783a"></use>
+        </symbol>
+        <symbol id="sprite-026" viewBox="0 0 24 24">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </symbol>
+        <symbol id="sprite-027" viewBox="0 0 24 24">
+          <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+          <line x1="16" y1="2" x2="16" y2="6"></line>
+          <line x1="8" y1="2" x2="8" y2="6"></line>
+          <line x1="3" y1="10" x2="21" y2="10"></line>
+        </symbol>
+        <symbol id="sprite-028" viewBox="0 0 24 24">
+          <use href="#icon-d76bcc50"></use>
+        </symbol>
+        <symbol id="sprite-029" viewBox="0 0 24 24">
+          <use href="#icon-7da9ac84"></use>
+        </symbol>
+        <symbol id="sprite-030" viewBox="0 0 24 24">
+          <use href="#icon-0b357eda"></use>
+        </symbol>
+        <symbol id="sprite-031" viewBox="0 0 24 24">
+          <use href="#icon-f699d873"></use>
+        </symbol>
+        <symbol id="sprite-032" viewBox="0 0 24 24">
+          <use href="#icon-d0747b80"></use>
+        </symbol>
+        <symbol id="sprite-033" viewBox="0 0 24 24">
+          <use href="#icon-459ec513"></use>
+        </symbol>
+        <symbol id="sprite-034" viewBox="0 0 24 24">
+          <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+          <line x1="16" y1="2" x2="16" y2="6"></line>
+          <line x1="8" y1="2" x2="8" y2="6"></line>
+          <line x1="3" y1="10" x2="21" y2="10"></line>
+        </symbol>
+        <symbol id="sprite-035" viewBox="0 0 24 24">
+          <use href="#icon-6bf1980a"></use>
+        </symbol>
+        <symbol id="sprite-036" viewBox="0 0 24 24">
+          <use href="#icon-a0221e6f"></use>
+        </symbol>
+        <symbol id="sprite-037" viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="16" x2="12" y2="12"></line>
+          <line x1="12" y1="8" x2="12" y2="8"></line>
+        </symbol>
+        <symbol id="sprite-038" viewBox="0 0 24 24">
+          <use href="#icon-dc2cf02d"></use>
+        </symbol>
+        <symbol id="sprite-039" viewBox="0 0 24 24">
+          <path d="M12 19V5M5 12l7-7 7 7" />
+        </symbol>
+        <symbol id="sprite-040" viewBox="0 0 24 24">
+          <use href="#icon-a323ea2d"></use>
+        </symbol>
+        <symbol id="sprite-041" viewBox="0 0 24 24">
+          <use href="#icon-610fc1b7"></use>
+        </symbol>
+        <symbol id="sprite-042" viewBox="0 0 24 24">
+          <use href="#icon-59ac4ca9"></use>
+        </symbol>
+        <symbol id="sprite-043" viewBox="0 0 24 24">
+          <use href="#icon-6ea0858b"></use>
+        </symbol>
+        <symbol id="sprite-044" viewBox="0 0 24 24">
+          <use href="#icon-6e0c3b0f"></use>
+        </symbol>
+        <symbol id="sprite-045" viewBox="0 0 24 24">
+          <use href="#icon-3c1c2eb6"></use>
+        </symbol>
+        <symbol id="sprite-046" viewBox="0 0 24 24">
+          <use href="#icon-cebb1e32"></use>
+        </symbol>
+        <symbol id="sprite-047" viewBox="0 0 24 24">
+          <use href="#icon-c86d529b"></use>
+        </symbol>
+        <symbol id="sprite-048" viewBox="0 0 24 24">
+          <use href="#icon-47bc3e7c"></use>
+        </symbol>
+        <symbol id="sprite-049" viewBox="0 0 24 24">
+          <circle
+            cx="12"
+            cy="12"
+            r="10"
+            fill="${encodeURIComponent(color)}"
+            fill-opacity="${opacity}"
+          />
+        </symbol>
+        <symbol id="sprite-050" viewBox="0 0 24 24">
+          <use href="#icon-265dafd3"></use>
+        </symbol>
+        <symbol id="sprite-051" viewBox="0 0 24 24">
+          <use href="#icon-a7df8588"></use>
+        </symbol>
+        <symbol id="sprite-052" viewBox="0 0 24 24">
+          <use href="#icon-c8e93a10"></use>
+        </symbol>
+        <symbol id="sprite-053" viewBox="0 0 24 24">
+          <polygon points="5 3 19 12 5 21 5 3"></polygon>
+        </symbol>
+        <symbol id="sprite-054" viewBox="0 0 24 24">
+          <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+        </symbol>
+        <symbol id="sprite-055" viewBox="0 0 24 24">
+          <rect x="6" y="4" width="4" height="16"></rect>
+          <rect x="14" y="4" width="4" height="16"></rect>
+        </symbol>
+        <symbol id="sprite-056" viewBox="0 0 24 24">
+          <line x1="12" y1="5" x2="12" y2="19"></line>
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+        </symbol>
+        <symbol id="sprite-057" viewBox="0 0 24 24">
+          <use href="#icon-256ee864"></use>
+        </symbol>
+        <symbol id="sprite-058" viewBox="0 0 24 24">
+          <use href="#icon-6bf1980a"></use>
+        </symbol>
+        <symbol id="sprite-059" viewBox="0 0 24 24">
+          <use href="#icon-f5566772"></use>
+        </symbol>
+        <symbol id="sprite-060" viewBox="0 0 24 24">
+          <use href="#icon-5b2822e3"></use>
+        </symbol>
+        <symbol id="sprite-061" viewBox="0 0 24 24">
+          <use href="#icon-941c04e2"></use>
+        </symbol>
+        <symbol id="sprite-062" viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="10"></circle>
+          <polyline points="12 6 12 12 16 14"></polyline>
+        </symbol>
+        <symbol id="sprite-063" viewBox="0 0 24 24">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+          <path d="M15 5h2M16 4v2" stroke-width="1.5" />
+        </symbol>
+        <symbol id="sprite-064" viewBox="0 0 24 24">
+          <polygon points="12 2 2 7 12 12 22 7 12 2" />
+          <polyline points="2 17 12 22 22 17" />
+          <polyline points="2 12 12 17 22 12" />
+        </symbol>
+        <symbol id="sprite-065" viewBox="0 0 24 24">
+          <path
+            d="M12 2a10 10 0 1 0 10 10H12V2z"
+            fill="currentColor"
+            fill-opacity="0.12"
+          />
+          <circle cx="12" cy="12" r="10" />
+        </symbol>
+        <symbol id="sprite-066" viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="4" />
+          <path
+            d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"
+          />
+        </symbol>
+        <symbol id="sprite-067" viewBox="0 0 24 24">
+          <use href="#icon-0b357eda"></use>
+        </symbol>
+        <symbol id="sprite-068" viewBox="0 0 24 24">
+          <use href="#icon-d0747b80"></use>
+        </symbol>
+        <symbol id="sprite-069" viewBox="0 0 24 24">
+          <use href="#icon-459ec513"></use>
+        </symbol>
+        <symbol id="sprite-070" viewBox="0 0 24 24">
+          <use href="#icon-dc2cf02d"></use>
+        </symbol>
+        <symbol id="sprite-071" viewBox="0 0 24 24">
+          <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+          <line x1="16" y1="2" x2="16" y2="6"></line>
+          <line x1="8" y1="2" x2="8" y2="6"></line>
+          <line x1="3" y1="10" x2="21" y2="10"></line>
+        </symbol>
+        <symbol id="sprite-072" viewBox="0 0 24 24">
+          <use href="#icon-2d43a51b"></use>
+        </symbol>
+        <symbol id="sprite-073" viewBox="0 0 24 24">
+          <use href="#icon-941c04e2"></use>
+        </symbol>
+        <symbol id="sprite-074" viewBox="0 0 24 24">
+          <use href="#icon-56bb360a"></use>
+        </symbol>
+        <symbol id="sprite-075" viewBox="0 0 24 24">
+          <path
+            d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"
+          ></path>
+          <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
+        </symbol>
+        <symbol id="sprite-076" viewBox="0 0 24 24">
+          <use href="#icon-433a13fc"></use>
+        </symbol>
+        <symbol id="sprite-077" viewBox="0 0 24 24">
+          <use href="#icon-0d06e9d3"></use>
+        </symbol>
+        <symbol id="sprite-078" viewBox="0 0 24 24">
+          <path
+            d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"
+          ></path>
+          <polyline points="14 2 14 8 20 8"></polyline>
+          <line x1="16" y1="13" x2="8" y2="13"></line>
+          <line x1="16" y1="17" x2="8" y2="17"></line>
+          <polyline points="10 9 9 9 8 9"></polyline>
+        </symbol>
+        <symbol id="sprite-079" viewBox="0 0 24 24">
+          <use href="#icon-412a4e8e"></use>
+        </symbol>
+        <symbol id="sprite-080" viewBox="0 0 24 24">
+          <use href="#icon-c8a1f2ec"></use>
+        </symbol>
+        <symbol id="sprite-081" viewBox="0 0 24 24">
+          <use href="#icon-f5c2fb99"></use>
+        </symbol>
+        <symbol id="sprite-082" viewBox="0 0 24 24">
+          <path
+            d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"
+          ></path>
+          <path
+            d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"
+          ></path>
+        </symbol>
+        <symbol id="sprite-083" viewBox="0 0 24 24">
+          <use href="#icon-b2dfb488"></use>
+        </symbol>
+        <symbol id="sprite-084" viewBox="0 0 24 24">
+          <use href="#icon-564f8c3a"></use>
+        </symbol>
+      </defs>
+    </svg>
+
+    <svg
       style="display: none"
       aria-hidden="true"
       xmlns="http://www.w3.org/2000/svg"
     >
       <defs>
-        <symbol id="icon-ae5b4c00" viewBox="0 0 24 24">
-          <circle cx="12" cy="12" r="10"></circle>
-          <polyline points="12 6 12 12 16 14"></polyline>
-        </symbol>
         <symbol id="icon-5c61686e" viewBox="0 0 24 24">
           <polyline points="6 9 12 15 18 9"></polyline>
         </symbol>
@@ -3573,12 +3872,6 @@
           <line x1="8" y1="2" x2="8" y2="6"></line>
           <line x1="3" y1="10" x2="21" y2="10"></line>
         </symbol>
-        <symbol id="icon-3a752b39" viewBox="0 0 24 24">
-          <rect x="3" y="4" width="18" height="18" rx="2"></rect>
-          <line x1="16" y1="2" x2="16" y2="6"></line>
-          <line x1="8" y1="2" x2="8" y2="6"></line>
-          <line x1="3" y1="10" x2="21" y2="10"></line>
-        </symbol>
         <symbol id="icon-4de7aa53" viewBox="0 0 24 24">
           <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path>
           <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path>
@@ -3599,9 +3892,6 @@
         <symbol id="icon-56bb360a" viewBox="0 0 24 24">
           <circle cx="11" cy="11" r="8"></circle>
           <line x1="21" y1="21" x2="16.6" y2="16.6"></line>
-        </symbol>
-        <symbol id="icon-a3f67e4d" viewBox="0 0 24 24">
-          <polyline points="6 9 12 15 18 9"></polyline>
         </symbol>
         <symbol id="icon-3c1c2eb6" viewBox="0 0 24 24">
           <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
@@ -3722,38 +4012,6 @@
           <line x1="10" y1="11" x2="10" y2="17"></line>
           <line x1="14" y1="11" x2="14" y2="17"></line>
         </symbol>
-        <symbol id="icon-b8385845" viewBox="0 0 24 24">
-          <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
-          <polyline points="2 17 12 22 22 17"></polyline>
-          <polyline points="2 12 12 17 22 12"></polyline>
-        </symbol>
-        <symbol id="icon-ef8e4b16" viewBox="0 0 24 24">
-          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
-          <path d="M15 5h2M16 4v2" stroke-width="1.5"></path>
-        </symbol>
-        <symbol id="icon-d457aa18" viewBox="0 0 24 24">
-          <path
-            d="M12 2a10 10 0 1 0 10 10H12V2z"
-            fill="currentColor"
-            fill-opacity="0.12"
-          ></path>
-          <circle cx="12" cy="12" r="10"></circle>
-        </symbol>
-        <symbol id="icon-c10237b5" viewBox="0 0 24 24">
-          <circle cx="12" cy="12" r="4"></circle>
-          <path
-            d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.6 17.6l1.4 1.4M2 12h2M20 12h2M6.3 17.6l-1.4 1.4M19 4.9l-1.4 1.4"
-          ></path>
-        </symbol>
-        <symbol id="icon-6758316a" viewBox="0 0 24 24">
-          <circle
-            cx="12"
-            cy="12"
-            r="10"
-            fill="${encodeURIComponent(color)}"
-            fill-opacity="${opacity}"
-          ></circle>
-        </symbol>
         <symbol id="icon-265dafd3" viewBox="0 0 24 24">
           <rect x="2" y="3" width="20" height="14" rx="2"></rect>
           <line x1="8" y1="21" x2="16" y2="21"></line>
@@ -3780,12 +4038,6 @@
           <rect x="14" y="14" width="7" height="7"></rect>
           <rect x="3" y="14" width="7" height="7"></rect>
         </symbol>
-        <symbol id="icon-bc1d7da2" viewBox="0 0 24 24">
-          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
-          <path
-            d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"
-          ></path>
-        </symbol>
         <symbol id="icon-f5566772" viewBox="0 0 24 24">
           <line x1="18" y1="20" x2="18" y2="10"></line>
           <line x1="12" y1="20" x2="12" y2="4"></line>
@@ -3793,38 +4045,6 @@
         </symbol>
         <symbol id="icon-5b2822e3" viewBox="0 0 24 24">
           <line x1="5" y1="12" x2="19" y2="12"></line>
-        </symbol>
-        <symbol id="icon-f109317b" viewBox="0 0 24 24">
-          <circle cx="12" cy="12" r="10"></circle>
-          <polyline points="12 6 12 12 16 14"></polyline>
-        </symbol>
-        <symbol id="icon-67e6f224" viewBox="0 0 24 24">
-          <path
-            d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"
-          ></path>
-          <polyline points="14 2 14 8 20 8"></polyline>
-          <line x1="16" y1="13" x2="8" y2="13"></line>
-          <line x1="16" y1="17" x2="8" y2="17"></line>
-        </symbol>
-        <symbol id="icon-404ab491" viewBox="0 0 24 24">
-          <path d="M21 15v4a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-4"></path>
-          <polyline points="7 10 12 15 17 10"></polyline>
-          <line x1="12" y1="15" x2="12" y2="3"></line>
-        </symbol>
-        <symbol id="icon-e1ac78fb" viewBox="0 0 24 24">
-          <path d="M21 15v4a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-4"></path>
-          <polyline points="17 8 12 3 7 8"></polyline>
-          <line x1="12" y1="3" x2="12" y2="15"></line>
-        </symbol>
-        <symbol id="icon-49bf4a24" viewBox="0 0 24 24">
-          <polyline points="3 6 5 6 21 6"></polyline>
-          <path
-            d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
-          ></path>
-        </symbol>
-        <symbol id="icon-9c8ee3dd" viewBox="0 0 24 24">
-          <circle cx="11" cy="11" r="8"></circle>
-          <line x1="21" y1="21" x2="16.6" y2="16.6"></line>
         </symbol>
         <symbol id="icon-2d43a51b" viewBox="0 0 24 24">
           <path
@@ -3898,7 +4118,7 @@
           stroke-linecap="round"
           stroke-linejoin="round"
         >
-          <use href="#icon-2cc8af4e"></use>
+          <use href="#sprite-003"></use>
         </svg>
       </div>
       <span>Shift Logged Successfully</span>
@@ -3914,7 +4134,7 @@
           stroke-linecap="round"
           stroke-linejoin="round"
         >
-          <use href="#icon-cc177d5f"></use>
+          <use href="#sprite-004"></use>
         </svg>
       </button>
     </div>
@@ -4145,7 +4365,7 @@
             stroke-linejoin="round"
             style="width: 16px; height: 16px; flex-shrink: 0; margin-top: 2px"
           >
-            <use href="#icon-04fa1773"></use>
+            <use href="#sprite-005"></use>
           </svg>
           <div
             style="
@@ -4197,9 +4417,7 @@
             stroke-linejoin="round"
             style="width: 16px; height: 16px; flex-shrink: 0; margin-top: 2px"
           >
-            <circle cx="12" cy="12" r="10"></circle>
-            <line x1="12" y1="16" x2="12" y2="12"></line>
-            <line x1="12" y1="8" x2="12.01" y2="8"></line>
+            <use href="#sprite-006"></use>
           </svg>
           <div
             style="
@@ -4419,7 +4637,7 @@
               stroke-linecap="round"
               stroke-linejoin="round"
             >
-              <use href="#icon-ae89f43e"></use>
+              <use href="#sprite-007"></use>
             </svg>
             User Guide & Help
           </span>
@@ -4438,7 +4656,7 @@
               stroke-linecap="round"
               stroke-linejoin="round"
             >
-              <use href="#icon-cc177d5f"></use>
+              <use href="#sprite-004"></use>
             </svg>
           </button>
         </h3>
@@ -5213,9 +5431,7 @@
           stroke-linecap="round"
           stroke-linejoin="round"
         >
-          <circle cx="12" cy="12" r="10"></circle>
-          <line x1="12" y1="16" x2="12" y2="12"></line>
-          <line x1="12" y1="8" x2="12.01" y2="8"></line>
+          <use href="#sprite-006"></use>
         </svg>
       </div>
       <span id="app-toast-content">Message</span>
@@ -5230,7 +5446,7 @@
           stroke-linecap="round"
           stroke-linejoin="round"
         >
-          <use href="#icon-cc177d5f"></use>
+          <use href="#sprite-004"></use>
         </svg>
       </button>
     </div>
@@ -5301,7 +5517,7 @@
                   flex-shrink: 0;
                 "
               >
-                <use href="#icon-6f90a674"></use>
+                <use href="#sprite-008"></use>
               </svg>
             </button>
           </div>
@@ -5415,7 +5631,7 @@
                   flex-shrink: 0;
                 "
               >
-                <use href="#icon-6f90a674"></use>
+                <use href="#sprite-008"></use>
               </svg>
             </button>
           </div>
@@ -5518,7 +5734,7 @@
               stroke-width="2"
               style="width: 14px; height: 14px"
             >
-              <use href="#icon-df363be2"></use>
+              <use href="#sprite-009"></use>
             </svg>
             <span>Edit Note</span>
           </button>
@@ -5581,7 +5797,7 @@
             stroke-linecap="round"
             stroke-linejoin="round"
           >
-            <use href="#icon-3a752b39"></use>
+            <use href="#sprite-010"></use>
           </svg>
           Leaves & Holidays
         </h3>
@@ -5629,7 +5845,7 @@
                   flex-shrink: 0;
                 "
               >
-                <use href="#icon-6f90a674"></use>
+                <use href="#sprite-008"></use>
               </svg>
             </button>
           </div>
@@ -5707,7 +5923,7 @@
           stroke-linecap="round"
           stroke-linejoin="round"
         >
-          <use href="#icon-4de7aa53"></use>
+          <use href="#sprite-011"></use>
         </svg>
       </div>
       <span>Daily Goal Reached!</span>
@@ -5723,7 +5939,7 @@
           stroke-linecap="round"
           stroke-linejoin="round"
         >
-          <use href="#icon-cc177d5f"></use>
+          <use href="#sprite-004"></use>
         </svg>
       </button>
     </div>
@@ -5878,7 +6094,7 @@
               stroke-linecap="round"
               stroke-linejoin="round"
             >
-              <use href="#icon-cfe7f835"></use>
+              <use href="#sprite-012"></use>
             </svg>
             <span>Heatmap - </span>
             <div class="heatmap-year-container">
@@ -5899,7 +6115,7 @@
                   stroke-linecap="round"
                   stroke-linejoin="round"
                 >
-                  <polyline points="6 9 12 15 18 9"></polyline>
+                  <use href="#sprite-013"></use>
                 </svg>
               </div>
               <div
@@ -5951,8 +6167,7 @@
               stroke-linecap="round"
               stroke-linejoin="round"
             >
-              <line x1="18" y1="6" x2="6" y2="18"></line>
-              <line x1="6" y1="6" x2="18" y2="18"></line>
+              <use href="#sprite-014"></use>
             </svg>
           </button>
         </div>
@@ -6197,7 +6412,7 @@
               margin-right: var(--space-3);
             "
           >
-            <use href="#icon-56bb360a"></use>
+            <use href="#sprite-015"></use>
           </svg>
           <input
             type="text"
@@ -6285,7 +6500,7 @@
                   stroke-linecap="round"
                   stroke-linejoin="round"
                 >
-                  <use href="#icon-a3f67e4d"></use>
+                  <use href="#sprite-016"></use>
                 </svg>
                 <span id="tz-current-label">PST</span>
               </div>
@@ -6350,7 +6565,7 @@
                   stroke-linecap="round"
                   stroke-linejoin="round"
                 >
-                  <polyline points="6 9 12 15 18 9"></polyline>
+                  <use href="#sprite-013"></use>
                 </svg>
               </div>
               <div class="goal-presets">
@@ -6412,7 +6627,7 @@
                   stroke-linecap="round"
                   stroke-linejoin="round"
                 >
-                  <polyline points="6 9 12 15 18 9"></polyline>
+                  <use href="#sprite-013"></use>
                 </svg>
               </button>
               <div class="theme-presets">
@@ -6433,7 +6648,7 @@
                     stroke-linejoin="round"
                     style="color: #38bdf8"
                   >
-                    <use href="#icon-3c1c2eb6"></use>
+                    <use href="#sprite-017"></use>
                   </svg>
                   Cobalt Glass
                 </button>
@@ -6454,7 +6669,7 @@
                     stroke-linejoin="round"
                     style="color: #8e8e93"
                   >
-                    <use href="#icon-cebb1e32"></use>
+                    <use href="#sprite-018"></use>
                   </svg>
                   Onyx Black
                 </button>
@@ -6475,7 +6690,7 @@
                     stroke-linejoin="round"
                     style="color: #ff9500"
                   >
-                    <use href="#icon-47bc3e7c"></use>
+                    <use href="#sprite-019"></use>
                   </svg>
                   SF Light
                 </button>
@@ -6496,7 +6711,7 @@
                     stroke-linejoin="round"
                     style="color: #818cf8"
                   >
-                    <use href="#icon-c86d529b"></use>
+                    <use href="#sprite-020"></use>
                   </svg>
                   SF Dark
                 </button>
@@ -6553,7 +6768,7 @@
               stroke-linejoin="round"
               style="flex-shrink: 0"
             >
-              <use href="#icon-b1233e9f"></use>
+              <use href="#sprite-021"></use>
             </svg>
             <span>Work</span>
           </button>
@@ -6569,7 +6784,7 @@
               stroke-linejoin="round"
               style="flex-shrink: 0"
             >
-              <use href="#icon-d140e762"></use>
+              <use href="#sprite-022"></use>
             </svg>
             <span>Break</span>
           </button>
@@ -6585,7 +6800,7 @@
               stroke-linejoin="round"
               style="flex-shrink: 0"
             >
-              <use href="#icon-698f6a1b"></use>
+              <use href="#sprite-023"></use>
             </svg>
             <span>End Shift</span>
           </button>
@@ -6634,7 +6849,7 @@
                   width="14"
                   height="14"
                 >
-                  <use href="#icon-fd86eb48"></use>
+                  <use href="#sprite-024"></use>
                 </svg>
                 Filters
               </button>
@@ -6654,7 +6869,7 @@
                   width="14"
                   height="14"
                 >
-                  <use href="#icon-36af783a"></use>
+                  <use href="#sprite-025"></use>
                 </svg>
                 Add Log
               </button>
@@ -6683,8 +6898,7 @@
                   stroke-linecap="round"
                   stroke-linejoin="round"
                 >
-                  <circle cx="11" cy="11" r="8"></circle>
-                  <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                  <use href="#sprite-026"></use>
                 </svg>
                 <input
                   type="text"
@@ -6768,17 +6982,7 @@
                       stroke-linejoin="round"
                       style="width: 12px; height: 12px"
                     >
-                      <rect
-                        x="3"
-                        y="4"
-                        width="18"
-                        height="18"
-                        rx="2"
-                        ry="2"
-                      ></rect>
-                      <line x1="16" y1="2" x2="16" y2="6"></line>
-                      <line x1="8" y1="2" x2="8" y2="6"></line>
-                      <line x1="3" y1="10" x2="21" y2="10"></line>
+                      <use href="#sprite-027"></use>
                     </svg>
                   </button>
                 </div>
@@ -6844,17 +7048,7 @@
                       stroke-linejoin="round"
                       style="width: 12px; height: 12px"
                     >
-                      <rect
-                        x="3"
-                        y="4"
-                        width="18"
-                        height="18"
-                        rx="2"
-                        ry="2"
-                      ></rect>
-                      <line x1="16" y1="2" x2="16" y2="6"></line>
-                      <line x1="8" y1="2" x2="8" y2="6"></line>
-                      <line x1="3" y1="10" x2="21" y2="10"></line>
+                      <use href="#sprite-027"></use>
                     </svg>
                   </button>
                 </div>
@@ -7208,7 +7402,7 @@
                   stroke-width="2.5"
                   style="width: 12px; height: 12px"
                 >
-                  <use href="#icon-d76bcc50"></use>
+                  <use href="#sprite-028"></use>
                 </svg>
               </button>
 
@@ -7242,7 +7436,7 @@
                   stroke-width="2.5"
                   style="width: 12px; height: 12px"
                 >
-                  <use href="#icon-7da9ac84"></use>
+                  <use href="#sprite-029"></use>
                 </svg>
               </button>
             </div>
@@ -7272,7 +7466,7 @@
                   fill="none"
                   stroke-width="2"
                 >
-                  <use href="#icon-0b357eda"></use>
+                  <use href="#sprite-030"></use>
                 </svg>
               </button>
               <span class="icon-tag">CSV</span>
@@ -7291,7 +7485,7 @@
                   fill="none"
                   stroke-width="2"
                 >
-                  <use href="#icon-f699d873"></use>
+                  <use href="#sprite-031"></use>
                 </svg>
               </button>
               <span class="icon-tag">Copy</span>
@@ -7310,7 +7504,7 @@
                   fill="none"
                   stroke-width="2"
                 >
-                  <use href="#icon-d0747b80"></use>
+                  <use href="#sprite-032"></use>
                 </svg>
               </button>
               <span class="icon-tag">Save</span>
@@ -7320,7 +7514,7 @@
               <button
                 aria-label="Restore JSON"
                 class="icon-btn sq-btn"
-                onclick="document.getElementById('import-file').click()"
+                onclick="DOM.importFile.click()"
                 aria-label="Icon Button"
               >
                 <svg
@@ -7329,7 +7523,7 @@
                   fill="none"
                   stroke-width="2"
                 >
-                  <use href="#icon-459ec513"></use>
+                  <use href="#sprite-033"></use>
                 </svg>
               </button>
               <span class="icon-tag">Load</span>
@@ -7348,10 +7542,7 @@
                   fill="none"
                   stroke-width="2"
                 >
-                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                  <line x1="16" y1="2" x2="16" y2="6"></line>
-                  <line x1="8" y1="2" x2="8" y2="6"></line>
-                  <line x1="3" y1="10" x2="21" y2="10"></line>
+                  <use href="#sprite-034"></use>
                 </svg>
               </button>
               <span class="icon-tag">Leaves</span>
@@ -7372,7 +7563,7 @@
                   stroke-linecap="round"
                   stroke-linejoin="round"
                 >
-                  <use href="#icon-cfe7f835"></use>
+                  <use href="#sprite-012"></use>
                 </svg>
               </button>
               <span class="icon-tag">Heatmap</span>
@@ -7392,7 +7583,7 @@
                   fill="none"
                   stroke-width="2"
                 >
-                  <use href="#icon-6bf1980a"></use>
+                  <use href="#sprite-035"></use>
                 </svg>
               </button>
               <span class="icon-tag">Help</span>
@@ -7414,7 +7605,7 @@
                   stroke-linecap="round"
                   stroke-linejoin="round"
                 >
-                  <use href="#icon-a0221e6f"></use>
+                  <use href="#sprite-036"></use>
                 </svg>
               </button>
               <span class="icon-tag">Settings</span>
@@ -7662,9 +7853,7 @@
                     stroke-linecap="round"
                     stroke-linejoin="round"
                   >
-                    <circle cx="12" cy="12" r="10"></circle>
-                    <line x1="12" y1="16" x2="12" y2="12"></line>
-                    <line x1="12" y1="8" x2="12" y2="8"></line>
+                    <use href="#sprite-037"></use>
                   </svg>
                   <span id="settings-help-text" class="settings-help-text"
                     >Hover over any setting to view its description.</span
@@ -7686,7 +7875,7 @@
                   fill="none"
                   stroke-width="2"
                 >
-                  <use href="#icon-dc2cf02d"></use>
+                  <use href="#sprite-038"></use>
                 </svg>
               </button>
               <span
@@ -7712,9 +7901,7 @@
           title="Scroll to Top"
           aria-label="Scroll to Top"
         >
-          <svg viewBox="0 0 24 24">
-            <path d="M12 19V5M5 12l7-7 7 7" />
-          </svg>
+          <svg viewBox="0 0 24 24"><use href="#sprite-039"></use></svg>
         </button>
       </div>
     </div>
@@ -7903,7 +8090,7 @@
             qIdx++;
           } else {
             consecutive = 0;
-            score -= 0.1;
+            score -= 1;
           }
           tIdx++;
         }
@@ -8037,18 +8224,18 @@
 
       // Vector Icon Resources (SVG mappings)
       const SVGs = {
-        play: `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><use href="#icon-b1233e9f"></use></svg>`,
-        pause: `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><use href="#icon-d140e762"></use></svg>`,
-        stop: `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><use href="#icon-698f6a1b"></use></svg>`,
-        copy: `<svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2"><use href="#icon-a323ea2d"></use></svg>`,
-        edit: `<svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2"><use href="#icon-610fc1b7"></use></svg>`,
-        plus: `<svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" width="18" height="18"><use href="#icon-59ac4ca9"></use></svg>`,
-        note: `<svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2"><use href="#icon-6ea0858b"></use></svg>`,
-        trash: `<svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2"><use href="#icon-6e0c3b0f"></use></svg>`,
-        themeCobalt: `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #38bdf8;"><use href="#icon-b8385845"></use></svg>`,
-        themeOnyx: `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #8e8e93;"><use href="#icon-ef8e4b16"></use></svg>`,
-        themeSfDark: `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #818cf8;"><use href="#icon-d457aa18"></use></svg>`,
-        themeSfLight: `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #ff9500;"><use href="#icon-c10237b5"></use></svg>`,
+        play: `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><use href="#sprite-021"></use></svg>`,
+        pause: `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><use href="#sprite-022"></use></svg>`,
+        stop: `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><use href="#sprite-023"></use></svg>`,
+        copy: `<svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2"><use href="#sprite-040"></use></svg>`,
+        edit: `<svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2"><use href="#sprite-041"></use></svg>`,
+        plus: `<svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" width="18" height="18"><use href="#sprite-042"></use></svg>`,
+        note: `<svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2"><use href="#sprite-043"></use></svg>`,
+        trash: `<svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2"><use href="#sprite-044"></use></svg>`,
+        themeCobalt: `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #38bdf8;"><use href="#sprite-045"></use></svg>`,
+        themeOnyx: `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #8e8e93;"><use href="#sprite-046"></use></svg>`,
+        themeSfDark: `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #818cf8;"><use href="#sprite-047"></use></svg>`,
+        themeSfLight: `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #ff9500;"><use href="#sprite-048"></use></svg>`,
       };
 
       // Live session core tracking state structure
@@ -8106,11 +8293,14 @@
       let cachedLogs = [];
       let cachedTodayDate = null;
       let cachedTodayLoggedSeconds = 0;
+      let _cachedIdleThresholdMs = 3600000; // 60 minutes default
       let cachedIdleTz = null;
       let cachedIdleFormatter = null;
       let virtualScrollLogs = [];
       let lastVirtualStart = -1; // Skip DOM rebuild when visible range unchanged
       let lastVirtualEnd = -1;
+      let _renderLogbookPending = false; // Re-entrancy guard for burst calls
+      let _lastSelectedLogIdx = -1; // Fast-path cache for selected index in virtual scroll
       let selectedLogIdx = -1; // Keyboard-navigated row index into virtualScrollLogs
       let weeklyCache = new Map(); // Key: UTC Monday Epoch Milliseconds
       let dailyAnchorMap = new Map(); // DateString -> GoalSeconds
@@ -8129,7 +8319,7 @@
        * Executes getDotSVG logic.
        */
       function getDotSVG(color, opacity = 1) {
-        return `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><circle cx='12' cy='12' r='10' fill='${encodeURIComponent(color)}' fill-opacity='${opacity}'/></svg>`;
+        return `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><use href="#sprite-049"></use></svg>`;
       }
 
       // High-performance background timer worker to keep loop active when backgrounded
@@ -8170,6 +8360,11 @@
         weeklyBreakdown: document.getElementById("weekly-breakdown"),
         weeklyBreak: document.getElementById("total-weekly-break"),
         goalHours: document.getElementById("goal-hours"),
+        todayWorkVal: document.getElementById("today-work-val"),
+        todayBreakVal: document.getElementById("today-break-val"),
+        todayVarianceVal: document.getElementById("today-variance-val"),
+        todayVarianceBadge: document.getElementById("today-variance-badge"),
+        todayFocusVal: document.getElementById("today-focus-val"),
         goalMins: document.getElementById("goal-mins"),
         primaryTz: document.getElementById("primary-tz"),
         submitModal: document.getElementById("submit-modal"),
@@ -8201,6 +8396,100 @@
         weeklyStatusMsg: document.getElementById("weekly-status-msg"),
         weeklyProgressCard: document.getElementById("weekly-progress-card"),
         submitBtn: document.getElementById("submit-btn"),
+        hudInput: document.getElementById("hud-input"),
+        filterDateStart: document.getElementById("filter-date-start"),
+        filterDateEnd: document.getElementById("filter-date-end"),
+        tabConflictModal: document.getElementById("tab-conflict-modal"),
+        goalTime: document.getElementById("goal-time"),
+        filterToggleBtn: document.getElementById("filter-toggle-btn"),
+        filterSearch: document.getElementById("filter-search"),
+        advancedFilters: document.getElementById("advanced-filters"),
+        undoToast: document.getElementById("undo-toast"),
+        editDate: document.getElementById("edit-date"),
+        leaveDateInput: document.getElementById("leave-date-input"),
+        importFile: document.getElementById("import-file"),
+        heatmapModal: document.getElementById("heatmap-modal"),
+        appTooltip: document.getElementById("app-tooltip"),
+        heatmapContainerAnim: document.getElementById("heatmap-container-anim"),
+        editWork: document.getElementById("edit-work"),
+        manualGoal: document.getElementById("manual-goal"),
+        confirmActionBtn: document.getElementById("confirm-action-btn"),
+        idleToggle: document.getElementById("idle-toggle"),
+        idleRangeContainer: document.getElementById("idle-range-container"),
+        autoBackupToggle: document.getElementById("auto-backup-toggle"),
+        autoEmailToggle: document.getElementById("auto-email-toggle"),
+        manualDate: document.getElementById("manual-date"),
+        manualWork: document.getElementById("manual-work"),
+        manualModal: document.getElementById("manual-modal"),
+        helpModal: document.getElementById("help-modal"),
+        presetInput: document.getElementById("preset-input"),
+        confirmTitle: document.getElementById("confirm-title"),
+        themeToggleIcon: document.getElementById("theme-toggle-icon"),
+        goalToast: document.getElementById("goal-toast"),
+        logbookScrollTopBtn: document.getElementById("logbook-scroll-top-btn"),
+        heatmapTooltip: document.getElementById("heatmap-tooltip"),
+        heatmapYearCurrentLabel: document.getElementById(
+          "heatmap-year-current-label",
+        ),
+        editBreak: document.getElementById("edit-break"),
+        editGoal: document.getElementById("edit-goal"),
+        editNotes: document.getElementById("edit-notes"),
+        editModal: document.getElementById("edit-modal"),
+        settingsConfigPopup: document.getElementById("settings-config-popup"),
+        hudModal: document.getElementById("hud-modal"),
+        hudContainerAnim: document.getElementById("hud-container-anim"),
+        idleValDisplay: document.getElementById("idle-val-display"),
+        goalAutopopulateToggle: document.getElementById(
+          "goal-autopopulate-toggle",
+        ),
+        modeSimple: document.getElementById("mode-simple"),
+        modeIntelligent: document.getElementById("mode-intelligent"),
+        idleSlider: document.getElementById("idle-slider"),
+        snapshotRestoreSelect: document.getElementById(
+          "snapshot-restore-select",
+        ),
+        manualBreak: document.getElementById("manual-break"),
+        manualNotes: document.getElementById("manual-notes"),
+        presetModal: document.getElementById("preset-modal"),
+        leaveModal: document.getElementById("leave-modal"),
+        syncToast: document.getElementById("sync-toast"),
+        appToast: document.getElementById("app-toast"),
+        confirmModal: document.getElementById("confirm-modal"),
+        tzCurrentLabel: document.getElementById("tz-current-label"),
+        tooltipWorkVal: document.getElementById("tooltip-work-val"),
+        tooltipBreakVal: document.getElementById("tooltip-break-val"),
+        goalToastTime: document.getElementById("goal-toast-time"),
+        undoBtn: document.getElementById("undo-btn"),
+        idleTitleText: document.getElementById("idle-title-text"),
+        idleDescriptionText: document.getElementById("idle-description-text"),
+        idleHeader: document.getElementById("idle-header"),
+        idleLastActive: document.getElementById("idle-last-active"),
+        stickyMonthText: document.getElementById("sticky-month-text"),
+        logCountDisplay: document.getElementById("log-count-display"),
+        heatmapContainer: document.getElementById("heatmap-container"),
+        heatmapMonths: document.getElementById("heatmap-months"),
+        heatmapStreak: document.getElementById("heatmap-streak"),
+        heatmapYearTrigger: document.getElementById("heatmap-year-trigger"),
+        heatmapYearPresets: document.getElementById("heatmap-year-presets"),
+        legendLow: document.getElementById("legend-low"),
+        legendMed: document.getElementById("legend-med"),
+        legendHigh: document.getElementById("legend-high"),
+        legendExceeded: document.getElementById("legend-exceeded"),
+        heatmapYtdStats: document.getElementById("heatmap-ytd-stats"),
+        conflictCount: document.getElementById("conflict-count"),
+        conflictWizardModal: document.getElementById("conflict-wizard-modal"),
+        hudLiveTimerVal: document.getElementById("hud-live-timer-val"),
+        hudResults: document.getElementById("hud-results"),
+        settingsModeDesc: document.getElementById("settings-mode-desc"),
+        idleSettingsWrapper: document.getElementById("idle-settings-wrapper"),
+        leaveTypeSelect: document.getElementById("leave-type-select"),
+        leaveDatesList: document.getElementById("leave-dates-list"),
+        manualDatePicker: document.getElementById("manual-date-picker"),
+        editDatePicker: document.getElementById("edit-date-picker"),
+        leaveDatePicker: document.getElementById("leave-date-picker"),
+        appToastContent: document.getElementById("app-toast-content"),
+        confirmDesc: document.getElementById("confirm-desc"),
+        settingsHelpText: document.getElementById("settings-help-text"),
       };
 
       /*==========================================================================
@@ -8503,7 +8792,7 @@
         if (e.data.type === "takeover") {
           // We have been evicted by another tab. Transition to conflict mode.
           isTabConflict = true;
-          document.getElementById("tab-conflict-modal").style.display = "flex";
+          DOM.tabConflictModal.style.display = "flex";
         }
       };
 
@@ -8527,15 +8816,13 @@
                   state.sessionAnchorWall = null;
                 }
                 renderStaticUI();
-                document.getElementById("tab-conflict-modal").style.display =
-                  "flex";
+                DOM.tabConflictModal.style.display = "flex";
               }
             }
           } else if (lease.ownerId === instanceId) {
             if (isTabConflict) {
               isTabConflict = false;
-              document.getElementById("tab-conflict-modal").style.display =
-                "none";
+              DOM.tabConflictModal.style.display = "none";
             }
           }
         } catch (e) {
@@ -8612,8 +8899,7 @@
                   now - existingLease.lastHeartbeat < 3000
                 ) {
                   isTabConflict = true;
-                  document.getElementById("tab-conflict-modal").style.display =
-                    "flex";
+                  DOM.tabConflictModal.style.display = "flex";
                   resolve(false);
                   return;
                 }
@@ -8635,13 +8921,11 @@
                   };
                   localStorage.setItem(LEASE_KEY, JSON.stringify(lease));
                   isTabConflict = false;
-                  document.getElementById("tab-conflict-modal").style.display =
-                    "none";
+                  DOM.tabConflictModal.style.display = "none";
                   resolve(true);
                 } else {
                   isTabConflict = true;
-                  document.getElementById("tab-conflict-modal").style.display =
-                    "flex";
+                  DOM.tabConflictModal.style.display = "flex";
                   resolve(false);
                 }
               } catch (e) {
@@ -8666,7 +8950,7 @@
 
         const now = Date.now();
         // Only renew lease and touch localStorage once every 2 seconds (50% disk I/O reduction)
-        if (now - lastLeaseRenewTime < 2000) return;
+        if (now - lastLeaseRenewTime < 5000) return;
         lastLeaseRenewTime = now;
 
         try {
@@ -8696,7 +8980,7 @@
        */
       function forceTakeover() {
         isTabConflict = false;
-        document.getElementById("tab-conflict-modal").style.display = "none";
+        DOM.tabConflictModal.style.display = "none";
 
         const lease = {
           ownerId: instanceId,
@@ -8780,7 +9064,7 @@
        * Executes selectPresetTZ logic.
        */
       function selectPresetTZ(tzValue) {
-        const select = document.getElementById("primary-tz");
+        const select = DOM.primaryTz;
         if (select) {
           select.value = tzValue;
           select.dispatchEvent(new Event("change"));
@@ -8791,8 +9075,8 @@
        * Executes updateTZLabel logic.
        */
       function updateTZLabel() {
-        const select = document.getElementById("primary-tz");
-        const label = document.getElementById("tz-current-label");
+        const select = DOM.primaryTz;
+        const label = DOM.tzCurrentLabel;
         if (select && label) {
           const activeOpt = select.options[select.selectedIndex];
           if (activeOpt) {
@@ -8823,7 +9107,7 @@
         if (!DOM.goalHours || !DOM.goalMins) return;
         const h = parseInt(DOM.goalHours.value, 10) || 0;
         const m = parseInt(DOM.goalMins.value, 10) || 0;
-        const timeInput = document.getElementById("goal-time");
+        const timeInput = DOM.goalTime;
         if (timeInput && timeInput !== document.activeElement) {
           timeInput.value = `${h}h ${m}m`;
         }
@@ -8835,7 +9119,7 @@
       const themeCycle = ["cyber-glass", "pure-noir", "sf-dark", "sf-light"];
 
       function renderThemeToggle() {
-        const iconSpan = document.getElementById("theme-toggle-icon");
+        const iconSpan = DOM.themeToggleIcon;
         if (!iconSpan) return;
         if (currentTheme === "cobalt-glass") {
           iconSpan.innerHTML = SVGs.themeCobalt;
@@ -8881,7 +9165,7 @@
        */
       window.setThemeDirect = function (themeName) {
         if (themePreviewTimeout) clearTimeout(themePreviewTimeout);
-        const icon = document.getElementById("theme-toggle-icon");
+        const icon = DOM.themeToggleIcon;
         if (icon) icon.classList.add("theme-switching");
 
         currentTheme = themeName; // Instant state update
@@ -8893,7 +9177,7 @@
           renderThemeToggle();
 
           // Dynamically update the heatmap colors if the modal is currently open
-          const heatmapModal = document.getElementById("heatmap-modal");
+          const heatmapModal = DOM.heatmapModal;
           if (
             heatmapModal &&
             heatmapModal.style.display === "flex" &&
@@ -8910,7 +9194,9 @@
        * Highlights the active theme pill inside the dropdown popover
        */
       function updateThemePresetsHighlight() {
-        const pills = document.querySelectorAll(".theme-presets .preset-pill");
+        const pills =
+          _themePillBtns ||
+          document.querySelectorAll(".theme-presets .preset-pill");
         pills.forEach((pill) => {
           const onclickAttr = pill.getAttribute("onclick");
           if (onclickAttr && onclickAttr.includes(currentTheme)) {
@@ -9093,6 +9379,10 @@
           // Rehydrate using unique IDs instead of fragile array indices
           const hydrated = val.map((v) => logMap.get(v.id)).filter(Boolean);
           weeklyCache.set(Number(key), hydrated);
+          // Evict oldest entry if cache exceeds 60 weeks to prevent unbounded growth
+          if (weeklyCache.size > 60) {
+            weeklyCache.delete(weeklyCache.keys().next().value);
+          }
         }
 
         dailyAnchorMap.clear();
@@ -9101,7 +9391,7 @@
         }
 
         renderInsights();
-        if (document.getElementById("tab-logbook").style.display !== "none") {
+        if (DOM.tabLogbook.style.display !== "none") {
           renderLogbook();
         }
         if (typeof autoPopulateDailyGoal === "function") {
@@ -9124,7 +9414,12 @@
        * Executes getPSTDate logic.
        */
       function getPSTDate() {
-        return pstDateFormatter.format(new Date(Date.now()));
+        const nowSec = Math.floor(Date.now() / 1000);
+        if (nowSec !== _cachedPSTDateSec) {
+          _cachedPSTDateSec = nowSec;
+          _cachedPSTDateStr = pstDateFormatter.format(new Date(Date.now()));
+        }
+        return _cachedPSTDateStr;
       }
 
       /**
@@ -9391,7 +9686,7 @@
 
         if (lastStateBackup) {
           lastStateBackup = null;
-          const toast = document.getElementById("undo-toast");
+          const toast = DOM.undoToast;
           if (toast) toast.style.bottom = "-100px";
         }
 
@@ -9553,8 +9848,8 @@
             (window.todayBaseWorkSec || 0) + getCurrentWorkSeconds();
           const liveTodayBreak =
             (window.todayBaseBreakSec || 0) + getCurrentBreakSeconds();
-          const tWorkEl = document.getElementById("tooltip-work-val");
-          const tBreakEl = document.getElementById("tooltip-break-val");
+          const tWorkEl = DOM.tooltipWorkVal;
+          const tBreakEl = DOM.tooltipBreakVal;
           if (tWorkEl)
             tWorkEl.textContent = formatFriendlyDuration(liveTodayWork);
           if (tBreakEl)
@@ -9562,22 +9857,34 @@
         }
 
         if (!document.hidden) {
-          setHTML(
-            DOM.workTimer,
-            formatDuration(workSeconds).replace(
-              /:/g,
-              '<span class="timer-colon">:</span>',
-            ),
-          );
-          setHTML(
-            DOM.breakTimer,
-            formatDuration(breakSeconds).replace(
-              /:/g,
-              '<span class="timer-colon">:</span>',
-            ),
-          );
-          setClock(DOM.primaryClock, primaryFormatter.format(nowDate));
-          setClock(DOM.bstClock, bstFormatter.format(nowDate));
+          const workSecInt = Math.floor(workSeconds);
+          if (workSecInt !== _lastWorkSecInt) {
+            _lastWorkSecInt = workSecInt;
+            setHTML(
+              DOM.workTimer,
+              formatDuration(workSeconds).replace(
+                /:/g,
+                '<span class="timer-colon">:</span>',
+              ),
+            );
+          }
+          const breakSecInt = Math.floor(breakSeconds);
+          if (breakSecInt !== _lastBreakSecInt) {
+            _lastBreakSecInt = breakSecInt;
+            setHTML(
+              DOM.breakTimer,
+              formatDuration(breakSeconds).replace(
+                /:/g,
+                '<span class="timer-colon">:</span>',
+              ),
+            );
+          }
+          const tickSec = Math.floor(nowMs / 1000);
+          if (tickSec !== _lastClockTickSec) {
+            _lastClockTickSec = tickSec;
+            setClock(DOM.primaryClock, primaryFormatter.format(nowDate));
+            setClock(DOM.bstClock, bstFormatter.format(nowDate));
+          }
         }
       }
 
@@ -9787,12 +10094,12 @@
           (logsByDate[todayStr] ? logsByDate[todayStr].b : 0) +
           getCurrentBreakSeconds();
 
-        const todayWorkValEl = document.getElementById("today-work-val");
+        const todayWorkValEl = DOM.todayWorkVal;
         if (todayWorkValEl) {
           todayWorkValEl.innerHTML = formatFriendlyDuration(todayW);
         }
 
-        const todayBreakValEl = document.getElementById("today-break-val");
+        const todayBreakValEl = DOM.todayBreakVal;
         if (todayBreakValEl) {
           todayBreakValEl.innerHTML = formatFriendlyDuration(todayB);
         }
@@ -9810,8 +10117,7 @@
         const diffM = diffMinsTotal % 60;
         const varianceTime = `${diffH}h ${diffM}m`;
 
-        const todayVarianceValEl =
-          document.getElementById("today-variance-val");
+        const todayVarianceValEl = DOM.todayVarianceVal;
         const todayVarianceBadgeEl = document.getElementById(
           "today-variance-badge",
         );
@@ -9826,7 +10132,7 @@
             : "badge badge-under";
         }
 
-        const todayFocusValEl = document.getElementById("today-focus-val");
+        const todayFocusValEl = DOM.todayFocusVal;
         if (todayFocusValEl) {
           const focusVal =
             todayW + todayB > 0
@@ -9837,7 +10143,19 @@
       }
 
       // Cache variables to prevent redundant DOM style and property write updates on ticks
+      let _lastWorkSecInt = -1;
+      let _lastBreakSecInt = -1;
+      let _lastClockTickSec = -1;
+      let _dynamicPresetBtns = null;
+      let _themePillBtns = null;
+      let _cachedPSTDateStr = "";
+      let _cachedPSTDateSec = -1;
+      let _lastSeenText = "";
+      let _lastSeenClass = "";
       const domWriteCache = {
+        _goalHStr: "",
+        _goalMStr: "",
+        _goalSecCached: 0,
         progressFillScale: -1,
         progressFillBg: "",
         progressRailCompleted: null,
@@ -9853,6 +10171,41 @@
       /**
        * Dual-Perspective Progress Engine
        */
+      function isViewingCurrentWeek() {
+        if (!displayBaseDate) return true;
+        const dObj = new Date(
+          Date.UTC(
+            displayBaseDate.getUTCFullYear(),
+            displayBaseDate.getUTCMonth(),
+            displayBaseDate.getUTCDate(),
+            12,
+            0,
+            0,
+          ),
+        );
+        const day = dObj.getUTCDay();
+        const diffToMonday = day === 0 ? -6 : 1 - day;
+        const weekStartMs = dObj.getTime() + diffToMonday * 86400000;
+
+        const todayPST = getPSTDateObj();
+        const todayDObj = new Date(
+          Date.UTC(
+            todayPST.getUTCFullYear(),
+            todayPST.getUTCMonth(),
+            todayPST.getUTCDate(),
+            12,
+            0,
+            0,
+          ),
+        );
+        const todayDay = todayDObj.getUTCDay();
+        const todayDiffToMonday = todayDay === 0 ? -6 : 1 - todayDay;
+        const todayWeekStartMs =
+          todayDObj.getTime() + todayDiffToMonday * 86400000;
+
+        return weekStartMs === todayWeekStartMs;
+      }
+
       function updateProgress(workSeconds) {
         const todayStr = getPSTDate();
 
@@ -9865,10 +10218,17 @@
         //   fully meets today's target, completely independent of the weekly goal.
         // =========================================================================
 
-        const uiGoalSec = getGoalSeconds(
-          DOM.goalHours.value,
-          DOM.goalMins.value,
-        );
+        const hStr = DOM.goalHours.value;
+        const mStr = DOM.goalMins.value;
+        if (
+          hStr !== domWriteCache._goalHStr ||
+          mStr !== domWriteCache._goalMStr
+        ) {
+          domWriteCache._goalHStr = hStr;
+          domWriteCache._goalMStr = mStr;
+          domWriteCache._goalSecCached = getGoalSeconds(hStr, mStr);
+        }
+        const uiGoalSec = domWriteCache._goalSecCached;
         const anchorGoalSec = dailyAnchorMap.get(todayStr) || uiGoalSec;
         const loggedSec = getTodayLoggedWorkSeconds();
         const totalWorkToday = loggedSec + workSeconds;
@@ -9914,40 +10274,6 @@
         const isoDay = dayIdx === 0 ? 7 : dayIdx;
 
         // Helper to check if the currently displayed week matches today's active calendar week
-        const isViewingCurrentWeek = () => {
-          if (!displayBaseDate) return true;
-          const dObj = new Date(
-            Date.UTC(
-              displayBaseDate.getUTCFullYear(),
-              displayBaseDate.getUTCMonth(),
-              displayBaseDate.getUTCDate(),
-              12,
-              0,
-              0,
-            ),
-          );
-          const day = dObj.getUTCDay();
-          const diffToMonday = day === 0 ? -6 : 1 - day;
-          const weekStartMs = dObj.getTime() + diffToMonday * 86400000;
-
-          const todayPST = getPSTDateObj();
-          const todayDObj = new Date(
-            Date.UTC(
-              todayPST.getUTCFullYear(),
-              todayPST.getUTCMonth(),
-              todayPST.getUTCDate(),
-              12,
-              0,
-              0,
-            ),
-          );
-          const todayDay = todayDObj.getUTCDay();
-          const todayDiffToMonday = todayDay === 0 ? -6 : 1 - todayDay;
-          const todayWeekStartMs =
-            todayDObj.getTime() + todayDiffToMonday * 86400000;
-
-          return weekStartMs === todayWeekStartMs;
-        };
 
         // Only apply live scales to the active weekday segments when viewing the current week
         if (isoDay <= 5 && isViewingCurrentWeek()) {
@@ -10036,8 +10362,8 @@
         }
 
         if (isGoalReached && !state.goalNotified) {
-          const toast = document.getElementById("goal-toast");
-          const timeEl = document.getElementById("goal-toast-time");
+          const toast = DOM.goalToast;
+          const timeEl = DOM.goalToastTime;
           if (timeEl) {
             timeEl.innerHTML = formatFriendlyDuration(anchorGoalSec, "0h");
           }
@@ -10099,6 +10425,8 @@
       function closeGhostModal() {
         DOM.ghostModal.style.display = "none";
         pendingSubmitData = null;
+        _lastWorkSecInt = -1;
+        _lastBreakSecInt = -1;
         renderTimersOnly();
       }
 
@@ -10115,7 +10443,7 @@
        */
       function proceedToSubmitModal() {
         populateNoteSuggestions();
-        const notesEl = document.getElementById("modal-shift-notes");
+        const notesEl = DOM.modalShiftNotes;
         if (notesEl) {
           notesEl.value = state.notes || "";
         }
@@ -10146,6 +10474,8 @@
         DOM.submitModal.style.display = "none";
         DOM.modalShiftNotes.value = "";
         pendingSubmitData = null;
+        _lastWorkSecInt = -1;
+        _lastBreakSecInt = -1;
         renderTimersOnly();
       }
 
@@ -10427,7 +10757,7 @@
         saveLogs(logs);
         resetSession();
 
-        const toast = document.getElementById("undo-toast");
+        const toast = DOM.undoToast;
         toast.style.bottom = "30px";
         clearTimeout(undoTimeout);
         undoTimeout = setTimeout(() => {
@@ -10437,7 +10767,7 @@
       }
 
       // Action listener to revert EOD submissions
-      document.getElementById("undo-btn").addEventListener("click", () => {
+      DOM.undoBtn.addEventListener("click", () => {
         if (!lastStateBackup) return;
         state = lastStateBackup;
         state.activeDate = getPSTDate(); // Prevent checkMidnightReset re-triggering after undo
@@ -10453,7 +10783,7 @@
         renderLogbook();
         renderInsights();
 
-        document.getElementById("undo-toast").style.bottom = "-100px";
+        DOM.undoToast.style.bottom = "-100px";
         lastStateBackup = null;
       });
 
@@ -10504,10 +10834,10 @@
        */
       function updateIdleModalLabels() {
         const type = state.idleType || "inactivity";
-        const titleEl = document.getElementById("idle-title-text");
-        const descEl = document.getElementById("idle-description-text");
-        const headerEl = document.getElementById("idle-header");
-        const lastActiveEl = document.getElementById("idle-last-active");
+        const titleEl = DOM.idleTitleText;
+        const descEl = DOM.idleDescriptionText;
+        const headerEl = DOM.idleHeader;
+        const lastActiveEl = DOM.idleLastActive;
 
         if (!headerEl || !titleEl || !descEl || !lastActiveEl) return;
 
@@ -10520,12 +10850,12 @@
           titleEl.textContent = "System Pause Detected";
           descEl.textContent =
             "Your computer went to sleep or this browser tab was suspended to save resources. We paused your timer during this gap to keep your hours accurate.";
-          iconHtml = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="ui-icon" width="24" height="24"><use href="#icon-265dafd3"></use></svg>`;
+          iconHtml = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="ui-icon" width="24" height="24"><use href="#sprite-050"></use></svg>`;
         } else {
           titleEl.textContent = "Inactivity Detected";
           descEl.textContent =
             "No keyboard or mouse movement was detected for your configured threshold. We paused your timer so you don't accidentally log unworked hours.";
-          iconHtml = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="ui-icon" width="24" height="24"><use href="#icon-a7df8588"></use></svg>`;
+          iconHtml = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="ui-icon" width="24" height="24"><use href="#sprite-051"></use></svg>`;
         }
         headerEl.insertAdjacentHTML("afterbegin", iconHtml);
 
@@ -10581,7 +10911,7 @@
         lastActivity = nowWall;
         state.lastActivity = nowWall;
         saveState();
-        document.getElementById("idle-modal").style.display = "none";
+        DOM.idleModal.style.display = "none";
 
         // USE THE CAPTURED MODE
         switchMode(targetMode);
@@ -10634,7 +10964,7 @@
         DOM.submitModal.style.display = "none";
         DOM.ghostModal.style.display = "none";
         DOM.noteModal.style.display = "none";
-        document.getElementById("idle-modal").style.display = "none";
+        DOM.idleModal.style.display = "none";
         renderStaticUI();
         renderTimersOnly();
       }
@@ -10746,7 +11076,7 @@
           const logId = btn.dataset.id;
           const log = getLogs().find((l) => l.id === logId);
           if (log && log.notes) {
-            const tooltip = document.getElementById("app-tooltip");
+            const tooltip = DOM.appTooltip;
             if (tooltip) {
               tooltip.textContent = log.notes;
               const rect = btn.getBoundingClientRect();
@@ -10761,7 +11091,7 @@
       DOM.logContainer.addEventListener("mouseout", (e) => {
         const btn = e.target.closest('button[data-action="view-note"]');
         if (btn) {
-          const tooltip = document.getElementById("app-tooltip");
+          const tooltip = DOM.appTooltip;
           if (tooltip) {
             tooltip.classList.remove("visible");
           }
@@ -10775,9 +11105,8 @@
         const timeFilter = DOM.filterTime.value !== "ALL";
         const statusFilter = DOM.filterStatus.value !== "ALL";
         const notesFilter = DOM.filterNotes.checked;
-        const dateStart =
-          document.getElementById("filter-date-start").value !== "";
-        const dateEnd = document.getElementById("filter-date-end").value !== "";
+        const dateStart = DOM.filterDateStart.value !== "";
+        const dateEnd = DOM.filterDateEnd.value !== "";
         const hoursFilter = DOM.filterHoursOp.value !== "ALL";
 
         let activeCount = 0;
@@ -10788,18 +11117,18 @@
         if (dateEnd) activeCount++;
         if (hoursFilter) activeCount++;
 
-        const btn = document.getElementById("filter-toggle-btn");
+        const btn = DOM.filterToggleBtn;
 
         if (activeCount > 0) {
           btn.classList.add("filter-active");
           btn.innerHTML = `
-          <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" width="18" height="18"><use href="#icon-c8e93a10"></use></svg>
+          <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" width="18" height="18"><use href="#sprite-052"></use></svg>
           Filters (${activeCount})
         `;
         } else {
           btn.classList.remove("filter-active");
           btn.innerHTML = `
-          <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" width="18" height="18"><use href="#icon-c8e93a10"></use></svg>
+          <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" width="18" height="18"><use href="#sprite-052"></use></svg>
           Filters
         `;
         }
@@ -10831,12 +11160,12 @@
           chips.push({ id: "status", label: `Status: ${statusLabel}` });
         }
 
-        const dateStart = document.getElementById("filter-date-start").value;
+        const dateStart = DOM.filterDateStart.value;
         if (dateStart) {
           chips.push({ id: "date-start", label: `From: ${dateStart}` });
         }
 
-        const dateEnd = document.getElementById("filter-date-end").value;
+        const dateEnd = DOM.filterDateEnd.value;
         if (dateEnd) {
           chips.push({ id: "date-end", label: `To: ${dateEnd}` });
         }
@@ -10882,9 +11211,9 @@
         } else if (filterId === "status") {
           DOM.filterStatus.value = "ALL";
         } else if (filterId === "date-start") {
-          document.getElementById("filter-date-start").value = "";
+          DOM.filterDateStart.value = "";
         } else if (filterId === "date-end") {
-          document.getElementById("filter-date-end").value = "";
+          DOM.filterDateEnd.value = "";
         } else if (filterId === "hours") {
           DOM.filterHoursOp.value = "ALL";
           DOM.filterHoursVal.value = "";
@@ -10904,15 +11233,15 @@
         DOM.filterTime.value = "ALL";
         DOM.filterStatus.value = "ALL";
 
-        document.getElementById("filter-date-start").value = "";
-        document.getElementById("filter-date-end").value = "";
+        DOM.filterDateStart.value = "";
+        DOM.filterDateEnd.value = "";
         DOM.filterHoursOp.value = "ALL";
         DOM.filterHoursVal.value = "";
         DOM.filterHoursVal.disabled = true;
         DOM.filterNotes.checked = false;
         DOM.filterViewPresets.value = "";
 
-        const searchInput = document.getElementById("filter-search");
+        const searchInput = DOM.filterSearch;
         if (searchInput) searchInput.value = ""; // Resets the search text field
 
         saveActiveFilters();
@@ -10921,7 +11250,7 @@
       };
 
       // Binds live inputs typing detection helper (add inside the DOM initialization block)
-      const searchInput = document.getElementById("filter-search");
+      const searchInput = DOM.filterSearch;
       if (searchInput) {
         const debouncedSearch = debounce(() => {
           saveActiveFilters();
@@ -10957,8 +11286,8 @@
           name: cleanName,
           time: DOM.filterTime.value,
           status: DOM.filterStatus.value,
-          dateStart: document.getElementById("filter-date-start").value,
-          dateEnd: document.getElementById("filter-date-end").value,
+          dateStart: DOM.filterDateStart.value,
+          dateEnd: DOM.filterDateEnd.value,
           hoursOp: DOM.filterHoursOp.value,
           hoursVal: DOM.filterHoursVal.value,
           hasNotes: DOM.filterNotes.checked,
@@ -11058,9 +11387,8 @@
         if (view) {
           DOM.filterTime.value = view.time || "ALL";
           DOM.filterStatus.value = view.status || "ALL";
-          document.getElementById("filter-date-start").value =
-            view.dateStart || "";
-          document.getElementById("filter-date-end").value = view.dateEnd || "";
+          DOM.filterDateStart.value = view.dateStart || "";
+          DOM.filterDateEnd.value = view.dateEnd || "";
           DOM.filterHoursOp.value = view.hoursOp || "ALL";
           DOM.filterHoursVal.value = view.hoursVal || "";
           DOM.filterNotes.checked = !!view.hasNotes;
@@ -11117,8 +11445,8 @@
         const activeFilters = {
           time: DOM.filterTime.value,
           status: DOM.filterStatus.value,
-          dateStart: document.getElementById("filter-date-start").value,
-          dateEnd: document.getElementById("filter-date-end").value,
+          dateStart: DOM.filterDateStart.value,
+          dateEnd: DOM.filterDateEnd.value,
           hoursOp: DOM.filterHoursOp.value,
           hoursVal: DOM.filterHoursVal.value,
           hasNotes: DOM.filterNotes.checked,
@@ -11137,10 +11465,8 @@
             const pref = JSON.parse(saved);
             DOM.filterTime.value = pref.time || "ALL";
             DOM.filterStatus.value = pref.status || "ALL";
-            document.getElementById("filter-date-start").value =
-              pref.dateStart || "";
-            document.getElementById("filter-date-end").value =
-              pref.dateEnd || "";
+            DOM.filterDateStart.value = pref.dateStart || "";
+            DOM.filterDateEnd.value = pref.dateEnd || "";
             DOM.filterHoursOp.value = pref.hoursOp || "ALL";
             DOM.filterHoursVal.value = pref.hoursVal || "";
             DOM.filterNotes.checked = !!pref.hasNotes;
@@ -11160,13 +11486,13 @@
        * Retrieves filter inputs from DOM securely (Improvement 4: Separate DOM reads).
        */
       function getCurrentFilterCriteria() {
-        const searchInput = document.getElementById("filter-search");
+        const searchInput = DOM.filterSearch;
         return {
           timeFilter: DOM.filterTime.value,
           status: DOM.filterStatus.value,
           hasNotes: DOM.filterNotes.checked,
-          dateStartVal: document.getElementById("filter-date-start").value,
-          dateEndVal: document.getElementById("filter-date-end").value,
+          dateStartVal: DOM.filterDateStart.value,
+          dateEndVal: DOM.filterDateEnd.value,
           hoursOp: DOM.filterHoursOp.value,
           hoursVal: parseFloat(DOM.filterHoursVal.value) || 0,
           searchVal: searchInput ? searchInput.value.trim().toLowerCase() : "",
@@ -11325,7 +11651,7 @@
       window.addEventListener(
         "resize",
         debounce(() => {
-          const logbookTab = document.getElementById("tab-logbook");
+          const logbookTab = DOM.tabLogbook;
           if (logbookTab) {
             cachedViewportHeight = logbookTab.clientHeight;
           }
@@ -11362,7 +11688,7 @@
               const currentScrollTop = DOM.tabLogbook.scrollTop;
 
               // Toggle visibility for the premium Scroll-to-Top action
-              const btn = document.getElementById("logbook-scroll-top-btn");
+              const btn = DOM.logbookScrollTopBtn;
               if (btn) {
                 const logbookVisible = DOM.tabLogbook.style.display !== "none";
                 const isScrollingDown = currentScrollTop > lastLogbookScrollTop;
@@ -11388,7 +11714,7 @@
 
       // Global scroll helper to safely reset logbook pane position
       window.scrollToTopLogbook = function () {
-        const logbookTab = document.getElementById("tab-logbook");
+        const logbookTab = DOM.tabLogbook;
         if (logbookTab) {
           logbookTab.scrollTo({ top: 0, behavior: "smooth" });
         }
@@ -11397,6 +11723,22 @@
       /**
        * Renders virtual elements visible in active scroll windows.
        */
+      // Module-level constant: avoids re-allocating this array on every scroll event
+      const _MONTH_NAMES = [
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December",
+      ];
+
       function renderVirtualVisibleItems() {
         if (virtualScrollLogs.length === 0) {
           const stickyIndicator = document.getElementById(
@@ -11430,7 +11772,7 @@
         const stickyIndicator = document.getElementById(
           "sticky-month-indicator",
         );
-        const stickyTextEl = document.getElementById("sticky-month-text");
+        const stickyTextEl = DOM.stickyMonthText;
         if (scrollTop < 30) {
           if (stickyIndicator) {
             stickyIndicator.style.display = "none";
@@ -11439,20 +11781,7 @@
           const topVisibleIndex = Math.floor(scrollTop / itemHeight);
           if (virtualScrollLogs[topVisibleIndex]) {
             const topLog = virtualScrollLogs[topVisibleIndex];
-            const monthNames = [
-              "January",
-              "February",
-              "March",
-              "April",
-              "May",
-              "June",
-              "July",
-              "August",
-              "September",
-              "October",
-              "November",
-              "December",
-            ];
+            // monthNames is defined as a module-level constant (see _MONTH_NAMES)
             const parts = topLog.date.split("/");
             if (parts.length === 3) {
               const monthIdx = parseInt(parts[0], 10) - 1;
@@ -11460,7 +11789,7 @@
               const fullYear =
                 shortYear.length === 2 ? `20${shortYear}` : shortYear;
               if (monthIdx >= 0 && monthIdx < 12) {
-                const monthText = `${monthNames[monthIdx]} ${fullYear}`;
+                const monthText = `${_MONTH_NAMES[monthIdx]} ${fullYear}`;
                 if (stickyTextEl && stickyIndicator) {
                   if (stickyTextEl.textContent !== monthText) {
                     stickyTextEl.textContent = monthText;
@@ -11477,6 +11806,17 @@
         }
 
         // Generate a single rendering key for the entire viewport content
+        // Fast-path: if viewport bounds and selection unchanged, skip full key computation
+        if (
+          startIndex === lastVirtualStart &&
+          endIndex === lastVirtualEnd &&
+          selectedLogIdx === _lastSelectedLogIdx &&
+          DOM.logContainer.dataset.renderKey !== ""
+        ) {
+          return;
+        }
+        _lastSelectedLogIdx = selectedLogIdx;
+
         let renderKeyParts = [];
         for (let i = startIndex; i <= endIndex; i++) {
           const log = virtualScrollLogs[i];
@@ -11539,13 +11879,15 @@
        * Pre-calculates virtual boundary frames and triggers visibility updates.
        */
       function renderLogbook() {
+        if (_renderLogbookPending) return;
+        _renderLogbookPending = true;
         updateFilterIconState();
         virtualScrollLogs = getFilteredLogs();
         selectedLogIdx = -1;
         lastVirtualStart = -1;
         lastVirtualEnd = -1;
         const itemHeight = getDynamicItemHeight();
-        const countDisplay = document.getElementById("log-count-display");
+        const countDisplay = DOM.logCountDisplay;
         if (countDisplay) {
           const totalLogsCount = getLogs().length;
           const filteredCount = virtualScrollLogs.length;
@@ -11553,10 +11895,8 @@
           const timeFilter = DOM.filterTime.value !== "ALL";
           const statusFilter = DOM.filterStatus.value !== "ALL";
           const notesFilter = DOM.filterNotes.checked;
-          const dateStart =
-            document.getElementById("filter-date-start").value !== "";
-          const dateEnd =
-            document.getElementById("filter-date-end").value !== "";
+          const dateStart = DOM.filterDateStart.value !== "";
+          const dateEnd = DOM.filterDateEnd.value !== "";
           const hoursFilter = DOM.filterHoursOp.value !== "ALL";
           const isFiltering =
             timeFilter ||
@@ -11582,12 +11922,13 @@
         }
         DOM.logContainer.dataset.renderKey = "";
         renderVirtualVisibleItems();
+        _renderLogbookPending = false;
       }
 
       window.addEventListener(
         "resize",
         debounce(() => {
-          const logbookTab = document.getElementById("tab-logbook");
+          const logbookTab = DOM.tabLogbook;
           if (logbookTab) {
             cachedViewportHeight = logbookTab.clientHeight;
           }
@@ -11625,7 +11966,7 @@
         goalStr,
         notesStr,
       ) {
-        const tooltip = document.getElementById("heatmap-tooltip");
+        const tooltip = DOM.heatmapTooltip;
         if (!tooltip) return;
 
         tooltip.innerHTML = `
@@ -11646,7 +11987,7 @@
 
         tooltip.style.display = "block";
         const rect = e.target.getBoundingClientRect();
-        const modal = document.getElementById("heatmap-container-anim");
+        const modal = DOM.heatmapContainerAnim;
         const modalRect = modal.getBoundingClientRect();
 
         // Position tooltip relative to the containing relative modal
@@ -11670,22 +12011,22 @@
 
       function hideHeatmapTooltip() {
         window.isHoveringTodayHeatmap = false;
-        const tooltip = document.getElementById("heatmap-tooltip");
+        const tooltip = DOM.heatmapTooltip;
         if (tooltip) tooltip.style.display = "none";
       }
 
       window.heatmapClickFilter = function (dateStr) {
         closeHeatmapModal();
         switchTab("logbook");
-        const searchInput = document.getElementById("filter-search");
+        const searchInput = DOM.filterSearch;
         if (searchInput) {
           searchInput.value = dateStr;
           searchInput.dispatchEvent(new Event("input"));
         }
 
         // Automatically expand the filter drawer if closed
-        const panel = document.getElementById("advanced-filters");
-        const btn = document.getElementById("filter-toggle-btn");
+        const panel = DOM.advancedFilters;
+        const btn = DOM.filterToggleBtn;
         if (panel && !panel.classList.contains("show")) {
           panel.classList.add("show");
           if (btn) btn.classList.add("active");
@@ -11693,9 +12034,9 @@
       };
 
       function renderHeatmap() {
-        const container = document.getElementById("heatmap-container");
-        const monthsContainer = document.getElementById("heatmap-months");
-        const streakEl = document.getElementById("heatmap-streak");
+        const container = DOM.heatmapContainer;
+        const monthsContainer = DOM.heatmapMonths;
+        const streakEl = DOM.heatmapStreak;
         if (!container) return;
 
         const allLogs = typeof getLogs === "function" ? getLogs() : [];
@@ -11749,15 +12090,15 @@
 
         window.selectHeatmapYear = function (year) {
           window.heatmapSelectedYearVal = year;
-          const label = document.getElementById("heatmap-year-current-label");
+          const label = DOM.heatmapYearCurrentLabel;
           if (label) label.textContent = year;
           renderHeatmap();
         };
 
         // Populate custom year selector options
-        const trigger = document.getElementById("heatmap-year-trigger");
-        const presets = document.getElementById("heatmap-year-presets");
-        const label = document.getElementById("heatmap-year-current-label");
+        const trigger = DOM.heatmapYearTrigger;
+        const presets = DOM.heatmapYearPresets;
+        const label = DOM.heatmapYearCurrentLabel;
 
         if (label) {
           label.textContent = window.heatmapSelectedYearVal;
@@ -11827,10 +12168,10 @@
         ];
 
         // Set dynamic legend colors
-        const lLow = document.getElementById("legend-low");
-        const lMed = document.getElementById("legend-med");
-        const lHigh = document.getElementById("legend-high");
-        const lExceeded = document.getElementById("legend-exceeded");
+        const lLow = DOM.legendLow;
+        const lMed = DOM.legendMed;
+        const lHigh = DOM.legendHigh;
+        const lExceeded = DOM.legendExceeded;
 
         if (lLow && lMed && lHigh && lExceeded) {
           if (currentTheme === "onyx-black") {
@@ -11908,7 +12249,7 @@
             : 0;
         const totalHoursVal = (ytdWorkSec / 3600).toFixed(1);
 
-        const statsEl = document.getElementById("heatmap-ytd-stats");
+        const statsEl = DOM.heatmapYtdStats;
         if (statsEl) {
           statsEl.innerHTML = `
           <span>YTD Work: <strong style="color: var(--accent-work);">${totalHoursVal}h</strong></span>
@@ -12067,8 +12408,8 @@
 
       function openHeatmapModal() {
         if (typeof renderHeatmap === "function") renderHeatmap();
-        const modal = document.getElementById("heatmap-modal");
-        const anim = document.getElementById("heatmap-container-anim");
+        const modal = DOM.heatmapModal;
+        const anim = DOM.heatmapContainerAnim;
         if (!modal || !anim) return;
         modal.style.display = "flex";
         // force reflow
@@ -12079,8 +12420,8 @@
       }
 
       function closeHeatmapModal() {
-        const modal = document.getElementById("heatmap-modal");
-        const anim = document.getElementById("heatmap-container-anim");
+        const modal = DOM.heatmapModal;
+        const anim = DOM.heatmapContainerAnim;
         if (!modal || !anim) return;
         modal.style.opacity = "0";
         anim.style.opacity = "0";
@@ -12444,10 +12785,10 @@
           }
         }
 
-        const progressCard = document.getElementById("weekly-progress-card");
-        const summaryText = document.getElementById("weekly-summary-text");
-        const percentText = document.getElementById("weekly-progress-percent");
-        const weekMsg = document.getElementById("weekly-status-msg");
+        const progressCard = DOM.weeklyProgressCard;
+        const summaryText = DOM.weeklySummaryText;
+        const percentText = DOM.weeklyProgressPercent;
+        const weekMsg = DOM.weeklyStatusMsg;
 
         const isoDay = todayDay === 0 ? 7 : todayDay;
 
@@ -12581,35 +12922,31 @@
 
       DOM.filterTime.addEventListener("change", () => {
         saveActiveFilters();
-        renderLogbook();
+        debouncedRenderLogbook();
       });
       DOM.filterStatus.addEventListener("change", () => {
         saveActiveFilters();
-        renderLogbook();
+        debouncedRenderLogbook();
       });
       DOM.filterNotes.addEventListener("change", () => {
         saveActiveFilters();
-        renderLogbook();
+        debouncedRenderLogbook();
       });
-      document
-        .getElementById("filter-date-start")
-        .addEventListener("change", () => {
-          saveActiveFilters();
-          renderLogbook();
-        });
-      document
-        .getElementById("filter-date-end")
-        .addEventListener("change", () => {
-          saveActiveFilters();
-          renderLogbook();
-        });
+      DOM.filterDateStart.addEventListener("change", () => {
+        saveActiveFilters();
+        debouncedRenderLogbook();
+      });
+      DOM.filterDateEnd.addEventListener("change", () => {
+        saveActiveFilters();
+        debouncedRenderLogbook();
+      });
       DOM.filterHoursVal.addEventListener("input", () => {
         saveActiveFilters();
         debouncedRenderLogbook();
       });
       DOM.filterHoursOp.addEventListener("change", () => {
         saveActiveFilters();
-        renderLogbook();
+        debouncedRenderLogbook();
       });
 
       /**
@@ -12620,13 +12957,9 @@
         const log = logs.find((l) => l.id === logId);
         if (!log) return;
         editingLogId = log.id;
-        document.getElementById("edit-date").value = log.date;
-        document.getElementById("edit-work").value = formatDuration(
-          log.workSec,
-        ).slice(0, 5);
-        document.getElementById("edit-break").value = formatDuration(
-          log.breakSec,
-        ).slice(0, 5);
+        DOM.editDate.value = log.date;
+        DOM.editWork.value = formatDuration(log.workSec).slice(0, 5);
+        DOM.editBreak.value = formatDuration(log.breakSec).slice(0, 5);
 
         // Populate goal input fields with the log's existing daily goal
         const currentGoalSec =
@@ -12636,19 +12969,18 @@
             : 8 * 3600);
         const goalH = Math.floor(currentGoalSec / 3600);
         const goalM = Math.floor((currentGoalSec % 3600) / 60);
-        document.getElementById("edit-goal").value =
-          `${String(goalH).padStart(2, "0")}:${String(goalM).padStart(2, "0")}`;
+        DOM.editGoal.value = `${String(goalH).padStart(2, "0")}:${String(goalM).padStart(2, "0")}`;
 
-        document.getElementById("edit-notes").value = log.notes || "";
-        document.getElementById("edit-modal").style.display = "flex";
-        setTimeout(() => document.getElementById("edit-work").focus(), 100);
+        DOM.editNotes.value = log.notes || "";
+        DOM.editModal.style.display = "flex";
+        setTimeout(() => DOM.editWork.focus(), 100);
       }
 
       /**
        * Executes closeEditModal logic.
        */
       function closeEditModal() {
-        document.getElementById("edit-modal").style.display = "none";
+        DOM.editModal.style.display = "none";
         editingLogId = null;
         isEditSubmitting = false;
       }
@@ -12664,12 +12996,12 @@
         const log = logs.find((l) => l.id === editingLogId);
         if (!log) return;
 
-        let newDate = document.getElementById("edit-date").value.trim();
-        const newWork = document.getElementById("edit-work").value.trim();
-        const newBreak = document.getElementById("edit-break").value.trim();
-        const newNotes = document.getElementById("edit-notes").value.trim();
+        let newDate = DOM.editDate.value.trim();
+        const newWork = DOM.editWork.value.trim();
+        const newBreak = DOM.editBreak.value.trim();
+        const newNotes = DOM.editNotes.value.trim();
 
-        const rawGoal = document.getElementById("edit-goal").value.trim();
+        const rawGoal = DOM.editGoal.value.trim();
         const parsedGoal = parseGoalTimeStr(rawGoal);
         const gh = parsedGoal.hh;
         const gm = parsedGoal.mm;
@@ -12682,7 +13014,7 @@
         if (wSec !== null) wSec = Math.min(wSec, 86400);
         if (bSec !== null) bSec = Math.min(bSec, 86400);
 
-        const editDateInput = document.getElementById("edit-date");
+        const editDateInput = DOM.editDate;
         if (newDate.match(/^\d{1,2}\/\d{1,2}\/(\d{2}|\d{4})$/)) {
           const parts = newDate.split("/");
           const y = parts[2].length === 4 ? parts[2].slice(-2) : parts[2];
@@ -12947,7 +13279,7 @@
                 );
 
                 if (overlappingLogs.length > 0) {
-                  const countEl = document.getElementById("conflict-count");
+                  const countEl = DOM.conflictCount;
                   if (countEl) countEl.textContent = overlappingLogs.length;
 
                   const listEl = document.getElementById(
@@ -13023,7 +13355,7 @@
 
       // Handles the wizard actions dynamically
       window.resolveImportConflict = function (resolutionType) {
-        document.getElementById("conflict-wizard-modal").style.display = "none";
+        DOM.conflictWizardModal.style.display = "none";
         if (!tempImportData) return;
         finalizeImport(resolutionType);
       };
@@ -13517,7 +13849,7 @@
 
         // Increment ticks and trigger a structural state auto-save every 10 seconds
         saveTicks++;
-        if (saveTicks % 10 === 0) {
+        if (saveTicks % 15 === 0) {
           saveState();
         }
 
@@ -13528,7 +13860,7 @@
           !state.idleLock &&
           state.currentMode !== null
         ) {
-          if (nowMs - lastActivity > getIdleThresholdMs()) {
+          if (nowMs - lastActivity > _cachedIdleThresholdMs) {
             triggerIdleLock(lastActivity, "inactivity");
             return; // Lock and abort tick
           }
@@ -13604,7 +13936,7 @@
             }
           } else if (
             state.idleTrackingEnabled !== false &&
-            idleGap > getIdleThresholdMs()
+            idleGap > _cachedIdleThresholdMs
           ) {
             triggerIdleLock(lastActivity, "inactivity");
           }
@@ -13700,13 +14032,13 @@
         if (typeof closeHeatmapModal === "function") closeHeatmapModal();
         if (typeof closePresetModal === "function") closePresetModal();
 
-        const settingsPopup = document.getElementById("settings-config-popup");
+        const settingsPopup = DOM.settingsConfigPopup;
         if (settingsPopup && settingsPopup.classList.contains("show")) {
           settingsPopup.classList.remove("show");
         }
 
-        const panel = document.getElementById("advanced-filters");
-        const btn = document.getElementById("filter-toggle-btn");
+        const panel = DOM.advancedFilters;
+        const btn = DOM.filterToggleBtn;
         if (panel && panel.classList.contains("show")) {
           panel.classList.remove("show");
           if (btn) btn.classList.remove("active");
@@ -13721,7 +14053,7 @@
           desc: "Begin a new work session or resume from break",
           category: "Timers",
           aliases: ["resume", "sw", "go", "working"],
-          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-work)" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>`,
+          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-work)" stroke-width="2"><use href="#sprite-053"></use></svg>`,
           action: () => {
             if (state.currentMode !== "work") switchMode("work");
           },
@@ -13732,7 +14064,7 @@
           desc: "End the current active work session",
           category: "Timers",
           aliases: ["end", "done", "stop working"],
-          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-work)" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect></svg>`,
+          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-work)" stroke-width="2"><use href="#sprite-054"></use></svg>`,
           action: () => {
             if (state.currentMode === "work") switchMode(null);
           },
@@ -13743,7 +14075,7 @@
           desc: "Pause work and begin a break session",
           category: "Timers",
           aliases: ["sb", "pause", "rest", "coffee", "lunch", "afk"],
-          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-break)" stroke-width="2"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>`,
+          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-break)" stroke-width="2"><use href="#sprite-055"></use></svg>`,
           action: () => {
             if (state.currentMode !== "break") switchMode("break");
           },
@@ -13754,7 +14086,7 @@
           desc: "End the current break session",
           category: "Timers",
           aliases: ["resume work", "end break", "back"],
-          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-break)" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect></svg>`,
+          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-break)" stroke-width="2"><use href="#sprite-054"></use></svg>`,
           action: () => {
             if (state.currentMode === "break") switchMode("work");
           },
@@ -13765,7 +14097,7 @@
           desc: "Open modal to log a custom past time entry",
           category: "Logs",
           aliases: ["manual", "edit", "past", "new log"],
-          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text-main)" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>`,
+          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text-main)" stroke-width="2"><use href="#sprite-056"></use></svg>`,
           action: () => openManualModal(),
         },
         {
@@ -13774,7 +14106,7 @@
           desc: "Switch view to the main timers dashboard",
           category: "Navigation",
           aliases: ["main", "home", "timers", "ui", "app", "dash"],
-          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text-main)" stroke-width="2"><use href="#icon-256ee864"></use></svg>`,
+          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text-main)" stroke-width="2"><use href="#sprite-057"></use></svg>`,
           action: () => switchTab("dashboard"),
         },
         {
@@ -13783,7 +14115,7 @@
           desc: "Switch view to see historical logs",
           category: "Navigation",
           aliases: ["history", "past", "logs", "records", "list"],
-          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text-main)" stroke-width="2"><use href="#icon-bc1d7da2"></use></svg>`,
+          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text-main)" stroke-width="2"><use href="#sprite-058"></use></svg>`,
           action: () => switchTab("logbook"),
         },
         {
@@ -13799,7 +14131,7 @@
             "progress",
             "week",
           ],
-          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text-main)" stroke-width="2"><use href="#icon-f5566772"></use></svg>`,
+          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text-main)" stroke-width="2"><use href="#sprite-059"></use></svg>`,
           action: () => switchTab("insights"),
         },
         {
@@ -13808,7 +14140,7 @@
           desc: "Increase daily goal slightly",
           category: "Goals",
           aliases: ["+15", "increase goal", "bump"],
-          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-work)" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>`,
+          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-work)" stroke-width="2"><use href="#sprite-056"></use></svg>`,
           action: () => adjustGoal(15),
         },
         {
@@ -13817,7 +14149,7 @@
           desc: "Decrease daily goal slightly",
           category: "Goals",
           aliases: ["-15", "decrease goal", "drop"],
-          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-break)" stroke-width="2"><use href="#icon-5b2822e3"></use></svg>`,
+          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-break)" stroke-width="2"><use href="#sprite-060"></use></svg>`,
           action: () => adjustGoal(-15),
         },
         {
@@ -13827,10 +14159,10 @@
           category: "Goals",
           aliases: ["set goal", "daily goal"],
           keepOpen: true,
-          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-warning)" stroke-width="2"><use href="#icon-f109317b"></use></svg>`,
+          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-warning)" stroke-width="2"><use href="#sprite-061"></use></svg>`,
           action: (arg) => {
             if (!arg || !arg.trim()) {
-              const input = document.getElementById("hud-input");
+              const input = DOM.hudInput;
               if (input) {
                 input.value = "goal ";
                 input.dispatchEvent(new Event("input"));
@@ -13888,7 +14220,7 @@
               localStorage.setItem(GOAL_H_KEY, h);
               localStorage.setItem(GOAL_M_KEY, m);
 
-              const goalTimeEl = document.getElementById("goal-time");
+              const goalTimeEl = DOM.goalTime;
               if (goalTimeEl) goalTimeEl.value = `${h}h ${m}m`;
 
               if (typeof updatePresetHighlights === "function")
@@ -13912,7 +14244,7 @@
           desc: "Pacific Standard Time (America/Los_Angeles)",
           category: "Timezones",
           aliases: ["pacific", "los angeles", "pt", "california"],
-          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-blue)" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>`,
+          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-blue)" stroke-width="2"><use href="#sprite-062"></use></svg>`,
           action: () => selectPresetTZ("America/Los_Angeles"),
         },
         {
@@ -13921,7 +14253,7 @@
           desc: "Eastern Standard Time (America/New_York)",
           category: "Timezones",
           aliases: ["eastern", "new york", "et", "east"],
-          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-blue)" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>`,
+          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-blue)" stroke-width="2"><use href="#sprite-062"></use></svg>`,
           action: () => selectPresetTZ("America/New_York"),
         },
         {
@@ -13930,7 +14262,7 @@
           desc: "Central Standard Time (America/Chicago)",
           category: "Timezones",
           aliases: ["central", "chicago", "ct", "midwest"],
-          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-blue)" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>`,
+          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-blue)" stroke-width="2"><use href="#sprite-062"></use></svg>`,
           action: () => selectPresetTZ("America/Chicago"),
         },
         {
@@ -13939,7 +14271,7 @@
           desc: "Deep pitch black dark mode",
           category: "Themes",
           aliases: ["darkest", "pitch black", "oled", "amoled", "black"],
-          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" /><path d="M15 5h2M16 4v2" stroke-width="1.5" /></svg>`,
+          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#sprite-063"></use></svg>`,
           previewAction: () =>
             document.documentElement.setAttribute("data-theme", "onyx-black"),
           action: () => {
@@ -13954,7 +14286,7 @@
           desc: "Translucent blue glassmorphism mode",
           category: "Themes",
           aliases: ["blue", "transparent", "frosted", "glass"],
-          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#38bdf8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2" /><polyline points="2 17 12 22 22 17" /><polyline points="2 12 12 17 22 12" /></svg>`,
+          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#38bdf8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#sprite-064"></use></svg>`,
           previewAction: () =>
             document.documentElement.setAttribute("data-theme", "cobalt-glass"),
           action: () => {
@@ -13969,7 +14301,7 @@
           desc: "System neutral charcoal dark mode",
           category: "Themes",
           aliases: ["dark", "charcoal", "gray", "system dark"],
-          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#8e8e93" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a10 10 0 1 0 10 10H12V2z" fill="currentColor" fill-opacity="0.12" /><circle cx="12" cy="12" r="10" /></svg>`,
+          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#8e8e93" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#sprite-065"></use></svg>`,
           previewAction: () =>
             document.documentElement.setAttribute("data-theme", "sf-dark"),
           action: () => {
@@ -13984,7 +14316,7 @@
           desc: "Bright, clean system light mode",
           category: "Themes",
           aliases: ["light", "white", "bright", "system light"],
-          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#f3a31a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" /></svg>`,
+          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#f3a31a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#sprite-066"></use></svg>`,
           previewAction: () =>
             document.documentElement.setAttribute("data-theme", "sf-light"),
           action: () => {
@@ -13999,7 +14331,7 @@
           desc: "Download visible logs as spreadsheet",
           category: "Data",
           aliases: ["excel", "spreadsheet", "download", "export"],
-          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text-main)" stroke-width="2"><use href="#icon-67e6f224"></use></svg>`,
+          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text-main)" stroke-width="2"><use href="#sprite-067"></use></svg>`,
           action: () => exportCSV(),
         },
         {
@@ -14008,7 +14340,7 @@
           desc: "Download full JSON state backup to local drive",
           category: "Data",
           aliases: ["backup", "save data", "download full", "export full"],
-          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text-main)" stroke-width="2"><use href="#icon-404ab491"></use></svg>`,
+          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text-main)" stroke-width="2"><use href="#sprite-068"></use></svg>`,
           action: () => exportJSON(),
         },
         {
@@ -14017,8 +14349,8 @@
           desc: "Trigger JSON restore to merge or restore your backup logs",
           category: "Data",
           aliases: ["import", "upload", "load", "restore data"],
-          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text-main)" stroke-width="2"><use href="#icon-e1ac78fb"></use></svg>`,
-          action: () => document.getElementById("import-file").click(),
+          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text-main)" stroke-width="2"><use href="#sprite-069"></use></svg>`,
+          action: () => DOM.importFile.click(),
         },
         {
           key: "wipe",
@@ -14032,7 +14364,7 @@
             "clear cache",
             "reset",
           ],
-          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-break)" stroke-width="2"><use href="#icon-49bf4a24"></use></svg>`,
+          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-break)" stroke-width="2"><use href="#sprite-070"></use></svg>`,
           action: () => clearAllData(),
         },
         {
@@ -14049,7 +14381,7 @@
             "away",
             "leaves",
           ],
-          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text-main)" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>`,
+          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text-main)" stroke-width="2"><use href="#sprite-071"></use></svg>`,
           action: () => openLeaveModal(),
         },
         {
@@ -14059,9 +14391,9 @@
           category: "Write Engine",
           aliases: ["logshift", "create", "insert", "new log"],
           keepOpen: true,
-          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text-main)" stroke-width="2"><use href="#icon-2d43a51b"></use></svg>`,
+          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text-main)" stroke-width="2"><use href="#sprite-072"></use></svg>`,
           action: () => {
-            const input = document.getElementById("hud-input");
+            const input = DOM.hudInput;
             input.value = "add ";
             input.dispatchEvent(new Event("input"));
           },
@@ -14082,7 +14414,7 @@
             "manual",
             "docs",
           ],
-          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text-main)" stroke-width="2"><use href="#icon-941c04e2"></use></svg>`,
+          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text-main)" stroke-width="2"><use href="#sprite-073"></use></svg>`,
           action: () => openHelpModal(),
         },
         {
@@ -14092,10 +14424,10 @@
           category: "Navigation",
           aliases: ["find", "lookup", "query"],
           keepOpen: true,
-          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text-main)" stroke-width="2"><use href="#icon-9c8ee3dd"></use></svg>`,
+          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text-main)" stroke-width="2"><use href="#sprite-074"></use></svg>`,
           action: (arg) => {
             if (!arg || !arg.trim()) {
-              const input = document.getElementById("hud-input");
+              const input = DOM.hudInput;
               if (input) {
                 input.value = "search ";
                 input.dispatchEvent(new Event("input"));
@@ -14104,15 +14436,15 @@
             }
             closeHudModal();
             switchTab("logbook");
-            const searchInput = document.getElementById("filter-search");
+            const searchInput = DOM.filterSearch;
             if (searchInput) {
               searchInput.value = arg.trim();
               searchInput.dispatchEvent(new Event("input"));
             }
 
             // Open advanced filters automatically to show results context clearly
-            const panel = document.getElementById("advanced-filters");
-            const btn = document.getElementById("filter-toggle-btn");
+            const panel = DOM.advancedFilters;
+            const btn = DOM.filterToggleBtn;
             if (panel && !panel.classList.contains("show")) {
               panel.classList.add("show");
               if (btn) btn.classList.add("active");
@@ -14126,10 +14458,10 @@
           category: "Logs",
           aliases: ["log note", "append note", "write note", "add note"],
           keepOpen: true,
-          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text-main)" stroke-width="2"><use href="#icon-2d43a51b"></use></svg>`,
+          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text-main)" stroke-width="2"><use href="#sprite-072"></use></svg>`,
           action: (arg) => {
             if (!arg || !arg.trim()) {
-              const input = document.getElementById("hud-input");
+              const input = DOM.hudInput;
               if (input) {
                 input.value = "note ";
                 input.dispatchEvent(new Event("input"));
@@ -14151,7 +14483,7 @@
             }
             saveState();
 
-            const notesEl = document.getElementById("modal-shift-notes");
+            const notesEl = DOM.modalShiftNotes;
             if (notesEl) {
               notesEl.value = state.notes;
             }
@@ -14164,7 +14496,7 @@
           desc: "Copy your worked hours and goal progress to clipboard",
           category: "Data",
           aliases: ["copy status", "status", "copy report"],
-          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text-main)" stroke-width="2"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg>`,
+          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text-main)" stroke-width="2"><use href="#sprite-075"></use></svg>`,
           action: () => {
             const wSec = getCurrentWorkSeconds();
             const goalH = parseFloat(localStorage.getItem(GOAL_H_KEY)) || 8;
@@ -14186,10 +14518,10 @@
           category: "Web",
           aliases: ["google", "search web"],
           keepOpen: true,
-          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text-main)" stroke-width="2"><use href="#icon-9c8ee3dd"></use></svg>`,
+          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text-main)" stroke-width="2"><use href="#sprite-074"></use></svg>`,
           action: (arg) => {
             if (!arg || !arg.trim()) {
-              const input = document.getElementById("hud-input");
+              const input = DOM.hudInput;
               if (input) {
                 input.value = "g ";
                 input.dispatchEvent(new Event("input"));
@@ -14209,7 +14541,7 @@
           desc: "Copy all local storage state to clipboard for debugging",
           category: "Data",
           aliases: ["raw", "state", "dump"],
-          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text-main)" stroke-width="2"><use href="#icon-433a13fc"></use></svg>`,
+          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text-main)" stroke-width="2"><use href="#sprite-076"></use></svg>`,
           action: () => {
             const raw = safeGetLocalStorage(STATE_KEY);
             if (raw) {
@@ -14228,10 +14560,10 @@
           category: "Logs",
           aliases: ["add leave", "mark leave"],
           keepOpen: true,
-          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text-main)" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>`,
+          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text-main)" stroke-width="2"><use href="#sprite-071"></use></svg>`,
           action: (arg) => {
             if (!arg || !arg.trim()) {
-              const input = document.getElementById("hud-input");
+              const input = DOM.hudInput;
               if (input) {
                 input.value = "leave ";
                 input.dispatchEvent(new Event("input"));
@@ -14277,9 +14609,9 @@
           category: "Insights",
           aliases: ["stats", "hours", "total"],
           keepOpen: true,
-          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-blue)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-0d06e9d3"></use></svg>`,
+          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-blue)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#sprite-077"></use></svg>`,
           action: () => {
-            const input = document.getElementById("hud-input");
+            const input = DOM.hudInput;
             if (input) {
               input.value = "metrics ";
               input.dispatchEvent(new Event("input"));
@@ -14293,9 +14625,9 @@
           category: "Insights",
           aliases: ["invoice", "csv", "email", "timesheet"],
           keepOpen: true,
-          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-blue)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>`,
+          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-blue)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#sprite-078"></use></svg>`,
           action: () => {
-            const input = document.getElementById("hud-input");
+            const input = DOM.hudInput;
             if (input) {
               input.value = "export ";
               input.dispatchEvent(new Event("input"));
@@ -14316,9 +14648,9 @@
             "records",
           ],
           keepOpen: true,
-          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text-main)" stroke-width="2"><use href="#icon-67e6f224"></use></svg>`,
+          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text-main)" stroke-width="2"><use href="#sprite-067"></use></svg>`,
           action: () => {
-            const input = document.getElementById("hud-input");
+            const input = DOM.hudInput;
             if (input) {
               input.value = "log ";
               input.dispatchEvent(new Event("input"));
@@ -14388,9 +14720,9 @@
       }
 
       function openHudModal() {
-        const modal = document.getElementById("hud-modal");
-        const animContainer = document.getElementById("hud-container-anim");
-        const input = document.getElementById("hud-input");
+        const modal = DOM.hudModal;
+        const animContainer = DOM.hudContainerAnim;
+        const input = DOM.hudInput;
         if (!modal || !input) return;
 
         window.originalThemeBeforeHud = currentTheme;
@@ -14412,7 +14744,7 @@
 
         if (hudLiveTimerInterval) clearInterval(hudLiveTimerInterval);
         hudLiveTimerInterval = setInterval(() => {
-          const liveVal = document.getElementById("hud-live-timer-val");
+          const liveVal = DOM.hudLiveTimerVal;
           if (liveVal && typeof formatDuration === "function") {
             liveVal.innerText = formatDuration(getCurrentWorkSeconds());
           }
@@ -14434,8 +14766,8 @@
           window.originalThemeBeforeHud = null;
         }
 
-        const modal = document.getElementById("hud-modal");
-        const animContainer = document.getElementById("hud-container-anim");
+        const modal = DOM.hudModal;
+        const animContainer = DOM.hudContainerAnim;
         if (modal) {
           modal.style.opacity = "0";
           if (animContainer) {
@@ -14481,7 +14813,7 @@
                   title: `= ${mathResult}`,
                   desc: `Evaluated: ${query.trim()} (Press Enter to copy)`,
                   category: "Calculator",
-                  icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-blue)" stroke-width="2"><use href="#icon-412a4e8e"></use></svg>`,
+                  icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-blue)" stroke-width="2"><use href="#sprite-079"></use></svg>`,
                   action: () => {
                     navigator.clipboard
                       .writeText(mathResult.toString())
@@ -14542,7 +14874,7 @@
               title: `Book Leave: ${type} on ${parsedDateStr}`,
               desc: "Press Enter to add to leave database",
               category: "Leave Engine",
-              icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-break)" stroke-width="2"><use href="#icon-c8a1f2ec"></use></svg>`,
+              icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-break)" stroke-width="2"><use href="#sprite-080"></use></svg>`,
               action: () => {
                 const leaves =
                   typeof getLeaveDates === "function" ? getLeaveDates() : [];
@@ -14580,9 +14912,9 @@
                   desc: `Current Notes: ${escapeHTML(match.log.notes) || "None"} (Press Enter to edit)`,
                   category: "Quick Edits",
                   keepOpen: true,
-                  icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-warning)" stroke-width="2"><use href="#icon-df363be2"></use></svg>`,
+                  icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-warning)" stroke-width="2"><use href="#sprite-009"></use></svg>`,
                   action: () => {
-                    const input = document.getElementById("hud-input");
+                    const input = DOM.hudInput;
                     if (input) {
                       input.value = `edit_log_${match.log.id} : ${match.log.notes || ""}`;
                       input.dispatchEvent(new Event("input"));
@@ -14607,7 +14939,7 @@
                 title: `Save Notes to Log`,
                 desc: `New Notes: "${escapeHTML(newNotes)}"`,
                 category: "Quick Edits",
-                icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-blue)" stroke-width="2"><use href="#icon-f5c2fb99"></use></svg>`,
+                icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-blue)" stroke-width="2"><use href="#sprite-081"></use></svg>`,
                 action: () => {
                   const allLogs =
                     typeof getLogs === "function" ? getLogs() : [];
@@ -14743,9 +15075,9 @@
                       ? `Notes: ${escapeHTML(cleanNotes)}`
                       : "No notes.",
                   category: "Write Engine",
-                  icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-blue)" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>`,
+                  icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-blue)" stroke-width="2"><use href="#sprite-082"></use></svg>`,
                   action: () => {
-                    const rawGoalEl = document.getElementById("manual-goal");
+                    const rawGoalEl = DOM.manualGoal;
                     const rawGoal = rawGoalEl ? rawGoalEl.value.trim() : "8h";
                     const parsedGoal =
                       typeof parseGoalTimeStr === "function"
@@ -14866,7 +15198,7 @@
                 title: `Metrics (${titleSuffix}): ${formatDuration(totalW)}`,
                 desc: `Total: ${matchedLogs.length} shifts. ${metricStr} (Press Enter to copy)`,
                 category: "Insights",
-                icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-blue)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-0d06e9d3"></use></svg>`,
+                icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-blue)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#sprite-077"></use></svg>`,
                 action: () => {
                   navigator.clipboard
                     .writeText(
@@ -14927,7 +15259,7 @@
                 title: `<span style="color:var(--accent-blue);">CSV: ${titleLabel}</span>`,
                 desc: `${descLabel}. Press Enter to download spreadsheet.`,
                 category: "Invoicing",
-                icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-blue)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>`,
+                icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-blue)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#sprite-078"></use></svg>`,
                 action: () => {
                   let csvContent =
                     "data:text/csv;charset=utf-8,Date,Log In,Log Out,Work Duration,Break Duration,Notes\n";
@@ -14967,7 +15299,7 @@
                 title: `<span style="color:var(--accent-warning);">Email: ${titleLabel}</span>`,
                 desc: `${descLabel}. Press Enter to draft timesheet email.`,
                 category: "Invoicing",
-                icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-warning)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-b2dfb488"></use></svg>`,
+                icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-warning)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#sprite-083"></use></svg>`,
                 action: () => {
                   let emailBody = `Timesheet Report: ${titleSuffix}\nTotal Shifts: ${matchedLogs.length}\nTotal Work Hours: ${typeof formatDuration === "function" ? formatDuration(totalW) : totalW}\n\nBreakdown:\n`;
                   matchedLogs.forEach((l) => {
@@ -15177,7 +15509,7 @@
                     ? `Notes: ${escapeHTML(l.notes)}`
                     : `No notes. Status: ${l.status || "N/A"}`,
                   category: "Logbook Results",
-                  icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text-muted)" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>`,
+                  icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text-muted)" stroke-width="2"><use href="#sprite-078"></use></svg>`,
                   action: () => {
                     const summary = `Shift Log: ${l.date}\nTime: ${l.login} - ${l.logout}\nWork Time: ${formatDuration(l.workSec)}\nBreak Time: ${formatDuration(l.breakSec)}\nNotes: ${l.notes || "None"}`;
                     navigator.clipboard.writeText(summary).then(() => {
@@ -15241,7 +15573,7 @@
       }
 
       function renderHudResults(query, isDefaultState) {
-        const container = document.getElementById("hud-results");
+        const container = DOM.hudResults;
         if (!container) return;
         if (hudFiltered.length === 0) {
           container.innerHTML = `<div style="text-align: center; color: var(--text-muted); padding: 20px; font-size: 0.9rem;">No commands match "${escapeHTML(query)}"</div>`;
@@ -15316,7 +15648,7 @@
       function executeHudIndex(idx) {
         const cmd = hudFiltered[idx];
         if (!cmd) return;
-        const input = document.getElementById("hud-input").value;
+        const input = DOM.hudInput.value;
 
         if (cmd.previewAction || cmd.category === "Themes") {
           window.originalThemeBeforeHud = null;
@@ -15336,7 +15668,7 @@
 
       // Binding Quick Palette events once loaded
       setTimeout(() => {
-        const hudInput = document.getElementById("hud-input");
+        const hudInput = DOM.hudInput;
         if (hudInput) {
           hudInput.addEventListener("input", (e) => {
             hudActiveIndex = 0;
@@ -15415,7 +15747,7 @@
             } else if (modalId === "edit-modal") {
               saveEditModal();
             } else if (modalId === "confirm-modal") {
-              const btn = document.getElementById("confirm-action-btn");
+              const btn = DOM.confirmActionBtn;
               if (btn) btn.click();
             } else if (modalId === "ghost-modal") {
               confirmGhost();
@@ -15512,13 +15844,13 @@
 
         // Alt+K opens Logbook Search
         if (e.altKey && e.key.toLowerCase() === "k") {
-          const searchInput = document.getElementById("filter-search");
+          const searchInput = DOM.filterSearch;
           if (searchInput) {
             e.preventDefault();
             switchTab("logbook");
 
-            const panel = document.getElementById("advanced-filters");
-            const btn = document.getElementById("filter-toggle-btn");
+            const panel = DOM.advancedFilters;
+            const btn = DOM.filterToggleBtn;
             if (panel && !panel.classList.contains("show")) {
               panel.classList.add("show");
               if (btn) btn.classList.add("active");
@@ -15586,7 +15918,7 @@
           jumpToCurrentWeek();
         }
 
-        const logbookTab = document.getElementById("tab-logbook");
+        const logbookTab = DOM.tabLogbook;
         if (
           logbookTab &&
           logbookTab.style.display !== "none" &&
@@ -15695,17 +16027,27 @@
         if (!lastSeenEl) return;
 
         const secondsIdle = Math.floor((Date.now() - lastActivity) / 1000);
+        let newText, newClass;
 
         if (secondsIdle < 10) {
-          lastSeenEl.textContent = "Active";
-          lastSeenEl.className = "last-seen-status text-work";
+          newText = "Active";
+          newClass = "last-seen-status text-work";
         } else if (secondsIdle < 60) {
-          lastSeenEl.textContent = "Idle " + secondsIdle + "s";
-          lastSeenEl.className = "last-seen-status text-muted";
+          newText = "Idle " + secondsIdle + "s";
+          newClass = "last-seen-status text-muted";
         } else {
           const mins = Math.floor(secondsIdle / 60);
-          lastSeenEl.textContent = "Idle " + mins + "m";
-          lastSeenEl.className = "last-seen-status text-warning";
+          newText = "Idle " + mins + "m";
+          newClass = "last-seen-status text-warning";
+        }
+
+        if (newText !== _lastSeenText) {
+          _lastSeenText = newText;
+          lastSeenEl.textContent = newText;
+        }
+        if (newClass !== _lastSeenClass) {
+          _lastSeenClass = newClass;
+          lastSeenEl.className = newClass;
         }
       }
 
@@ -15716,7 +16058,7 @@
 
       window.toggleSettingsPopup = function (e) {
         e.stopPropagation();
-        const popup = document.getElementById("settings-config-popup");
+        const popup = DOM.settingsConfigPopup;
         if (!popup) return;
 
         const isShowing = popup.classList.contains("show");
@@ -15746,8 +16088,8 @@
       };
 
       window.onIdleToggleChange = function () {
-        const checkbox = document.getElementById("idle-toggle");
-        const sliderContainer = document.getElementById("idle-range-container");
+        const checkbox = DOM.idleToggle;
+        const sliderContainer = DOM.idleRangeContainer;
 
         state.idleTrackingEnabled = checkbox.checked;
 
@@ -15758,22 +16100,23 @@
       };
 
       window.onIdleSliderInput = function (val) {
-        document.getElementById("idle-val-display").textContent = val + "m";
+        DOM.idleValDisplay.textContent = val + "m";
       };
 
       window.onIdleSliderChange = function (val) {
         state.idleThresholdMinutes = parseInt(val, 10);
+        _cachedIdleThresholdMs = state.idleThresholdMinutes * 60000;
         saveState();
       };
 
       window.onAutoBackupToggleChange = function () {
-        const checkbox = document.getElementById("auto-backup-toggle");
+        const checkbox = DOM.autoBackupToggle;
         state.autoBackupEnabled = checkbox.checked;
         saveState();
       };
 
       window.onGoalAutopopulateToggleChange = function () {
-        const checkbox = document.getElementById("goal-autopopulate-toggle");
+        const checkbox = DOM.goalAutopopulateToggle;
         state.goalAutopopulateEnabled = checkbox.checked;
         saveState();
 
@@ -15807,14 +16150,14 @@
         const isSimple = mode === "simple";
 
         // Toggle active classes on buttons
-        const btnSimple = document.getElementById("mode-simple");
-        const btnIntelligent = document.getElementById("mode-intelligent");
+        const btnSimple = DOM.modeSimple;
+        const btnIntelligent = DOM.modeIntelligent;
         if (btnSimple) btnSimple.classList.toggle("active", isSimple);
         if (btnIntelligent)
           btnIntelligent.classList.toggle("active", !isSimple);
 
         // Update helper description
-        const descEl = document.getElementById("settings-mode-desc");
+        const descEl = DOM.settingsModeDesc;
         if (descEl) {
           descEl.textContent = isSimple
             ? "Manual stop/start with zero automated checks."
@@ -15822,17 +16165,17 @@
         }
 
         // Disable/Dim idle settings if Simple mode is active
-        const idleWrapper = document.getElementById("idle-settings-wrapper");
+        const idleWrapper = DOM.idleSettingsWrapper;
         if (idleWrapper) {
           idleWrapper.classList.toggle("is-collapsed", isSimple);
         }
 
         // Sync existing toggle/slider values
         const isIdleEnabled = state.idleTrackingEnabled !== false;
-        const idleCheckbox = document.getElementById("idle-toggle");
-        const slider = document.getElementById("idle-slider");
-        const valDisplay = document.getElementById("idle-val-display");
-        const sliderContainer = document.getElementById("idle-range-container");
+        const idleCheckbox = DOM.idleToggle;
+        const slider = DOM.idleSlider;
+        const valDisplay = DOM.idleValDisplay;
+        const sliderContainer = DOM.idleRangeContainer;
         const mins = state.idleThresholdMinutes || 60;
 
         if (idleCheckbox) idleCheckbox.checked = isIdleEnabled;
@@ -15843,13 +16186,12 @@
         }
 
         // Sync auto-backup toggle
-        const autoBackupCheckbox =
-          document.getElementById("auto-backup-toggle");
+        const autoBackupCheckbox = DOM.autoBackupToggle;
         if (autoBackupCheckbox)
           autoBackupCheckbox.checked = !!state.autoBackupEnabled;
 
         // Sync auto-email toggle
-        const autoEmailCheckbox = document.getElementById("auto-email-toggle");
+        const autoEmailCheckbox = DOM.autoEmailToggle;
         if (autoEmailCheckbox)
           autoEmailCheckbox.checked = !!state.autoEmailEnabled;
 
@@ -15907,7 +16249,7 @@
               renderLogbook();
               renderInsights();
               showAppToast(`Logs reverted to ${target.date} snapshot.`);
-              document.getElementById("snapshot-restore-select").value = "";
+              DOM.snapshotRestoreSelect.value = "";
             },
             false,
             "Restore",
@@ -15953,7 +16295,7 @@
       }
 
       window.onAutoEmailToggleChange = function () {
-        const checkbox = document.getElementById("auto-email-toggle");
+        const checkbox = DOM.autoEmailToggle;
         state.autoEmailEnabled = checkbox.checked;
         saveState();
       };
@@ -15974,7 +16316,7 @@
           state.lastHeartbeatWall = null;
           state.lastHeartbeatMonotonic = null;
           state.idleLock = false; // Force-clear any pending locks
-          document.getElementById("idle-modal").style.display = "none";
+          DOM.idleModal.style.display = "none";
         }
         // 2. Logic Startup: If moving to Intelligent, force a fresh heartbeat sync
         else if (mode === "intelligent") {
@@ -15994,23 +16336,22 @@
        * Executes openManualModal logic.
        */
       function openManualModal() {
-        document.getElementById("manual-date").value = getPSTDate();
-        document.getElementById("manual-work").value = "00:00";
-        document.getElementById("manual-break").value = "00:00";
-        document.getElementById("manual-notes").value = "";
+        DOM.manualDate.value = getPSTDate();
+        DOM.manualWork.value = "00:00";
+        DOM.manualBreak.value = "00:00";
+        DOM.manualNotes.value = "";
 
-        document.getElementById("manual-goal").value =
-          `${String(DOM.goalHours.value).padStart(2, "0")}:${String(DOM.goalMins.value).padStart(2, "0")}`;
+        DOM.manualGoal.value = `${String(DOM.goalHours.value).padStart(2, "0")}:${String(DOM.goalMins.value).padStart(2, "0")}`;
 
-        document.getElementById("manual-modal").style.display = "flex";
-        setTimeout(() => document.getElementById("manual-work").focus(), 100);
+        DOM.manualModal.style.display = "flex";
+        setTimeout(() => DOM.manualWork.focus(), 100);
       }
 
       /**
        * Executes closeManualModal logic.
        */
       function closeManualModal() {
-        const modal = document.getElementById("manual-modal");
+        const modal = DOM.manualModal;
         if (modal) {
           modal.style.display = "none";
         }
@@ -16025,15 +16366,15 @@
       function saveManualModal() {
         if (isManualSubmitting) return;
 
-        const manualDateInput = document.getElementById("manual-date");
+        const manualDateInput = DOM.manualDate;
         // Force blur formatting first
         handleDateInputBlur({ target: manualDateInput });
         let dateStr = manualDateInput.value.trim();
-        const workStr = document.getElementById("manual-work").value.trim();
-        const breakStr = document.getElementById("manual-break").value.trim();
-        const notes = document.getElementById("manual-notes").value.trim();
+        const workStr = DOM.manualWork.value.trim();
+        const breakStr = DOM.manualBreak.value.trim();
+        const notes = DOM.manualNotes.value.trim();
 
-        const rawGoal = document.getElementById("manual-goal").value.trim();
+        const rawGoal = DOM.manualGoal.value.trim();
         const parsedGoal = parseGoalTimeStr(rawGoal);
         const gh = parsedGoal.hh;
         const gm = parsedGoal.mm;
@@ -16116,10 +16457,10 @@
         if (event.target == DOM.noteModal) closeNoteModal();
         if (event.target == DOM.ghostModal) closeGhostModal();
 
-        const manualMod = document.getElementById("manual-modal");
+        const manualMod = DOM.manualModal;
         if (event.target == manualMod) closeManualModal();
 
-        const helpMod = document.getElementById("help-modal");
+        const helpMod = DOM.helpModal;
         if (event.target == helpMod) closeHelpModal();
       };
 
@@ -16170,7 +16511,7 @@
        */
 
       const handleGoalTimeBlur = () => {
-        const goalTimeEl = document.getElementById("goal-time");
+        const goalTimeEl = DOM.goalTime;
         if (!goalTimeEl) return;
 
         const parsed = parseGoalTimeStr(goalTimeEl.value);
@@ -16219,6 +16560,10 @@
             btn.onclick = () => window.setGoalPreset(val);
           }
         });
+        _dynamicPresetBtns = document.querySelectorAll(".dynamic-preset");
+        _themePillBtns = document.querySelectorAll(
+          ".theme-presets .preset-pill",
+        );
         updatePresetHighlights();
       }
 
@@ -16227,9 +16572,9 @@
       window.changePreset = function (index) {
         editingPresetIndex = index;
         const presets = getSavedPresets();
-        const input = document.getElementById("preset-input");
+        const input = DOM.presetInput;
         input.value = presets[index];
-        document.getElementById("preset-modal").style.display = "flex";
+        DOM.presetModal.style.display = "flex";
 
         setTimeout(() => {
           input.focus();
@@ -16238,28 +16583,28 @@
       };
 
       window.closePresetModal = function () {
-        document.getElementById("preset-modal").style.display = "none";
+        DOM.presetModal.style.display = "none";
         editingPresetIndex = -1;
       };
 
       window.openLeaveModal = function () {
-        document.getElementById("leave-modal").style.display = "flex";
+        DOM.leaveModal.style.display = "flex";
         renderLeaveDatesList();
         setTimeout(() => {
-          document.getElementById("leave-date-input").focus();
+          DOM.leaveDateInput.focus();
         }, 100);
       };
 
       window.closeLeaveModal = function () {
-        document.getElementById("leave-modal").style.display = "none";
+        DOM.leaveModal.style.display = "none";
       };
 
       window.addLeaveDate = function () {
-        const input = document.getElementById("leave-date-input");
+        const input = DOM.leaveDateInput;
         // Force blur formatting first in case user hit Enter without blurring
         handleDateInputBlur({ target: input });
         let val = input.value.trim();
-        const typeSelect = document.getElementById("leave-type-select");
+        const typeSelect = DOM.leaveTypeSelect;
         const leaveType = typeSelect ? typeSelect.value : "Casual";
 
         if (!val) {
@@ -16344,7 +16689,7 @@
        * Executes renderLeaveDatesList logic.
        */
       function renderLeaveDatesList() {
-        const listContainer = document.getElementById("leave-dates-list");
+        const listContainer = DOM.leaveDatesList;
         if (!listContainer) return;
 
         const currentLeaves = getLeaveDates();
@@ -16381,9 +16726,7 @@
 
       window.savePresetModal = function () {
         if (editingPresetIndex === -1) return;
-        const newVal = parseFloat(
-          document.getElementById("preset-input").value,
-        );
+        const newVal = parseFloat(DOM.presetInput.value);
 
         if (!isNaN(newVal) && newVal >= 0 && newVal <= 24) {
           const presets = getSavedPresets();
@@ -16402,7 +16745,7 @@
         DOM.goalMins.value = 0;
         localStorage.setItem(GOAL_H_KEY, hours);
         localStorage.setItem(GOAL_M_KEY, 0);
-        const goalTimeEl = document.getElementById("goal-time");
+        const goalTimeEl = DOM.goalTime;
         if (goalTimeEl) goalTimeEl.value = `${hours}h 0m`;
         updatePresetHighlights();
         renderTimersOnly();
@@ -16424,7 +16767,7 @@
         localStorage.setItem(GOAL_H_KEY, newH);
         localStorage.setItem(GOAL_M_KEY, newM);
 
-        const goalTimeEl = document.getElementById("goal-time");
+        const goalTimeEl = DOM.goalTime;
         if (goalTimeEl) goalTimeEl.value = `${newH}h ${newM}m`;
 
         updatePresetHighlights();
@@ -16440,7 +16783,9 @@
         const currentH = parseFloat(localStorage.getItem(GOAL_H_KEY)) || 0;
         const currentM = parseFloat(localStorage.getItem(GOAL_M_KEY)) || 0;
 
-        document.querySelectorAll(".dynamic-preset").forEach((btn) => {
+        (
+          _dynamicPresetBtns || document.querySelectorAll(".dynamic-preset")
+        ).forEach((btn) => {
           const btnHours = parseFloat(btn.getAttribute("data-hours"));
           if (btnHours === currentH && currentM === 0) {
             btn.classList.add("active");
@@ -16450,7 +16795,7 @@
         });
       }
 
-      const goalTimeEl = document.getElementById("goal-time");
+      const goalTimeEl = DOM.goalTime;
       if (goalTimeEl) {
         goalTimeEl.addEventListener("blur", handleGoalTimeBlur);
         goalTimeEl.addEventListener("keydown", blockInvalidKeys);
@@ -16461,7 +16806,7 @@
         });
 
         const setupDynamicPreview = () => {
-          const tooltip = document.getElementById("app-tooltip");
+          const tooltip = DOM.appTooltip;
           if (!tooltip) return;
 
           const parseGoalPreview = (val) => {
@@ -16762,14 +17107,14 @@
       });
 
       // Event listener for Manual Date Picker
-      const manualDatePicker = document.getElementById("manual-date-picker");
+      const manualDatePicker = DOM.manualDatePicker;
       if (manualDatePicker) {
         manualDatePicker.addEventListener("change", (e) => {
           const val = e.target.value; // Format: YYYY-MM-DD
           if (val) {
             const [y, m, d] = val.split("-");
             const formattedDate = `${m}/${d}/${y.slice(-2)}`;
-            const manualDateInput = document.getElementById("manual-date");
+            const manualDateInput = DOM.manualDate;
             if (manualDateInput) {
               manualDateInput.value = formattedDate;
               manualDateInput.dispatchEvent(new Event("blur")); // Fires formatting preview
@@ -16779,14 +17124,14 @@
       }
 
       // Event listener for Edit Date Picker
-      const editDatePicker = document.getElementById("edit-date-picker");
+      const editDatePicker = DOM.editDatePicker;
       if (editDatePicker) {
         editDatePicker.addEventListener("change", (e) => {
           const val = e.target.value; // Format: YYYY-MM-DD
           if (val) {
             const [y, m, d] = val.split("-");
             const formattedDate = `${m}/${d}/${y.slice(-2)}`;
-            const editDateInput = document.getElementById("edit-date");
+            const editDateInput = DOM.editDate;
             if (editDateInput) {
               editDateInput.value = formattedDate;
               editDateInput.dispatchEvent(new Event("blur")); // Fires formatting preview
@@ -16796,14 +17141,14 @@
       }
 
       // Event listener for Leave Date Picker
-      const leaveDatePicker = document.getElementById("leave-date-picker");
+      const leaveDatePicker = DOM.leaveDatePicker;
       if (leaveDatePicker) {
         leaveDatePicker.addEventListener("change", (e) => {
           const val = e.target.value; // Format: YYYY-MM-DD
           if (val) {
             const [y, m, d] = val.split("-");
             const formattedDate = `${m}/${d}/${y.slice(-2)}`;
-            const leaveDateInput = document.getElementById("leave-date-input");
+            const leaveDateInput = DOM.leaveDateInput;
             if (leaveDateInput) {
               leaveDateInput.value = formattedDate;
               leaveDateInput.dispatchEvent(new Event("blur")); // Fires formatting preview
@@ -16844,7 +17189,7 @@
        * Executes showSyncToast logic.
        */
       window.closeSyncToast = function () {
-        const toast = document.getElementById("sync-toast");
+        const toast = DOM.syncToast;
         if (toast) {
           toast.style.top = "-100px";
           syncToastId = (syncToastId + 1) % Number.MAX_SAFE_INTEGER;
@@ -16853,7 +17198,7 @@
       };
 
       window.closeUndoToast = function () {
-        const toast = document.getElementById("undo-toast");
+        const toast = DOM.undoToast;
         if (toast) {
           toast.style.bottom = "-100px";
           clearTimeout(undoTimeout);
@@ -16863,12 +17208,12 @@
       };
 
       window.closeGoalToast = function () {
-        const toast = document.getElementById("goal-toast");
+        const toast = DOM.goalToast;
         if (toast) toast.style.top = "-100px";
       };
 
       window.closeAppToast = function () {
-        const toast = document.getElementById("app-toast");
+        const toast = DOM.appToast;
         if (toast) {
           toast.style.bottom = "-100px";
           appToastId = (appToastId + 1) % Number.MAX_SAFE_INTEGER;
@@ -16877,11 +17222,11 @@
       };
 
       window.openHelpModal = function () {
-        document.getElementById("help-modal").style.display = "flex";
+        DOM.helpModal.style.display = "flex";
       };
 
       window.closeHelpModal = function () {
-        document.getElementById("help-modal").style.display = "none";
+        DOM.helpModal.style.display = "none";
       };
 
       window.switchHelpTab = function (tabId, btn) {
@@ -16897,19 +17242,19 @@
       };
 
       function showSyncToast(msg, requireAck = false) {
-        const toast = document.getElementById("sync-toast");
+        const toast = DOM.syncToast;
         if (!toast) return;
 
         // Add a dismiss button for all toasts
         const closeBtnHtml = `
             <button class="toast-close-btn" onclick="closeSyncToast()">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-cc177d5f"></use></svg>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#sprite-004"></use></svg>
             </button>
           `;
 
         toast.innerHTML = `
                 <div style="display: flex; align-items: center; gap: 12px;">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent-warning); flex-shrink: 0;"><use href="#icon-564f8c3a"></use></svg>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent-warning); flex-shrink: 0;"><use href="#sprite-084"></use></svg>
                   <span>${msg}</span>
                   ${closeBtnHtml}
                 </div>
@@ -16934,8 +17279,8 @@
        * Executes showAppToast logic.
        */
       function showAppToast(msg) {
-        const toast = document.getElementById("app-toast");
-        const contentEl = document.getElementById("app-toast-content");
+        const toast = DOM.appToast;
+        const contentEl = DOM.appToastContent;
         if (contentEl) {
           contentEl.textContent = msg;
         } else {
@@ -16963,34 +17308,32 @@
         isDestructive = true,
         btnText = "",
       ) {
-        document.getElementById("confirm-title").textContent = title;
-        document.getElementById("confirm-desc").textContent = desc;
-        const btn = document.getElementById("confirm-action-btn");
+        DOM.confirmTitle.textContent = title;
+        DOM.confirmDesc.textContent = desc;
+        const btn = DOM.confirmActionBtn;
         const container = document.querySelector(
           "#confirm-modal .modal-container",
         );
         if (isDestructive) {
-          document.getElementById("confirm-title").className =
-            "modal-header danger";
+          DOM.confirmTitle.className = "modal-header danger";
           btn.className = "btn-danger-outline";
           btn.textContent = btnText || "Delete";
           container.className = "modal-container modal-width-sm accent-danger";
         } else {
-          document.getElementById("confirm-title").className =
-            "modal-header warning";
+          DOM.confirmTitle.className = "modal-header warning";
           btn.className = "btn-warning-outline";
           btn.textContent = btnText || "Confirm";
           container.className = "modal-container modal-width-sm accent-warning";
         }
         confirmCallback = callback;
-        document.getElementById("confirm-modal").style.display = "flex";
+        DOM.confirmModal.style.display = "flex";
       }
 
       /**
        * Executes closeConfirmModal logic.
        */
       function closeConfirmModal() {
-        document.getElementById("confirm-modal").style.display = "none";
+        DOM.confirmModal.style.display = "none";
         confirmCallback = null;
       }
 
@@ -17039,7 +17382,7 @@
           .classList.add("active");
 
         // Hide or show the scroll-to-top action contextually
-        const scrollTopBtn = document.getElementById("logbook-scroll-top-btn");
+        const scrollTopBtn = DOM.logbookScrollTopBtn;
         if (scrollTopBtn) {
           if (
             target === "logbook" &&
@@ -17084,8 +17427,8 @@
        * Executes toggleFilters logic.
        */
       function toggleFilters() {
-        const panel = document.getElementById("advanced-filters");
-        const btn = document.getElementById("filter-toggle-btn");
+        const panel = DOM.advancedFilters;
+        const btn = DOM.filterToggleBtn;
         if (panel.classList.contains("show")) {
           panel.classList.remove("show");
           btn.classList.remove("active");
@@ -17215,6 +17558,8 @@
             state.lastHeartbeatWall = state.lastHeartbeat;
           }
 
+          _cachedIdleThresholdMs = (state.idleThresholdMinutes || 60) * 60000;
+
           if (state.lastActivity) lastActivity = state.lastActivity;
 
           const now = Date.now();
@@ -17246,7 +17591,7 @@
       }
 
       function initSettingsHoverHelp() {
-        const helpText = document.getElementById("settings-help-text");
+        const helpText = DOM.settingsHelpText;
         if (!helpText) return;
 
         const descriptions = {
@@ -17295,29 +17640,14 @@
           targetEl.addEventListener("blur", resetHelp, { passive: true });
         };
 
-        bindHover("mode-simple", document.getElementById("mode-simple"));
-        bindHover(
-          "mode-intelligent",
-          document.getElementById("mode-intelligent"),
-        );
-        bindHover(
-          "goal-autopopulate-toggle",
-          document.getElementById("goal-autopopulate-toggle"),
-        );
-        bindHover("idle-toggle", document.getElementById("idle-toggle"));
-        bindHover("idle-slider", document.getElementById("idle-slider"));
-        bindHover(
-          "auto-backup-toggle",
-          document.getElementById("auto-backup-toggle"),
-        );
-        bindHover(
-          "auto-email-toggle",
-          document.getElementById("auto-email-toggle"),
-        );
-        bindHover(
-          "snapshot-restore-select",
-          document.getElementById("snapshot-restore-select"),
-        );
+        bindHover("mode-simple", DOM.modeSimple);
+        bindHover("mode-intelligent", DOM.modeIntelligent);
+        bindHover("goal-autopopulate-toggle", DOM.goalAutopopulateToggle);
+        bindHover("idle-toggle", DOM.idleToggle);
+        bindHover("idle-slider", DOM.idleSlider);
+        bindHover("auto-backup-toggle", DOM.autoBackupToggle);
+        bindHover("auto-email-toggle", DOM.autoEmailToggle);
+        bindHover("snapshot-restore-select", DOM.snapshotRestoreSelect);
 
         const rows = [
           {
@@ -17346,7 +17676,7 @@
           }
         });
 
-        const thresholdRow = document.getElementById("idle-range-container");
+        const thresholdRow = DOM.idleRangeContainer;
         if (thresholdRow) {
           thresholdRow.addEventListener(
             "mouseenter",
@@ -17452,7 +17782,7 @@
         displayBaseDate = getPSTDateObj();
         loadState();
 
-        const logbookTab = document.getElementById("tab-logbook");
+        const logbookTab = DOM.tabLogbook;
         if (logbookTab) {
           cachedViewportHeight = logbookTab.clientHeight;
         }
@@ -17468,7 +17798,7 @@
           !state.idleLock
         ) {
           const gap = Date.now() - state.lastHeartbeatWall;
-          if (gap > getIdleThresholdMs()) {
+          if (gap > _cachedIdleThresholdMs) {
             // Recover session using the recorded wall-clock heartbeat timestamp
             triggerIdleLock(state.lastHeartbeatWall, "system");
           }
