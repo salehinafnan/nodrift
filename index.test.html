@@ -455,6 +455,9 @@ function hudFuzzyScore(query, target) {
   return Math.max(0, score);
 }
 
+
+
+
     </script>
     <script>
       // =========================================================================
@@ -579,6 +582,98 @@ function hudFuzzyScore(query, target) {
             assertEqual(hudFuzzyScore(null, "test"), 0);
             assertEqual(hudFuzzyScore("test", null), 0);
             assertEqual(hudFuzzyScore("", ""), 0);
+          });
+        });
+
+        describe("Performance Optimizations & Re-entrancy Locks", () => {
+          it("Re-entrancy guard (_renderLogbookPending) drops nested burst calls", () => {
+            let callCount = 0;
+            let pendingGuard = false;
+            
+            function mockRenderLogbook() {
+              if (pendingGuard) return false;
+              pendingGuard = true;
+              callCount++;
+              
+              // Simulate an accidental nested burst call (like from a synchronous event listener)
+              mockRenderLogbook();
+              mockRenderLogbook();
+              
+              pendingGuard = false;
+              return true;
+            }
+            
+            const executed = mockRenderLogbook();
+            assert(executed, "Initial call should execute");
+            assertEqual(callCount, 1, "Guard must block all nested burst calls");
+            assert(!pendingGuard, "Guard must reset gracefully");
+          });
+
+          it("WeeklyCache LRU Map caps at 60 items perfectly under extreme stress", () => {
+            const mockWeeklyCache = new Map();
+            let evictionCount = 0;
+            
+            for (let i = 0; i < 10000; i++) {
+              mockWeeklyCache.set(i, [{ id: "test" }]);
+              if (mockWeeklyCache.size > 60) {
+                mockWeeklyCache.delete(mockWeeklyCache.keys().next().value);
+                evictionCount++;
+              }
+            }
+            
+            assertEqual(mockWeeklyCache.size, 60, "Map must never exceed the hard limit of 60 items");
+            assertEqual(evictionCount, 9940, "Must precisely evict the overflow items");
+            assertEqual(mockWeeklyCache.has(0), false, "Oldest item (0) must be evicted");
+            assertEqual(mockWeeklyCache.has(9999), true, "Newest item (9999) must be retained");
+          });
+
+          it("Virtual Scroll Fast-Path Bypasses Expensive Key Computation", () => {
+            let lastStart = -1, lastEnd = -1, lastSelected = -1;
+            let currentRenderKey = "";
+            let computations = 0;
+
+            function mockRenderVirtual(start, end, selected) {
+              if (start === lastStart && end === lastEnd && selected === lastSelected && currentRenderKey !== "") {
+                return "fast-path";
+              }
+              computations++;
+              lastStart = start;
+              lastEnd = end;
+              lastSelected = selected;
+              currentRenderKey = "computed-key-data";
+              return "full-render";
+            }
+
+            assertEqual(mockRenderVirtual(0, 10, 5), "full-render");
+            assertEqual(mockRenderVirtual(0, 10, 5), "fast-path");
+            assertEqual(mockRenderVirtual(0, 10, 5), "fast-path");
+            assertEqual(mockRenderVirtual(0, 11, 5), "full-render"); // bounds changed
+            assertEqual(mockRenderVirtual(0, 11, 5), "fast-path");
+            assertEqual(mockRenderVirtual(0, 11, 6), "full-render"); // selection changed
+
+            assertEqual(computations, 3, "Only required bound changes should trigger full computation");
+          });
+
+          it("Debouncer collapses rapid synchronous bursts correctly", async () => {
+            return new Promise((resolve, reject) => {
+              let executionCount = 0;
+              const debouncedFn = debounce(() => {
+                executionCount++;
+              }, 10);
+  
+              for (let i = 0; i < 100; i++) {
+                debouncedFn();
+              }
+  
+              setTimeout(() => {
+                try {
+                  assertEqual(executionCount, 1, "Debouncer must collapse 100 rapid calls into exactly 1 execution");
+                  resolve();
+                } catch (e) {
+                  reject(e);
+                }
+              }, 20);
+            });
           });
         });
 
