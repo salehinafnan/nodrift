@@ -1268,7 +1268,11 @@
         font-weight: 600;
         letter-spacing: none;
         border-radius: var(--radius-xl);
-        transition: all 0.2s cubic-bezier(0.25, 1, 0.5, 1);
+        transition:
+          background-color 0.15s ease,
+          color 0.15s ease,
+          border-color 0.15s ease,
+          opacity 0.15s ease;
       }
 
       button {
@@ -1283,7 +1287,7 @@
         overflow: hidden;
         transition:
           background-color 0.15s ease,
-          filter 0.15s ease,
+          opacity 0.15s ease,
           transform 0.2s cubic-bezier(0.25, 1, 0.5, 1);
       }
 
@@ -1292,7 +1296,7 @@
       }
 
       button:hover:not(:disabled) {
-        filter: brightness(1.05);
+        opacity: 0.85;
       }
 
       button:active:not(:disabled) {
@@ -1309,18 +1313,10 @@
         border: 1px solid var(--btn-work-border);
       }
 
-      .btn-work:hover:not(:disabled) {
-        filter: brightness(1.2);
-      }
-
       .btn-break {
         background: var(--btn-break-bg);
         color: var(--btn-break-text);
         border: 1px solid var(--btn-break-border);
-      }
-
-      .btn-break:hover:not(:disabled) {
-        filter: brightness(1.2);
       }
 
       .btn-log {
@@ -1329,22 +1325,18 @@
         border: 1px solid var(--btn-log-border);
       }
 
-      .btn-log:hover:not(:disabled) {
-        filter: brightness(1.2);
-      }
-
       /* Disable global scaling and destructive CSS brightness filters for main actions in all active themes */
       :root[data-theme] .btn-work:hover:not(:disabled),
       :root[data-theme] .btn-break:hover:not(:disabled),
       :root[data-theme] .btn-log:hover:not(:disabled) {
-        filter: none;
+        opacity: 0.85;
       }
 
       :root[data-theme] .btn-work:active:not(:disabled),
       :root[data-theme] .btn-break:active:not(:disabled),
       :root[data-theme] .btn-log:active:not(:disabled) {
         transform: none;
-        filter: none;
+        opacity: 1;
       }
 
       /* ── SF DARK THEME: Translucent Neon Glow Alpha Opacity Changes ── */
@@ -2753,26 +2745,6 @@
       /* =========================================================================
        13. MODALS, TOASTS & RESPONSIVE BREAKPOINTS
        ========================================================================= */
-      @keyframes modalOverlayFadeIn {
-        from {
-          opacity: 0;
-        }
-
-        to {
-          opacity: 1;
-        }
-      }
-
-      @keyframes modalContainerScaleIn {
-        from {
-          opacity: 0;
-        }
-
-        to {
-          opacity: 1;
-        }
-      }
-
       .modal-overlay {
         position: fixed;
         top: 0;
@@ -2785,22 +2757,18 @@
         align-items: center;
         justify-content: center;
         padding: 20px;
-        animation: modalOverlayFadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1)
-          forwards;
       }
 
       .modal-container {
         width: 100%;
         max-width: var(--modal-width-sm);
         background: var(--modal-bg);
-        border: 1px solid var(--border-main);
+        border: 2px solid var(--border-light);
         border-radius: var(--radius-xl);
         padding: var(--space-5);
-        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.25);
+        box-shadow: none;
         position: relative;
         overflow: hidden;
-        animation: modalContainerScaleIn 0.25s cubic-bezier(0.25, 1, 0.5, 1)
-          forwards;
       }
 
       /* Standard Modal Sizes */
@@ -3691,15 +3659,6 @@
         </symbol>
         <symbol id="sprite-048" viewBox="0 0 24 24">
           <use href="#icon-47bc3e7c"></use>
-        </symbol>
-        <symbol id="sprite-049" viewBox="0 0 24 24">
-          <circle
-            cx="12"
-            cy="12"
-            r="10"
-            fill="${encodeURIComponent(color)}"
-            fill-opacity="${opacity}"
-          />
         </symbol>
         <symbol id="sprite-050" viewBox="0 0 24 24">
           <use href="#icon-265dafd3"></use>
@@ -6633,48 +6592,6 @@
               <div class="theme-presets">
                 <button
                   class="preset-pill"
-                  onclick="setThemeDirect('cobalt-glass')"
-                  onmouseenter="previewTheme('cobalt-glass')"
-                  style="display: inline-flex; align-items: center; gap: 8px"
-                >
-                  <svg
-                    viewBox="0 0 24 24"
-                    width="16"
-                    height="16"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    style="color: #38bdf8"
-                  >
-                    <use href="#sprite-017"></use>
-                  </svg>
-                  Cobalt Glass
-                </button>
-                <button
-                  class="preset-pill"
-                  onclick="setThemeDirect('onyx-black')"
-                  onmouseenter="previewTheme('onyx-black')"
-                  style="display: inline-flex; align-items: center; gap: 8px"
-                >
-                  <svg
-                    viewBox="0 0 24 24"
-                    width="16"
-                    height="16"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    style="color: #8e8e93"
-                  >
-                    <use href="#sprite-018"></use>
-                  </svg>
-                  Onyx Black
-                </button>
-                <button
-                  class="preset-pill"
                   onclick="setThemeDirect('sf-light')"
                   onmouseenter="previewTheme('sf-light')"
                   style="display: inline-flex; align-items: center; gap: 8px"
@@ -6714,6 +6631,48 @@
                     <use href="#sprite-020"></use>
                   </svg>
                   SF Dark
+                </button>
+                <button
+                  class="preset-pill"
+                  onclick="setThemeDirect('cobalt-glass')"
+                  onmouseenter="previewTheme('cobalt-glass')"
+                  style="display: inline-flex; align-items: center; gap: 8px"
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    width="16"
+                    height="16"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    style="color: #38bdf8"
+                  >
+                    <use href="#sprite-017"></use>
+                  </svg>
+                  Cobalt Glass
+                </button>
+                <button
+                  class="preset-pill"
+                  onclick="setThemeDirect('onyx-black')"
+                  onmouseenter="previewTheme('onyx-black')"
+                  style="display: inline-flex; align-items: center; gap: 8px"
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    width="16"
+                    height="16"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    style="color: #8e8e93"
+                  >
+                    <use href="#sprite-018"></use>
+                  </svg>
+                  Onyx Black
                 </button>
               </div>
             </div>
@@ -7901,7 +7860,9 @@
           title="Scroll to Top"
           aria-label="Scroll to Top"
         >
-          <svg viewBox="0 0 24 24"><use href="#sprite-039"></use></svg>
+          <svg viewBox="0 0 24 24">
+            <use href="#sprite-039"></use>
+          </svg>
         </button>
       </div>
     </div>
@@ -8319,21 +8280,42 @@
        * Executes getDotSVG logic.
        */
       function getDotSVG(color, opacity = 1) {
-        return `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><use href="#sprite-049"></use></svg>`;
+        return `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><circle cx='12' cy='12' r='10' fill='${encodeURIComponent(color)}' fill-opacity='${opacity}' /></svg>`;
       }
 
-      // High-performance background timer worker to keep loop active when backgrounded
-      let mainUIInterval = null;
-      function startUITimer() {
-        if (!mainUIInterval) {
-          mainUIInterval = setInterval(tick, 1000);
+      // High-performance background Web Worker ticker to keep loop active continuously when backgrounded
+      const tickerWorkerCode = `
+      let intervalId = null;
+      self.onmessage = function(e) {
+        if (e.data === 'start') {
+          if (intervalId) clearInterval(intervalId);
+          intervalId = setInterval(() => {
+            self.postMessage('tick');
+          }, 1000);
+        } else if (e.data === 'stop') {
+          if (intervalId) clearInterval(intervalId);
+          intervalId = null;
         }
+      };
+    `;
+      const tickerBlob = new Blob([tickerWorkerCode], {
+        type: "application/javascript",
+      });
+      const tickerWorkerUrl = URL.createObjectURL(tickerBlob);
+      const tickerWorker = new Worker(tickerWorkerUrl);
+      URL.revokeObjectURL(tickerWorkerUrl);
+
+      tickerWorker.onmessage = function (e) {
+        if (e.data === "tick") {
+          tick();
+        }
+      };
+
+      function startUITimer() {
+        tickerWorker.postMessage("start");
       }
       function stopUITimer() {
-        if (mainUIInterval) {
-          clearInterval(mainUIInterval);
-          mainUIInterval = null;
-        }
+        tickerWorker.postMessage("stop");
       }
 
       /*==========================================================================
@@ -8385,6 +8367,13 @@
         tabLogbook: document.getElementById("tab-logbook"),
         tabInsights: document.getElementById("tab-insights"),
         idleModal: document.getElementById("idle-modal"),
+        goalInputs: document.querySelector(".goal-inputs"),
+        workTimerLabel: document.getElementById("work-timer")
+          ? document.getElementById("work-timer").previousElementSibling
+          : null,
+        breakTimerLabel: document.getElementById("break-timer")
+          ? document.getElementById("break-timer").previousElementSibling
+          : null,
         idleDurationText: document.getElementById("idle-duration-text"),
         idleCurrentTime: document.getElementById("idle-current-time"),
         lastSeen: document.getElementById("last-seen"),
@@ -9026,8 +9015,6 @@
       document.documentElement.setAttribute("data-theme", currentTheme);
 
       // DOM Manipulation Fast Helpers
-      const _htmlCache = new WeakMap();
-      const _clockCache = new WeakMap();
       /**
        * Executes setText logic.
        */
@@ -9036,17 +9023,14 @@
       }
 
       /**
-       * High-performance setHTML using WeakMap cache to avoid reading innerHTML.
+       * High-performance setHTML using native engine caching.
        */
       function setHTML(el, html) {
-        if (el && _htmlCache.get(el) !== html) {
-          _htmlCache.set(el, html);
-          el.innerHTML = html;
-        }
+        if (el) el.innerHTML = html;
       }
 
       /**
-       * High-performance setClock using WeakMap cache to avoid reading innerHTML.
+       * High-performance setClock using native engine caching.
        */
       function setClock(el, formattedTime) {
         if (!el) return;
@@ -9054,10 +9038,7 @@
           /\s*(AM|PM)/i,
           '<span class="clock-ampm">$1</span>',
         );
-        if (_clockCache.get(el) !== html) {
-          _clockCache.set(el, html);
-          el.innerHTML = html;
-        }
+        el.innerHTML = html;
       }
 
       /**
@@ -9116,7 +9097,7 @@
       /**
        * Renders matching toggles for current active design systems
        */
-      const themeCycle = ["cyber-glass", "pure-noir", "sf-dark", "sf-light"];
+      const themeCycle = ["sf-light", "sf-dark", "cyber-glass", "pure-noir"];
 
       function renderThemeToggle() {
         const iconSpan = DOM.themeToggleIcon;
@@ -9212,10 +9193,10 @@
        */
       function toggleTheme() {
         const themeCycle = [
-          "cobalt-glass",
-          "onyx-black",
           "sf-light",
           "sf-dark",
+          "cobalt-glass",
+          "onyx-black",
         ];
         let idx = themeCycle.indexOf(currentTheme);
         if (idx === -1) idx = 0;
@@ -9425,7 +9406,14 @@
       /**
        * Executes getPSTDateObj logic.
        */
+      let _cachedPSTDateObj = null;
+      let _cachedPSTDateObjMin = -1;
+
       function getPSTDateObj() {
+        const currentMin = Math.floor(Date.now() / 60000);
+        if (_cachedPSTDateObj && _cachedPSTDateObjMin === currentMin) {
+          return new Date(_cachedPSTDateObj);
+        }
         try {
           _sharedDateForPST.setTime(Date.now());
           const parts = pstDateObjFormatter.formatToParts(_sharedDateForPST);
@@ -9434,7 +9422,7 @@
 
           // Hour is normalized to 12 (midday) to prevent +/- 1 hour DST adjustments
           // from shifting the calendar date across the midnight boundary.
-          return new Date(
+          _cachedPSTDateObj = new Date(
             Date.UTC(
               parseInt(p.year, 10),
               parseInt(p.month, 10) - 1,
@@ -9444,6 +9432,8 @@
               0,
             ),
           );
+          _cachedPSTDateObjMin = currentMin;
+          return new Date(_cachedPSTDateObj);
         } catch (e) {
           console.error("Error creating PST date object:", e);
           return new Date();
@@ -9753,9 +9743,9 @@
         const workSec = getCurrentWorkSeconds();
         const breakSec = getCurrentBreakSeconds();
 
-        // Retrieve corresponding label elements
-        const workLabel = DOM.workTimer.previousElementSibling;
-        const breakLabel = DOM.breakTimer.previousElementSibling;
+        // Retrieve corresponding label elements from cache
+        const workLabel = DOM.workTimerLabel;
+        const breakLabel = DOM.breakTimerLabel;
 
         if (state.currentMode === "work") {
           DOM.workTimer.className = "timer-val timer-work-active";
@@ -9805,7 +9795,7 @@
           ? pendingSubmitData.breakSec
           : getCurrentBreakSeconds();
 
-        let activeTitle = "Paused";
+        let activeTitle = "Work Hour Tracker";
         let iconColor = "#f59e0b";
 
         if (state.idleLock) {
@@ -9817,11 +9807,17 @@
             iconColor = "#94a3b8";
           }
         } else if (state.currentMode === "work") {
-          activeTitle = "Working";
+          activeTitle = `${formatDuration(workSeconds)} • Working`;
           iconColor = "#4ade80";
         } else if (state.currentMode === "break") {
-          activeTitle = "Taking a Break";
+          activeTitle = `${formatDuration(breakSeconds)} • Break`;
           iconColor = "#f87171";
+        } else {
+          if (state.loginTimestamp) {
+            activeTitle = `${formatDuration(workSeconds)} • Paused`;
+          } else {
+            activeTitle = "Work Hour Tracker";
+          }
         }
 
         if (document.title !== activeTitle) {
@@ -9848,8 +9844,8 @@
             (window.todayBaseWorkSec || 0) + getCurrentWorkSeconds();
           const liveTodayBreak =
             (window.todayBaseBreakSec || 0) + getCurrentBreakSeconds();
-          const tWorkEl = DOM.tooltipWorkVal;
-          const tBreakEl = DOM.tooltipBreakVal;
+          const tWorkEl = document.getElementById("tooltip-work-val");
+          const tBreakEl = document.getElementById("tooltip-break-val");
           if (tWorkEl)
             tWorkEl.textContent = formatFriendlyDuration(liveTodayWork);
           if (tBreakEl)
@@ -10315,7 +10311,7 @@
             : "none";
         if (domWriteCache.goalBadgeMode !== currentGoalMode) {
           domWriteCache.goalBadgeMode = currentGoalMode;
-          const goalBadge = document.querySelector(".goal-inputs");
+          const goalBadge = DOM.goalInputs;
           if (goalBadge) {
             if (currentGoalMode === "completed") {
               goalBadge.classList.add("goal-completed");
@@ -10973,68 +10969,70 @@
        * 13. LOGBOOK & VIRTUAL WINDOWING SCROLL LIST (O(1) SCROLL LOOKUPS)
        * =========================================================================*/
 
-      /**
-       * Generates structural HTML templates representing historical logs.
-       */
-      function generateLogRow(log, index, isSelected = false) {
-        const hasNote = !!log.notes;
-        const noteIconClass = hasNote ? "icon-btn note-active" : "icon-btn";
-        const noteBtnAttr = hasNote
-          ? `data-action="view-note" data-id="${log.id}" aria-label="View Note"`
-          : `aria-label="No Note" disabled style="opacity: 0.3; cursor: not-allowed;"`;
+      // =========================================================================
+      // HIGH-PERFORMANCE VIRTUAL SCROLL TEMPLATE ENGINE
+      // =========================================================================
+      let rowTemplate = null;
 
-        const logDate = new Date(log.epochMs);
-        const dayNum = logDate.getUTCDay();
-        const isWeekend = dayNum === 0 || dayNum === 6;
+      function getRowTemplate() {
+        if (rowTemplate) return rowTemplate;
 
-        const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-        const dayName = dayNames[dayNum];
-
-        const dateParts = log.date.split("/");
-        const displayMonthDay =
-          dateParts.length >= 2
-            ? `${dateParts[0]}/${dateParts[1]}`
-            : log.displayDate;
-
-        const weekendBadge = isWeekend
-          ? `<span class="badge badge-weekend">Weekend</span>`
-          : "";
-
-        const rawDeltaSec = Math.abs(
-          log.workSec -
-            (log.dayGoal != null && log.dayGoal > 0 ? log.dayGoal : 8 * 3600),
-        );
-        const friendlyDiff = formatFriendlyDuration(rawDeltaSec, "0m");
-
-        const ouLetter = log.status === "OVER" ? "O" : "U";
-        const badgeClass = log.status === "OVER" ? "badge-over" : "badge-under";
-        const textClass = log.status === "OVER" ? "text-work" : "text-warning";
-
-        return `
-        <div style="display: flex; justify-content: space-between; align-items: center;">
+        rowTemplate = document.createElement("template");
+        rowTemplate.innerHTML = `
+          <div style="display: flex; justify-content: space-between; align-items: center;">
             <div style="display: flex; align-items: center; gap: 8px;">
-                <span style="font-weight: 400; font-size: var(--font-size-entry-title); color: var(--text-main);">${dayName} <span style="opacity: 0.5;">(${displayMonthDay})</span></span>
-                <span style="font-size: var(--font-size-entry-meta); color: var(--text-muted);">${log.login} - ${log.logout}</span>
-                ${weekendBadge}
+              <span style="font-weight: 400; font-size: var(--font-size-entry-title); color: var(--text-main);">
+                <span class="log-day-name"></span> <span style="opacity: 0.5;" class="log-date-sub"></span>
+              </span>
+              <span class="log-meta" style="font-size: var(--font-size-entry-meta); color: var(--text-muted);"></span>
+              <span class="log-weekend-badge badge badge-weekend" style="display: none;">Weekend</span>
             </div>
             <div style="display: flex; align-items: center; gap: 4px;">
-                <span class="badge ${badgeClass}">${ouLetter}</span>
-                <span class="${textClass}" style="font-weight: 600; font-size: var(--font-size-entry-stats);">${friendlyDiff}</span>
+              <span class="log-status-badge badge"></span>
+              <span class="log-diff-text" style="font-weight: 600; font-size: var(--font-size-entry-stats);"></span>
             </div>
-        </div>
-
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: var(--space-1);">
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: var(--space-1);">
             <div class="font-mono" style="display: flex; gap: var(--space-3); font-size: var(--font-size-entry-stats);">
-                <span style="display: inline-flex; align-items: center; min-width: 75px;"><span class="badge badge-w">W</span> ${formatFriendlyDuration(log.workSec)}</span>
-                <span style="display: inline-flex; align-items: center; min-width: 65px;"><span class="badge badge-b">B</span> ${formatFriendlyDuration(log.breakSec)}</span>
+              <span style="display: inline-flex; align-items: center; min-width: 75px;">
+                <span class="badge badge-w">W</span> <span class="log-work-text" style="margin-left: 4px;"></span>
+              </span>
+              <span style="display: inline-flex; align-items: center; min-width: 65px;">
+                <span class="badge badge-b">B</span> <span class="log-break-text" style="margin-left: 4px;"></span>
+              </span>
             </div>
             <div class="icon-actions">
-                <button class="${noteIconClass}" ${noteBtnAttr}>${SVGs.note}</button>
-                <button aria-label="Copy Log" class="icon-btn" data-action="copy" data-id="${log.id}" aria-label="Icon Button">${SVGs.copy}</button>
-                <button aria-label="Edit Times" class="icon-btn" data-action="edit" data-id="${log.id}" aria-label="Icon Button">${SVGs.edit}</button>
-                <button aria-label="Delete Shift" class="icon-btn danger-text" data-action="delete" data-id="${log.id}" aria-label="Icon Button">${SVGs.trash}</button>
+              <button class="log-note-btn icon-btn" aria-label="View Note">${SVGs.note}</button>
+              <button class="log-copy-btn icon-btn" data-action="copy" aria-label="Copy Log">${SVGs.copy}</button>
+              <button class="log-edit-btn icon-btn" data-action="edit" aria-label="Edit Times">${SVGs.edit}</button>
+              <button class="log-delete-btn icon-btn danger-text" data-action="delete" aria-label="Delete Shift">${SVGs.trash}</button>
             </div>
-        </div>`;
+          </div>
+        `;
+        return rowTemplate;
+      }
+
+      function createRowNode() {
+        const div = document.createElement("div");
+        div.className = "log-row";
+        div.appendChild(getRowTemplate().content.cloneNode(true));
+
+        div._dom = {
+          dayName: div.querySelector(".log-day-name"),
+          dateSub: div.querySelector(".log-date-sub"),
+          meta: div.querySelector(".log-meta"),
+          weekendBadge: div.querySelector(".log-weekend-badge"),
+          statusBadge: div.querySelector(".log-status-badge"),
+          diffText: div.querySelector(".log-diff-text"),
+          workText: div.querySelector(".log-work-text"),
+          breakText: div.querySelector(".log-break-text"),
+          noteBtn: div.querySelector(".log-note-btn"),
+          copyBtn: div.querySelector(".log-copy-btn"),
+          editBtn: div.querySelector(".log-edit-btn"),
+          deleteBtn: div.querySelector(".log-delete-btn"),
+        };
+
+        return div;
       }
 
       // Delegated actions dispatcher inside scrolling logs area
@@ -11841,7 +11839,7 @@
           const fragment = document.createDocumentFragment();
           const missingCount = requiredCount - currentPoolCount;
           for (let k = 0; k < missingCount; k++) {
-            fragment.appendChild(document.createElement("div"));
+            fragment.appendChild(createRowNode());
           }
           DOM.logContainer.appendChild(fragment);
         }
@@ -11851,6 +11849,8 @@
 
         // Update recycled nodes using the pre-compiled layout caches
         const children = DOM.logContainer.children;
+        const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
         for (let i = startIndex; i <= endIndex; i++) {
           const poolIndex = i - startIndex;
           const log = virtualScrollLogs[i];
@@ -11863,12 +11863,65 @@
             child.dataset.rowKey = rowKey;
             child.className = isSelected ? "log-row kb-selected" : "log-row";
             child.dataset.id = log.id;
-            child.style.top = `${top}px`;
-            child.innerHTML = generateLogRow(log, i, isSelected);
-          } else {
-            if (child.style.top !== `${top}px`) {
-              child.style.top = `${top}px`;
+
+            const dom = child._dom;
+
+            const logDate = new Date(log.epochMs);
+            const dayNum = logDate.getUTCDay();
+            const isWeekend = dayNum === 0 || dayNum === 6;
+
+            const dateParts = log.date.split("/");
+            const displayMonthDay =
+              dateParts.length >= 2
+                ? `${dateParts[0]}/${dateParts[1]}`
+                : log.displayDate;
+            const rawDeltaSec = Math.abs(
+              log.workSec -
+                (log.dayGoal != null && log.dayGoal > 0
+                  ? log.dayGoal
+                  : 8 * 3600),
+            );
+            const hasNote = !!log.notes;
+
+            dom.dayName.textContent = dayNames[dayNum];
+            dom.dateSub.textContent = `(${displayMonthDay})`;
+            dom.meta.textContent = `${log.login} - ${log.logout}`;
+            dom.statusBadge.textContent = log.status === "OVER" ? "O" : "U";
+            dom.diffText.textContent = formatFriendlyDuration(
+              rawDeltaSec,
+              "0m",
+            );
+            dom.workText.textContent = formatFriendlyDuration(log.workSec);
+            dom.breakText.textContent = formatFriendlyDuration(log.breakSec);
+
+            dom.weekendBadge.style.display = isWeekend ? "" : "none";
+            dom.statusBadge.className = `log-status-badge badge ${log.status === "OVER" ? "badge-over" : "badge-under"}`;
+            dom.diffText.className = `log-diff-text ${log.status === "OVER" ? "text-work" : "text-warning"}`;
+
+            dom.copyBtn.dataset.id = log.id;
+            dom.editBtn.dataset.id = log.id;
+            dom.deleteBtn.dataset.id = log.id;
+
+            if (hasNote) {
+              dom.noteBtn.className = "log-note-btn icon-btn note-active";
+              dom.noteBtn.dataset.action = "view-note";
+              dom.noteBtn.dataset.id = log.id;
+              dom.noteBtn.removeAttribute("disabled");
+              dom.noteBtn.style.opacity = "1";
+              dom.noteBtn.style.cursor = "pointer";
+            } else {
+              dom.noteBtn.className = "log-note-btn icon-btn";
+              dom.noteBtn.removeAttribute("data-action");
+              dom.noteBtn.removeAttribute("data-id");
+              dom.noteBtn.setAttribute("disabled", "true");
+              dom.noteBtn.style.opacity = "0.3";
+              dom.noteBtn.style.cursor = "not-allowed";
             }
+          }
+
+          if (child.style.transform !== `translate3d(0, ${top}px, 0)`) {
+            child.style.transform = `translate3d(0, ${top}px, 0)`;
+            child.style.top = "0px";
           }
         }
 
@@ -12447,7 +12500,10 @@
         if (iKey === insightsCacheKey) return;
         insightsCacheKey = iKey;
 
-        if (typeof renderHeatmap === "function") renderHeatmap();
+        const isHeatmapVisible =
+          DOM.heatmapModal && DOM.heatmapModal.style.display === "flex";
+        if (isHeatmapVisible && typeof renderHeatmap === "function")
+          renderHeatmap();
 
         const weeklyLogs = weeklyCache.get(weekStartMs) || [];
         const logsByDate = {};
@@ -13606,6 +13662,10 @@
 
         const previousActiveDate = state.activeDate;
 
+        if (state.activeDate === currentDatePST) {
+          return;
+        }
+
         // Parse dates to check for an unexpected chronological clock rollback
         const [actM, actD, actY] = state.activeDate.split("/").map(Number);
         const [curM, curD, curY] = currentDatePST.split("/").map(Number);
@@ -13866,6 +13926,8 @@
           }
         }
 
+        renderTimersOnly(now);
+
         if (!document.hidden) {
           if (state.idleLock) {
             if (DOM.idleModal) DOM.idleModal.style.display = "flex";
@@ -13890,8 +13952,6 @@
               setText(currentTimeEl, cachedIdleFormatter.format(now));
             }
           }
-
-          renderTimersOnly(now);
 
           try {
             updateLastSeenUI();
@@ -14266,33 +14326,18 @@
           action: () => selectPresetTZ("America/Chicago"),
         },
         {
-          key: "theme onyx",
-          title: "Switch Theme: Onyx Black",
-          desc: "Deep pitch black dark mode",
+          key: "theme sf light",
+          title: "Switch Theme: SF Light",
+          desc: "Bright, clean system light mode",
           category: "Themes",
-          aliases: ["darkest", "pitch black", "oled", "amoled", "black"],
-          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#sprite-063"></use></svg>`,
+          aliases: ["light", "white", "bright", "system light"],
+          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#f3a31a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#sprite-066"></use></svg>`,
           previewAction: () =>
-            document.documentElement.setAttribute("data-theme", "onyx-black"),
+            document.documentElement.setAttribute("data-theme", "sf-light"),
           action: () => {
             window.originalThemeBeforeHud = null;
-            setThemeDirect("onyx-black");
-            showAppToast("Theme switched to Onyx Black");
-          },
-        },
-        {
-          key: "theme cobalt",
-          title: "Switch Theme: Cobalt Glass",
-          desc: "Translucent blue glassmorphism mode",
-          category: "Themes",
-          aliases: ["blue", "transparent", "frosted", "glass"],
-          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#38bdf8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#sprite-064"></use></svg>`,
-          previewAction: () =>
-            document.documentElement.setAttribute("data-theme", "cobalt-glass"),
-          action: () => {
-            window.originalThemeBeforeHud = null;
-            setThemeDirect("cobalt-glass");
-            showAppToast("Theme switched to Cobalt Glass");
+            setThemeDirect("sf-light");
+            showAppToast("Theme switched to SF Light");
           },
         },
         {
@@ -14311,18 +14356,33 @@
           },
         },
         {
-          key: "theme sf light",
-          title: "Switch Theme: SF Light",
-          desc: "Bright, clean system light mode",
+          key: "theme cobalt",
+          title: "Switch Theme: Cobalt Glass",
+          desc: "Translucent blue glassmorphism mode",
           category: "Themes",
-          aliases: ["light", "white", "bright", "system light"],
-          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#f3a31a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#sprite-066"></use></svg>`,
+          aliases: ["blue", "transparent", "frosted", "glass"],
+          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#38bdf8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#sprite-064"></use></svg>`,
           previewAction: () =>
-            document.documentElement.setAttribute("data-theme", "sf-light"),
+            document.documentElement.setAttribute("data-theme", "cobalt-glass"),
           action: () => {
             window.originalThemeBeforeHud = null;
-            setThemeDirect("sf-light");
-            showAppToast("Theme switched to SF Light");
+            setThemeDirect("cobalt-glass");
+            showAppToast("Theme switched to Cobalt Glass");
+          },
+        },
+        {
+          key: "theme onyx",
+          title: "Switch Theme: Onyx Black",
+          desc: "Deep pitch black dark mode",
+          category: "Themes",
+          aliases: ["darkest", "pitch black", "oled", "amoled", "black"],
+          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#sprite-063"></use></svg>`,
+          previewAction: () =>
+            document.documentElement.setAttribute("data-theme", "onyx-black"),
+          action: () => {
+            window.originalThemeBeforeHud = null;
+            setThemeDirect("onyx-black");
+            showAppToast("Theme switched to Onyx Black");
           },
         },
         {
