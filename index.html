@@ -2094,6 +2094,7 @@
       #log-container {
         position: relative;
         width: 100%;
+        contain: strict;
       }
 
       .log-top-left {
@@ -6491,10 +6492,16 @@
               </div>
             </div>
 
-            <span id="primary-clock">00:00 AM</span>
+            <span id="primary-clock"
+              ><span class="clock-time-text"></span
+              ><span class="clock-ampm"></span
+            ></span>
             <i class="clock-divider"></i>
             <span class="tz-static-label">BST</span>
-            <span id="bst-clock">00:00 PM</span>
+            <span id="bst-clock"
+              ><span class="clock-time-text"></span
+              ><span class="clock-ampm"></span
+            ></span>
             <div id="last-seen" class="last-seen-status">Active</div>
           </div>
           <div
@@ -6684,7 +6691,12 @@
           <!-- TOP: Production Section -->
           <div class="timer-group">
             <div class="label-xs">Production Time</div>
-            <div id="work-timer" class="timer-val" aria-live="polite"></div>
+            <div id="work-timer" class="timer-val" aria-live="polite">
+              <span class="timer-digit"></span><span class="timer-colon">:</span
+              ><span class="timer-digit"></span
+              ><span class="timer-colon">:</span
+              ><span class="timer-digit"></span>
+            </div>
           </div>
 
           <!-- CENTER: Symmetrical Progress Centerpiece -->
@@ -6709,7 +6721,12 @@
           <!-- BOTTOM: Break Section (Standardized Label for Scannability) -->
           <div class="timer-group">
             <div class="label-xs">Break Time</div>
-            <div id="break-timer" class="timer-val" aria-live="polite"></div>
+            <div id="break-timer" class="timer-val" aria-live="polite">
+              <span class="timer-digit"></span><span class="timer-colon">:</span
+              ><span class="timer-digit"></span
+              ><span class="timer-colon">:</span
+              ><span class="timer-digit"></span>
+            </div>
           </div>
         </div>
 
@@ -8285,19 +8302,19 @@
 
       // High-performance background Web Worker ticker to keep loop active continuously when backgrounded
       const tickerWorkerCode = `
-      let intervalId = null;
-      self.onmessage = function(e) {
-        if (e.data === 'start') {
-          if (intervalId) clearInterval(intervalId);
-          intervalId = setInterval(() => {
-            self.postMessage('tick');
-          }, 1000);
-        } else if (e.data === 'stop') {
-          if (intervalId) clearInterval(intervalId);
-          intervalId = null;
-        }
-      };
-    `;
+        let intervalId = null;
+        self.onmessage = function(e) {
+          if (e.data === 'start') {
+            if (intervalId) clearInterval(intervalId);
+            intervalId = setInterval(() => {
+              self.postMessage('tick');
+            }, 1000);
+          } else if (e.data === 'stop') {
+            if (intervalId) clearInterval(intervalId);
+            intervalId = null;
+          }
+        };
+      `;
       const tickerBlob = new Blob([tickerWorkerCode], {
         type: "application/javascript",
       });
@@ -8322,6 +8339,18 @@
        * 2. DOM ELEMENT BINDINGS
        * =========================================================================*/
       const DOM = {
+        primaryClockTime: document.querySelector(
+          "#primary-clock .clock-time-text",
+        ),
+        primaryClockAmpm: document.querySelector("#primary-clock .clock-ampm"),
+        bstClockTime: document.querySelector("#bst-clock .clock-time-text"),
+        bstClockAmpm: document.querySelector("#bst-clock .clock-ampm"),
+        workTimerDigits: Array.from(
+          document.querySelectorAll("#work-timer .timer-digit"),
+        ),
+        breakTimerDigits: Array.from(
+          document.querySelectorAll("#break-timer .timer-digit"),
+        ),
         workTimer: document.getElementById("work-timer"),
         breakTimer: document.getElementById("break-timer"),
         primaryClock: document.getElementById("primary-clock"),
@@ -9032,13 +9061,13 @@
       /**
        * High-performance setClock using native engine caching.
        */
-      function setClock(el, formattedTime) {
-        if (!el) return;
-        const html = formattedTime.replace(
-          /\s*(AM|PM)/i,
-          '<span class="clock-ampm">$1</span>',
-        );
-        el.innerHTML = html;
+      function setClock(timeEl, ampmEl, formattedTime) {
+        if (!timeEl || !ampmEl) return;
+        const match = formattedTime.match(/^(.*?)\s*(AM|PM)$/i);
+        const timePart = match ? match[1].trim() : formattedTime;
+        const ampmPart = match ? match[2].toUpperCase() : "";
+        if (timeEl.textContent !== timePart) timeEl.textContent = timePart;
+        if (ampmEl.textContent !== ampmPart) ampmEl.textContent = ampmPart;
       }
 
       /**
@@ -9270,44 +9299,44 @@
 
       // High-performance inline Web Worker compiled in-memory via Virtual Blob
       const workerCode = `
-        self.onmessage = function(e) {
-          const { txId, data: logs } = e.data
-          const weeklyGroups = {}
-          const dailyAnchors = {}
+          self.onmessage = function(e) {
+            const { txId, data: logs } = e.data
+            const weeklyGroups = {}
+            const dailyAnchors = {}
 
-          // Sort logs by loginEpochMs ascending (oldest shift first)
-          logs.sort((a, b) => (a.loginEpochMs || 0) - (b.loginEpochMs || 0))
+            // Sort logs by loginEpochMs ascending (oldest shift first)
+            logs.sort((a, b) => (a.loginEpochMs || 0) - (b.loginEpochMs || 0))
 
-          for (let i = 0; i < logs.length; i++) {
-            const log = logs[i]
-            if (!log.epochMs || log.epochMs <= 0) continue
+            for (let i = 0; i < logs.length; i++) {
+              const log = logs[i]
+              if (!log.epochMs || log.epochMs <= 0) continue
 
-            // Calculate the day count and determine the day of the week
-            const daysSinceEpoch = Math.floor(log.epochMs / 86400000)
-            const dayOfWeek = (daysSinceEpoch + 4) % 7
-            const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek
+              // Calculate the day count and determine the day of the week
+              const daysSinceEpoch = Math.floor(log.epochMs / 86400000)
+              const dayOfWeek = (daysSinceEpoch + 4) % 7
+              const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek
 
-            // Fixed: We add 43200000ms (12 hours) to the key to match the 12:00:00 UTC anchor
-            // used in the UI and Manual Log upgrades.
-            const key = ((daysSinceEpoch + diffToMonday) * 86400000) + 43200000
+              // Fixed: We add 43200000ms (12 hours) to the key to match the 12:00:00 UTC anchor
+              // used in the UI and Manual Log upgrades.
+              const key = ((daysSinceEpoch + diffToMonday) * 86400000) + 43200000
 
-            if (!weeklyGroups[key]) weeklyGroups[key] = []
-            weeklyGroups[key].push(log)
+              if (!weeklyGroups[key]) weeklyGroups[key] = []
+              weeklyGroups[key].push(log)
 
-            const dateKey = log.date
-            // Since we process in oldest-first order, the first encountered target holds the oldest goal
-            if (!dailyAnchors[dateKey] && log.dayGoal) {
-              dailyAnchors[dateKey] = log.dayGoal
+              const dateKey = log.date
+              // Since we process in oldest-first order, the first encountered target holds the oldest goal
+              if (!dailyAnchors[dateKey] && log.dayGoal) {
+                dailyAnchors[dateKey] = log.dayGoal
+              }
             }
-          }
 
-          for (let key in weeklyGroups) {
-            weeklyGroups[key].sort((a, b) => b.epochMs - a.epochMs)
-          }
+            for (let key in weeklyGroups) {
+              weeklyGroups[key].sort((a, b) => b.epochMs - a.epochMs)
+            }
 
-          self.postMessage({ txId, weeklyGroups, dailyAnchors })
-        }
-      `;
+            self.postMessage({ txId, weeklyGroups, dailyAnchors })
+          }
+        `;
       const blob = new Blob([workerCode], { type: "application/javascript" });
       const workerUrl = URL.createObjectURL(blob);
       const analyticsWorker = new Worker(workerUrl);
@@ -9856,30 +9885,40 @@
           const workSecInt = Math.floor(workSeconds);
           if (workSecInt !== _lastWorkSecInt) {
             _lastWorkSecInt = workSecInt;
-            setHTML(
-              DOM.workTimer,
-              formatDuration(workSeconds).replace(
-                /:/g,
-                '<span class="timer-colon">:</span>',
-              ),
-            );
+            const _wParts = formatDuration(workSeconds).split(":");
+            const _wd = DOM.workTimerDigits;
+            if (_wd[0].textContent !== _wParts[0])
+              _wd[0].textContent = _wParts[0];
+            if (_wd[1].textContent !== _wParts[1])
+              _wd[1].textContent = _wParts[1];
+            if (_wd[2].textContent !== _wParts[2])
+              _wd[2].textContent = _wParts[2];
           }
           const breakSecInt = Math.floor(breakSeconds);
           if (breakSecInt !== _lastBreakSecInt) {
             _lastBreakSecInt = breakSecInt;
-            setHTML(
-              DOM.breakTimer,
-              formatDuration(breakSeconds).replace(
-                /:/g,
-                '<span class="timer-colon">:</span>',
-              ),
-            );
+            const _bParts = formatDuration(breakSeconds).split(":");
+            const _bd = DOM.breakTimerDigits;
+            if (_bd[0].textContent !== _bParts[0])
+              _bd[0].textContent = _bParts[0];
+            if (_bd[1].textContent !== _bParts[1])
+              _bd[1].textContent = _bParts[1];
+            if (_bd[2].textContent !== _bParts[2])
+              _bd[2].textContent = _bParts[2];
           }
           const tickSec = Math.floor(nowMs / 1000);
           if (tickSec !== _lastClockTickSec) {
             _lastClockTickSec = tickSec;
-            setClock(DOM.primaryClock, primaryFormatter.format(nowDate));
-            setClock(DOM.bstClock, bstFormatter.format(nowDate));
+            setClock(
+              DOM.primaryClockTime,
+              DOM.primaryClockAmpm,
+              primaryFormatter.format(nowDate),
+            );
+            setClock(
+              DOM.bstClockTime,
+              DOM.bstClockAmpm,
+              bstFormatter.format(nowDate),
+            );
           }
         }
       }
@@ -10979,36 +11018,36 @@
 
         rowTemplate = document.createElement("template");
         rowTemplate.innerHTML = `
-          <div style="display: flex; justify-content: space-between; align-items: center;">
-            <div style="display: flex; align-items: center; gap: 8px;">
-              <span style="font-weight: 400; font-size: var(--font-size-entry-title); color: var(--text-main);">
-                <span class="log-day-name"></span> <span style="opacity: 0.5;" class="log-date-sub"></span>
-              </span>
-              <span class="log-meta" style="font-size: var(--font-size-entry-meta); color: var(--text-muted);"></span>
-              <span class="log-weekend-badge badge badge-weekend" style="display: none;">Weekend</span>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span style="font-weight: 400; font-size: var(--font-size-entry-title); color: var(--text-main);">
+                  <span class="log-day-name"></span> <span style="opacity: 0.5;" class="log-date-sub"></span>
+                </span>
+                <span class="log-meta" style="font-size: var(--font-size-entry-meta); color: var(--text-muted);"></span>
+                <span class="log-weekend-badge badge badge-weekend" style="display: none;">Weekend</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 4px;">
+                <span class="log-status-badge badge"></span>
+                <span class="log-diff-text" style="font-weight: 600; font-size: var(--font-size-entry-stats);"></span>
+              </div>
             </div>
-            <div style="display: flex; align-items: center; gap: 4px;">
-              <span class="log-status-badge badge"></span>
-              <span class="log-diff-text" style="font-weight: 600; font-size: var(--font-size-entry-stats);"></span>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: var(--space-1);">
+              <div class="font-mono" style="display: flex; gap: var(--space-3); font-size: var(--font-size-entry-stats);">
+                <span style="display: inline-flex; align-items: center; min-width: 75px;">
+                  <span class="badge badge-w">W</span> <span class="log-work-text" style="margin-left: 4px;"></span>
+                </span>
+                <span style="display: inline-flex; align-items: center; min-width: 65px;">
+                  <span class="badge badge-b">B</span> <span class="log-break-text" style="margin-left: 4px;"></span>
+                </span>
+              </div>
+              <div class="icon-actions">
+                <button class="log-note-btn icon-btn" aria-label="View Note">${SVGs.note}</button>
+                <button class="log-copy-btn icon-btn" data-action="copy" aria-label="Copy Log">${SVGs.copy}</button>
+                <button class="log-edit-btn icon-btn" data-action="edit" aria-label="Edit Times">${SVGs.edit}</button>
+                <button class="log-delete-btn icon-btn danger-text" data-action="delete" aria-label="Delete Shift">${SVGs.trash}</button>
+              </div>
             </div>
-          </div>
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: var(--space-1);">
-            <div class="font-mono" style="display: flex; gap: var(--space-3); font-size: var(--font-size-entry-stats);">
-              <span style="display: inline-flex; align-items: center; min-width: 75px;">
-                <span class="badge badge-w">W</span> <span class="log-work-text" style="margin-left: 4px;"></span>
-              </span>
-              <span style="display: inline-flex; align-items: center; min-width: 65px;">
-                <span class="badge badge-b">B</span> <span class="log-break-text" style="margin-left: 4px;"></span>
-              </span>
-            </div>
-            <div class="icon-actions">
-              <button class="log-note-btn icon-btn" aria-label="View Note">${SVGs.note}</button>
-              <button class="log-copy-btn icon-btn" data-action="copy" aria-label="Copy Log">${SVGs.copy}</button>
-              <button class="log-edit-btn icon-btn" data-action="edit" aria-label="Edit Times">${SVGs.edit}</button>
-              <button class="log-delete-btn icon-btn danger-text" data-action="delete" aria-label="Delete Shift">${SVGs.trash}</button>
-            </div>
-          </div>
-        `;
+          `;
         return rowTemplate;
       }
 
@@ -11120,15 +11159,15 @@
         if (activeCount > 0) {
           btn.classList.add("filter-active");
           btn.innerHTML = `
-          <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" width="18" height="18"><use href="#sprite-052"></use></svg>
-          Filters (${activeCount})
-        `;
+            <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" width="18" height="18"><use href="#sprite-052"></use></svg>
+            Filters (${activeCount})
+          `;
         } else {
           btn.classList.remove("filter-active");
           btn.innerHTML = `
-          <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" width="18" height="18"><use href="#sprite-052"></use></svg>
-          Filters
-        `;
+            <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" width="18" height="18"><use href="#sprite-052"></use></svg>
+            Filters
+          `;
         }
 
         DOM.filterHoursVal.disabled = DOM.filterHoursOp.value === "ALL";
@@ -11191,11 +11230,11 @@
         container.innerHTML = chips
           .map(
             (c) => `
-        <span class="filter-chip">
-          ${escapeHTML(c.label)}
-          <span class="filter-chip-remove" onclick="clearSingleFilter('${c.id}')">✕</span>
-        </span>
-      `,
+          <span class="filter-chip">
+            ${escapeHTML(c.label)}
+            <span class="filter-chip-remove" onclick="clearSingleFilter('${c.id}')">✕</span>
+          </span>
+        `,
           )
           .join("");
       }
@@ -11736,6 +11775,29 @@
         "November",
         "December",
       ];
+      const _DAY_NAMES_SHORT = [
+        "Sun",
+        "Mon",
+        "Tue",
+        "Wed",
+        "Thu",
+        "Fri",
+        "Sat",
+      ];
+      const _SHORT_MONTHS = [
+        "Jan",
+        "Feb",
+        "Mar",
+        "Apr",
+        "May",
+        "Jun",
+        "Jul",
+        "Aug",
+        "Sep",
+        "Oct",
+        "Nov",
+        "Dec",
+      ];
 
       function renderVirtualVisibleItems() {
         if (virtualScrollLogs.length === 0) {
@@ -11849,7 +11911,6 @@
 
         // Update recycled nodes using the pre-compiled layout caches
         const children = DOM.logContainer.children;
-        const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
         for (let i = startIndex; i <= endIndex; i++) {
           const poolIndex = i - startIndex;
@@ -11883,7 +11944,7 @@
             );
             const hasNote = !!log.notes;
 
-            dom.dayName.textContent = dayNames[dayNum];
+            dom.dayName.textContent = _DAY_NAMES_SHORT[dayNum];
             dom.dateSub.textContent = `(${displayMonthDay})`;
             dom.meta.textContent = `${log.login} - ${log.logout}`;
             dom.statusBadge.textContent = log.status === "OVER" ? "O" : "U";
@@ -11978,32 +12039,6 @@
         _renderLogbookPending = false;
       }
 
-      window.addEventListener(
-        "resize",
-        debounce(() => {
-          const logbookTab = DOM.tabLogbook;
-          if (logbookTab) {
-            cachedViewportHeight = logbookTab.clientHeight;
-          }
-
-          // Refresh cached base font size on resize to support zoom events cleanly
-          cachedBaseFontSize = parseFloat(
-            getComputedStyle(document.documentElement).fontSize,
-          );
-
-          // Recalculate total container height and clear render key to force update
-          const itemHeight = getDynamicItemHeight();
-          if (virtualScrollLogs.length > 0) {
-            DOM.logContainer.style.height = `${
-              virtualScrollLogs.length * itemHeight
-            }px`;
-            DOM.logContainer.dataset.renderKey = "";
-            renderVirtualVisibleItems();
-          }
-        }, 150),
-        { passive: true },
-      );
-
       /*==========================================================================
        * 14. DATA MIGRATIONS & BACKUP UTILITIES (CSV/JSON/TEXT)
        * =========================================================================*/
@@ -12023,20 +12058,20 @@
         if (!tooltip) return;
 
         tooltip.innerHTML = `
-        <div style="font-weight: 700; color: var(--accent-blue); border-bottom: 1px solid var(--border-main); padding-bottom: 4px; margin-bottom: 6px;">${dateKey}</div>
-        <div style="display: flex; justify-content: space-between; margin-bottom: 2px;">
-          <span>Work:</span> <strong id="tooltip-work-val" style="color: var(--accent-work);">${workStr}</strong>
-        </div>
-        <div style="display: flex; justify-content: space-between; margin-bottom: 2px;">
-          <span>Break:</span> <strong id="tooltip-break-val" style="color: var(--accent-break);">${breakStr}</strong>
-        </div>
-        <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
-          <span>Goal:</span> <strong id="tooltip-goal-val" style="color: var(--text-main);">${goalStr}</strong>
-        </div>
-        <div style="color: var(--text-muted); font-size: 10px; white-space: normal; word-break: break-word; border-top: 1px solid var(--border-main); padding-top: 4px; margin-top: 4px;">
-          <strong>Notes:</strong> ${notesStr}
-        </div>
-      `;
+          <div style="font-weight: 700; color: var(--accent-blue); border-bottom: 1px solid var(--border-main); padding-bottom: 4px; margin-bottom: 6px;">${dateKey}</div>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 2px;">
+            <span>Work:</span> <strong id="tooltip-work-val" style="color: var(--accent-work);">${workStr}</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 2px;">
+            <span>Break:</span> <strong id="tooltip-break-val" style="color: var(--accent-break);">${breakStr}</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+            <span>Goal:</span> <strong id="tooltip-goal-val" style="color: var(--text-main);">${goalStr}</strong>
+          </div>
+          <div style="color: var(--text-muted); font-size: 10px; white-space: normal; word-break: break-word; border-top: 1px solid var(--border-main); padding-top: 4px; margin-top: 4px;">
+            <strong>Notes:</strong> ${notesStr}
+          </div>
+        `;
 
         tooltip.style.display = "block";
         const rect = e.target.getBoundingClientRect();
@@ -12305,10 +12340,10 @@
         const statsEl = DOM.heatmapYtdStats;
         if (statsEl) {
           statsEl.innerHTML = `
-          <span>YTD Work: <strong style="color: var(--accent-work);">${totalHoursVal}h</strong></span>
-          <span>Avg Focus: <strong style="color: var(--accent-blue);">${avgFocus}%</strong></span>
-          <span>Leaves: <strong style="color: var(--accent-warning);">${leaveCountYTD}d</strong></span>
-        `;
+            <span>YTD Work: <strong style="color: var(--accent-work);">${totalHoursVal}h</strong></span>
+            <span>Avg Focus: <strong style="color: var(--accent-blue);">${avgFocus}%</strong></span>
+            <span>Leaves: <strong style="color: var(--accent-warning);">${leaveCountYTD}d</strong></span>
+          `;
         }
 
         for (let i = 0; i < totalDays; i++) {
@@ -12320,7 +12355,7 @@
 
           // Record month transitions dynamically within the bounds of the current year
           if (currentMonth !== lastMonth && d.getFullYear() === currentYear) {
-            monthsHtml += `<span style="position: absolute; left: ${colIndex * 19}px; white-space: nowrap;">${shortMonths[currentMonth]}</span>`;
+            monthsHtml += `<span style="position: absolute; left: ${colIndex * 19}px; white-space: nowrap;">${_SHORT_MONTHS[currentMonth]}</span>`;
             lastMonth = currentMonth;
           }
 
@@ -12410,10 +12445,10 @@
           if (tooltipData) {
             const escNotes = (tooltipData.notes || "").replace(/'/g, "\\'");
             hoverEffects = `
-            onmouseover="showHeatmapTooltip(event, '${tooltipData.date}', '${tooltipData.work}', '${tooltipData.break}', '${tooltipData.goal}', '${escNotes}'); this.style.transform='scale(1.3)';"
-            onmouseout="hideHeatmapTooltip(); this.style.transform='scale(1)';"
-            onclick="heatmapClickFilter('${dateKey}')"
-          `;
+              onmouseover="showHeatmapTooltip(event, '${tooltipData.date}', '${tooltipData.work}', '${tooltipData.break}', '${tooltipData.goal}', '${escNotes}'); this.style.transform='scale(1.3)';"
+              onmouseout="hideHeatmapTooltip(); this.style.transform='scale(1)';"
+              onclick="heatmapClickFilter('${dateKey}')"
+            `;
           }
 
           let cellClass = "";
@@ -12608,7 +12643,7 @@
 
         setText(
           DOM.weekMonthLabel,
-          `Week of ${shortMonths[mondayUTC.getUTCMonth()]} ${mondayUTC.getUTCDate()}`,
+          `Week of ${_SHORT_MONTHS[mondayUTC.getUTCMonth()]} ${mondayUTC.getUTCDate()}`,
         );
 
         if (DOM.weekMonthLabel) {
@@ -12632,7 +12667,7 @@
         let totalB_AllWeek = 0;
         let dynamicWeeklyGoalSec = 40 * 3600; // Base 40 Hours
         let breakdownHTML = "";
-        const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
         const liveGoalSec = getGoalSeconds(
           DOM.goalHours.value,
           DOM.goalMins.value,
@@ -12700,21 +12735,21 @@
             const leaveBadge = `<span class="badge badge-leave">${leaveLabel}</span>`;
 
             breakdownHTML += `
-                <div class="breakdown-row" style="${rowStyle}">
-                  <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-                    <span style="font-weight: ${
-                      isToday ? "700" : "400"
-                    }; font-size: var(--font-size-entry-title);">
-                      ${
-                        dayNames[dayOfWeekIndex]
-                      } <span style="opacity: 0.5;">(${displayDateNoYear})</span>${weekendBadge}${leaveBadge}
-                    </span>
-                    <div class="font-mono stats-alignment-wrapper" style="font-size: var(--font-size-entry-stats); color: var(--text-main); display: flex; gap: 12px;">
-                       <div class="stat-column work-col" style="display:flex; align-items:center;"><span class="badge badge-w badge-w-lg">W</span> —</div>
-                       <div class="stat-column break-col" style="display:flex; align-items:center;"><span class="badge badge-b badge-b-lg">B</span> —</div>
+                  <div class="breakdown-row" style="${rowStyle}">
+                    <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                      <span style="font-weight: ${
+                        isToday ? "700" : "400"
+                      }; font-size: var(--font-size-entry-title);">
+                        ${
+                          dayNames[dayOfWeekIndex]
+                        } <span style="opacity: 0.5;">(${displayDateNoYear})</span>${weekendBadge}${leaveBadge}
+                      </span>
+                      <div class="font-mono stats-alignment-wrapper" style="font-size: var(--font-size-entry-stats); color: var(--text-main); display: flex; gap: 12px;">
+                         <div class="stat-column work-col" style="display:flex; align-items:center;"><span class="badge badge-w badge-w-lg">W</span> —</div>
+                         <div class="stat-column break-col" style="display:flex; align-items:center;"><span class="badge badge-b badge-b-lg">B</span> —</div>
+                      </div>
                     </div>
-                  </div>
-                </div>`;
+                  </div>`;
           } else {
             const isEmptyDay =
               dayW === 0 && dayB === 0 && (!isToday || !state.loginTimestamp);
@@ -12722,25 +12757,25 @@
             if (isEmptyDay) {
               if (!isWeekend) {
                 breakdownHTML += `
-                    <div class="breakdown-row" style="${rowStyle}">
-                      <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-                        <span style="font-weight: ${
-                          isToday ? "700" : "400"
-                        }; font-size: var(--font-size-entry-title);">
-                          ${
-                            dayNames[dayOfWeekIndex]
-                          } <span style="opacity: 0.5;">(${displayDateNoYear})</span>${weekendBadge}
-                        </span>
-                        <div class="font-mono stats-alignment-wrapper" style="font-size: var(--font-size-entry-stats); color: var(--text-main); display: flex; gap: 12px;">
-                           <div class="stat-column work-col" style="display:flex; align-items:center;"><span class="badge badge-w badge-w-lg">W</span> <span ${
-                             isToday ? 'id="today-work-val"' : ""
-                           }>—</span></div>
-                           <div class="stat-column break-col" style="display:flex; align-items:center;"><span class="badge badge-b badge-b-lg">B</span> <span ${
-                             isToday ? 'id="today-break-val"' : ""
-                           }>—</span></div>
+                      <div class="breakdown-row" style="${rowStyle}">
+                        <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                          <span style="font-weight: ${
+                            isToday ? "700" : "400"
+                          }; font-size: var(--font-size-entry-title);">
+                            ${
+                              dayNames[dayOfWeekIndex]
+                            } <span style="opacity: 0.5;">(${displayDateNoYear})</span>${weekendBadge}
+                          </span>
+                          <div class="font-mono stats-alignment-wrapper" style="font-size: var(--font-size-entry-stats); color: var(--text-main); display: flex; gap: 12px;">
+                             <div class="stat-column work-col" style="display:flex; align-items:center;"><span class="badge badge-w badge-w-lg">W</span> <span ${
+                               isToday ? 'id="today-work-val"' : ""
+                             }>—</span></div>
+                             <div class="stat-column break-col" style="display:flex; align-items:center;"><span class="badge badge-b badge-b-lg">B</span> <span ${
+                               isToday ? 'id="today-break-val"' : ""
+                             }>—</span></div>
+                          </div>
                         </div>
-                      </div>
-                    </div>`;
+                      </div>`;
               }
             } else {
               const dayLogs = logsByDate[dateStr];
@@ -12797,46 +12832,46 @@
               const textClass = isOver ? "text-work" : "text-warning";
 
               breakdownHTML += `
-                  <div class="breakdown-row" style="${rowStyle}">
-                    <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-                      <span style="font-weight: ${
-                        isToday ? "700" : "400"
-                      }; font-size: var(--font-size-entry-title);">
-                        ${
-                          dayNames[dayOfWeekIndex]
-                        } <span style="opacity: 0.5;">(${displayDateNoYear})</span>${weekendBadge}
-                      </span>
-                      <div class="font-mono stats-alignment-wrapper" style="font-size: var(--font-size-entry-stats); color: var(--text-main); display: flex; gap: 12px;">
-                        <div class="stat-column work-col" style="display:flex; align-items:center;">
-                          <span class="badge badge-w badge-w-lg">W</span> <span ${
-                            isToday ? 'id="today-work-val"' : ""
-                          }>${formatFriendlyDuration(dayW)}</span>
-                        </div>
-                        <div class="stat-column break-col" style="display:flex; align-items:center;">
-                          <span class="badge badge-b badge-b-lg">B</span> <span ${
-                            isToday ? 'id="today-break-val"' : ""
-                          }>${formatFriendlyDuration(dayB)}</span>
-                        </div>
-                      </div>
-                    </div>
-                    <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; font-size: var(--font-size-entry-meta); color: var(--text-muted); margin-top: 4px;">
-                      <span>${loginStr} - ${logoutStr}</span>
-                      <div class="font-mono stats-alignment-wrapper" style="font-size: var(--font-size-entry-meta); color: var(--text-muted); display: flex; gap: 12px;">
-                        <div class="stat-column work-col" style="display:flex; align-items:center;">
-                          <span ${
-                            isToday ? 'id="today-variance-badge"' : ""
-                          } class="badge ${badgeClass}">${ouLetter}</span><span ${
-                            isToday ? 'id="today-variance-val"' : ""
-                          } class="${textClass}" style="font-weight: 600;">${varianceTime}</span>
-                        </div>
-                        <div class="stat-column break-col" style="display:flex; align-items:center;">
-                          <span class="badge badge-f">F</span><span ${
-                            isToday ? 'id="today-focus-val"' : ""
-                          } style="font-weight: 600; color: var(--text-muted);">${focusText}</span>
+                    <div class="breakdown-row" style="${rowStyle}">
+                      <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                        <span style="font-weight: ${
+                          isToday ? "700" : "400"
+                        }; font-size: var(--font-size-entry-title);">
+                          ${
+                            dayNames[dayOfWeekIndex]
+                          } <span style="opacity: 0.5;">(${displayDateNoYear})</span>${weekendBadge}
+                        </span>
+                        <div class="font-mono stats-alignment-wrapper" style="font-size: var(--font-size-entry-stats); color: var(--text-main); display: flex; gap: 12px;">
+                          <div class="stat-column work-col" style="display:flex; align-items:center;">
+                            <span class="badge badge-w badge-w-lg">W</span> <span ${
+                              isToday ? 'id="today-work-val"' : ""
+                            }>${formatFriendlyDuration(dayW)}</span>
+                          </div>
+                          <div class="stat-column break-col" style="display:flex; align-items:center;">
+                            <span class="badge badge-b badge-b-lg">B</span> <span ${
+                              isToday ? 'id="today-break-val"' : ""
+                            }>${formatFriendlyDuration(dayB)}</span>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </div>`;
+                      <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; font-size: var(--font-size-entry-meta); color: var(--text-muted); margin-top: 4px;">
+                        <span>${loginStr} - ${logoutStr}</span>
+                        <div class="font-mono stats-alignment-wrapper" style="font-size: var(--font-size-entry-meta); color: var(--text-muted); display: flex; gap: 12px;">
+                          <div class="stat-column work-col" style="display:flex; align-items:center;">
+                            <span ${
+                              isToday ? 'id="today-variance-badge"' : ""
+                            } class="badge ${badgeClass}">${ouLetter}</span><span ${
+                              isToday ? 'id="today-variance-val"' : ""
+                            } class="${textClass}" style="font-weight: 600;">${varianceTime}</span>
+                          </div>
+                          <div class="stat-column break-col" style="display:flex; align-items:center;">
+                            <span class="badge badge-f">F</span><span ${
+                              isToday ? 'id="today-focus-val"' : ""
+                            } style="font-weight: 600; color: var(--text-muted);">${focusText}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>`;
             }
           }
         }
@@ -13348,14 +13383,14 @@
                           (l) => l.date === backupLog.date,
                         );
                         return `
-                      <div style="border-bottom: 1px solid var(--border-main); padding: var(--space-2) 0; display: flex; flex-direction: column; gap: 2px;">
-                        <span style="font-weight: 700; color: var(--accent-blue);">${backupLog.date}</span>
-                        <div style="display: flex; justify-content: space-between; gap: 8px;">
-                          <span>Local: ${localLog ? `${formatFriendlyDuration(localLog.workSec)} (${localLog.login}-${localLog.logout})` : "None"}</span>
-                          <span style="color: var(--accent-warning);">Backup: ${formatFriendlyDuration(backupLog.workSec)} (${backupLog.login}-${backupLog.logout})</span>
+                        <div style="border-bottom: 1px solid var(--border-main); padding: var(--space-2) 0; display: flex; flex-direction: column; gap: 2px;">
+                          <span style="font-weight: 700; color: var(--accent-blue);">${backupLog.date}</span>
+                          <div style="display: flex; justify-content: space-between; gap: 8px;">
+                            <span>Local: ${localLog ? `${formatFriendlyDuration(localLog.workSec)} (${localLog.login}-${localLog.logout})` : "None"}</span>
+                            <span style="color: var(--accent-warning);">Backup: ${formatFriendlyDuration(backupLog.workSec)} (${backupLog.login}-${backupLog.logout})</span>
+                          </div>
                         </div>
-                      </div>
-                    `;
+                      `;
                       })
                       .join("");
                   }
@@ -15654,12 +15689,12 @@
         if (isDefaultState) {
           if (state.currentMode === "work") {
             html += `<div id="hud-live-timer" style="margin-bottom: 8px; background: var(--element-bg); border-radius: var(--radius-md); padding: 12px; display: flex; justify-content: space-between; align-items: center; border: 1px solid var(--border-main);">
-                          <div style="display:flex; align-items:center; gap:8px;">
-                            <span style="display:inline-block; width:10px; height:10px; background:var(--accent-work); border-radius:50%; box-shadow: 0 0 8px var(--accent-work);"></span>
-                            <span style="font-weight:600; color:var(--text-main);">Live Session</span>
-                          </div>
-                          <div id="hud-live-timer-val" style="font-family: var(--number-font); font-variant-numeric: tabular-nums; font-size:1.2rem; font-weight:bold; color:var(--text-main);">${typeof formatDuration === "function" ? formatDuration(getCurrentWorkSeconds()) : ""}</div>
-                        </div>`;
+                            <div style="display:flex; align-items:center; gap:8px;">
+                              <span style="display:inline-block; width:10px; height:10px; background:var(--accent-work); border-radius:50%; box-shadow: 0 0 8px var(--accent-work);"></span>
+                              <span style="font-weight:600; color:var(--text-main);">Live Session</span>
+                            </div>
+                            <div id="hud-live-timer-val" style="font-family: var(--number-font); font-variant-numeric: tabular-nums; font-size:1.2rem; font-weight:bold; color:var(--text-main);">${typeof formatDuration === "function" ? formatDuration(getCurrentWorkSeconds()) : ""}</div>
+                          </div>`;
           }
         }
 
@@ -15678,17 +15713,17 @@
               : "var(--text-muted)";
 
             html += `
-              <div onclick="executeHudIndex(${idx})" style="background: ${bg}; border-radius: var(--radius-sm); padding: 10px 12px; display: flex; align-items: center; cursor: pointer; transition: background 0.1s ease; margin-bottom: 2px;">
-                <div style="display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 8px; background: var(--element-bg); margin-right: 12px; flex-shrink: 0; box-shadow: 0 1px 2px rgba(0,0,0,0.1);">
-                  ${cmd.icon || ""}
+                <div onclick="executeHudIndex(${idx})" style="background: ${bg}; border-radius: var(--radius-sm); padding: 10px 12px; display: flex; align-items: center; cursor: pointer; transition: background 0.1s ease; margin-bottom: 2px;">
+                  <div style="display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 8px; background: var(--element-bg); margin-right: 12px; flex-shrink: 0; box-shadow: 0 1px 2px rgba(0,0,0,0.1);">
+                    ${cmd.icon || ""}
+                  </div>
+                  <div style="display: flex; flex-direction: column; flex: 1; overflow: hidden;">
+                    <span style="font-weight: 600; font-size: 0.9rem; color: ${textMain}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${cmd.title}</span>
+                    <span style="font-size: 0.75rem; color: ${descColor}; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${cmd.desc}</span>
+                  </div>
+                  ${isSelected ? `<span style="font-size: 0.7rem; font-weight: bold; color: var(--text-muted); background: var(--element-bg); padding: 2px 6px; border-radius: 4px;">↵</span>` : ""}
                 </div>
-                <div style="display: flex; flex-direction: column; flex: 1; overflow: hidden;">
-                  <span style="font-weight: 600; font-size: 0.9rem; color: ${textMain}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${cmd.title}</span>
-                  <span style="font-size: 0.75rem; color: ${descColor}; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${cmd.desc}</span>
-                </div>
-                ${isSelected ? `<span style="font-size: 0.7rem; font-weight: bold; color: var(--text-muted); background: var(--element-bg); padding: 2px 6px; border-radius: 4px;">↵</span>` : ""}
-              </div>
-              `;
+                `;
           });
         }
 
@@ -16772,14 +16807,14 @@
           if (type === "Public Holiday") badgeClass = "badge-leave-holiday";
 
           html += `
-                  <div style="display: flex; justify-content: space-between; align-items: center; background: var(--panel-bg); border: 1px solid var(--border-main); padding: var(--space-1) var(--space-3); border-radius: var(--radius-sm); font-size: var(--text-sm); font-family: var(--font-mono); color: var(--text-main);">
-                    <div style="display: flex; align-items: center; gap: 8px;">
-                      <span>${safeDate}</span>
-                      <span class="badge ${badgeClass}" style="font-family: var(--font-sans); margin-left: 0;">${safeType}</span>
+                    <div style="display: flex; justify-content: space-between; align-items: center; background: var(--panel-bg); border: 1px solid var(--border-main); padding: var(--space-1) var(--space-3); border-radius: var(--radius-sm); font-size: var(--text-sm); font-family: var(--font-mono); color: var(--text-main);">
+                      <div style="display: flex; align-items: center; gap: 8px;">
+                        <span>${safeDate}</span>
+                        <span class="badge ${badgeClass}" style="font-family: var(--font-sans); margin-left: 0;">${safeType}</span>
+                      </div>
+                      <button style="background: transparent; border: none; color: var(--accent-break); font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; width: 16px; height: 16px; line-height: 1;" onclick="removeLeaveDate('${safeDate}')" title="Remove Leave">✕</button>
                     </div>
-                    <button style="background: transparent; border: none; color: var(--accent-break); font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; width: 16px; height: 16px; line-height: 1;" onclick="removeLeaveDate('${safeDate}')" title="Remove Leave">✕</button>
-                  </div>
-                `;
+                  `;
         });
         listContainer.innerHTML = html;
       }
@@ -17307,18 +17342,18 @@
 
         // Add a dismiss button for all toasts
         const closeBtnHtml = `
-            <button class="toast-close-btn" onclick="closeSyncToast()">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#sprite-004"></use></svg>
-            </button>
-          `;
+              <button class="toast-close-btn" onclick="closeSyncToast()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#sprite-004"></use></svg>
+              </button>
+            `;
 
         toast.innerHTML = `
-                <div style="display: flex; align-items: center; gap: 12px;">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent-warning); flex-shrink: 0;"><use href="#sprite-084"></use></svg>
-                  <span>${msg}</span>
-                  ${closeBtnHtml}
-                </div>
-              `;
+                  <div style="display: flex; align-items: center; gap: 12px;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent-warning); flex-shrink: 0;"><use href="#sprite-084"></use></svg>
+                    <span>${msg}</span>
+                    ${closeBtnHtml}
+                  </div>
+                `;
         toast.style.top = "30px";
 
         syncToastId = (syncToastId + 1) % Number.MAX_SAFE_INTEGER;
