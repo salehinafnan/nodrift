@@ -5598,6 +5598,34 @@
         </div>
         <div class="form-row">
           <div class="form-group">
+            <label class="form-label" for="manual-login"
+              >Log In (Optional)</label
+            >
+            <input
+              type="text"
+              id="manual-login"
+              class="input-standard"
+              placeholder="09:00 AM"
+              onfocus="this.select()"
+              onkeydown="if (event.key === 'Enter') this.blur();"
+            />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="manual-logout"
+              >Log Out (Optional)</label
+            >
+            <input
+              type="text"
+              id="manual-logout"
+              class="input-standard"
+              placeholder="05:00 PM"
+              onfocus="this.select()"
+              onkeydown="if (event.key === 'Enter') this.blur();"
+            />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
             <label class="form-label" for="manual-work">Work (HH:MM)</label>
             <input
               type="text"
@@ -8094,7 +8122,6 @@
               e,
             );
             window.storageWriteError = true;
-            throw e;
           }
         };
 
@@ -8466,6 +8493,8 @@
         snapshotRestoreSelect: document.getElementById(
           "snapshot-restore-select",
         ),
+        manualLogin: document.getElementById("manual-login"),
+        manualLogout: document.getElementById("manual-logout"),
         manualBreak: document.getElementById("manual-break"),
         manualNotes: document.getElementById("manual-notes"),
         presetModal: document.getElementById("preset-modal"),
@@ -8675,13 +8704,13 @@
                   showAppToast(
                     "⚠️ Storage write failed — data may not be saved",
                   );
-                  resolve();
+                  reject(e);
                 };
               };
               reqKeys.onerror = (e) => {
                 console.error("IndexedDB key read failed:", e);
                 showAppToast("⚠️ Storage read failed — save may be incomplete");
-                resolve();
+                reject(e);
               };
             };
 
@@ -9291,8 +9320,13 @@
         // Delay database operations until the current thread yields, batching parallel changes
         if (!pendingDBSave) {
           pendingDBSave = Promise.resolve().then(async () => {
-            await saveLogsToDB(cachedLogs);
-            pendingDBSave = null;
+            try {
+              await saveLogsToDB(cachedLogs);
+            } catch (err) {
+              console.error("Failed to persist logs to DB", err);
+            } finally {
+              pendingDBSave = null;
+            }
           });
         }
       }
@@ -9611,8 +9645,21 @@
        */
       function updateActivity() {
         const now = Date.now();
-        // Throttle execution cleanly to once every 5 seconds to reduce main-thread overhead
-        if (now - lastActivityRegisterTime < 5000) return;
+
+        window.removeEventListener("mousemove", updateActivity);
+        window.removeEventListener("keydown", updateActivity);
+        window.removeEventListener("click", updateActivity);
+        window.removeEventListener("scroll", updateActivity);
+
+        setTimeout(() => {
+          window.addEventListener("mousemove", updateActivity, {
+            passive: true,
+          });
+          window.addEventListener("keydown", updateActivity, { passive: true });
+          window.addEventListener("click", updateActivity, { passive: true });
+          window.addEventListener("scroll", updateActivity, { passive: true });
+        }, 5000);
+
         lastActivityRegisterTime = now;
 
         if (!state.idleLock) {
@@ -9909,15 +9956,38 @@
           const tickSec = Math.floor(nowMs / 1000);
           if (tickSec !== _lastClockTickSec) {
             _lastClockTickSec = tickSec;
+
+            const currentMin = nowDate.getMinutes();
+            if (currentMin !== window._lastClockMinCache) {
+              window._lastClockMinCache = currentMin;
+              window._cachedPrimaryBase = primaryFormatter.format(nowDate);
+              window._cachedBstBase = bstFormatter.format(nowDate);
+            }
+
+            const secStr = String(nowDate.getSeconds()).padStart(2, "0");
+
+            const buildTime = (baseStr) => {
+              const parts = (baseStr || "").split(" ");
+              const t = parts[0].split(":");
+              return (
+                t[0] +
+                ":" +
+                t[1] +
+                ":" +
+                secStr +
+                (parts.length > 1 ? " " + parts.slice(1).join(" ") : "")
+              );
+            };
+
             setClock(
               DOM.primaryClockTime,
               DOM.primaryClockAmpm,
-              primaryFormatter.format(nowDate),
+              buildTime(window._cachedPrimaryBase),
             );
             setClock(
               DOM.bstClockTime,
               DOM.bstClockAmpm,
-              bstFormatter.format(nowDate),
+              buildTime(window._cachedBstBase),
             );
           }
         }
@@ -10051,10 +10121,7 @@
           );
 
           // Retrieve live goals dynamically within this scope
-          const liveGoalSec = getGoalSeconds(
-            DOM.goalHours.value,
-            DOM.goalMins.value,
-          );
+          const liveGoalSec = domWriteCache._goalSecCached || 28800;
 
           // Trend calculations comparing actual progress against expectations
           let expectedSecSoFar = 0;
@@ -11145,6 +11212,8 @@
         const dateStart = DOM.filterDateStart.value !== "";
         const dateEnd = DOM.filterDateEnd.value !== "";
         const hoursFilter = DOM.filterHoursOp.value !== "ALL";
+        const searchFilter =
+          !!DOM.filterSearch && DOM.filterSearch.value.trim() !== "";
 
         let activeCount = 0;
         if (timeFilter) activeCount++;
@@ -11153,6 +11222,7 @@
         if (dateStart) activeCount++;
         if (dateEnd) activeCount++;
         if (hoursFilter) activeCount++;
+        if (searchFilter) activeCount++;
 
         const btn = DOM.filterToggleBtn;
 
@@ -11221,6 +11291,11 @@
           chips.push({ id: "notes", label: "Has Notes" });
         }
 
+        const searchVal = DOM.filterSearch ? DOM.filterSearch.value.trim() : "";
+        if (searchVal) {
+          chips.push({ id: "search", label: `Search: "${searchVal}"` });
+        }
+
         if (chips.length === 0) {
           container.style.display = "none";
           return;
@@ -11257,6 +11332,8 @@
           DOM.filterHoursVal.disabled = true;
         } else if (filterId === "notes") {
           DOM.filterNotes.checked = false;
+        } else if (filterId === "search") {
+          if (DOM.filterSearch) DOM.filterSearch.value = "";
         }
 
         saveActiveFilters();
@@ -11595,11 +11672,20 @@
           const day = nowUTC.getUTCDay();
           const diffToMonday = day === 0 ? -6 : 1 - day;
           absoluteStartMs = nowUTC.getTime() + diffToMonday * 86400000;
+          absoluteEndMs = absoluteStartMs + 6 * 86400000;
         } else if (criteria.timeFilter === "MONTH") {
           absoluteStartMs = Date.UTC(
             nowPSTObj.getUTCFullYear(),
             nowPSTObj.getUTCMonth(),
             1,
+            12,
+            0,
+            0,
+          );
+          absoluteEndMs = Date.UTC(
+            nowPSTObj.getUTCFullYear(),
+            nowPSTObj.getUTCMonth() + 1,
+            0,
             12,
             0,
             0,
@@ -11633,7 +11719,13 @@
         }
 
         const searchTerms = criteria.searchVal
-          ? criteria.searchVal.split(/\s+/)
+          ? criteria.searchVal.split(/\s+/).map((term) => {
+              if (/^[0-9]{1,2}\/[0-9]{1,2}\/[0-9]{4}$/.test(term)) {
+                const parts = term.split("/");
+                return `${parts[0]}/${parts[1]}/${parts[2].slice(-2)}`;
+              }
+              return term;
+            })
           : [];
         const termLen = searchTerms.length;
 
@@ -12012,13 +12104,16 @@
           const dateStart = DOM.filterDateStart.value !== "";
           const dateEnd = DOM.filterDateEnd.value !== "";
           const hoursFilter = DOM.filterHoursOp.value !== "ALL";
+          const searchActive =
+            !!DOM.filterSearch && DOM.filterSearch.value.trim() !== "";
           const isFiltering =
             timeFilter ||
             statusFilter ||
             notesFilter ||
             dateStart ||
             dateEnd ||
-            hoursFilter;
+            hoursFilter ||
+            searchActive;
 
           if (isFiltering) {
             countDisplay.textContent = `Showing ${filteredCount.toLocaleString()} of ${totalLogsCount.toLocaleString()} log${totalLogsCount !== 1 ? "s" : ""}`;
@@ -12029,6 +12124,12 @@
 
         if (virtualScrollLogs.length > 0) {
           DOM.logContainer.style.height = `${virtualScrollLogs.length * itemHeight}px`;
+          if (
+            DOM.logContainer.firstChild &&
+            !DOM.logContainer.firstChild._dom
+          ) {
+            DOM.logContainer.innerHTML = "";
+          }
         } else {
           DOM.logContainer.style.height = "0px";
           DOM.logContainer.innerHTML =
@@ -12106,11 +12207,25 @@
       window.heatmapClickFilter = function (dateStr) {
         closeHeatmapModal();
         switchTab("logbook");
+
+        // Silently clear filters to avoid jarring toasts and redundant renders
+        DOM.filterTime.value = "ALL";
+        DOM.filterStatus.value = "ALL";
+        DOM.filterDateStart.value = "";
+        DOM.filterDateEnd.value = "";
+        DOM.filterHoursOp.value = "ALL";
+        DOM.filterHoursVal.value = "";
+        DOM.filterHoursVal.disabled = true;
+        DOM.filterNotes.checked = false;
+        DOM.filterViewPresets.value = "";
+
         const searchInput = DOM.filterSearch;
         if (searchInput) {
           searchInput.value = dateStr;
-          searchInput.dispatchEvent(new Event("input"));
         }
+
+        saveActiveFilters();
+        renderLogbook();
 
         // Automatically expand the filter drawer if closed
         const panel = DOM.advancedFilters;
@@ -12346,8 +12461,33 @@
           `;
         }
 
+        if (!document.getElementById("heatmap-opt-styles")) {
+          const style = document.createElement("style");
+          style.id = "heatmap-opt-styles";
+          style.innerHTML = `
+            :root[data-theme="onyx-black"] .heatmap-exc { background: color-mix(in srgb, var(--accent-work) 80%, #ffffff) !important; }
+            :root[data-theme="onyx-black"] .heatmap-high { background: var(--accent-work) !important; }
+            :root[data-theme="onyx-black"] .heatmap-med { background: color-mix(in srgb, var(--accent-work) 50%, transparent) !important; }
+            :root[data-theme="onyx-black"] .heatmap-low { background: color-mix(in srgb, var(--accent-work) 20%, transparent) !important; }
+            :root[data-theme="cobalt-glass"] .heatmap-exc { background: color-mix(in srgb, var(--accent-blue) 80%, #ffffff) !important; }
+            :root[data-theme="cobalt-glass"] .heatmap-high { background: var(--accent-blue) !important; }
+            :root[data-theme="cobalt-glass"] .heatmap-med { background: color-mix(in srgb, var(--accent-blue) 55%, transparent) !important; }
+            :root[data-theme="cobalt-glass"] .heatmap-low { background: color-mix(in srgb, var(--accent-blue) 20%, transparent) !important; }
+            :root[data-theme="sf-dark"] .heatmap-exc, :root[data-theme="sf-light"] .heatmap-exc { background: color-mix(in srgb, var(--accent-work) 80%, var(--accent-warning)) !important; }
+            :root[data-theme="sf-dark"] .heatmap-high, :root[data-theme="sf-light"] .heatmap-high { background: var(--accent-work) !important; }
+            :root[data-theme="sf-dark"] .heatmap-med, :root[data-theme="sf-light"] .heatmap-med { background: color-mix(in srgb, var(--accent-work) 55%, var(--accent-blue)) !important; }
+            :root[data-theme="sf-dark"] .heatmap-low, :root[data-theme="sf-light"] .heatmap-low { background: color-mix(in srgb, var(--accent-blue) 30%, transparent) !important; }
+            .heatmap-none { background: color-mix(in srgb, var(--text-main) 8%, transparent) !important; }
+            .heatmap-leave { background: var(--accent-warning) !important; }
+            .heatmap-out { background: transparent !important; }
+          `;
+          document.head.appendChild(style);
+        }
+
+        const loopDate = new Date(startDay.getTime());
         for (let i = 0; i < totalDays; i++) {
-          const d = new Date(startDay.getTime() + i * 86400000);
+          if (i > 0) loopDate.setDate(loopDate.getDate() + 1);
+          const d = loopDate;
           const dateKey = `${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}/${String(d.getFullYear()).slice(-2)}`;
 
           const currentMonth = d.getMonth();
@@ -12359,7 +12499,7 @@
             lastMonth = currentMonth;
           }
 
-          let bg = "color-mix(in srgb, var(--text-main) 8%, transparent)";
+          let hClass = "heatmap-none";
           let title = `${dateKey}: No Data`;
           let tooltipData = null;
 
@@ -12368,7 +12508,7 @@
             const data = heatmapMap[dateKey];
             if (data) {
               if (data.isLeave) {
-                bg = "var(--accent-warning)";
+                hClass = "heatmap-leave";
                 title = `${dateKey}: ${data.type} Leave`;
                 tooltipData = {
                   date: dateKey,
@@ -12379,43 +12519,14 @@
                 };
               } else {
                 const ratio = data.w / data.goal;
-                if (currentTheme === "onyx-black") {
-                  if (ratio >= 1.2) {
-                    bg = "color-mix(in srgb, var(--accent-work) 80%, #ffffff)";
-                  } else if (ratio >= 1) {
-                    bg = "var(--accent-work)";
-                  } else if (ratio >= 0.5) {
-                    bg =
-                      "color-mix(in srgb, var(--accent-work) 50%, transparent)";
-                  } else if (ratio > 0) {
-                    bg =
-                      "color-mix(in srgb, var(--accent-work) 20%, transparent)";
-                  }
-                } else if (currentTheme === "cobalt-glass") {
-                  if (ratio >= 1.2) {
-                    bg = "color-mix(in srgb, var(--accent-blue) 80%, #ffffff)";
-                  } else if (ratio >= 1) {
-                    bg = "var(--accent-blue)";
-                  } else if (ratio >= 0.5) {
-                    bg =
-                      "color-mix(in srgb, var(--accent-blue) 55%, transparent)";
-                  } else if (ratio > 0) {
-                    bg =
-                      "color-mix(in srgb, var(--accent-blue) 20%, transparent)";
-                  }
-                } else {
-                  if (ratio >= 1.2) {
-                    bg =
-                      "color-mix(in srgb, var(--accent-work) 80%, var(--accent-warning))";
-                  } else if (ratio >= 1) {
-                    bg = "var(--accent-work)";
-                  } else if (ratio >= 0.5) {
-                    bg =
-                      "color-mix(in srgb, var(--accent-work) 55%, var(--accent-blue))";
-                  } else if (ratio > 0) {
-                    bg =
-                      "color-mix(in srgb, var(--accent-blue) 30%, transparent)";
-                  }
+                if (ratio >= 1.2) {
+                  hClass = "heatmap-exc";
+                } else if (ratio >= 1) {
+                  hClass = "heatmap-high";
+                } else if (ratio >= 0.5) {
+                  hClass = "heatmap-med";
+                } else if (ratio > 0) {
+                  hClass = "heatmap-low";
                 }
                 title = `${dateKey}: ${typeof formatDuration === "function" ? formatDuration(data.w) : data.w}`;
                 tooltipData = {
@@ -12437,13 +12548,18 @@
             }
           } else {
             // Out of year bounds padding blocks are rendered invisibly
-            bg = "transparent";
+            hClass = "heatmap-out";
             title = "";
           }
 
           let hoverEffects = "";
           if (tooltipData) {
-            const escNotes = (tooltipData.notes || "").replace(/'/g, "\\'");
+            const escNotes = (tooltipData.notes || "")
+              .replace(/&/g, "&amp;")
+              .replace(/"/g, "&quot;")
+              .replace(/</g, "&lt;")
+              .replace(/>/g, "&gt;")
+              .replace(/'/g, "\\'");
             hoverEffects = `
               onmouseover="showHeatmapTooltip(event, '${tooltipData.date}', '${tooltipData.work}', '${tooltipData.break}', '${tooltipData.goal}', '${escNotes}'); this.style.transform='scale(1.3)';"
               onmouseout="hideHeatmapTooltip(); this.style.transform='scale(1)';"
@@ -12451,17 +12567,17 @@
             `;
           }
 
-          let cellClass = "";
+          let cellClass = hClass;
           const todayStrForHighlight =
             typeof getPSTDate === "function" ? getPSTDate() : "";
           if (
             d.getFullYear() === currentYear &&
             dateKey === todayStrForHighlight
           ) {
-            cellClass = 'class="heatmap-today-cell"';
+            cellClass += " heatmap-today-cell";
           }
 
-          html += `<div ${cellClass} style="width: 14px; height: 14px; border-radius: 3px; background: ${bg}; transition: transform 0.1s ease; cursor: ${tooltipData ? "pointer" : "default"};" ${hoverEffects}></div>`;
+          html += `<div class="${cellClass}" style="width: 14px; height: 14px; border-radius: 3px; transition: transform 0.1s ease; cursor: ${tooltipData ? "pointer" : "default"};" ${hoverEffects}></div>`;
         }
         container.innerHTML = html;
         if (monthsContainer) {
@@ -13704,6 +13820,7 @@
         }
 
         let safetyCounter = 0;
+        let requiresRender = false;
         // Process sleep gaps iteratively to prevent date skipping (Phase 2, Item 3)
         while (state.activeDate !== currentDatePST && safetyCounter++ < 31) {
           const currentWork = getCurrentWorkSeconds();
@@ -13734,7 +13851,7 @@
               ),
             );
             state.activeDate = pstDateFormatter.format(nextDayObj);
-            saveState(true);
+            requiresRender = true;
           } else if (
             hasAccumulatedWork >= 1 ||
             state.currentMode !== null ||
@@ -13838,9 +13955,7 @@
               state.loginTimestamp = null;
             }
 
-            saveState(true);
-            renderStaticUI();
-            renderTimersOnly();
+            requiresRender = true;
 
             if (activeWork > 0) {
               showSyncToast(
@@ -13863,15 +13978,21 @@
               ),
             );
             state.activeDate = pstDateFormatter.format(nextDayObj);
-            saveState(true);
+            requiresRender = true;
           }
 
           // Failsafe break to guarantee we never infinitely loop if date advancement fails
           if (safetyCounter >= 31) {
             state.activeDate = currentDatePST;
-            saveState(true);
+            requiresRender = true;
             break;
           }
+        }
+
+        if (requiresRender) {
+          saveState(true);
+          renderStaticUI();
+          renderTimersOnly();
         }
 
         if (state.activeDate !== previousActiveDate) {
@@ -13947,14 +14068,17 @@
           }
         }
 
-        renderTimersOnly(now);
+        const runUIUpdates = () => {
+          const liveNowMs = Date.now();
+          const liveNowDate = new Date(liveNowMs);
 
-        if (!document.hidden) {
+          renderTimersOnly(liveNowDate);
+
           if (state.idleLock) {
             if (DOM.idleModal) DOM.idleModal.style.display = "flex";
             setText(
               DOM.idleDurationText,
-              formatDuration((nowMs - state.idleStart) / 1000),
+              formatDuration((liveNowMs - state.idleStart) / 1000),
             );
 
             const currentTimeEl = DOM.idleCurrentTime;
@@ -13970,7 +14094,7 @@
                   second: "2-digit",
                 });
               }
-              setText(currentTimeEl, cachedIdleFormatter.format(now));
+              setText(currentTimeEl, cachedIdleFormatter.format(liveNowDate));
             }
           }
 
@@ -13979,6 +14103,12 @@
           } catch (err) {
             console.error("LastSeen Error:", err);
           }
+        };
+
+        if (!document.hidden) {
+          window.requestAnimationFrame(runUIUpdates);
+        } else {
+          renderTimersOnly(now);
         }
       }
 
@@ -15423,43 +15553,62 @@
 
             // Pre-process multi-word relative dates
             if (strLower.includes("this month")) {
-              dateFilterStart = new Date(
-                now.getFullYear(),
-                now.getMonth(),
+              dateFilterStart = Date.UTC(
+                now.getUTCFullYear(),
+                now.getUTCMonth(),
                 1,
-              ).getTime();
-              dateFilterEnd = new Date(
-                now.getFullYear(),
-                now.getMonth() + 1,
+                12,
                 0,
-                23,
-                59,
-                59,
-              ).getTime();
+                0,
+              );
+              dateFilterEnd = Date.UTC(
+                now.getUTCFullYear(),
+                now.getUTCMonth() + 1,
+                0,
+                12,
+                0,
+                0,
+              );
             } else if (strLower.includes("last month")) {
-              dateFilterStart = new Date(
-                now.getFullYear(),
-                now.getMonth() - 1,
+              dateFilterStart = Date.UTC(
+                now.getUTCFullYear(),
+                now.getUTCMonth() - 1,
                 1,
-              ).getTime();
-              dateFilterEnd = new Date(
-                now.getFullYear(),
-                now.getMonth(),
+                12,
                 0,
-                23,
-                59,
-                59,
-              ).getTime();
+                0,
+              );
+              dateFilterEnd = Date.UTC(
+                now.getUTCFullYear(),
+                now.getUTCMonth(),
+                0,
+                12,
+                0,
+                0,
+              );
             } else if (strLower.includes("this week")) {
-              const day = now.getDay() || 7;
-              dateFilterStart = new Date(
-                now.getFullYear(),
-                now.getMonth(),
-                now.getDate() - day + 1,
-              ).getTime();
-              dateFilterEnd = new Date(
-                dateFilterStart + 6 * 86400000,
-              ).getTime();
+              const day = now.getUTCDay() || 7;
+              dateFilterStart = Date.UTC(
+                now.getUTCFullYear(),
+                now.getUTCMonth(),
+                now.getUTCDate() - day + 1,
+                12,
+                0,
+                0,
+              );
+              dateFilterEnd = dateFilterStart + 6 * 86400000;
+            } else if (strLower.includes("last week")) {
+              const day = now.getUTCDay() || 7;
+              const thisWeekStart = Date.UTC(
+                now.getUTCFullYear(),
+                now.getUTCMonth(),
+                now.getUTCDate() - day + 1,
+                12,
+                0,
+                0,
+              );
+              dateFilterStart = thisWeekStart - 7 * 86400000;
+              dateFilterEnd = thisWeekStart - 86400000;
             } else if (strLower.includes("today")) {
               const todayStr = getPSTDate();
               filteredLogs = filteredLogs.filter((l) => l.date === todayStr);
@@ -15505,15 +15654,8 @@
               // Absolute Dates: MM/YYYY or MM/DD/YYYY
               if (/^[0-9]{1,2}\/[0-9]{4}$/.test(pLower)) {
                 const [m, y] = pLower.split("/");
-                const ds = new Date(parseInt(y), parseInt(m) - 1, 1).getTime();
-                const de = new Date(
-                  parseInt(y),
-                  parseInt(m),
-                  0,
-                  23,
-                  59,
-                  59,
-                ).getTime();
+                const ds = Date.UTC(parseInt(y), parseInt(m) - 1, 1, 12, 0, 0);
+                const de = Date.UTC(parseInt(y), parseInt(m), 0, 12, 0, 0);
                 filteredLogs = filteredLogs.filter(
                   (l) => l.epochMs >= ds && l.epochMs <= de,
                 );
@@ -15525,7 +15667,7 @@
                   return (
                     parseInt(lm) === parseInt(pm) &&
                     parseInt(ld) === parseInt(pd) &&
-                    parseInt(ly) === parseInt(py)
+                    parseInt(ly) === parseInt(py.slice(-2))
                   );
                 });
                 continue;
@@ -16418,6 +16560,8 @@
        */
       function openManualModal() {
         DOM.manualDate.value = getPSTDate();
+        DOM.manualLogin.value = "";
+        DOM.manualLogout.value = "";
         DOM.manualWork.value = "00:00";
         DOM.manualBreak.value = "00:00";
         DOM.manualNotes.value = "";
@@ -16454,6 +16598,9 @@
         const workStr = DOM.manualWork.value.trim();
         const breakStr = DOM.manualBreak.value.trim();
         const notes = DOM.manualNotes.value.trim();
+
+        const loginStr = DOM.manualLogin.value.trim() || "Manual";
+        const logoutStr = DOM.manualLogout.value.trim() || "Entry";
 
         const rawGoal = DOM.manualGoal.value.trim();
         const parsedGoal = parseGoalTimeStr(rawGoal);
@@ -16501,8 +16648,8 @@
             date: dateStr,
             displayDate: dateStr.replace(/\/20(\d{2})$/, "/$1"),
             epochMs: epochMs,
-            login: "Manual",
-            logout: "Entry",
+            login: loginStr,
+            logout: logoutStr,
             loginEpochMs: epochMs,
             logoutEpochMs: epochMs + (wSec + bSec) * 1000,
             workSec: wSec,
@@ -17031,6 +17178,14 @@
           bindInput("leave-date-input", parseDatePreview);
           bindInput("manual-goal", parseGoalPreview);
           bindInput("edit-goal", parseGoalPreview);
+
+          const parseLoginPreview = (val) =>
+            parseClockTimePreview(val) || "Manual";
+          const parseLogoutPreview = (val) =>
+            parseClockTimePreview(val) || "Entry";
+
+          bindInput("manual-login", parseLoginPreview);
+          bindInput("manual-logout", parseLogoutPreview);
         };
 
         setupDynamicPreview();
@@ -17187,6 +17342,69 @@
         if (el) el.addEventListener("blur", handleDateInputBlur);
       });
 
+      function parseClockTimePreview(val) {
+        let clean = String(val).trim().toLowerCase().replace(/\s+/g, "");
+        if (!clean) return "";
+
+        let h = 12,
+          m = 0,
+          ampm = "AM";
+        let matched = false;
+
+        const hhmmAmPmMatch = clean.match(/^(\d{1,2})(\d{2})([ap]m?)?$/);
+        if (hhmmAmPmMatch) {
+          h = parseInt(hhmmAmPmMatch[1], 10);
+          m = parseInt(hhmmAmPmMatch[2], 10);
+          ampm = hhmmAmPmMatch[3] ? hhmmAmPmMatch[3].toUpperCase() : null;
+          matched = true;
+        } else {
+          const hColonMAndAmPmMatch = clean.match(
+            /^(\d{1,2})(?::(\d{2}))?([ap]m?)?$/,
+          );
+          if (hColonMAndAmPmMatch) {
+            h = parseInt(hColonMAndAmPmMatch[1], 10);
+            m = hColonMAndAmPmMatch[2]
+              ? parseInt(hColonMAndAmPmMatch[2], 10)
+              : 0;
+            ampm = hColonMAndAmPmMatch[3]
+              ? hColonMAndAmPmMatch[3].toUpperCase()
+              : null;
+            matched = true;
+          }
+        }
+
+        if (matched && h >= 0 && h <= 24 && m >= 0 && m <= 59) {
+          if (ampm === null) {
+            if (h >= 12) {
+              ampm = "PM";
+              if (h > 12) h -= 12;
+            } else {
+              ampm = "AM";
+              if (h === 0) h = 12;
+            }
+          } else {
+            ampm = ampm.startsWith("P") ? "PM" : "AM";
+            if (h > 12) h = h % 12 || 12;
+            if (h === 0) h = 12;
+          }
+          return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")} ${ampm}`;
+        }
+        return "";
+      }
+
+      function handleLoginLogoutBlur(e) {
+        const input = e.target;
+        const preview = parseClockTimePreview(input.value);
+        if (preview) {
+          input.value = preview;
+        }
+      }
+
+      ["manual-login", "manual-logout"].forEach((id) => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener("blur", handleLoginLogoutBlur);
+      });
+
       // Event listener for Manual Date Picker
       const manualDatePicker = DOM.manualDatePicker;
       if (manualDatePicker) {
@@ -17243,6 +17461,7 @@
       DOM.primaryTz.addEventListener("change", () => {
         localStorage.setItem(TZ_KEY, DOM.primaryTz.value);
         updatePrimaryFormatter();
+        window._lastClockMinCache = -1;
         renderTimersOnly();
         updateTZLabel();
       });
@@ -17553,6 +17772,7 @@
        * Executes saveState logic.
        */
       let saveStateTimeout = null;
+      let idleSaveHandle = null;
       function saveState(forceSync = false) {
         if (isTabConflict) return; // Prevent uninitialized or evicted tabs from writing stale state!
 
@@ -17563,13 +17783,41 @@
         state.lastActivity = lastActivity;
 
         const doSave = () => {
-          try {
-            localStorage.setItem(STATE_KEY, JSON.stringify(state));
-          } catch (e) {
-            console.warn("Storage write blocked: running in RAM-only mode", e);
-            showAppToast(
-              "⚠️ Storage full! State changes cannot be saved locally. Please export JSON.",
+          const writeTask = () => {
+            try {
+              localStorage.setItem(STATE_KEY, JSON.stringify(state));
+            } catch (e) {
+              console.warn(
+                "Storage write blocked: running in RAM-only mode",
+                e,
+              );
+              showAppToast(
+                "⚠️ Storage full! State changes cannot be saved locally. Please export JSON.",
+              );
+            }
+          };
+          if (forceSync) {
+            if (idleSaveHandle) {
+              if (window.cancelIdleCallback) cancelIdleCallback(idleSaveHandle);
+              else clearTimeout(idleSaveHandle);
+              idleSaveHandle = null;
+            }
+            writeTask();
+          } else if (window.requestIdleCallback) {
+            if (idleSaveHandle) cancelIdleCallback(idleSaveHandle);
+            idleSaveHandle = window.requestIdleCallback(
+              () => {
+                idleSaveHandle = null;
+                writeTask();
+              },
+              { timeout: 2000 },
             );
+          } else {
+            if (idleSaveHandle) clearTimeout(idleSaveHandle);
+            idleSaveHandle = setTimeout(() => {
+              idleSaveHandle = null;
+              writeTask();
+            }, 0);
           }
           if (saveStateTimeout) {
             clearTimeout(saveStateTimeout);
@@ -17814,47 +18062,56 @@
               `${l.displayDate || ""} ${l.date || ""} ${l.login || ""} ${l.logout || ""} ${l.notes || ""}`.toLowerCase();
             keysMutated = true;
           }
+          if (!l.status) {
+            const goal =
+              l.dayGoal != null && l.dayGoal > 0 ? l.dayGoal : 8 * 3600;
+            l.status = (l.workSec || 0) >= goal ? "OVER" : "UNDER";
+            keysMutated = true;
+          }
         });
         if (keysMutated && isDatabaseHealthy) {
           saveLogsToDB(cachedLogs);
         }
 
         // FIX 3 RECOVERY: Check if the emergency backup has a shift that IndexedDB missed due to rapid exit
-        try {
-          const emergencyData = safeGetLocalStorage(
-            "production_logs_emergency_backup",
-          );
-          if (emergencyData) {
-            const emergencyLogs = JSON.parse(emergencyData);
-            if (emergencyLogs.length > 0) {
-              // Check if the most recent emergency log is missing from the main database
-              const latestEmergency = emergencyLogs[0];
-              const isMissing = !cachedLogs.find(
-                (l) =>
-                  l.epochMs === latestEmergency.epochMs &&
-                  l.login === latestEmergency.login,
-              );
+        if (isDatabaseHealthy) {
+          try {
+            const emergencyData = safeGetLocalStorage(
+              "production_logs_emergency_backup",
+            );
+            if (emergencyData) {
+              const emergencyLogs = JSON.parse(emergencyData);
+              if (emergencyLogs.length > 0) {
+                // Check if the most recent emergency log is missing from the main database
+                const latestEmergency = emergencyLogs[0];
+                const isMissing = !cachedLogs.find(
+                  (l) =>
+                    l.epochMs === latestEmergency.epochMs &&
+                    l.login === latestEmergency.login,
+                );
 
-              if (isMissing) {
-                console.log("Recovered lost shift(s) from emergency backup!");
-                // Combine them, filter duplicates using a Map, and restore
-                const combined = [...emergencyLogs, ...cachedLogs];
-                const uniqueMap = new Map();
-                combined.forEach((l) => {
-                  const uniqueKey =
-                    l.id || `${l.epochMs}_${l.login}_${l.logout}_${l.workSec}`;
-                  uniqueMap.set(uniqueKey, l);
-                });
-                cachedLogs = Array.from(uniqueMap.values());
+                if (isMissing) {
+                  console.log("Recovered lost shift(s) from emergency backup!");
+                  // Combine them, filter duplicates using a Map, and restore
+                  const combined = [...emergencyLogs, ...cachedLogs];
+                  const uniqueMap = new Map();
+                  combined.forEach((l) => {
+                    const uniqueKey =
+                      l.id ||
+                      `${l.epochMs}_${l.login}_${l.logout}_${l.workSec}`;
+                    uniqueMap.set(uniqueKey, l);
+                  });
+                  cachedLogs = Array.from(uniqueMap.values());
 
-                // Sort chronologically and resave to the main database properly
-                cachedLogs.sort((a, b) => b.epochMs - a.epochMs);
-                saveLogsToDB(cachedLogs);
+                  // Sort chronologically and resave to the main database properly
+                  cachedLogs.sort((a, b) => b.epochMs - a.epochMs);
+                  saveLogsToDB(cachedLogs);
+                }
               }
             }
+          } catch (e) {
+            console.warn("Emergency backup recovery failed", e);
           }
-        } catch (e) {
-          console.warn("Emergency backup recovery failed", e);
         }
 
         cachedTodayDate = null;
