@@ -9714,28 +9714,39 @@
 
       // Inactivity tracker helper
       let lastActivityRegisterTime = 0;
+      let lastValidPointerX = null;
+      let lastValidPointerY = null;
 
       /**
-       * Executes updateActivity logic with high-performance temporal filtering.
+       * Executes definitiveActivity logic with high-performance temporal filtering.
+       * Bypasses distance gates for definitive human interactions.
        */
-      function updateActivity() {
+      function definitiveActivity() {
         const now = Date.now();
+        lastActivityRegisterTime = now;
 
-        window.removeEventListener("mousemove", updateActivity);
-        window.removeEventListener("keydown", updateActivity);
-        window.removeEventListener("click", updateActivity);
-        window.removeEventListener("scroll", updateActivity);
+        // Instantly destroy all listeners for absolute zero CPU overhead
+        window.removeEventListener("pointermove", handlePointerMove);
+        window.removeEventListener("keydown", definitiveActivity);
+        window.removeEventListener("click", definitiveActivity);
+        window.removeEventListener("scroll", definitiveActivity);
 
         setTimeout(() => {
-          window.addEventListener("mousemove", updateActivity, {
+          lastValidPointerX = null; // Reset anchor on wakeup
+          lastValidPointerY = null;
+          window.addEventListener("pointermove", handlePointerMove, {
             passive: true,
           });
-          window.addEventListener("keydown", updateActivity, { passive: true });
-          window.addEventListener("click", updateActivity, { passive: true });
-          window.addEventListener("scroll", updateActivity, { passive: true });
+          window.addEventListener("keydown", definitiveActivity, {
+            passive: true,
+          });
+          window.addEventListener("click", definitiveActivity, {
+            passive: true,
+          });
+          window.addEventListener("scroll", definitiveActivity, {
+            passive: true,
+          });
         }, 5000);
-
-        lastActivityRegisterTime = now;
 
         if (!state.idleLock) {
           lastActivity = getTrueTime();
@@ -9746,10 +9757,33 @@
         }
       }
 
-      window.addEventListener("mousemove", updateActivity, { passive: true });
-      window.addEventListener("keydown", updateActivity, { passive: true });
-      window.addEventListener("click", updateActivity, { passive: true });
-      window.addEventListener("scroll", updateActivity, { passive: true });
+      /**
+       * High-performance distance gate to neutralize microscopic sensor noise.
+       * Requires >10px Manhattan distance to register physical human input.
+       */
+      function handlePointerMove(e) {
+        if (lastValidPointerX === null || lastValidPointerY === null) {
+          lastValidPointerX = e.clientX;
+          lastValidPointerY = e.clientY;
+          return;
+        }
+
+        const distance =
+          Math.abs(e.clientX - lastValidPointerX) +
+          Math.abs(e.clientY - lastValidPointerY);
+        if (distance > 10) {
+          lastValidPointerX = e.clientX;
+          lastValidPointerY = e.clientY;
+          definitiveActivity();
+        }
+      }
+
+      window.addEventListener("pointermove", handlePointerMove, {
+        passive: true,
+      });
+      window.addEventListener("keydown", definitiveActivity, { passive: true });
+      window.addEventListener("click", definitiveActivity, { passive: true });
+      window.addEventListener("scroll", definitiveActivity, { passive: true });
 
       /*==========================================================================
        * 9. TIMERS ACCUMULATION & RUNTIME TRACKING
