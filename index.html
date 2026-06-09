@@ -9721,7 +9721,10 @@
        * Executes definitiveActivity logic with high-performance temporal filtering.
        * Bypasses distance gates for definitive human interactions.
        */
-      function definitiveActivity() {
+      function definitiveActivity(e) {
+        // Enforce trusted hardware events to block software injections/macros
+        if (e && !e.isTrusted) return;
+
         const now = Date.now();
         lastActivityRegisterTime = now;
 
@@ -9729,7 +9732,6 @@
         window.removeEventListener("pointermove", handlePointerMove);
         window.removeEventListener("keydown", definitiveActivity);
         window.removeEventListener("click", definitiveActivity);
-        window.removeEventListener("scroll", definitiveActivity);
 
         setTimeout(() => {
           lastValidPointerX = null; // Reset anchor on wakeup
@@ -9741,9 +9743,6 @@
             passive: true,
           });
           window.addEventListener("click", definitiveActivity, {
-            passive: true,
-          });
-          window.addEventListener("scroll", definitiveActivity, {
             passive: true,
           });
         }, 5000);
@@ -9759,9 +9758,11 @@
 
       /**
        * High-performance distance gate to neutralize microscopic sensor noise.
-       * Requires >10px Manhattan distance to register physical human input.
+       * Requires >75px Manhattan distance to register physical human input.
        */
       function handlePointerMove(e) {
+        if (!e.isTrusted) return;
+
         if (lastValidPointerX === null || lastValidPointerY === null) {
           lastValidPointerX = e.clientX;
           lastValidPointerY = e.clientY;
@@ -9771,10 +9772,11 @@
         const distance =
           Math.abs(e.clientX - lastValidPointerX) +
           Math.abs(e.clientY - lastValidPointerY);
-        if (distance > 10) {
+        // 75px threshold requires deliberate wrist movement, ignoring desk vibrations
+        if (distance > 75) {
           lastValidPointerX = e.clientX;
           lastValidPointerY = e.clientY;
-          definitiveActivity();
+          definitiveActivity(e);
         }
       }
 
@@ -9783,7 +9785,6 @@
       });
       window.addEventListener("keydown", definitiveActivity, { passive: true });
       window.addEventListener("click", definitiveActivity, { passive: true });
-      window.addEventListener("scroll", definitiveActivity, { passive: true });
 
       /*==========================================================================
        * 9. TIMERS ACCUMULATION & RUNTIME TRACKING
@@ -16825,6 +16826,12 @@
         state.idleThresholdMinutes = parseInt(val, 10);
         _cachedIdleThresholdMs = state.idleThresholdMinutes * 60000;
         saveState();
+      };
+
+      // Temporary testing hook for the user
+      window.testIdleLock = function () {
+        _cachedIdleThresholdMs = 5000; // 5 seconds
+        console.log("Test mode: Idle threshold temporarily set to 5 seconds.");
       };
 
       window.onAutoBackupToggleChange = function () {
