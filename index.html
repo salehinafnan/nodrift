@@ -593,7 +593,9 @@
 
       /* 1. Live, ticking elements that require absolute monospace stability (clocks and countdowns) */
       .font-mono {
-        font-family: var(--font-mono);
+        font-family: var(--font-sans);
+        font-variant-numeric: tabular-nums;
+        font-feature-settings: "tnum" 1;
       }
 
       .font-sans {
@@ -11185,13 +11187,14 @@
               </div>
             </div>
             <div style="display: flex; justify-content: space-between; align-items: center; margin-top: var(--space-1);">
-              <div class="font-mono" style="display: flex; gap: var(--space-3); font-size: var(--font-size-entry-stats);">
+              <div class="font-mono" style="display: flex; gap: var(--space-3); font-size: var(--font-size-entry-stats); align-items: center;">
                 <span style="display: inline-flex; align-items: center; min-width: 75px;">
                   <span class="badge badge-w">W</span> <span class="log-work-text" style="margin-left: 4px;"></span>
                 </span>
                 <span style="display: inline-flex; align-items: center; min-width: 65px;">
                   <span class="badge badge-b">B</span> <span class="log-break-text" style="margin-left: 4px;"></span>
                 </span>
+                <span class="log-day-summary-badge" style="display: none; align-items: center; font-size: 0.75rem; color: var(--text-muted); white-space: nowrap; margin-left: 4px; font-family: var(--font-sans);"></span>
               </div>
               <div class="icon-actions">
                 <button class="log-note-btn icon-btn" aria-label="View Note">${SVGs.note}</button>
@@ -11218,6 +11221,7 @@
           diffText: div.querySelector(".log-diff-text"),
           workText: div.querySelector(".log-work-text"),
           breakText: div.querySelector(".log-break-text"),
+          summaryBadge: div.querySelector(".log-day-summary-badge"),
           noteBtn: div.querySelector(".log-note-btn"),
           copyBtn: div.querySelector(".log-copy-btn"),
           editBtn: div.querySelector(".log-edit-btn"),
@@ -12126,6 +12130,18 @@
             dom.dateSub.textContent = `(${displayMonthDay})`;
             dom.meta.textContent = `${log.login} - ${log.logout}`;
             dom.statusBadge.textContent = log.status === "OVER" ? "O" : "U";
+
+            const dt = window._dailyTotalsMap
+              ? window._dailyTotalsMap[log.date]
+              : null;
+            const isFirstLogOfDay =
+              i === 0 || virtualScrollLogs[i - 1].date !== log.date;
+            if (dt && dt.count > 1 && isFirstLogOfDay) {
+              dom.summaryBadge.style.display = "";
+              dom.summaryBadge.textContent = `↳ Total: ${formatFriendlyDuration(dt.w)} / ${formatFriendlyDuration(dt.goal)}`;
+            } else {
+              if (dom.summaryBadge) dom.summaryBadge.style.display = "none";
+            }
             dom.diffText.textContent = formatFriendlyDuration(
               rawDeltaSec,
               "0m",
@@ -12175,6 +12191,25 @@
         _renderLogbookPending = true;
         updateFilterIconState();
         virtualScrollLogs = getFilteredLogs();
+
+        window._dailyTotalsMap = {};
+        for (let i = 0; i < virtualScrollLogs.length; i++) {
+          const l = virtualScrollLogs[i];
+          if (!window._dailyTotalsMap[l.date]) {
+            window._dailyTotalsMap[l.date] = {
+              w: 0,
+              count: 0,
+              goal:
+                l.dayGoal ||
+                (typeof getGoalSeconds === "function"
+                  ? getGoalSeconds(DOM.goalHours.value, DOM.goalMins.value)
+                  : 28800),
+            };
+          }
+          window._dailyTotalsMap[l.date].w += l.workSec;
+          window._dailyTotalsMap[l.date].count++;
+        }
+
         selectedLogIdx = -1;
         lastVirtualStart = -1;
         lastVirtualEnd = -1;
@@ -13596,30 +13631,58 @@
         let csv =
           "Date,Login,Logout,Work Time,Work (Hrs),Break Time,Net Delta (Hrs),Notes\n";
 
-        csv += logs
-          .map((l) => {
-            const workDec = (l.workSec / 3600).toFixed(2);
+        const grp = {};
+        logs.forEach((l) => {
+          if (!grp[l.date])
+            grp[l.date] = {
+              w: 0,
+              b: 0,
+              count: 0,
+              goal:
+                l.dayGoal ||
+                (typeof getGoalSeconds === "function"
+                  ? getGoalSeconds(DOM.goalHours.value, DOM.goalMins.value)
+                  : 8 * 3600),
+            };
+          grp[l.date].w += l.workSec;
+          grp[l.date].b += l.breakSec;
+          grp[l.date].count++;
+        });
 
-            // Reads the original Day Goal assigned to this shift instead of the current UI goal
-            const goalSec =
-              l.dayGoal ||
-              (typeof getGoalSeconds === "function"
-                ? getGoalSeconds(DOM.goalHours.value, DOM.goalMins.value)
-                : 8 * 3600);
+        let csvRows = [];
+        logs.forEach((l, i) => {
+          const isLast = i === logs.length - 1;
+          const nextLog = isLast ? null : logs[i + 1];
+          const workDec = (l.workSec / 3600).toFixed(2);
+          const goalSec =
+            l.dayGoal ||
+            (typeof getGoalSeconds === "function"
+              ? getGoalSeconds(DOM.goalHours.value, DOM.goalMins.value)
+              : 8 * 3600);
+          const deltaDec = (
+            (l.status === "OVER" ? 1 : -1) *
+            (Math.abs(l.workSec - goalSec) / 3600)
+          ).toFixed(2);
+          const notes = l.notes
+            ? l.notes.replace(/"/g, '""').replace(/\n/g, " ")
+            : "";
 
-            const deltaDec = (
-              (l.status === "OVER" ? 1 : -1) *
-              (Math.abs(l.workSec - goalSec) / 3600)
-            ).toFixed(2);
-            const notes = l.notes
-              ? l.notes.replace(/"/g, '""').replace(/\n/g, " ")
-              : "";
+          csvRows.push(
+            `"${l.date}","${l.login}","${l.logout}","${formatDuration(l.workSec)}","${workDec}","${formatDuration(l.breakSec)}","${deltaDec}","${notes}"`,
+          );
 
-            return `"${l.date}","${l.login}","${l.logout}","${formatDuration(
-              l.workSec,
-            )}","${workDec}","${formatDuration(l.breakSec)}","${deltaDec}","${notes}"`;
-          })
-          .join("\n");
+          if (!nextLog || nextLog.date !== l.date) {
+            const dt = grp[l.date];
+            if (dt.count > 1) {
+              const totWorkDec = (dt.w / 3600).toFixed(2);
+              const totDelta = ((dt.w - dt.goal) / 3600).toFixed(2);
+              csvRows.push(
+                `"> ${l.date} TOTALS","","","${formatDuration(dt.w)}","${totWorkDec}","${formatDuration(dt.b)}","${totDelta}","Anchor Goal: ${formatFriendlyDuration(dt.goal)}"`,
+              );
+            }
+          }
+        });
+        csv += csvRows.join("\n");
 
         const a = document.createElement("a");
         a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
