@@ -9739,6 +9739,8 @@
           lastActivity = getTrueTime();
           state.lastActivity = lastActivity;
           state.lastHeartbeat = lastActivity;
+        } else {
+          if (!state.idleWakeup) state.idleWakeup = now;
         }
       }
 
@@ -11055,16 +11057,18 @@
        */
       function resolveIdle(choice) {
         const nowWall = Date.now();
+        const resolutionTime = state.idleWakeup || nowWall;
+        state.idleWakeup = null;
         const totalIdleSeconds = Math.max(
           0,
-          (nowWall - state.idleStart) / 1000,
+          (resolutionTime - state.idleStart) / 1000,
         );
 
         if (choice === "work") {
           state.workAccumulated =
             (state.workAccumulated || 0) + totalIdleSeconds;
           if (!state.loginTimestamp) {
-            state.loginTimestamp = nowWall - totalIdleSeconds * 1000;
+            state.loginTimestamp = resolutionTime - totalIdleSeconds * 1000;
           }
         } else if (choice === "break") {
           state.breakAccumulated =
@@ -11090,6 +11094,15 @@
 
         // USE THE CAPTURED MODE
         switchMode(targetMode);
+
+        if (state.sessionAnchorWall) {
+          const backdateDelta = nowWall - resolutionTime;
+          state.sessionAnchorWall = resolutionTime;
+          state.lastHeartbeatWall = resolutionTime;
+          if (state.lastHeartbeatMonotonic) {
+            state.lastHeartbeatMonotonic -= backdateDelta;
+          }
+        }
       }
 
       /**
@@ -14206,6 +14219,17 @@
               state.preIdleMode !== null &&
               state.idleStart < midnightMs
             ) {
+              const elapsedToMidnight = Math.max(
+                0,
+                (midnightMs - state.idleStart) / 1000,
+              );
+              if (state.preIdleMode === "work") {
+                state.workAccumulated =
+                  (state.workAccumulated || 0) + elapsedToMidnight;
+              } else if (state.preIdleMode === "break") {
+                state.breakAccumulated =
+                  (state.breakAccumulated || 0) + elapsedToMidnight;
+              }
               state.sessionAnchorWall = null;
               state.idleStart = midnightMs;
             }
