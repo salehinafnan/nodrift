@@ -5,11 +5,17 @@
     <meta name="color-scheme" content="dark" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' 'unsafe-inline' blob:; style-src 'self' 'unsafe-inline'; connect-src 'none'; img-src 'self' data:; font-src 'self' data:;"
+      content="default-src 'self'; script-src 'self' 'unsafe-inline' blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; connect-src 'none'; img-src 'self' data:; font-src 'self' data: https://fonts.gstatic.com;"
     />
     <title>Work Hour Tracker</title>
 
-    <!-- Fonts removed: Relying strictly on high-performance native system fonts -->
+    <!-- Google Fonts Import for Geist Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
 
     <!-- Inline Vector Icon (SVG Clock) -->
     <link
@@ -32,9 +38,7 @@
         --font-sans:
           -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display",
           "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-        --font-mono:
-          ui-monospace, "SF Mono", SFMono-Regular, "JetBrains Mono", Consolas,
-          monospace;
+        --font-mono: "Geist Mono", monospace;
 
         --text-xs: 0.75rem;
         --text-sm: 0.85rem;
@@ -64,17 +68,17 @@
         --modal-width-md: 460px;
 
         /* Dynamic Typographic & Layout Fallbacks */
-        --number-font: var(--font-sans);
+        --number-font: var(--font-mono);
 
         /* Unified Logbook & Insights Typography Scale */
         --font-size-entry-title: 0.8rem;
         --font-size-entry-stats: 0.75rem;
         --font-size-entry-meta: 0.7rem;
         --text-font: var(--font-sans);
-        --timer-size: clamp(4.5rem, 11.5vw, 8rem);
+        --timer-size: clamp(3.8rem, 9.5vw, 6.8rem);
         --timer-weight: 500;
         --timer-spacing: -0.01em;
-        --break-timer-size: clamp(3.6rem, 9vw, 5.8rem);
+        --break-timer-size: clamp(3rem, 7.6vw, 4.9rem);
 
         /* Dynamic Grid System & Segment Fallbacks */
         --panel-columns: 1.1fr 1fr;
@@ -216,7 +220,7 @@
       :root[data-theme="sf-dark"] {
         --page-bg: #000000;
         --panel-bg: #1c1c1e;
-        --panel-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+        --panel-shadow: none;
         --panel-blur: none;
         --element-bg: #2c2c2e;
         --element-hover: #3a3a3c;
@@ -253,7 +257,7 @@
       :root[data-theme="sf-light"] {
         --page-bg: #f2f2f7;
         --panel-bg: #ffffff;
-        --panel-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+        --panel-shadow: none;
         --panel-blur: none;
         --element-bg: #ebebf0;
         --element-hover: #dcdce0;
@@ -294,9 +298,7 @@
         background: var(--panel-bg);
         border: 1px solid var(--border-main);
         border-radius: var(--radius-lg);
-        box-shadow:
-          0 10px 30px rgba(0, 0, 0, 0.15),
-          0 1px 0 rgba(255, 255, 255, 0.05);
+        box-shadow: none;
         gap: 6px;
         padding: 6px;
       }
@@ -567,12 +569,6 @@
         background: rgba(255, 255, 255, 0.3) !important;
       }
 
-      :root[data-theme="sf-dark"] ::-webkit-calendar-picker-indicator,
-      :root[data-theme="onyx-black"] ::-webkit-calendar-picker-indicator,
-      :root[data-theme="cobalt-glass"] ::-webkit-calendar-picker-indicator {
-        filter: invert(1);
-      }
-
       ::-webkit-calendar-picker-indicator {
         cursor: pointer;
       }
@@ -600,18 +596,27 @@
         font-family: var(--font-mono);
       }
 
+      .font-sans {
+        font-family: var(--font-sans);
+      }
+
       /* 2. Dashboard metrics, progress ratios, and input numbers (premium proportional tabular digits) */
       .timer-val,
       #primary-clock,
       #bst-clock,
       .stat-val,
       input[type="number"],
-      #goal-time,
-      #progress-text,
-      #eta-text {
-        font-family: var(--font-sans);
+      #goal-time {
+        font-family: var(--number-font);
         font-variant-numeric: tabular-nums;
         font-feature-settings: "tnum" 1;
+      }
+
+      #progress-text,
+      #eta-text {
+        font-family: var(--font-sans) !important;
+        font-variant-numeric: tabular-nums !important;
+        font-feature-settings: "tnum" 1 !important;
       }
 
       /* 3. Primary text elements, forms, and general metadata layout rules */
@@ -913,9 +918,9 @@
       }
 
       .goal-inputs span.label {
-        font-family: var(--font-mono);
+        font-family: var(--font-sans);
         font-size: 1.15rem;
-        font-weight: 700;
+        font-weight: 600;
         color: var(--accent-blue);
         margin-right: 0.4rem;
         display: inline-flex;
@@ -2338,7 +2343,7 @@
         padding: 0.85rem;
         width: 18.5rem;
         /* Expanded width for descriptions */
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+        box-shadow: none;
         z-index: 1500;
         display: none;
         flex-direction: column;
@@ -2706,7 +2711,7 @@
         width: 0%;
         background: var(--accent-blue);
         box-shadow: none;
-        transition: width 0.6s cubic-bezier(0.25, 1, 0.5, 1);
+        transition: none;
       }
 
       /* Heatmap cell hover: CSS-only replacement for inline JS handlers */
@@ -2716,19 +2721,17 @@
 
       .progress-segment.is-today {
         border-color: var(--accent-blue);
-        box-shadow: 0 0 8px
-          color-mix(in srgb, var(--accent-blue) 20%, transparent);
+        box-shadow: none;
       }
 
       #weekly-progress-card.goal-reached .progress-segment-fill {
         background: linear-gradient(135deg, #4ade80 0%, #0d9488 100%);
-        box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.1);
+        box-shadow: none;
       }
 
       #weekly-progress-card.goal-reached .progress-segment.is-today {
         border-color: var(--accent-work);
-        box-shadow: 0 0 8px
-          color-mix(in srgb, var(--accent-work) 20%, transparent);
+        box-shadow: none;
       }
 
       .progress-segment.is-leave {
@@ -2966,15 +2969,13 @@
         border-radius: var(--radius-md);
         font-weight: 600;
         font-size: 0.85rem;
-        transition: bottom 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        transition: none;
         display: flex;
         gap: 12px;
         align-items: center;
         justify-content: center;
         z-index: 3000;
-        box-shadow:
-          0 4px 12px rgba(0, 0, 0, 0.4),
-          inset 0 1px 0 rgba(255, 255, 255, 0.05);
+        box-shadow: none;
         /* removed backdrop-filter for CPU perf */
         border-color: color-mix(in srgb, var(--accent-blue) 30%, transparent);
       }
@@ -3010,8 +3011,7 @@
         background: var(--accent-blue);
         color: var(--page-bg);
         transform: translateY(-1px);
-        box-shadow: 0 0 8px
-          color-mix(in srgb, var(--accent-blue) 30%, transparent);
+        box-shadow: none;
       }
 
       #sync-toast {
@@ -3026,15 +3026,13 @@
         border-radius: var(--radius-md);
         font-weight: 600;
         font-size: 0.85rem;
-        transition: top 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+        transition: none;
         display: flex;
         gap: 12px;
         align-items: center;
         justify-content: center;
         z-index: 3000;
-        box-shadow:
-          0 4px 12px rgba(0, 0, 0, 0.4),
-          inset 0 1px 0 rgba(255, 255, 255, 0.05);
+        box-shadow: none;
         /* removed backdrop-filter for CPU perf */
         border-color: color-mix(
           in srgb,
@@ -3055,15 +3053,13 @@
         border-radius: var(--radius-md);
         font-weight: 600;
         font-size: 0.85rem;
-        transition: top 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+        transition: none;
         display: flex;
         gap: 12px;
         align-items: center;
         justify-content: center;
         z-index: 4000;
-        box-shadow:
-          0 4px 12px rgba(0, 0, 0, 0.4),
-          inset 0 1px 0 rgba(255, 255, 255, 0.05);
+        box-shadow: none;
         /* removed backdrop-filter for CPU perf */
         border-color: color-mix(in srgb, var(--accent-work) 30%, transparent);
       }
@@ -3100,15 +3096,13 @@
         border-radius: var(--radius-md);
         font-weight: 600;
         font-size: 0.85rem;
-        transition: bottom 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+        transition: none;
         display: flex;
         gap: 12px;
         align-items: center;
         justify-content: center;
         z-index: 4000;
-        box-shadow:
-          0 4px 12px rgba(0, 0, 0, 0.4),
-          inset 0 1px 0 rgba(255, 255, 255, 0.05);
+        box-shadow: none;
         /* removed backdrop-filter for CPU perf */
         border-color: color-mix(in srgb, var(--accent-blue) 20%, transparent);
       }
@@ -3265,7 +3259,6 @@
       .timer-inactive {
         color: var(--text-muted) !important;
         opacity: 0.6 !important;
-        filter: grayscale(100%) !important;
       }
 
       .timer-work-active {
@@ -3428,10 +3421,7 @@
       .collapsible-wrapper {
         display: grid;
         grid-template-rows: 1fr;
-        transition:
-          grid-template-rows 0.3s ease-out,
-          opacity 0.3s ease-out,
-          margin 0.3s ease-out;
+        transition: none;
       }
 
       .collapsible-wrapper.is-collapsed {
@@ -3466,7 +3456,7 @@
         background: var(--element-hover);
         border: 1px solid var(--border-light);
         border-radius: var(--header-el-radius);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+        box-shadow: none;
         transform: translateY(4px);
         z-index: 100;
         transition:
@@ -5484,6 +5474,32 @@
         </div>
         <div class="form-row">
           <div class="form-group">
+            <label class="form-label" for="edit-login">Log In (Optional)</label>
+            <input
+              type="text"
+              id="edit-login"
+              class="input-standard"
+              placeholder="09:00 AM"
+              onfocus="this.select()"
+              onkeydown="if (event.key === 'Enter') this.blur();"
+            />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="edit-logout"
+              >Log Out (Optional)</label
+            >
+            <input
+              type="text"
+              id="edit-logout"
+              class="input-standard"
+              placeholder="05:00 PM"
+              onfocus="this.select()"
+              onkeydown="if (event.key === 'Enter') this.blur();"
+            />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
             <label class="form-label" for="edit-work">Work Time (HH:MM)</label>
             <input
               type="text"
@@ -5956,14 +5972,12 @@
           position: relative;
           padding: var(--space-4);
           border-radius: var(--radius-xl);
-          box-shadow: 0 25px 60px rgba(0, 0, 0, 0.4);
+          box-shadow: none;
           background: var(--panel-bg);
           border: 1px solid var(--border-main);
           transform: scale(0.96) translateY(-10px);
           opacity: 0;
-          transition:
-            transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
-            opacity 0.2s ease-out;
+          transition: none;
           overflow: hidden;
           cursor: default;
           width: max-content;
@@ -5983,10 +5997,10 @@
             padding: 8px 12px;
             color: var(--text-main);
             font-size: 0.72rem;
-            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+            box-shadow: none;
             z-index: 6000;
             pointer-events: none;
-            width: 200px;
+            width: 230px;
             text-align: left;
             line-height: 1.4;
           "
@@ -6121,7 +6135,7 @@
                   background: var(--dropdown-bg);
                   border: 1px solid var(--border-light);
                   border-radius: var(--radius-md);
-                  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+                  box-shadow: none;
                   transform: translateX(-50%) translateY(4px);
                   z-index: 7000;
                   transition:
@@ -6365,14 +6379,12 @@
         style="
           padding: var(--space-4);
           border-radius: var(--radius-xl);
-          box-shadow: 0 25px 60px rgba(0, 0, 0, 0.4);
+          box-shadow: none;
           background: var(--panel-bg);
           border: 1px solid var(--border-main);
           transform: scale(0.96) translateY(-10px);
           opacity: 0;
-          transition:
-            transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
-            opacity 0.2s ease-out;
+          transition: none;
           overflow: hidden;
           cursor: default;
         "
@@ -6531,6 +6543,32 @@
               ><span class="clock-ampm"></span
             ></span>
             <div id="last-seen" class="last-seen-status">Active</div>
+            <div
+              id="storage-status-warn"
+              style="
+                display: none;
+                align-items: center;
+                gap: 4px;
+                font-size: 0.75rem;
+                font-weight: 700;
+                color: var(--accent-break);
+                margin-left: 12px;
+              "
+              title="Storage write blocked! Running in temporary memory. Backup now!"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                width="14"
+                height="14"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.5"
+                style="flex-shrink: 0"
+              >
+                <use href="#sprite-014"></use>
+              </svg>
+              <span>RAM Only</span>
+            </div>
           </div>
           <div
             class="status-bar-actions"
@@ -6733,12 +6771,13 @@
               <div id="progress-fill"></div>
             </div>
             <div
-              class="font-mono"
+              class="font-sans"
               style="
                 display: flex;
                 justify-content: space-between;
                 font-size: 0.75rem;
-                color: var(--text-muted);
+                font-weight: 500;
+                color: var(--text-main);
               "
             >
               <span id="progress-text">0.0% (Remaining: 08:00:00)</span>
@@ -7194,38 +7233,31 @@
                 margin-bottom: 8px;
               "
             >
-              <div style="display: flex; align-items: baseline">
-                <span
-                  class="font-mono"
-                  style="
-                    font-size: 1rem;
-                    color: var(--text-main);
-                    font-weight: 800;
-                    margin-right: var(--space-2);
-                  "
-                >
-                  Work:
-                </span>
+              <div
+                style="
+                  font-size: 0.75rem;
+                  color: var(--text-main);
+                  font-weight: 500;
+                "
+              >
+                Total Work:
                 <span
                   id="weekly-summary-text"
-                  class="stat-val font-mono"
                   style="
-                    font-size: 1rem;
-                    color: var(--text-main);
-                    font-weight: 600;
+                    color: var(--accent-blue);
+                    font-variant-numeric: tabular-nums;
+                    font-feature-settings: &quot;tnum&quot; 1;
                   "
                 >
                   00:00:00/40h
                 </span>
-
                 <span
                   id="weekly-progress-percent"
-                  class="font-mono"
                   style="
-                    font-size: 0.75rem;
-                    font-weight: 500;
                     color: var(--accent-blue);
-                    margin-left: var(--space-2);
+                    margin-left: 4px;
+                    font-variant-numeric: tabular-nums;
+                    font-feature-settings: &quot;tnum&quot; 1;
                   "
                 >
                   (0%)
@@ -7234,15 +7266,18 @@
               <div
                 style="
                   font-size: 0.75rem;
-                  color: var(--text-muted);
+                  color: var(--text-main);
                   font-weight: 500;
                 "
               >
                 Total Break:
                 <span
                   id="total-weekly-break"
-                  class="font-mono"
-                  style="color: var(--accent-break)"
+                  style="
+                    color: var(--accent-break);
+                    font-variant-numeric: tabular-nums;
+                    font-feature-settings: &quot;tnum&quot; 1;
+                  "
                 >
                   00:00:00
                 </span>
@@ -7258,6 +7293,8 @@
                 align-items: center;
                 gap: 8px;
                 min-height: 18px;
+                font-variant-numeric: tabular-nums;
+                font-feature-settings: &quot;tnum&quot; 1;
               "
             >
               Calculating...
@@ -8055,7 +8092,10 @@
           timeStr === "-"
         )
           return null;
-        const match = String(timeStr).match(/^(\d{2}):(\d{2})\s*(AM|PM)$/i);
+        // Accepts single or double digit hours, optional seconds, and optional spaces before AM/PM
+        const match = String(timeStr)
+          .trim()
+          .match(/^(\d{1,2}):(\d{2})(?::\d{2})?\s*(AM|PM)$/i);
         if (!match) return null;
         let hours = parseInt(match[1], 10);
         const minutes = parseInt(match[2], 10);
@@ -8063,6 +8103,15 @@
         if (ampm === "PM" && hours < 12) hours += 12;
         if (ampm === "AM" && hours === 12) hours = 0;
         return hours * 60 + minutes;
+      }
+
+      function minutesToAMPM(totalMinutes) {
+        totalMinutes = ((Math.round(totalMinutes) % 1440) + 1440) % 1440;
+        const h = Math.floor(totalMinutes / 60);
+        const m = totalMinutes % 60;
+        const ampm = h >= 12 ? "PM" : "AM";
+        const h12 = h % 12 || 12;
+        return `${String(h12).padStart(2, "0")}:${String(m).padStart(2, "0")} ${ampm}`;
       }
 
       function debounce(func, wait) {
@@ -8451,6 +8500,8 @@
         advancedFilters: document.getElementById("advanced-filters"),
         undoToast: document.getElementById("undo-toast"),
         editDate: document.getElementById("edit-date"),
+        editLogin: document.getElementById("edit-login"),
+        editLogout: document.getElementById("edit-logout"),
         leaveDateInput: document.getElementById("leave-date-input"),
         importFile: document.getElementById("import-file"),
         heatmapModal: document.getElementById("heatmap-modal"),
@@ -8837,9 +8888,31 @@
         if (e.data.id === instanceId) return;
 
         if (e.data.type === "takeover") {
+          if (state.currentMode !== null && !state.idleLock) {
+            const nowWall = Date.now();
+            const elapsedSeconds = Math.max(
+              0,
+              (nowWall - state.sessionAnchorWall) / 1000,
+            );
+            if (state.currentMode === "work") {
+              state.workAccumulated =
+                (state.workAccumulated || 0) + elapsedSeconds;
+            } else if (state.currentMode === "break") {
+              state.breakAccumulated =
+                (state.breakAccumulated || 0) + elapsedSeconds;
+            }
+            state.sessionAnchorWall = nowWall;
+          }
+          saveState(true);
+
           // We have been evicted by another tab. Transition to conflict mode.
           isTabConflict = true;
           DOM.tabConflictModal.style.display = "flex";
+          if (state.currentMode !== null) {
+            state.currentMode = null;
+            state.sessionAnchorWall = null;
+          }
+          renderStaticUI();
         }
       };
 
@@ -10142,9 +10215,9 @@
           let trendHTML = "";
           if (expectedSecSoFar > 0) {
             if (trendDiffSec >= 0) {
-              trendHTML = `<span class="badge" style="background: color-mix(in srgb, var(--accent-work) 10%, transparent); color: var(--accent-work) !important; border: 1px solid color-mix(in srgb, var(--accent-work) 30%, transparent); padding: 2px 6px; font-size: 0.55rem; display: inline-flex; align-items: center; gap: 2px; line-height: 1;">↑ ${trendDiffH}h ahead</span>`;
+              trendHTML = `<span class="badge" style="background: color-mix(in srgb, var(--accent-work) 10%, transparent); color: var(--accent-work) !important; border: 1px solid color-mix(in srgb, var(--accent-work) 30%, transparent); padding: 2px 6px; font-size: 0.55rem; display: inline-flex; align-items: center; gap: 2px; line-height: 1; font-variant-numeric: tabular-nums; font-feature-settings: 'tnum' 1;">↑ ${trendDiffH}h ahead</span>`;
             } else {
-              trendHTML = `<span class="badge" style="background: color-mix(in srgb, var(--accent-warning) 10%, transparent); color: var(--accent-warning) !important; border: 1px solid color-mix(in srgb, var(--accent-warning) 30%, transparent); padding: 2px 6px; font-size: 0.55rem; display: inline-flex; align-items: center; gap: 2px; line-height: 1;">↓ ${trendDiffH}h behind</span>`;
+              trendHTML = `<span class="badge" style="background: color-mix(in srgb, var(--accent-warning) 10%, transparent); color: var(--accent-warning) !important; border: 1px solid color-mix(in srgb, var(--accent-warning) 30%, transparent); padding: 2px 6px; font-size: 0.55rem; display: inline-flex; align-items: center; gap: 2px; line-height: 1; font-variant-numeric: tabular-nums; font-feature-settings: 'tnum' 1;">↓ ${trendDiffH}h behind</span>`;
             }
           }
 
@@ -10450,7 +10523,7 @@
                 bstEtaFormatter.format(_sharedFinishDate);
             }
             etaText = `Est. EOD: ${domWriteCache.cachedEtaString} BST`;
-            etaColorClass = "text-muted";
+            etaColorClass = "text-main";
           }
 
           if (domWriteCache.etaText !== etaText) {
@@ -12147,49 +12220,242 @@
       /**
        * Compiles weekly data aggregates.
        */
-      function showHeatmapTooltip(
-        e,
-        dateKey,
-        workStr,
-        breakStr,
-        goalStr,
-        notesStr,
-      ) {
+      function showHeatmapTooltip(e, dateKey) {
         const tooltip = DOM.heatmapTooltip;
         if (!tooltip) return;
 
-        tooltip.innerHTML = `
-          <div style="font-weight: 700; color: var(--accent-blue); border-bottom: 1px solid var(--border-main); padding-bottom: 4px; margin-bottom: 6px;">${dateKey}</div>
-          <div style="display: flex; justify-content: space-between; margin-bottom: 2px;">
-            <span>Work:</span> <strong id="tooltip-work-val" style="color: var(--accent-work);">${workStr}</strong>
-          </div>
-          <div style="display: flex; justify-content: space-between; margin-bottom: 2px;">
-            <span>Break:</span> <strong id="tooltip-break-val" style="color: var(--accent-break);">${breakStr}</strong>
-          </div>
-          <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
-            <span>Goal:</span> <strong id="tooltip-goal-val" style="color: var(--text-main);">${goalStr}</strong>
-          </div>
-          <div style="color: var(--text-muted); font-size: 10px; white-space: normal; word-break: break-word; border-top: 1px solid var(--border-main); padding-top: 4px; margin-top: 4px;">
-            <strong>Notes:</strong> ${notesStr}
-          </div>
-        `;
+        const allLogs = typeof getLogs === "function" ? getLogs() : [];
+        const leaveDates =
+          typeof getLeaveDates === "function" ? getLeaveDates() : [];
 
+        const dayLogs = allLogs.filter((l) => l.date === dateKey);
+        const leaveRecord = leaveDates.find(
+          (l) => (typeof l === "string" ? l : l.date) === dateKey,
+        );
+
+        let totalW = 0;
+        let totalB = 0;
+        let notesList = [];
+        let loginStr = "—";
+        let logoutStr = "—";
+        let loginMin = null;
+        let logoutMin = null;
+        let firstGoalSec = null;
+
+        dayLogs.forEach((l) => {
+          totalW += l.workSec || 0;
+          totalB += l.breakSec || 0;
+          if (l.notes) notesList.push(l.notes);
+
+          if (l.dayGoal && firstGoalSec === null) {
+            firstGoalSec = l.dayGoal;
+          }
+
+          const logLoginMin = parseTimeToMinutes(l.login);
+          const logLogoutMin = parseTimeToMinutes(l.logout);
+          if (logLoginMin !== null) {
+            if (loginMin === null || logLoginMin < loginMin) {
+              loginMin = logLoginMin;
+              loginStr = l.login;
+            }
+          }
+          if (logLogoutMin !== null) {
+            if (logoutMin === null || logLogoutMin > logoutMin) {
+              logoutMin = logLogoutMin;
+              logoutStr = l.logout;
+            }
+          }
+        });
+
+        const todayStr = typeof getPSTDate === "function" ? getPSTDate() : "";
+        const isActiveToday = dateKey === todayStr && state.loginTimestamp;
+        if (isActiveToday) {
+          totalW += getCurrentWorkSeconds();
+          totalB += getCurrentBreakSeconds();
+          if (state.notes) notesList.push(state.notes);
+
+          const todayLoginStr = loginFormatter.format(
+            new Date(state.loginTimestamp),
+          );
+          if (loginStr === "—") loginStr = todayLoginStr;
+          if (state.currentMode === "work") {
+            logoutStr = "Active";
+          } else if (state.currentMode === "break") {
+            logoutStr = "Break";
+          } else {
+            logoutStr = "Paused";
+          }
+        }
+
+        const [m, d, y] = dateKey.split("/").map(Number);
+        const fullYear = y < 100 ? 2000 + y : y;
+        const dObj = new Date(Date.UTC(fullYear, m - 1, d, 12, 0, 0));
+        const dayNames = [
+          "Sunday",
+          "Monday",
+          "Tuesday",
+          "Wednesday",
+          "Thursday",
+          "Friday",
+          "Saturday",
+        ];
+        const dayName = dayNames[dObj.getUTCDay()];
+
+        const liveGoalSec = getGoalSeconds(
+          DOM.goalHours.value,
+          DOM.goalMins.value,
+        );
+        const goalSec = firstGoalSec !== null ? firstGoalSec : liveGoalSec;
+
+        const diffSec = totalW - goalSec;
+        const isOver = diffSec >= 0;
+        const absDiffSec = Math.abs(diffSec);
+        const diffH = Math.floor(absDiffSec / 3600);
+        const diffM = Math.floor((absDiffSec % 3600) / 60);
+        const varianceStr = `${diffH}h ${diffM}m`;
+
+        const statusLetter = isOver ? "O" : "U";
+        const badgeClass = isOver ? "badge-over" : "badge-under";
+        const textClass = isOver ? "text-work" : "text-warning";
+
+        const focusVal =
+          totalW + totalB > 0
+            ? Math.min(100, Math.round((totalW / (totalW + totalB)) * 100))
+            : 0;
+        const focusText = focusVal > 0 ? `${focusVal}%` : "—";
+
+        let html = "";
+        const cleanTimeDisplay = (str) => {
+          if (!str) return "—";
+          return str.replace(/:(\d{2}):\d{2}/, ":$1"); // Removes seconds
+        };
+
+        const displayLogin = cleanTimeDisplay(loginStr);
+        const displayLogout = cleanTimeDisplay(logoutStr);
+        const hasTimes =
+          (loginStr && loginStr !== "—") || (logoutStr && logoutStr !== "—");
+
+        if (leaveRecord) {
+          const leaveType = leaveRecord.type || "Leave";
+          let leaveBadgeClass = "badge-leave";
+          if (leaveType === "Sick") leaveBadgeClass = "badge-leave-sick";
+          if (leaveType === "Casual") leaveBadgeClass = "badge-leave-casual";
+          if (leaveType === "Public Holiday")
+            leaveBadgeClass = "badge-leave-holiday";
+
+          html = `
+          <div style="font-weight: 700; color: var(--accent-blue); border-bottom: 1px solid var(--border-main); padding-bottom: 4px; margin-bottom: 4px; display: flex; justify-content: space-between; align-items: center;">
+            <span>${dayName}</span>
+            <span style="font-size: 0.65rem; opacity: 0.6;">${dateKey}</span>
+          </div>
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 2px;">
+            <span class="badge ${leaveBadgeClass}" style="font-family: var(--font-sans); margin-left: 0; padding: 1px 5px; font-size: 0.6rem;">${leaveType} Leave</span>
+          </div>
+          ${
+            totalW > 0
+              ? `
+          <div style="font-size: 0.62rem; color: var(--text-muted); margin-bottom: 2px;">Worked on Leave Day:</div>
+          <div class="font-mono" style="display: flex; gap: var(--space-3); font-size: 0.68rem; margin-bottom: 2px;">
+            <span style="display: inline-flex; align-items: center;">
+              <span class="badge badge-w" style="width: 14px; height: 14px; font-size: 0.55rem;">W</span> <span style="margin-left: 4px; color: var(--text-main); font-weight: 600;">${formatFriendlyDuration(totalW)}</span>
+            </span>
+          </div>
+          `
+              : ""
+          }
+        `;
+        } else if (totalW === 0 && totalB === 0 && !isActiveToday) {
+          html = `
+          <div style="font-weight: 700; color: var(--accent-blue); border-bottom: 1px solid var(--border-main); padding-bottom: 4px; margin-bottom: 4px; display: flex; justify-content: space-between; align-items: center;">
+            <span>${dayName}</span>
+            <span style="font-size: 0.65rem; opacity: 0.6;">${dateKey}</span>
+          </div>
+          <div style="color: var(--text-muted); font-size: 0.72rem; text-align: center; padding: 4px 0;">No Activity</div>
+        `;
+        } else {
+          html = `
+          <div style="font-weight: 700; color: var(--accent-blue); border-bottom: 1px solid var(--border-main); padding-bottom: 4px; margin-bottom: 4px; display: flex; justify-content: space-between; align-items: center;">
+            <span>${dayName}</span>
+            <span style="font-size: 0.65rem; opacity: 0.6;">${dateKey}</span>
+          </div>
+          ${hasTimes ? `<div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.65rem; color: var(--text-muted); margin-bottom: 4px;"><span>${displayLogin} - ${displayLogout}</span></div>` : ""}
+          <div class="font-mono" style="display: flex; flex-direction: column; gap: 2px; font-size: 0.68rem; margin-bottom: 4px; border-bottom: 1px solid var(--border-main); padding-bottom: 4px;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span style="display: inline-flex; align-items: center;">
+                <span class="badge badge-w" style="width: 14px; height: 14px; font-size: 0.55rem;">W</span> <span style="margin-left: 4px; color: var(--text-main); font-weight: 600;">${formatFriendlyDuration(totalW)}</span>
+              </span>
+              <span style="display: inline-flex; align-items: center;">
+                <span class="badge badge-b" style="width: 14px; height: 14px; font-size: 0.55rem;">B</span> <span style="margin-left: 4px; color: var(--text-main); font-weight: 600;">${formatFriendlyDuration(totalB)}</span>
+              </span>
+            </div>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 3px; font-size: 0.65rem; color: var(--text-muted); margin-bottom: 2px;">
+            <div style="display: flex; justify-content: space-between;">
+              <span>Goal:</span>
+              <span style="color: var(--text-main); font-weight: 600;">${formatFriendlyDuration(goalSec)}</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span>Variance:</span>
+              <span class="font-mono" style="display: inline-flex; align-items: center; gap: 4px;">
+                <span class="badge ${badgeClass}" style="width: 14px; height: 14px; font-size: 0.55rem;">${statusLetter}</span>
+                <span class="${textClass}" style="font-weight: 600;">${varianceStr}</span>
+              </span>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span>Focus:</span>
+              <span class="font-mono" style="display: inline-flex; align-items: center; gap: 4px;">
+                <span class="badge badge-f" style="width: 14px; height: 14px; font-size: 0.55rem;">F</span>
+                <span style="font-weight: 600; color: var(--text-main);">${focusText}</span>
+              </span>
+            </div>
+          </div>
+          ${
+            notesList.length > 0
+              ? `
+          <div style="color: var(--text-muted); font-size: 0.62rem; white-space: normal; word-break: break-word; border-top: 1px solid var(--border-main); padding-top: 4px; margin-top: 2px;">
+            <strong>Notes:</strong> ${escapeHTML(notesList.join(" | "))}
+          </div>
+          `
+              : ""
+          }
+        `;
+        }
+
+        tooltip.innerHTML = html;
         tooltip.style.display = "block";
+
         const rect = e.target.getBoundingClientRect();
         const modal = DOM.heatmapContainerAnim;
         const modalRect = modal.getBoundingClientRect();
+        const padding = 10;
 
-        // Position tooltip relative to the containing relative modal
-        tooltip.style.left =
-          rect.left -
-          modalRect.left +
-          rect.width / 2 -
-          tooltip.offsetWidth / 2 +
-          "px";
-        tooltip.style.top =
-          rect.top - modalRect.top - tooltip.offsetHeight - 8 + "px";
+        let left =
+          rect.left - modalRect.left + rect.width / 2 - tooltip.offsetWidth / 2;
+        let top = rect.top - modalRect.top - tooltip.offsetHeight - 8;
 
-        const todayStr = typeof getPSTDate === "function" ? getPSTDate() : "";
+        // Vertical placement selection & boundary clamping
+        if (top < padding) {
+          let belowTop = rect.bottom - modalRect.top + 8;
+          if (belowTop + tooltip.offsetHeight > modalRect.height - padding) {
+            top = modalRect.height - tooltip.offsetHeight - padding;
+            if (top < padding) top = padding;
+          } else {
+            top = belowTop;
+          }
+        } else if (top + tooltip.offsetHeight > modalRect.height - padding) {
+          top = modalRect.height - tooltip.offsetHeight - padding;
+        }
+
+        // Clamp left
+        if (left < padding) {
+          left = padding;
+        } else if (left + tooltip.offsetWidth > modalRect.width - padding) {
+          left = modalRect.width - tooltip.offsetWidth - padding;
+        }
+
+        tooltip.style.left = `${left}px`;
+        tooltip.style.top = `${top}px`;
+
         if (dateKey === todayStr) {
           window.isHoveringTodayHeatmap = true;
           if (typeof renderTimersOnly === "function") renderTimersOnly();
@@ -12336,19 +12602,19 @@
 
         const currentYear = window.heatmapSelectedYearVal || systemYear;
 
-        // Find January 1st of the current year
-        const jan1 = new Date(currentYear, 0, 1);
+        // Find January 1st of the current year in UTC midday
+        const jan1 = new Date(Date.UTC(currentYear, 0, 1, 12, 0, 0));
         const startDay = new Date(jan1);
-        const startDayOfWeek = jan1.getDay();
+        const startDayOfWeek = jan1.getUTCDay();
         const diffToMonday = startDayOfWeek === 0 ? -6 : 1 - startDayOfWeek;
-        startDay.setDate(jan1.getDate() + diffToMonday); // Snaps to Monday of Jan 1st week
+        startDay.setUTCDate(jan1.getUTCDate() + diffToMonday); // Snaps to Monday of Jan 1st week
 
-        // Find December 31st of the current year
-        const dec31 = new Date(currentYear, 11, 31);
+        // Find December 31st of the current year in UTC midday
+        const dec31 = new Date(Date.UTC(currentYear, 11, 31, 12, 0, 0));
         const endDay = new Date(dec31);
-        const endDayOfWeek = dec31.getDay();
+        const endDayOfWeek = dec31.getUTCDay();
         const diffToSunday = endDayOfWeek === 0 ? 0 : 7 - endDayOfWeek;
-        endDay.setDate(dec31.getDate() + diffToSunday); // Snaps to Sunday of Dec 31st week
+        endDay.setUTCDate(dec31.getUTCDate() + diffToSunday); // Snaps to Sunday of Dec 31st week
 
         const totalDays =
           Math.round((endDay.getTime() - startDay.getTime()) / 86400000) + 1;
@@ -12486,15 +12752,18 @@
 
         const loopDate = new Date(startDay.getTime());
         for (let i = 0; i < totalDays; i++) {
-          if (i > 0) loopDate.setDate(loopDate.getDate() + 1);
+          if (i > 0) loopDate.setUTCDate(loopDate.getUTCDate() + 1);
           const d = loopDate;
-          const dateKey = `${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}/${String(d.getFullYear()).slice(-2)}`;
+          const dateKey = `${String(d.getUTCMonth() + 1).padStart(2, "0")}/${String(d.getUTCDate()).padStart(2, "0")}/${String(d.getUTCFullYear()).slice(-2)}`;
 
-          const currentMonth = d.getMonth();
+          const currentMonth = d.getUTCMonth();
           const colIndex = Math.floor(i / 7);
 
           // Record month transitions dynamically within the bounds of the current year
-          if (currentMonth !== lastMonth && d.getFullYear() === currentYear) {
+          if (
+            currentMonth !== lastMonth &&
+            d.getUTCFullYear() === currentYear
+          ) {
             monthsHtml += `<span style="position: absolute; left: ${colIndex * 19}px; white-space: nowrap;">${_SHORT_MONTHS[currentMonth]}</span>`;
             lastMonth = currentMonth;
           }
@@ -12554,14 +12823,8 @@
 
           let hoverEffects = "";
           if (tooltipData) {
-            const escNotes = (tooltipData.notes || "")
-              .replace(/&/g, "&amp;")
-              .replace(/"/g, "&quot;")
-              .replace(/</g, "&lt;")
-              .replace(/>/g, "&gt;")
-              .replace(/'/g, "\\'");
             hoverEffects = `
-              onmouseover="showHeatmapTooltip(event, '${tooltipData.date}', '${tooltipData.work}', '${tooltipData.break}', '${tooltipData.goal}', '${escNotes}'); this.style.transform='scale(1.3)';"
+              onmouseover="showHeatmapTooltip(event, '${dateKey}'); this.style.transform='scale(1.3)';"
               onmouseout="hideHeatmapTooltip(); this.style.transform='scale(1)';"
               onclick="heatmapClickFilter('${dateKey}')"
             `;
@@ -13151,6 +13414,8 @@
         if (!log) return;
         editingLogId = log.id;
         DOM.editDate.value = log.date;
+        DOM.editLogin.value = log.login || "";
+        DOM.editLogout.value = log.logout || "";
         DOM.editWork.value = formatDuration(log.workSec).slice(0, 5);
         DOM.editBreak.value = formatDuration(log.breakSec).slice(0, 5);
 
@@ -13190,6 +13455,8 @@
         if (!log) return;
 
         let newDate = DOM.editDate.value.trim();
+        const newLogin = DOM.editLogin.value.trim() || "Manual";
+        const newLogout = DOM.editLogout.value.trim() || "Entry";
         const newWork = DOM.editWork.value.trim();
         const newBreak = DOM.editBreak.value.trim();
         const newNotes = DOM.editNotes.value.trim();
@@ -13223,6 +13490,8 @@
           isEditSubmitting = true;
           log.date = newDate;
           log.displayDate = newDate.replace(/\/20(\d{2})$/, "/$1");
+          log.login = newLogin;
+          log.logout = newLogout;
           log.workSec = wSec;
           log.breakSec = bSec;
 
@@ -13241,6 +13510,31 @@
             0,
             0,
           );
+
+          // Recalculate wall-clock epoch timestamps from the edited login/logout strings
+          const dateMs = log.epochMs; // noon UTC anchor for this date
+          const loginMinutes = parseTimeToMinutes(log.login);
+          const logoutMinutes = parseTimeToMinutes(log.logout);
+
+          if (loginMinutes !== null) {
+            // Compute offset from midnight PST.
+            // Use the same noon-UTC anchor as a reference and back-calculate to midnight.
+            // Safe approximation: noon anchor − 12h = midnight for the date.
+            const midnightMs = dateMs - 12 * 3600 * 1000;
+            log.loginEpochMs = midnightMs + loginMinutes * 60 * 1000;
+            // If logout appears before login (next-day shift), add 24h
+            if (logoutMinutes !== null) {
+              let adjustedLogoutMin = logoutMinutes;
+              if (logoutMinutes < loginMinutes) adjustedLogoutMin += 1440;
+              log.logoutEpochMs = midnightMs + adjustedLogoutMin * 60 * 1000;
+            }
+          } else {
+            // No valid login string — fall back to work-sec arithmetic
+            log.loginEpochMs = log.logoutEpochMs
+              ? log.logoutEpochMs - (log.workSec + log.breakSec) * 1000
+              : log.epochMs;
+          }
+
           log.notes = newNotes;
           log.lastModified = Date.now();
           log.searchStr =
@@ -13655,6 +13949,15 @@
               logsOverwrittenCount =
                 currentLogs.length - filteredLocalLogs.length;
             } else if (resolutionType === "keep-both") {
+              const existingIds = new Set(currentLogs.map((l) => l.id));
+              validatedLogs.forEach((l) => {
+                if (existingIds.has(l.id)) {
+                  l.id =
+                    "log_" +
+                    Math.random().toString(36).substring(2, 11) +
+                    Date.now().toString(36);
+                }
+              });
               mergedLogs = [...validatedLogs, ...currentLogs];
               logsAddedCount = validatedLogs.length;
             }
@@ -14723,6 +15026,60 @@
           },
         },
         {
+          key: "toggle auto-populate",
+          title: "Toggle Goal Auto-Populate",
+          desc: "Toggle whether daily goals auto-populate to keep you on pace",
+          category: "Settings",
+          aliases: ["auto-populate", "autopopulate"],
+          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-blue)" stroke-width="2"><use href="#sprite-036"></use></svg>`,
+          action: () => {
+            const cb = document.getElementById("goal-autopopulate-toggle");
+            if (cb) {
+              cb.checked = !cb.checked;
+              onGoalAutopopulateToggleChange();
+              showAppToast(
+                `Auto-populate daily goal is now ${state.goalAutopopulateEnabled !== false ? "Enabled" : "Disabled"}`,
+              );
+            }
+          },
+        },
+        {
+          key: "toggle auto-backup",
+          title: "Toggle Auto-Save JSON Backup",
+          desc: "Toggle silent JSON download on End of Day submission",
+          category: "Settings",
+          aliases: ["auto-backup", "autobackup", "auto save"],
+          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-blue)" stroke-width="2"><use href="#sprite-036"></use></svg>`,
+          action: () => {
+            const cb = document.getElementById("auto-backup-toggle");
+            if (cb) {
+              cb.checked = !cb.checked;
+              onAutoBackupToggleChange();
+              showAppToast(
+                `Auto-save JSON backup is now ${state.autoBackupEnabled ? "Enabled" : "Disabled"}`,
+              );
+            }
+          },
+        },
+        {
+          key: "toggle auto-email",
+          title: "Toggle Auto-Email EOD Summary",
+          desc: "Toggle copying report to clipboard and opening Gmail on submit",
+          category: "Settings",
+          aliases: ["auto-email", "autoemail", "auto mail"],
+          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-blue)" stroke-width="2"><use href="#sprite-036"></use></svg>`,
+          action: () => {
+            const cb = document.getElementById("auto-email-toggle");
+            if (cb) {
+              cb.checked = !cb.checked;
+              onAutoEmailToggleChange();
+              showAppToast(
+                `Auto-email EOD summary is now ${state.autoEmailEnabled ? "Enabled" : "Disabled"}`,
+              );
+            }
+          },
+        },
+        {
           key: "g ",
           title: "Search Google...",
           desc: "Type 'g javascript map' to search the web",
@@ -15036,7 +15393,17 @@
               });
             }
           } catch (e) {
-            // Ignore parse errors (e.g. typing "2 +")
+            scored.push({
+              score: 9999,
+              cmd: {
+                key: "_math_err",
+                title: `= ...`,
+                desc: `Expression incomplete or invalid: "${query.trim()}"`,
+                category: "Calculator",
+                icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-break)" stroke-width="2"><use href="#sprite-014"></use></svg>`,
+                action: () => {},
+              },
+            });
           }
         }
 
@@ -16252,6 +16619,13 @@
         const secondsIdle = Math.floor((Date.now() - lastActivity) / 1000);
         let newText, newClass;
 
+        const warnEl = document.getElementById("storage-status-warn");
+        if (warnEl) {
+          warnEl.style.display = window.storageWriteError
+            ? "inline-flex"
+            : "none";
+        }
+
         if (secondsIdle < 10) {
           newText = "Active";
           newClass = "last-seen-status text-work";
@@ -17079,11 +17453,64 @@
               const d = String(targetDate.getUTCDate()).padStart(2, "0");
               const y = String(targetDate.getUTCFullYear()).slice(-2);
               finalDateStr = `${m}/${d}/${y}`;
+            } else if (
+              val.match(
+                /^(?:(\d{1,2})(?:st|nd|rd|th)?[\s,-]+)?(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*(?:[\s,-]+(\d{1,2})(?:st|nd|rd|th)?)?(?:[\s,-]+(\d{2,4}))?$/,
+              )
+            ) {
+              const nlMatch = val.match(
+                /^(?:(\d{1,2})(?:st|nd|rd|th)?[\s,-]+)?(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*(?:[\s,-]+(\d{1,2})(?:st|nd|rd|th)?)?(?:[\s,-]+(\d{2,4}))?$/,
+              );
+              const d = nlMatch[1] || nlMatch[3];
+              if (d) {
+                const m = {
+                  jan: 1,
+                  feb: 2,
+                  mar: 3,
+                  apr: 4,
+                  may: 5,
+                  jun: 6,
+                  jul: 7,
+                  aug: 8,
+                  sep: 9,
+                  oct: 10,
+                  nov: 11,
+                  dec: 12,
+                }[nlMatch[2]];
+                let y = currentYearShort;
+                if (nlMatch[4]) {
+                  y =
+                    nlMatch[4].length === 4
+                      ? nlMatch[4].slice(-2)
+                      : nlMatch[4].padStart(2, "0");
+                }
+                finalDateStr = `${String(m).padStart(2, "0")}/${String(d).padStart(2, "0")}/${y}`;
+              }
             } else if (val.includes("/")) {
               const parts = val.split("/");
               if (parts.length >= 2) {
-                const m = String(parseInt(parts[0], 10) || 1).padStart(2, "0");
-                const d = String(parseInt(parts[1], 10) || 1).padStart(2, "0");
+                const checkLocaleDate = new Intl.DateTimeFormat().format(
+                  new Date(2026, 11, 25),
+                );
+                const isDayFirst = checkLocaleDate.startsWith("25");
+                const firstVal = parseInt(parts[0], 10) || 1;
+                const secondVal = parseInt(parts[1], 10) || 1;
+                let m, d;
+                if (firstVal > 12 && secondVal <= 12) {
+                  d = String(firstVal).padStart(2, "0");
+                  m = String(secondVal).padStart(2, "0");
+                } else if (secondVal > 12 && firstVal <= 12) {
+                  m = String(firstVal).padStart(2, "0");
+                  d = String(secondVal).padStart(2, "0");
+                } else {
+                  if (isDayFirst) {
+                    d = String(firstVal).padStart(2, "0");
+                    m = String(secondVal).padStart(2, "0");
+                  } else {
+                    m = String(firstVal).padStart(2, "0");
+                    d = String(secondVal).padStart(2, "0");
+                  }
+                }
                 let y = currentYearShort;
                 if (parts.length >= 3 && parts[2].trim()) {
                   const rawY = parts[2].trim();
@@ -17265,11 +17692,86 @@
           const d = String(targetDate.getUTCDate()).padStart(2, "0");
           const y = String(targetDate.getUTCFullYear()).slice(-2);
           finalDateStr = `${m}/${d}/${y}`;
+        } else if (
+          val.match(
+            /^(?:(\d{1,2})(?:st|nd|rd|th)?[\s,-]+)?(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*(?:[\s,-]+(\d{1,2})(?:st|nd|rd|th)?)?(?:[\s,-]+(\d{2,4}))?$/,
+          )
+        ) {
+          const nlMatch = val.match(
+            /^(?:(\d{1,2})(?:st|nd|rd|th)?[\s,-]+)?(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*(?:[\s,-]+(\d{1,2})(?:st|nd|rd|th)?)?(?:[\s,-]+(\d{2,4}))?$/,
+          );
+          const d = nlMatch[1] || nlMatch[3];
+          if (d) {
+            const m = {
+              jan: 1,
+              feb: 2,
+              mar: 3,
+              apr: 4,
+              may: 5,
+              jun: 6,
+              jul: 7,
+              aug: 8,
+              sep: 9,
+              oct: 10,
+              nov: 11,
+              dec: 12,
+            }[nlMatch[2]];
+            let y = currentYearShort;
+            if (nlMatch[4]) {
+              y =
+                nlMatch[4].length === 4
+                  ? nlMatch[4].slice(-2)
+                  : nlMatch[4].padStart(2, "0");
+            }
+            finalDateStr = `${String(m).padStart(2, "0")}/${String(d).padStart(2, "0")}/${y}`;
+          }
         } else if (val.includes("/")) {
           const parts = val.split("/");
           if (parts.length >= 2) {
-            const m = String(parseInt(parts[0], 10) || 1).padStart(2, "0");
-            const d = String(parseInt(parts[1], 10) || 1).padStart(2, "0");
+            const checkLocaleDate = new Intl.DateTimeFormat().format(
+              new Date(2026, 11, 25),
+            );
+            const isDayFirst = checkLocaleDate.startsWith("25");
+            const firstVal = parseInt(parts[0], 10) || 1;
+            const secondVal = parseInt(parts[1], 10) || 1;
+            let m, d;
+            if (firstVal > 12 && secondVal <= 12) {
+              d = String(firstVal).padStart(2, "0");
+              m = String(secondVal).padStart(2, "0");
+            } else if (secondVal > 12 && firstVal <= 12) {
+              m = String(firstVal).padStart(2, "0");
+              d = String(secondVal).padStart(2, "0");
+            } else {
+              if (isDayFirst) {
+                d = String(firstVal).padStart(2, "0");
+                m = String(secondVal).padStart(2, "0");
+              } else {
+                m = String(firstVal).padStart(2, "0");
+                d = String(secondVal).padStart(2, "0");
+              }
+              if (
+                firstVal !== secondVal &&
+                typeof showAppToast === "function"
+              ) {
+                const monthNames = [
+                  "Jan",
+                  "Feb",
+                  "Mar",
+                  "Apr",
+                  "May",
+                  "Jun",
+                  "Jul",
+                  "Aug",
+                  "Sep",
+                  "Oct",
+                  "Nov",
+                  "Dec",
+                ];
+                showAppToast(
+                  `Ambiguous date parsed as ${monthNames[parseInt(m, 10) - 1]} ${parseInt(d, 10)}`,
+                );
+              }
+            }
             let y = currentYearShort;
             if (parts.length >= 3 && parts[2].trim()) {
               const rawY = parts[2].trim();
@@ -17400,9 +17902,100 @@
         }
       }
 
-      ["manual-login", "manual-logout"].forEach((id) => {
-        const el = document.getElementById(id);
-        if (el) el.addEventListener("blur", handleLoginLogoutBlur);
+      ["manual-login", "manual-logout", "edit-login", "edit-logout"].forEach(
+        (id) => {
+          const el = document.getElementById(id);
+          if (el) el.addEventListener("blur", handleLoginLogoutBlur);
+        },
+      );
+
+      function calculateDurationFromTimes(loginVal, logoutVal, breakVal) {
+        const loginMin = parseTimeToMinutes(loginVal);
+        const logoutMin = parseTimeToMinutes(logoutVal);
+        const breakMin =
+          parseGoalTimeStr(breakVal).hh * 60 + parseGoalTimeStr(breakVal).mm;
+        if (loginMin !== null && logoutMin !== null) {
+          let diffMin = logoutMin - loginMin;
+          if (diffMin < 0) diffMin += 1440; // Crosses midnight
+          const workMin = Math.max(0, diffMin - breakMin);
+          const h = Math.floor(workMin / 60);
+          const m = workMin % 60;
+          return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+        }
+        return null;
+      }
+
+      function calculateLogoutFromLoginAndWork(loginVal, workVal, breakVal) {
+        const loginMin = parseTimeToMinutes(loginVal);
+        if (loginMin === null) return null;
+        const wp = parseGoalTimeStr(workVal);
+        const bp = parseGoalTimeStr(breakVal);
+        const workMin = wp.hh * 60 + wp.mm;
+        const breakMin = bp.hh * 60 + bp.mm;
+        return minutesToAMPM(loginMin + workMin + breakMin);
+      }
+
+      function syncModalFields(prefix, changedField) {
+        const loginEl = document.getElementById(`${prefix}-login`);
+        const logoutEl = document.getElementById(`${prefix}-logout`);
+        const workEl = document.getElementById(`${prefix}-work`);
+        const breakEl = document.getElementById(`${prefix}-break`);
+        if (!loginEl || !logoutEl || !workEl || !breakEl) return;
+
+        const loginVal = loginEl.value.trim();
+        const logoutVal = logoutEl.value.trim();
+        const workVal = workEl.value.trim();
+        const breakVal = breakEl.value.trim() || "00:00";
+
+        const loginMin = parseTimeToMinutes(loginVal);
+        const logoutMin = parseTimeToMinutes(logoutVal);
+        const hasLogin = loginMin !== null;
+        const hasLogout = logoutMin !== null;
+
+        if (
+          changedField === "login" ||
+          changedField === "logout" ||
+          changedField === "break"
+        ) {
+          if (hasLogin && hasLogout) {
+            // Both timestamps present → derive work
+            const derived = calculateDurationFromTimes(
+              loginVal,
+              logoutVal,
+              breakVal,
+            );
+            if (derived !== null) workEl.value = derived;
+          } else if (changedField !== "logout" && hasLogin && workVal) {
+            // Only login present + work is filled → derive logout
+            const derived = calculateLogoutFromLoginAndWork(
+              loginVal,
+              workVal,
+              breakVal,
+            );
+            if (derived !== null) logoutEl.value = derived;
+          }
+        } else if (changedField === "work") {
+          if (hasLogin) {
+            // Work explicitly set → derive logout from login anchor
+            const derived = calculateLogoutFromLoginAndWork(
+              loginVal,
+              workVal,
+              breakVal,
+            );
+            if (derived !== null) logoutEl.value = derived;
+          }
+        }
+      }
+
+      ["login", "logout", "work", "break"].forEach((field) => {
+        const manualEl = document.getElementById(`manual-${field}`);
+        const editEl = document.getElementById(`edit-${field}`);
+        if (manualEl)
+          manualEl.addEventListener("blur", () =>
+            syncModalFields("manual", field),
+          );
+        if (editEl)
+          editEl.addEventListener("blur", () => syncModalFields("edit", field));
       });
 
       // Event listener for Manual Date Picker
@@ -18001,6 +18594,12 @@
               parentRow.addEventListener("mouseleave", resetHelp, {
                 passive: true,
               });
+              parentRow.addEventListener("focusin", () => updateHelp(row.id), {
+                passive: true,
+              });
+              parentRow.addEventListener("focusout", resetHelp, {
+                passive: true,
+              });
             }
           }
         });
@@ -18013,6 +18612,14 @@
             { passive: true },
           );
           thresholdRow.addEventListener("mouseleave", resetHelp, {
+            passive: true,
+          });
+          thresholdRow.addEventListener(
+            "focusin",
+            () => updateHelp("idle-slider"),
+            { passive: true },
+          );
+          thresholdRow.addEventListener("focusout", resetHelp, {
             passive: true,
           });
         }
@@ -18031,6 +18638,14 @@
             resetHelp,
             { passive: true },
           );
+          snapshotSelect.parentElement.addEventListener(
+            "focusin",
+            () => updateHelp("snapshot-restore-select"),
+            { passive: true },
+          );
+          snapshotSelect.parentElement.addEventListener("focusout", resetHelp, {
+            passive: true,
+          });
         }
       }
 
