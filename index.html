@@ -9831,6 +9831,10 @@
       });
       window.addEventListener("keydown", definitiveActivity, { passive: true });
       window.addEventListener("click", definitiveActivity, { passive: true });
+      window.addEventListener("scroll", definitiveActivity, {
+        passive: true,
+        capture: true,
+      });
 
       /*==========================================================================
        * 9. TIMERS ACCUMULATION & RUNTIME TRACKING
@@ -14595,12 +14599,13 @@
 
           if (discrepancy > 5000) {
             if (monoDelta < wallDelta - 30000) {
-              if (isActivelyTracking && isTabVisible) {
-                state.lastHeartbeatWall = nowMs;
-                state.lastHeartbeatMonotonic = nowMonotonic;
-                return;
+              if (!isActivelyTracking || !isTabVisible) {
+                triggerIdleLock(lastWall, "system");
               }
-              triggerIdleLock(lastWall, "system");
+              // Previously: if (isActivelyTracking && isTabVisible) { ...; return; }
+              // The early return was wrong — it prevented the inactivity audit from
+              // running. Now we skip the system lock when not applicable but always
+              // continue to the inactivity check below.
             } else if (state.sessionAnchorWall !== null) {
               // Forward/Backward NTP drift = Shift the Anchor directly to preserve elapsed time
               state.sessionAnchorWall += wallDelta - monoDelta;
@@ -14730,7 +14735,14 @@
                 );
               }
             }
-          } else if (
+          }
+
+          // Inactivity audit runs independently of the discrepancy check above.
+          // Previously this was an "else if", which meant any clock discrepancy > 5s
+          // would permanently block this check. System sleep detection and user
+          // inactivity detection are orthogonal concerns and must not be mutually exclusive.
+          if (
+            !state.idleLock &&
             state.idleTrackingEnabled !== false &&
             idleGap > _cachedIdleThresholdMs
           ) {
@@ -14741,6 +14753,22 @@
         // Execute rollover checks AFTER idle locks to prevent multi-day work accumulation
         checkMidnightReset(new Date(nowWall));
 
+        // Throttling-immune idle check: if the tab was hidden for longer than the
+        // idle threshold, trigger idle lock now. This runs regardless of whether
+        // tick() was throttled by the browser in the background — it is a pure
+        // wall-clock comparison computed at the moment the user returns to the tab.
+        if (
+          state.tabHiddenAt &&
+          state.idleTrackingEnabled !== false &&
+          !state.idleLock &&
+          state.trackingMode === "intelligent" &&
+          state.currentMode !== null
+        ) {
+          const hiddenDuration = nowWall - state.tabHiddenAt;
+          if (hiddenDuration > _cachedIdleThresholdMs) {
+            triggerIdleLock(state.tabHiddenAt, "inactivity");
+          }
+        }
         if (state.tabHiddenAt) {
           delete state.tabHiddenAt;
         }
