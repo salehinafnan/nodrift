@@ -11231,6 +11231,7 @@
        * Wipes live transaction memory and boots active workspace clean.
        */
       function resetSession() {
+        const previousMode = state.trackingMode || "intelligent";
         const previousIdleEnabled = state.idleTrackingEnabled;
         const previousIdleThreshold = state.idleThresholdMinutes;
         const previousAutoBackup = state.autoBackupEnabled;
@@ -11238,6 +11239,7 @@
         const previousGoalAutopopulate = state.goalAutopopulateEnabled;
 
         state = {
+          trackingMode: previousMode,
           workAccumulated: 0,
           breakAccumulated: 0,
           currentMode: null,
