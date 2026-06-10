@@ -8294,6 +8294,10 @@
         themeSfLight: `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #ff9500;"><use href="#sprite-048"></use></svg>`,
       };
 
+      let isDbReloading = false;
+      let _pendingWriteAfterReload = null;
+      const myTabId = crypto.randomUUID();
+
       // Live session core tracking state structure
       let state = {
         workAccumulated: 0,
@@ -8328,6 +8332,7 @@
       let displayBaseDate = null;
       let pendingSubmitData = null;
       let lastActivity = Date.now();
+      let lastPointerResetTime = 0;
       let activityThrottle = false;
       let editingLogId = null;
       let cachedBaseFontSize = parseFloat(
@@ -8712,6 +8717,10 @@
        * @param {Array} logsData - Full array of log entries to divide and save.
        */
       async function saveLogsToDB(logsData) {
+        if (isDbReloading) {
+          _pendingWriteAfterReload = logsData;
+          return Promise.resolve();
+        }
         try {
           const db = await dbPromise;
           return new Promise((resolve) => {
@@ -8889,7 +8898,7 @@
       tabSyncChannel.onmessage = (e) => {
         if (e.data.id === instanceId) return;
 
-        if (e.data.type === "takeover") {
+        if (e.data.type === "takeover_request") {
           if (state.currentMode !== null && !state.idleLock) {
             const nowWall = Date.now();
             const elapsedSeconds = Math.max(
@@ -8907,7 +8916,12 @@
           }
           saveState(true);
 
-          // We have been evicted by another tab. Transition to conflict mode.
+          if (typeof webLockReleaser === "function") {
+            webLockReleaser();
+            webLockReleaser = null;
+          }
+          usingWebLocks = false;
+
           isTabConflict = true;
           DOM.tabConflictModal.style.display = "flex";
           if (state.currentMode !== null) {
@@ -8915,6 +8929,40 @@
             state.sessionAnchorWall = null;
           }
           renderStaticUI();
+
+          tabSyncChannel.postMessage({
+            type: "takeover_acknowledged",
+            targetTabId: e.data.fromTabId,
+          });
+        } else if (
+          e.data.type === "takeover_acknowledged" &&
+          e.data.targetTabId === myTabId
+        ) {
+          acquireLease();
+        } else if (e.data.type === "database_mutated") {
+          isDbReloading = true;
+          loadLogsFromDB()
+            .then((logs) => {
+              if (logs !== null) {
+                cachedLogs = logs;
+                cachedTodayDate = null;
+                filterCache = null;
+                filterCacheKey = null;
+                insightsCacheKey = null;
+                dataVersion++;
+                rebuildWeeklyCache();
+                if (DOM.tabLogbook.style.display !== "none") {
+                  renderLogbook();
+                }
+                renderInsights();
+              }
+              isDbReloading = false;
+              _pendingWriteAfterReload = null;
+            })
+            .catch(() => {
+              isDbReloading = false;
+              _pendingWriteAfterReload = null;
+            });
         }
       };
 
@@ -8986,7 +9034,7 @@
                     });
                   } else {
                     // Lock unavailable — another tab owns it
-                    usingWebLocks = true;
+                    usingWebLocks = false;
                     isTabConflict = true;
                     document.getElementById(
                       "tab-conflict-modal",
@@ -9122,7 +9170,10 @@
           renderLogbook();
           renderInsights();
           showSyncToast("Tab takeover successful. Session synchronized");
-          tabSyncChannel.postMessage({ type: "takeover", id: instanceId });
+          tabSyncChannel.postMessage({
+            type: "takeover_request",
+            fromTabId: myTabId,
+          });
         });
       }
 
@@ -9357,6 +9408,7 @@
        * @param {Array} logs - Updated shift list array.
        */
       function saveLogs(logs) {
+        if (isDbReloading) return;
         if (!isDatabaseHealthy) {
           showAppToast(
             "⚠️ Save blocked: Database read failed on startup. Please reload the page.",
@@ -9379,6 +9431,12 @@
         if (typeof triggerAutoSnapshot === "function") {
           triggerAutoSnapshot();
         }
+
+        // Broadcast database modification to other active tabs to sync memory caches
+        tabSyncChannel.postMessage({
+          type: "database_mutated",
+          id: instanceId,
+        });
 
         // FIX 3: INSTANT SYNCHRONOUS EMERGENCY BACKUP
         try {
@@ -9728,25 +9786,6 @@
         const now = Date.now();
         lastActivityRegisterTime = now;
 
-        // Instantly destroy all listeners for absolute zero CPU overhead
-        window.removeEventListener("pointermove", handlePointerMove);
-        window.removeEventListener("keydown", definitiveActivity);
-        window.removeEventListener("click", definitiveActivity);
-
-        setTimeout(() => {
-          lastValidPointerX = null; // Reset anchor on wakeup
-          lastValidPointerY = null;
-          window.addEventListener("pointermove", handlePointerMove, {
-            passive: true,
-          });
-          window.addEventListener("keydown", definitiveActivity, {
-            passive: true,
-          });
-          window.addEventListener("click", definitiveActivity, {
-            passive: true,
-          });
-        }, 5000);
-
         if (!state.idleLock) {
           lastActivity = getTrueTime();
           state.lastActivity = lastActivity;
@@ -9763,19 +9802,26 @@
       function handlePointerMove(e) {
         if (!e.isTrusted) return;
 
-        if (lastValidPointerX === null || lastValidPointerY === null) {
+        const now = Date.now();
+        if (
+          lastValidPointerX === null ||
+          lastValidPointerY === null ||
+          now - lastPointerResetTime > 500
+        ) {
           lastValidPointerX = e.clientX;
           lastValidPointerY = e.clientY;
+          lastPointerResetTime = now;
           return;
         }
 
         const distance =
           Math.abs(e.clientX - lastValidPointerX) +
           Math.abs(e.clientY - lastValidPointerY);
-        // 75px threshold requires deliberate wrist movement, ignoring desk vibrations
-        if (distance > 75) {
+        // 20px threshold within a 500ms window filters out slow optical mouse drift
+        if (distance > 20) {
           lastValidPointerX = e.clientX;
           lastValidPointerY = e.clientY;
+          lastPointerResetTime = now;
           definitiveActivity(e);
         }
       }
@@ -10509,8 +10555,7 @@
           }
         }
 
-        const isGoalReached =
-          totalWorkToday >= anchorGoalSec && anchorGoalSec > 0;
+        const isGoalReached = totalWorkToday >= anchorGoalSec;
         if (domWriteCache.progressRailCompleted !== isGoalReached) {
           domWriteCache.progressRailCompleted = isGoalReached;
           if (DOM.progressRail) {
@@ -10575,7 +10620,12 @@
           }
         }
 
-        if (isGoalReached && !state.goalNotified) {
+        const MINIMUM_TOAST_GOAL_SEC = 60; // 1 minute
+        if (
+          isGoalReached &&
+          anchorGoalSec >= MINIMUM_TOAST_GOAL_SEC &&
+          !state.goalNotified
+        ) {
           const toast = DOM.goalToast;
           const timeEl = DOM.goalToastTime;
           if (timeEl) {
@@ -11038,6 +11088,9 @@
         state.idleLock = true;
         state.idleType = type;
         saveState();
+
+        if (DOM.idleModal) DOM.idleModal.style.display = "flex";
+
         renderStaticUI();
         renderTimersOnly(new Date(timeOfIdleWall));
         updateIdleModalLabels();
@@ -11128,6 +11181,11 @@
         state.lastActivity = nowWall;
         saveState();
         DOM.idleModal.style.display = "none";
+
+        // Reset current time label back to default
+        if (DOM.idleCurrentTime && DOM.idleCurrentTime.previousElementSibling) {
+          setText(DOM.idleCurrentTime.previousElementSibling, "Current Time:");
+        }
 
         // USE THE CAPTURED MODE
         switchMode(targetMode);
@@ -13181,23 +13239,73 @@
                 : "Leave";
 
             const leaveBadge = `<span class="badge badge-leave">${leaveLabel}</span>`;
+            const isEmptyLeaveDay =
+              dayW === 0 && dayB === 0 && (!isToday || !state.loginTimestamp);
 
-            breakdownHTML += `
-                  <div class="breakdown-row" style="${rowStyle}">
-                    <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-                      <span style="font-weight: ${
-                        isToday ? "700" : "400"
-                      }; font-size: var(--font-size-entry-title);">
-                        ${
-                          _DAY_NAMES_SHORT[dayOfWeekIndex]
-                        } <span style="opacity: 0.5;">(${displayDateNoYear})</span>${weekendBadge}${leaveBadge}
-                      </span>
-                      <div class="font-mono stats-alignment-wrapper" style="font-size: var(--font-size-entry-stats); color: var(--text-main); display: flex; gap: 12px;">
-                         <div class="stat-column work-col" style="display:flex; align-items:center;"><span class="badge badge-w badge-w-lg">W</span> —</div>
-                         <div class="stat-column break-col" style="display:flex; align-items:center;"><span class="badge badge-b badge-b-lg">B</span> —</div>
-                      </div>
-                    </div>
-                  </div>`;
+            if (isEmptyLeaveDay) {
+              breakdownHTML += `
+                                <div class="breakdown-row" style="${rowStyle}">
+                                  <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                                    <span style="font-weight: ${isToday ? "700" : "400"}; font-size: var(--font-size-entry-title);">
+                                      ${_DAY_NAMES_SHORT[dayOfWeekIndex]} <span style="opacity: 0.5;">(${displayDateNoYear})</span>${weekendBadge}${leaveBadge}
+                                    </span>
+                                    <div class="font-mono stats-alignment-wrapper" style="font-size: var(--font-size-entry-stats); color: var(--text-main); display: flex; gap: 12px;">
+                                       <div class="stat-column work-col" style="display:flex; align-items:center;"><span class="badge badge-w badge-w-lg">W</span> —</div>
+                                       <div class="stat-column break-col" style="display:flex; align-items:center;"><span class="badge badge-b badge-b-lg">B</span> —</div>
+                                    </div>
+                                  </div>
+                                </div>`;
+            } else {
+              const dayLogs = logsByDate[dateStr];
+              let loginStr = "—";
+              let logoutStr = "—";
+
+              if (dayLogs) {
+                loginStr = escapeHTML(dayLogs.login || "—");
+                logoutStr = escapeHTML(dayLogs.logout || "—");
+              }
+
+              if (isToday && state.loginTimestamp) {
+                const todayLoginStr = loginFormatter.format(
+                  new Date(state.loginTimestamp),
+                );
+                if (loginStr === "—") {
+                  loginStr = escapeHTML(todayLoginStr);
+                }
+                if (state.currentMode === "work") {
+                  logoutStr = "Active";
+                } else if (state.currentMode === "break") {
+                  logoutStr = "Break";
+                } else {
+                  logoutStr = "Paused";
+                }
+              }
+
+              breakdownHTML += `
+                                <div class="breakdown-row" style="${rowStyle}">
+                                  <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                                    <span style="font-weight: ${isToday ? "700" : "400"}; font-size: var(--font-size-entry-title);">
+                                      ${_DAY_NAMES_SHORT[dayOfWeekIndex]} <span style="opacity: 0.5;">(${displayDateNoYear})</span>${weekendBadge}${leaveBadge}
+                                    </span>
+                                    <div class="font-mono stats-alignment-wrapper" style="font-size: var(--font-size-entry-stats); color: var(--text-main); display: flex; gap: 12px;">
+                                      <div class="stat-column work-col" style="display:flex; align-items:center;">
+                                        <span class="badge badge-w badge-w-lg">W</span> <span ${isToday ? 'id="today-work-val"' : ""}>${formatFriendlyDuration(dayW)}</span>
+                                      </div>
+                                      <div class="stat-column break-col" style="display:flex; align-items:center;">
+                                        <span class="badge badge-b badge-b-lg">B</span> <span ${isToday ? 'id="today-break-val"' : ""}>${formatFriendlyDuration(dayB)}</span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                  <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; font-size: var(--font-size-entry-meta); color: var(--text-muted); margin-top: 4px;">
+                                    <span>${loginStr} - ${logoutStr}</span>
+                                    <div class="font-mono stats-alignment-wrapper" style="font-size: var(--font-size-entry-meta); color: var(--text-muted); display: flex; gap: 12px;">
+                                      <div class="stat-column work-col" style="display:flex; align-items:center;">
+                                        <span class="badge badge-leave">Worked Leave</span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>`;
+            }
           } else {
             const isEmptyDay =
               dayW === 0 && dayB === 0 && (!isToday || !state.loginTimestamp);
@@ -14235,8 +14343,11 @@
 
         let safetyCounter = 0;
         let requiresRender = false;
+        const idleTriggerDateStr = state.idleStart
+          ? pstDateFormatter.format(new Date(state.idleStart))
+          : null;
         // Process sleep gaps iteratively to prevent date skipping (Phase 2, Item 3)
-        while (state.activeDate !== currentDatePST && safetyCounter++ < 31) {
+        while (state.activeDate !== currentDatePST && safetyCounter++ < 366) {
           const currentWork = getCurrentWorkSeconds();
           const hasAccumulatedWork =
             (state.workAccumulated || 0) +
@@ -14291,6 +14402,36 @@
             if (isNaN(hourOffset) || hourOffset === 24) hourOffset = 0;
             const midnightMs = guessMs - hourOffset * 3600000;
 
+            const isIntermediateDay =
+              state.idleLock && state.activeDate !== idleTriggerDateStr;
+
+            if (isIntermediateDay) {
+              if (state.workAccumulated > 0 || state.breakAccumulated > 0) {
+                createShiftLogEntry(
+                  state.activeDate,
+                  state.workAccumulated || 0,
+                  state.breakAccumulated || 0,
+                  activeLoginTs,
+                  midnightMs,
+                );
+              }
+              const nextDayObj = new Date(
+                Date.UTC(
+                  parseInt(fullYear),
+                  parseInt(m) - 1,
+                  parseInt(d) + 1,
+                  12,
+                  0,
+                  0,
+                ),
+              );
+              state.workAccumulated = 0;
+              state.breakAccumulated = 0;
+              state.idleStart = midnightMs;
+              state.activeDate = pstDateFormatter.format(nextDayObj);
+              continue;
+            }
+
             // Mathematically cap the shift exactly at midnight, regardless of when this function fires
             if (state.currentMode !== null && !state.idleLock) {
               if (
@@ -14317,17 +14458,6 @@
               state.preIdleMode !== null &&
               state.idleStart < midnightMs
             ) {
-              const elapsedToMidnight = Math.max(
-                0,
-                (midnightMs - state.idleStart) / 1000,
-              );
-              if (state.preIdleMode === "work") {
-                state.workAccumulated =
-                  (state.workAccumulated || 0) + elapsedToMidnight;
-              } else if (state.preIdleMode === "break") {
-                state.breakAccumulated =
-                  (state.breakAccumulated || 0) + elapsedToMidnight;
-              }
               state.sessionAnchorWall = null;
               state.idleStart = midnightMs;
             }
@@ -14407,7 +14537,7 @@
           }
 
           // Failsafe break to guarantee we never infinitely loop if date advancement fails
-          if (safetyCounter >= 31) {
+          if (safetyCounter >= 366) {
             state.activeDate = currentDatePST;
             requiresRender = true;
             break;
@@ -14459,14 +14589,26 @@
           const discrepancy = Math.abs(wallDelta - monoDelta);
 
           // 5-second deadzone prevents micro-jitter floating point accumulation
+          const isActivelyTracking =
+            state.currentMode !== null && !state.idleLock;
+          const isTabVisible = !document.hidden;
+
           if (discrepancy > 5000) {
             if (monoDelta < wallDelta - 30000) {
-              // Forward jump with frozen monotonic clock = OS Hardware Sleep
+              if (isActivelyTracking && isTabVisible) {
+                state.lastHeartbeatWall = nowMs;
+                state.lastHeartbeatMonotonic = nowMonotonic;
+                return;
+              }
               triggerIdleLock(lastWall, "system");
-              return; // Abort the remainder of this tick to respect the lock
             } else if (state.sessionAnchorWall !== null) {
               // Forward/Backward NTP drift = Shift the Anchor directly to preserve elapsed time
               state.sessionAnchorWall += wallDelta - monoDelta;
+              if (discrepancy > 60000) {
+                showSyncToast(
+                  "System clock adjustment detected. Timer calibrated.",
+                );
+              }
             }
           }
 
@@ -14489,7 +14631,6 @@
         ) {
           if (nowMs - lastActivity > _cachedIdleThresholdMs) {
             triggerIdleLock(lastActivity, "inactivity");
-            return; // Lock and abort tick
           }
         }
 
@@ -14501,13 +14642,25 @@
 
           if (state.idleLock) {
             if (DOM.idleModal) DOM.idleModal.style.display = "flex";
+
+            const isReturned = !!state.idleWakeup;
+            const targetTimeMs = isReturned ? state.idleWakeup : liveNowMs;
+            const targetDate = isReturned
+              ? new Date(state.idleWakeup)
+              : liveNowDate;
+
             setText(
               DOM.idleDurationText,
-              formatDuration((liveNowMs - state.idleStart) / 1000),
+              formatDuration((targetTimeMs - state.idleStart) / 1000),
             );
 
             const currentTimeEl = DOM.idleCurrentTime;
             if (currentTimeEl) {
+              const labelEl = currentTimeEl.previousElementSibling;
+              if (labelEl) {
+                setText(labelEl, isReturned ? "Return Time:" : "Current Time:");
+              }
+
               const tz = DOM.primaryTz.value || "America/Los_Angeles";
               if (cachedIdleTz !== tz || !cachedIdleFormatter) {
                 cachedIdleTz = tz;
@@ -14519,7 +14672,7 @@
                   second: "2-digit",
                 });
               }
-              setText(currentTimeEl, cachedIdleFormatter.format(liveNowDate));
+              setText(currentTimeEl, cachedIdleFormatter.format(targetDate));
             }
           }
 
@@ -14562,13 +14715,20 @@
           const discrepancy = Math.abs(wallDelta - monoDelta);
           const idleGap = nowWall - lastActivity;
 
-          // 5-second deadzone aligns with the real-time tick engine
           if (discrepancy > 5000) {
-            if (monoDelta < wallDelta - 30000) {
+            if (
+              monoDelta < wallDelta - 30000 &&
+              (document.hidden || Date.now() - lastActivity > 60000)
+            ) {
               const timeOfIdle = state.lastHeartbeatWall || lastActivity;
               triggerIdleLock(timeOfIdle, "system");
             } else if (state.sessionAnchorWall !== null) {
               state.sessionAnchorWall += wallDelta - monoDelta;
+              if (discrepancy > 60000) {
+                showSyncToast(
+                  "System clock adjustment detected. Timer calibrated.",
+                );
+              }
             }
           } else if (
             state.idleTrackingEnabled !== false &&
@@ -14590,6 +14750,12 @@
           state.lastHeartbeatWall = nowWall;
           state.lastHeartbeatMonotonic = nowMonotonic;
         }
+
+        if (state.idleLock) {
+          if (DOM.idleModal) DOM.idleModal.style.display = "flex";
+          updateIdleModalLabels();
+        }
+
         renderTimersOnly();
         updateLiveWeeklySummary(true);
       }
@@ -15650,8 +15816,6 @@
                       `${log.displayDate} ${log.date} ${log.notes}`.toLowerCase();
                     log.lastModified = Date.now();
                     if (typeof saveLogs === "function") saveLogs(allLogs);
-                    if (typeof saveLogsToDB === "function")
-                      saveLogsToDB(allLogs);
                     if (typeof updateLogbookTable === "function")
                       updateLogbookTable();
                     closeHudModal();
@@ -15717,15 +15881,36 @@
                 const ampm = m[3];
                 if (ampm === "pm" && h < 12) h += 12;
                 if (ampm === "am" && h === 12) h = 0;
-                return h * 3600 + min * 60;
+                return { sec: h * 3600 + min * 60, hasMeridian: !!ampm };
               };
 
-              const startSec = parseNlpTimeStr(rangeMatch[1]);
-              const endSec = parseNlpTimeStr(rangeMatch[2]);
+              const startResult = parseNlpTimeStr(rangeMatch[1]);
+              const endResult = parseNlpTimeStr(rangeMatch[2]);
 
-              if (startSec !== null && endSec !== null) {
+              if (startResult !== null && endResult !== null) {
+                let startSec = startResult.sec;
+                let endSec = endResult.sec;
+
+                const startHasMeridian = startResult.hasMeridian;
+                const endHasMeridian = endResult.hasMeridian;
+                const bothMissingMeridian =
+                  !startHasMeridian && !endHasMeridian;
+
                 let diff = endSec - startSec;
-                if (diff < 0) diff += 86400; // Crossed midnight
+
+                if (diff < 0 && bothMissingMeridian) {
+                  const correctedEndSec = endSec + 43200; // try PM interpretation
+                  const correctedDiff = correctedEndSec - startSec;
+                  if (correctedDiff > 0 && correctedDiff <= 57600) {
+                    // Correction produces a plausible daytime range (> 0, <= 16 hours). Use it.
+                    diff = correctedDiff;
+                  } else {
+                    // Correction is implausible. Fall back to original overnight logic.
+                    diff += 86400;
+                  }
+                } else if (diff < 0) {
+                  diff += 86400;
+                }
                 workSec = diff;
                 loginStr = rangeMatch[1].toUpperCase();
                 logoutStr = rangeMatch[2].toUpperCase();
@@ -15835,7 +16020,6 @@
                     logs.sort((a, b) => b.epochMs - a.epochMs);
 
                     if (typeof saveLogs === "function") saveLogs(logs);
-                    if (typeof saveLogsToDB === "function") saveLogsToDB(logs);
                     if (typeof updateLogbookTable === "function")
                       updateLogbookTable();
                     if (typeof refreshInsights === "function")
@@ -16491,6 +16675,15 @@
           return;
         }
 
+        // Guard all tracking, manual logging, and configuration hotkeys when idle lock is active
+        if (state.idleLock) {
+          // Prevent Space, S, and Alt-based navigation/editing shortcuts from bypassing the lockout
+          if (e.code === "Space" || e.key.toLowerCase() === "s" || e.altKey) {
+            e.preventDefault();
+            return;
+          }
+        }
+
         // Universal Power User Shortcuts
         if (e.code === "Space") {
           e.preventDefault();
@@ -16748,7 +16941,7 @@
             : "none";
         }
 
-        if (secondsIdle < 10) {
+        if (secondsIdle < 3) {
           newText = "Active";
           newClass = "last-seen-status text-work";
         } else if (secondsIdle < 60) {
@@ -16820,18 +17013,15 @@
 
       window.onIdleSliderInput = function (val) {
         DOM.idleValDisplay.textContent = val + "m";
+        // Instantly update internal state during drag to bypass trackpad dropped-change events
+        state.idleThresholdMinutes = parseInt(val, 10);
+        _cachedIdleThresholdMs = state.idleThresholdMinutes * 60000;
       };
 
       window.onIdleSliderChange = function (val) {
         state.idleThresholdMinutes = parseInt(val, 10);
         _cachedIdleThresholdMs = state.idleThresholdMinutes * 60000;
         saveState();
-      };
-
-      // Temporary testing hook for the user
-      window.testIdleLock = function () {
-        _cachedIdleThresholdMs = 5000; // 5 seconds
-        console.log("Test mode: Idle threshold temporarily set to 5 seconds.");
       };
 
       window.onAutoBackupToggleChange = function () {
