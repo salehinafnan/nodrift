@@ -339,11 +339,12 @@
         appearance: none;
         -webkit-appearance: none;
         -moz-appearance: none;
-        background-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238e8e9f' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><use href='%23sprite-002'></use></svg>");
+        background-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238e8e9f' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'></polyline></svg>");
         background-repeat: no-repeat;
         background-position: right 1rem center;
         background-size: 1.1em;
-        padding-right: 2.5rem;
+        padding: 0 2.5rem 0 1rem;
+        height: 38px;
         cursor: pointer;
       }
 
@@ -1669,6 +1670,8 @@
         border: 1px solid var(--border-main);
         margin-bottom: 12px;
         gap: 6px;
+        position: relative;
+        z-index: 50;
         flex-shrink: 0;
         box-shadow: var(--panel-shadow);
         opacity: 0;
@@ -1742,6 +1745,15 @@
         background-color: var(--text-muted);
         clip-path: polygon(100% 0, 0 0, 50% 100%);
         pointer-events: none;
+      }
+
+      /* Hide the old pseudo-chevron when a custom-select is inside */
+      .filter-select-wrapper:has(.custom-select)::after {
+        display: none;
+      }
+
+      .filter-select-wrapper:has(.custom-select) {
+        overflow: visible;
       }
 
       .filter-select-wrapper .filter-select {
@@ -2774,7 +2786,7 @@
         padding: var(--space-5);
         box-shadow: none;
         position: relative;
-        overflow: hidden;
+        overflow: visible;
       }
 
       /* Standard Modal Sizes */
@@ -2932,6 +2944,9 @@
         width: 100% !important;
         box-shadow: none !important;
         height: 100% !important;
+        font-family: var(--font-sans) !important;
+        font-variant-numeric: tabular-nums !important;
+        font-feature-settings: "tnum" 1 !important;
       }
 
       .date-picker-group .preset-pill {
@@ -3294,7 +3309,7 @@
         border-radius: 4px;
         font-weight: 500;
         vertical-align: middle;
-        font-family: var(--number-font) !important;
+        font-family: var(--font-sans);
         line-height: 1;
       }
 
@@ -3388,6 +3403,8 @@
       }
 
       .badge-leave-sick {
+        font-size: 0.55rem;
+        padding: 2px 6px;
         color: var(--accent-break);
         background: color-mix(in srgb, var(--accent-break) 11%, transparent);
         border: 1px solid
@@ -3395,6 +3412,8 @@
       }
 
       .badge-leave-casual {
+        font-size: 0.55rem;
+        padding: 2px 6px;
         color: var(--accent-warning);
         background: color-mix(in srgb, var(--accent-warning) 11%, transparent);
         border: 1px solid
@@ -3402,10 +3421,187 @@
       }
 
       .badge-leave-holiday {
+        font-size: 0.55rem;
+        padding: 2px 6px;
         color: var(--accent-work);
         background: color-mix(in srgb, var(--accent-work) 11%, transparent);
         border: 1px solid
           color-mix(in srgb, var(--accent-work) 20%, transparent);
+      }
+
+      /* Leave & Holidays Modal — List Components */
+      .leave-dates-list {
+        height: 150px;
+        overflow-y: auto;
+        background: var(--panel-bg);
+        border: 1px solid var(--border-main);
+        padding: var(--space-2);
+        border-radius: var(--radius-md);
+        margin-bottom: var(--space-4);
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-1);
+      }
+
+      .leave-list-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: var(--element-bg);
+        border: 1px solid var(--border-main);
+        padding: var(--space-1) var(--space-3);
+        border-radius: var(--radius-sm);
+        font-size: var(--text-sm);
+        font-family: var(--font-sans);
+        color: var(--text-main);
+      }
+
+      .leave-delete-btn {
+        background: transparent;
+        border: none;
+        color: var(--text-muted);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+        width: 20px;
+        height: 20px;
+        border-radius: var(--radius-sm);
+        flex-shrink: 0;
+        transition: none;
+      }
+
+      .leave-delete-btn:hover {
+        color: var(--accent-break);
+      }
+
+      .leave-section-sep {
+        border: none;
+        border-top: 1px solid var(--border-main);
+        margin: var(--space-4) 0 var(--space-3) 0;
+      }
+
+      /* =========================================================================
+       CUSTOM SELECT DROPDOWN — Replaces native <select> with design-system popovers
+       ========================================================================= */
+      .custom-select {
+        position: relative;
+        width: 100%;
+      }
+
+      .custom-select-trigger {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 6px;
+        background: var(--element-bg);
+        border: 1px solid var(--border-main);
+        color: var(--text-muted);
+        font-family: var(--font-sans);
+        cursor: pointer;
+        user-select: none;
+        box-sizing: border-box;
+        border-radius: var(--radius-md);
+      }
+
+      /* Modal-size variant (38px) */
+      .custom-select-trigger.cs-md {
+        height: 38px;
+        padding: 0 var(--space-3);
+        font-size: var(--text-sm);
+      }
+
+      /* Compact variant for filter panel (27px) */
+      .custom-select-trigger.cs-sm {
+        height: 27px;
+        padding: 0 8px;
+        font-size: 0.72rem;
+        font-weight: 500;
+        border-radius: 6px;
+      }
+
+      .custom-select-trigger:hover {
+        background: var(--element-hover);
+        border-color: var(--border-light);
+        color: var(--text-main);
+      }
+
+      .custom-select-trigger.cs-open {
+        border-color: var(--accent-blue);
+        background: var(--element-hover);
+        color: var(--text-main);
+      }
+
+      .cs-trigger-val {
+        flex: 1;
+        text-align: left;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .cs-chevron {
+        flex-shrink: 0;
+        opacity: 0.55;
+      }
+
+      .custom-select-trigger.cs-open .cs-chevron {
+        transform: rotate(180deg);
+      }
+
+      .custom-select-panel {
+        position: absolute;
+        top: calc(100% + 4px);
+        left: 0;
+        right: 0;
+        z-index: 600;
+        background: var(--modal-bg);
+        border: 1px solid var(--border-light);
+        border-radius: var(--radius-md);
+        padding: 4px;
+        display: none;
+        flex-direction: column;
+        gap: 2px;
+        min-width: max-content;
+        box-shadow: none;
+      }
+
+      .custom-select-panel.cs-open {
+        display: flex;
+      }
+
+      .custom-select-option {
+        width: 100%;
+        text-align: left;
+        padding: 7px 10px;
+        border: none;
+        background: transparent;
+        color: var(--text-muted);
+        font-size: var(--text-sm);
+        border-radius: var(--radius-sm);
+        cursor: pointer;
+        font-family: var(--font-sans);
+        font-weight: 500;
+        white-space: nowrap;
+        box-sizing: border-box;
+      }
+
+      /* Compact option size for filter context */
+      .custom-select-panel.cs-compact .custom-select-option {
+        font-size: 0.72rem;
+        padding: 5px 8px;
+      }
+
+      .custom-select-option:hover {
+        background: var(--element-hover);
+        color: var(--text-main);
+      }
+
+      .custom-select-option.cs-selected {
+        color: var(--accent-blue);
+        background: color-mix(in srgb, var(--accent-blue) 10%, transparent);
       }
 
       .segment-active {
@@ -5784,7 +5980,12 @@
       </div>
     </div>
 
-    <div id="leave-modal" class="modal-overlay" style="z-index: 3500">
+    <div
+      id="leave-modal"
+      class="modal-overlay"
+      style="z-index: 3500"
+      onclick="if (event.target === this) closeLeaveModal();"
+    >
       <div
         class="modal-container modal-width-md accent-info"
         role="dialog"
@@ -5860,53 +6061,84 @@
         <!-- Leave Classification dropdown -->
         <div class="form-group">
           <label class="form-label" for="leave-type-select">Leave Type</label>
-          <select
-            id="leave-type-select"
-            class="input-standard"
-            style="cursor: pointer"
-          >
-            <option value="Casual">Casual</option>
-            <option value="Sick">Sick</option>
-            <option value="Public Holiday">Public Holiday</option>
-            <option value="In Lieu">In Lieu</option>
-          </select>
+          <div class="custom-select">
+            <select id="leave-type-select" style="display: none">
+              <option value="Casual">Casual</option>
+              <option value="Sick">Sick</option>
+              <option value="Public Holiday">Public Holiday</option>
+              <option value="In Lieu">In Lieu</option>
+            </select>
+            <button
+              type="button"
+              class="custom-select-trigger cs-md"
+              data-for="leave-type-select"
+              aria-haspopup="listbox"
+            >
+              <span class="cs-trigger-val">Casual</span>
+              <svg
+                class="cs-chevron"
+                viewBox="0 0 24 24"
+                width="14"
+                height="14"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+            </button>
+            <div class="custom-select-panel" role="listbox">
+              <button
+                type="button"
+                class="custom-select-option cs-selected"
+                data-value="Casual"
+              >
+                Casual
+              </button>
+              <button
+                type="button"
+                class="custom-select-option"
+                data-value="Sick"
+              >
+                Sick
+              </button>
+              <button
+                type="button"
+                class="custom-select-option"
+                data-value="Public Holiday"
+              >
+                Public Holiday
+              </button>
+              <button
+                type="button"
+                class="custom-select-option"
+                data-value="In Lieu"
+              >
+                In Lieu
+              </button>
+            </div>
+          </div>
         </div>
 
-        <!-- Modal Action triggers -->
-        <div
-          class="form-group"
-          style="margin-bottom: var(--space-5); margin-top: var(--space-4)"
-        >
-          <button
-            class="btn-info-outline"
-            style="
-              width: 100%;
-              height: 38px;
-              display: flex;
-              align-items: center;
-              justify-content: center;
-            "
-            onclick="addLeaveDate()"
-          >
-            Add Leave Entry
-          </button>
-        </div>
-        <span class="form-label">Active Leave Dates</span>
-        <div
-          id="leave-dates-list"
+        <button
+          class="btn-info-outline"
           style="
-            height: 150px;
-            overflow-y: auto;
-            background: var(--element-bg);
-            border: 1px solid var(--border-light);
-            padding: var(--space-2);
-            border-radius: var(--radius-md);
-            margin-bottom: var(--space-4);
+            width: 100%;
+            height: 38px;
             display: flex;
-            flex-direction: column;
-            gap: var(--space-1);
+            align-items: center;
+            justify-content: center;
+            margin-top: var(--space-3);
           "
-        ></div>
+          onclick="addLeaveDate()"
+        >
+          Add Leave Entry
+        </button>
+        <hr class="leave-section-sep" />
+        <span class="form-label">Active Leave Dates</span>
+        <div id="leave-dates-list" class="leave-dates-list"></div>
         <div class="action-row">
           <button class="btn-secondary" onclick="closeLeaveModal()">
             Close
@@ -7114,11 +7346,57 @@
                   class="filter-select-wrapper"
                   style="flex: 1.2; min-width: 0"
                 >
-                  <select id="filter-hours-op" class="filter-select">
-                    <option value="ALL">Hours...</option>
-                    <option value="MORE">More than</option>
-                    <option value="LESS">Less than</option>
-                  </select>
+                  <div class="custom-select">
+                    <select id="filter-hours-op" style="display: none">
+                      <option value="ALL">Hours...</option>
+                      <option value="MORE">More than</option>
+                      <option value="LESS">Less than</option>
+                    </select>
+                    <button
+                      type="button"
+                      class="custom-select-trigger cs-sm"
+                      data-for="filter-hours-op"
+                      aria-haspopup="listbox"
+                    >
+                      <span class="cs-trigger-val">Hours...</span>
+                      <svg
+                        class="cs-chevron"
+                        viewBox="0 0 24 24"
+                        width="11"
+                        height="11"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      >
+                        <polyline points="6 9 12 15 18 9"></polyline>
+                      </svg>
+                    </button>
+                    <div class="custom-select-panel cs-compact" role="listbox">
+                      <button
+                        type="button"
+                        class="custom-select-option cs-selected"
+                        data-value="ALL"
+                      >
+                        Hours...
+                      </button>
+                      <button
+                        type="button"
+                        class="custom-select-option"
+                        data-value="MORE"
+                      >
+                        More than
+                      </button>
+                      <button
+                        type="button"
+                        class="custom-select-option"
+                        data-value="LESS"
+                      >
+                        Less than
+                      </button>
+                    </div>
+                  </div>
                 </div>
                 <div
                   class="filter-group-card"
@@ -7143,19 +7421,118 @@
             <!-- Row 3: Quick Action Options (Timeframe, Status, Has Notes, Clear) -->
             <div class="filter-row">
               <div class="filter-select-wrapper" style="flex: 1; min-width: 0">
-                <select id="filter-time" class="filter-select">
-                  <option value="ALL">All Time</option>
-                  <option value="TODAY">Today</option>
-                  <option value="WEEK">This Week</option>
-                  <option value="MONTH">This Month</option>
-                </select>
+                <div class="custom-select">
+                  <select id="filter-time" style="display: none">
+                    <option value="ALL">All Time</option>
+                    <option value="TODAY">Today</option>
+                    <option value="WEEK">This Week</option>
+                    <option value="MONTH">This Month</option>
+                  </select>
+                  <button
+                    type="button"
+                    class="custom-select-trigger cs-sm"
+                    data-for="filter-time"
+                    aria-haspopup="listbox"
+                  >
+                    <span class="cs-trigger-val">All Time</span>
+                    <svg
+                      class="cs-chevron"
+                      viewBox="0 0 24 24"
+                      width="11"
+                      height="11"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <polyline points="6 9 12 15 18 9"></polyline>
+                    </svg>
+                  </button>
+                  <div class="custom-select-panel cs-compact" role="listbox">
+                    <button
+                      type="button"
+                      class="custom-select-option cs-selected"
+                      data-value="ALL"
+                    >
+                      All Time
+                    </button>
+                    <button
+                      type="button"
+                      class="custom-select-option"
+                      data-value="TODAY"
+                    >
+                      Today
+                    </button>
+                    <button
+                      type="button"
+                      class="custom-select-option"
+                      data-value="WEEK"
+                    >
+                      This Week
+                    </button>
+                    <button
+                      type="button"
+                      class="custom-select-option"
+                      data-value="MONTH"
+                    >
+                      This Month
+                    </button>
+                  </div>
+                </div>
               </div>
               <div class="filter-select-wrapper" style="flex: 1; min-width: 0">
-                <select id="filter-status" class="filter-select">
-                  <option value="ALL">All Status</option>
-                  <option value="OVER">Over Goal</option>
-                  <option value="UNDER">Under Goal</option>
-                </select>
+                <div class="custom-select">
+                  <select id="filter-status" style="display: none">
+                    <option value="ALL">All Status</option>
+                    <option value="OVER">Over Goal</option>
+                    <option value="UNDER">Under Goal</option>
+                  </select>
+                  <button
+                    type="button"
+                    class="custom-select-trigger cs-sm"
+                    data-for="filter-status"
+                    aria-haspopup="listbox"
+                  >
+                    <span class="cs-trigger-val">All Status</span>
+                    <svg
+                      class="cs-chevron"
+                      viewBox="0 0 24 24"
+                      width="11"
+                      height="11"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <polyline points="6 9 12 15 18 9"></polyline>
+                    </svg>
+                  </button>
+                  <div class="custom-select-panel cs-compact" role="listbox">
+                    <button
+                      type="button"
+                      class="custom-select-option cs-selected"
+                      data-value="ALL"
+                    >
+                      All Status
+                    </button>
+                    <button
+                      type="button"
+                      class="custom-select-option"
+                      data-value="OVER"
+                    >
+                      Over Goal
+                    </button>
+                    <button
+                      type="button"
+                      class="custom-select-option"
+                      data-value="UNDER"
+                    >
+                      Under Goal
+                    </button>
+                  </div>
+                </div>
               </div>
               <label
                 class="filter-checkbox-chip"
@@ -17690,19 +18067,22 @@
           const safeType = escapeHTML(type);
 
           let badgeClass = "badge-leave";
-          if (type === "Sick") badgeClass = "badge-leave-sick";
-          if (type === "Casual") badgeClass = "badge-leave-casual";
-          if (type === "Public Holiday") badgeClass = "badge-leave-holiday";
+          if (type === "Sick") badgeClass = "badge-leave badge-leave-sick";
+          if (type === "Casual") badgeClass = "badge-leave badge-leave-casual";
+          if (type === "Public Holiday")
+            badgeClass = "badge-leave badge-leave-holiday";
 
           html += `
-                    <div style="display: flex; justify-content: space-between; align-items: center; background: var(--panel-bg); border: 1px solid var(--border-main); padding: var(--space-1) var(--space-3); border-radius: var(--radius-sm); font-size: var(--text-sm); font-family: var(--font-mono); color: var(--text-main);">
-                      <div style="display: flex; align-items: center; gap: 8px;">
-                        <span>${safeDate}</span>
-                        <span class="badge ${badgeClass}" style="font-family: var(--font-sans); margin-left: 0;">${safeType}</span>
-                      </div>
-                      <button style="background: transparent; border: none; color: var(--accent-break); font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; width: 16px; height: 16px; line-height: 1;" onclick="removeLeaveDate('${safeDate}')" title="Remove Leave">✕</button>
-                    </div>
-                  `;
+            <div class="leave-list-item">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span style="font-variant-numeric: tabular-nums; font-feature-settings: 'tnum' 1;">${safeDate}</span>
+                <span class="badge ${badgeClass}">${safeType}</span>
+              </div>
+              <button class="leave-delete-btn" onclick="removeLeaveDate('${safeDate}')" title="Remove Leave">
+                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><use href="#sprite-004"></use></svg>
+              </button>
+            </div>
+          `;
         });
         listContainer.innerHTML = html;
       }
@@ -19177,6 +19557,126 @@
         // Synchronize delta tracking anchor on app launch
         // Start the background Web Worker timer thread
         startUITimer();
+      })();
+
+      /* ═══════════════════════════════════════════════════════════════════
+         CUSTOM SELECT CONTROLLER
+         Self-contained. Keeps hidden <select> in DOM so all existing JS
+         logic (.value reads, .value sets, change listeners) works unchanged.
+         ═══════════════════════════════════════════════════════════════════ */
+      (function initCustomSelects() {
+        const nativeValueDesc = Object.getOwnPropertyDescriptor(
+          HTMLSelectElement.prototype,
+          "value",
+        );
+
+        function getSelectValue(sel) {
+          return nativeValueDesc
+            ? nativeValueDesc.get.call(sel)
+            : (sel.options[sel.selectedIndex]?.value ?? "");
+        }
+
+        function setSelectValue(sel, val) {
+          if (nativeValueDesc) {
+            nativeValueDesc.set.call(sel, val);
+          } else {
+            for (let i = 0; i < sel.options.length; i++) {
+              if (sel.options[i].value === val) {
+                sel.selectedIndex = i;
+                break;
+              }
+            }
+          }
+        }
+
+        function closeAll() {
+          document
+            .querySelectorAll(".custom-select-panel.cs-open")
+            .forEach((p) => {
+              p.classList.remove("cs-open");
+              p.closest(".custom-select")
+                ?.querySelector(".custom-select-trigger")
+                ?.classList.remove("cs-open");
+            });
+        }
+
+        /* Close on any click OUTSIDE a custom-select */
+        document.addEventListener("click", (e) => {
+          if (!e.target.closest(".custom-select")) closeAll();
+        });
+
+        document.querySelectorAll(".custom-select").forEach((wrapper) => {
+          try {
+            const trigger = wrapper.querySelector(".custom-select-trigger");
+            const panel = wrapper.querySelector(".custom-select-panel");
+            const valSpan = wrapper.querySelector(".cs-trigger-val");
+            if (!trigger || !panel || !valSpan) return;
+
+            const selId = trigger.dataset.for;
+            const hiddenSelect = document.getElementById(selId);
+            if (!hiddenSelect) return;
+
+            const options = panel.querySelectorAll(".custom-select-option");
+
+            function syncUI(val) {
+              const current =
+                val !== undefined ? val : getSelectValue(hiddenSelect);
+              let label = current;
+              options.forEach((opt) => {
+                const active = opt.dataset.value === current;
+                opt.classList.toggle("cs-selected", active);
+                if (active) label = opt.textContent.trim();
+              });
+              valSpan.textContent = label;
+            }
+
+            /* --- Bind click handlers FIRST (most critical) --- */
+            trigger.addEventListener("click", (e) => {
+              e.preventDefault();
+              const wasOpen = panel.classList.contains("cs-open");
+              closeAll();
+              if (!wasOpen) {
+                panel.classList.add("cs-open");
+                trigger.classList.add("cs-open");
+              }
+            });
+
+            options.forEach((opt) => {
+              opt.addEventListener("click", (e) => {
+                e.preventDefault();
+                setSelectValue(hiddenSelect, opt.dataset.value);
+                hiddenSelect.dispatchEvent(
+                  new Event("change", { bubbles: true }),
+                );
+                syncUI(opt.dataset.value);
+                panel.classList.remove("cs-open");
+                trigger.classList.remove("cs-open");
+              });
+            });
+
+            /* --- Then try value interception (non-critical) --- */
+            try {
+              if (nativeValueDesc) {
+                Object.defineProperty(hiddenSelect, "value", {
+                  configurable: true,
+                  get() {
+                    return nativeValueDesc.get.call(this);
+                  },
+                  set(val) {
+                    nativeValueDesc.set.call(this, val);
+                    syncUI(val);
+                  },
+                });
+              }
+            } catch (_) {
+              /* value interception failed — clicks still work */
+            }
+
+            syncUI();
+          } catch (err) {
+            console.warn("Custom select init failed for", wrapper, err);
+          }
+        });
       })();
     </script>
   </body>
