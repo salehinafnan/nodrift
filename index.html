@@ -14311,6 +14311,16 @@
             localStorage.removeItem(LEAVE_DATES_KEY);
             localStorage.removeItem(VIEWS_KEY); // Clears saved custom filter views
             localStorage.removeItem(FILTERS_PREF_KEY); // Clears active filters preferences
+
+            // Factory reset tracking settings so resetSession() inherits clean defaults
+            state.trackingMode = "intelligent";
+            state.idleTrackingEnabled = true;
+            state.idleThresholdMinutes = 60;
+            _cachedIdleThresholdMs = 3600000;
+            state.autoBackupEnabled = false;
+            state.autoEmailEnabled = false;
+            state.goalAutopopulateEnabled = true;
+
             resetSession();
             showAppToast("All data wiped");
           },
