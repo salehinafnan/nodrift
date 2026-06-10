@@ -9784,6 +9784,22 @@
         if (e && !e.isTrusted) return;
 
         const now = Date.now();
+
+        if (state.lastHeartbeatWall && now - state.lastHeartbeatWall > 10000) {
+          handleWakeUpRecovery();
+        }
+
+        if (
+          state.trackingMode === "intelligent" &&
+          state.currentMode !== null &&
+          !state.idleLock &&
+          state.idleTrackingEnabled !== false &&
+          now - lastActivity > _cachedIdleThresholdMs
+        ) {
+          triggerIdleLock(lastActivity, "inactivity");
+          return;
+        }
+
         lastActivityRegisterTime = now;
 
         if (!state.idleLock) {
@@ -9828,9 +9844,16 @@
 
       window.addEventListener("pointermove", handlePointerMove, {
         passive: true,
+        capture: true,
       });
-      window.addEventListener("keydown", definitiveActivity, { passive: true });
-      window.addEventListener("click", definitiveActivity, { passive: true });
+      window.addEventListener("keydown", definitiveActivity, {
+        passive: true,
+        capture: true,
+      });
+      window.addEventListener("click", definitiveActivity, {
+        passive: true,
+        capture: true,
+      });
       window.addEventListener("scroll", definitiveActivity, {
         passive: true,
         capture: true,
@@ -19092,14 +19115,28 @@
         // Persistent Heartbeat Check (Phase 1)
         if (
           state.trackingMode === "intelligent" &&
-          state.lastHeartbeatWall &&
           state.currentMode !== null &&
           !state.idleLock
         ) {
-          const gap = Date.now() - state.lastHeartbeatWall;
-          if (gap > _cachedIdleThresholdMs) {
-            // Recover session using the recorded wall-clock heartbeat timestamp
-            triggerIdleLock(state.lastHeartbeatWall, "system");
+          const now = Date.now();
+
+          if (state.tabHiddenAt) {
+            if (now - state.tabHiddenAt > _cachedIdleThresholdMs) {
+              triggerIdleLock(state.tabHiddenAt, "system");
+            }
+            delete state.tabHiddenAt;
+          }
+
+          if (!state.idleLock && state.lastHeartbeatWall) {
+            if (now - state.lastHeartbeatWall > _cachedIdleThresholdMs) {
+              triggerIdleLock(state.lastHeartbeatWall, "system");
+            }
+          }
+
+          if (!state.idleLock && lastActivity) {
+            if (now - lastActivity > _cachedIdleThresholdMs) {
+              triggerIdleLock(lastActivity, "system");
+            }
           }
         }
 
