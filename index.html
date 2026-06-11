@@ -3682,6 +3682,106 @@
         transform: rotate(180deg);
         color: var(--text-main);
       }
+      /* =========================================================================
+         CUSTOM DATE PICKER (CDP)
+         ========================================================================= */
+      .cdp-popup {
+        position: absolute;
+        z-index: 4000;
+        background: var(--panel-bg);
+        border: 1px solid var(--border-light);
+        border-radius: var(--radius-md);
+        box-shadow: var(--panel-shadow);
+        padding: 12px;
+        width: 260px;
+        font-family: var(--font-sans);
+        display: none;
+        flex-direction: column;
+        gap: 12px;
+      }
+      .cdp-popup.cdp-open {
+        display: flex;
+      }
+      .cdp-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-weight: 600;
+        color: var(--text-main);
+        font-size: 0.95rem;
+      }
+      .cdp-nav-btn {
+        background: transparent;
+        border: none;
+        color: var(--text-muted);
+        cursor: pointer;
+        padding: 4px;
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .cdp-nav-btn:hover {
+        background: var(--element-hover);
+        color: var(--text-main);
+      }
+      .cdp-grid {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 2px;
+        text-align: center;
+      }
+      .cdp-day-name {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        font-weight: 600;
+        padding-bottom: 6px;
+      }
+      .cdp-day {
+        background: transparent;
+        border: none;
+        color: var(--text-main);
+        font-size: 0.85rem;
+        padding: 6px 0;
+        border-radius: 6px;
+        cursor: pointer;
+        font-family: var(--font-sans);
+      }
+      .cdp-day:hover:not(.cdp-empty) {
+        background: var(--element-hover);
+      }
+      .cdp-day.cdp-empty {
+        cursor: default;
+      }
+      .cdp-day.cdp-today {
+        color: var(--accent-blue);
+        font-weight: 700;
+      }
+      .cdp-day.cdp-selected {
+        background: var(--accent-blue);
+        color: white;
+        font-weight: 600;
+      }
+      .cdp-footer {
+        display: flex;
+        justify-content: space-between;
+        padding-top: 6px;
+        border-top: 1px solid var(--border-main);
+      }
+      .cdp-footer-btn {
+        background: transparent;
+        border: none;
+        color: var(--text-muted);
+        font-size: 0.8rem;
+        cursor: pointer;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-weight: 500;
+      }
+      .cdp-footer-btn:hover {
+        background: var(--element-hover);
+        color: var(--text-main);
+      }
     </style>
   </head>
 
@@ -5638,7 +5738,8 @@
             />
             <!-- Hidden native input triggered by button click -->
             <input
-              type="date"
+              type="text"
+              readonly
               id="edit-date-picker"
               style="
                 position: absolute;
@@ -5778,7 +5879,8 @@
             />
             <!-- Hidden native input triggered by button click -->
             <input
-              type="date"
+              type="text"
+              readonly
               id="manual-date-picker"
               style="
                 position: absolute;
@@ -6025,7 +6127,8 @@
             />
             <!-- Hidden native input triggered by button click -->
             <input
-              type="date"
+              type="text"
+              readonly
               id="leave-date-picker"
               style="
                 position: absolute;
@@ -7220,7 +7323,8 @@
                     >From</span
                   >
                   <input
-                    type="date"
+                    type="text"
+                    readonly
                     id="filter-date-start"
                     class="filter-input"
                     style="
@@ -7286,7 +7390,8 @@
                     >To</span
                   >
                   <input
-                    type="date"
+                    type="text"
+                    readonly
                     id="filter-date-end"
                     class="filter-input"
                     style="
@@ -8588,20 +8693,8 @@
 
       // Safe date picker wrapper supporting legacy and sandboxed browser engines
       window.safeShowPicker = function (id) {
-        const el = document.getElementById(id);
-        if (!el) return;
-        try {
-          if (typeof el.showPicker === "function") {
-            el.showPicker();
-          } else {
-            el.click();
-          }
-        } catch (e) {
-          try {
-            el.click();
-          } catch (err) {
-            console.warn("Programmatic calendar trigger blocked:", err);
-          }
+        if (typeof CustomDatePicker !== "undefined") {
+          CustomDatePicker.open(id);
         }
       };
 
@@ -19677,6 +19770,172 @@
             console.warn("Custom select init failed for", wrapper, err);
           }
         });
+      })();
+      /* =========================================================================
+       * CUSTOM DATE PICKER ENGINE
+       * ========================================================================= */
+      const CustomDatePicker = (function () {
+        let popup = null;
+        let targetId = null;
+        let currentMonth = new Date(); // tracks the viewed month
+
+        function init() {
+          if (popup) return;
+          popup = document.createElement("div");
+          popup.className = "cdp-popup";
+          popup.innerHTML = `
+            <div class="cdp-header">
+              <button class="cdp-nav-btn" id="cdp-prev"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"></polyline></svg></button>
+              <div id="cdp-title"></div>
+              <button class="cdp-nav-btn" id="cdp-next"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg></button>
+            </div>
+            <div class="cdp-grid" id="cdp-days"></div>
+            <div class="cdp-footer">
+              <button class="cdp-footer-btn" id="cdp-clear">Clear</button>
+              <button class="cdp-footer-btn" id="cdp-today">Today</button>
+            </div>
+          `;
+          document.body.appendChild(popup);
+
+          document.getElementById("cdp-prev").addEventListener("click", (e) => {
+            e.stopPropagation();
+            currentMonth.setMonth(currentMonth.getMonth() - 1);
+            render();
+          });
+          document.getElementById("cdp-next").addEventListener("click", (e) => {
+            e.stopPropagation();
+            currentMonth.setMonth(currentMonth.getMonth() + 1);
+            render();
+          });
+
+          document
+            .getElementById("cdp-clear")
+            .addEventListener("click", (e) => {
+              e.stopPropagation();
+              selectDate("");
+            });
+          document
+            .getElementById("cdp-today")
+            .addEventListener("click", (e) => {
+              e.stopPropagation();
+              const d = new Date();
+              selectDate(
+                `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`,
+              );
+            });
+
+          document.addEventListener("click", (e) => {
+            if (
+              popup.classList.contains("cdp-open") &&
+              !popup.contains(e.target)
+            ) {
+              const isTrigger = e.target.closest('[onclick^="safeShowPicker"]');
+              if (!isTrigger) popup.classList.remove("cdp-open");
+            }
+          });
+        }
+
+        function render() {
+          const title = document.getElementById("cdp-title");
+          const daysGrid = document.getElementById("cdp-days");
+
+          const year = currentMonth.getFullYear();
+          const month = currentMonth.getMonth();
+
+          const monthNames = [
+            "January",
+            "February",
+            "March",
+            "April",
+            "May",
+            "June",
+            "July",
+            "August",
+            "September",
+            "October",
+            "November",
+            "December",
+          ];
+          title.textContent = `${monthNames[month]} ${year}`;
+
+          let html = `<div class="cdp-day-name">Su</div><div class="cdp-day-name">Mo</div><div class="cdp-day-name">Tu</div><div class="cdp-day-name">We</div><div class="cdp-day-name">Th</div><div class="cdp-day-name">Fr</div><div class="cdp-day-name">Sa</div>`;
+
+          const firstDay = new Date(year, month, 1).getDay();
+          const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+          const today = new Date();
+          const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+
+          const input = document.getElementById(targetId);
+          const selectedStr = input ? input.value : "";
+
+          for (let i = 0; i < firstDay; i++) {
+            html += `<div class="cdp-day cdp-empty"></div>`;
+          }
+
+          for (let d = 1; d <= daysInMonth; d++) {
+            const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+            let classes = "cdp-day";
+            if (dateStr === todayStr) classes += " cdp-today";
+            if (dateStr === selectedStr) classes += " cdp-selected";
+            html += `<button class="${classes}" data-date="${dateStr}">${d}</button>`;
+          }
+
+          daysGrid.innerHTML = html;
+
+          daysGrid.querySelectorAll("button.cdp-day").forEach((btn) => {
+            btn.addEventListener("click", (e) => {
+              e.stopPropagation();
+              selectDate(btn.dataset.date);
+            });
+          });
+        }
+
+        function selectDate(dateStr) {
+          const input = document.getElementById(targetId);
+          if (input) {
+            input.value = dateStr;
+            input.dispatchEvent(new Event("change", { bubbles: true }));
+
+            if (!targetId.startsWith("filter-date")) {
+              const valSpanId = targetId.replace("-picker", "-val");
+              const valSpan = document.getElementById(valSpanId);
+              if (valSpan) {
+                if (!dateStr) valSpan.textContent = "Select Date";
+                else {
+                  const parts = dateStr.split("-");
+                  valSpan.textContent = `${parts[1]}/${parts[2]}/${parts[0].slice(-2)}`;
+                }
+              }
+            }
+          }
+          popup.classList.remove("cdp-open");
+        }
+
+        return {
+          open: function (id) {
+            init();
+            targetId = id;
+            const input = document.getElementById(id);
+            if (input && input.value) {
+              const parts = input.value.split("-");
+              currentMonth = new Date(parts[0], parts[1] - 1, 1);
+            } else {
+              currentMonth = new Date();
+              currentMonth.setDate(1);
+            }
+            render();
+
+            const btn = document.querySelector(`[onclick*="'${id}'"]`) || input;
+            const rect = btn.getBoundingClientRect();
+            let left = rect.left;
+            if (left + 280 > window.innerWidth) left = window.innerWidth - 280;
+
+            popup.style.top = rect.bottom + window.scrollY + 4 + "px";
+            popup.style.left = Math.max(10, left) + "px";
+            popup.classList.add("cdp-open");
+          },
+        };
       })();
     </script>
   </body>
