@@ -3036,16 +3036,31 @@
       #goal-toast,
       #app-toast {
         transition:
-          top 0.3s cubic-bezier(0.16, 1, 0.3, 1),
-          bottom 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+          transform 0.4s cubic-bezier(0.16, 1, 0.3, 1),
           opacity 0.3s ease;
+        opacity: 0;
+        pointer-events: none;
+        left: 50%;
+      }
+
+      .toast-top {
+        top: 24px;
+        transform: translate(-50%, -150%);
+      }
+
+      .toast-bottom {
+        bottom: 24px;
+        transform: translate(-50%, 150%);
+      }
+
+      .toast-visible {
+        transform: translate(-50%, 0) !important;
+        opacity: 1 !important;
+        pointer-events: auto !important;
       }
 
       #undo-toast {
         position: fixed;
-        bottom: -100px;
-        left: 50%;
-        transform: translateX(-50%);
         background: var(--modal-bg);
         border: 1px solid var(--border-main);
         color: var(--text-main);
@@ -3099,9 +3114,6 @@
 
       #sync-toast {
         position: fixed;
-        top: -100px;
-        left: 50%;
-        transform: translateX(-50%);
         background: var(--modal-bg);
         border: 1px solid var(--border-main);
         color: var(--text-main);
@@ -3125,9 +3137,6 @@
 
       #goal-toast {
         position: fixed;
-        top: -100px;
-        left: 50%;
-        transform: translateX(-50%);
         background: var(--modal-bg);
         border: 1px solid var(--border-main);
         color: var(--text-main);
@@ -3167,9 +3176,6 @@
 
       #app-toast {
         position: fixed;
-        bottom: -100px;
-        left: 50%;
-        transform: translateX(-50%);
         background: var(--modal-bg);
         border: 1px solid var(--border-main);
         color: var(--text-main);
@@ -4441,7 +4447,7 @@
        DYNAMIC APPLICATION NOTIFICATIONS & ALERTS
        ========================================================================= -->
     <!-- Undo EOD Submission Toast Notification -->
-    <div id="undo-toast">
+    <div id="undo-toast" class="toast-bottom">
       <div class="undo-icon">
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -4990,7 +4996,7 @@
     </div>
 
     <!-- Sync Session Toast Notification -->
-    <div id="sync-toast"></div>
+    <div id="sync-toast" class="toast-top"></div>
 
     <!-- Help & User Guide Modal -->
     <div id="help-modal" class="modal-overlay" style="z-index: 3500">
@@ -5794,7 +5800,7 @@
     </div>
 
     <!-- Native App Toast Notification Overlay -->
-    <div id="app-toast">
+    <div id="app-toast" class="toast-bottom">
       <div class="app-toast-icon">
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -6385,7 +6391,7 @@
     </div>
 
     <!-- Daily Goal Reached celebratory toast -->
-    <div id="goal-toast">
+    <div id="goal-toast" class="toast-top">
       <div class="goal-icon">
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -10200,6 +10206,18 @@
         if (!targetDateStr) return;
         if (state.goalAutopopulateEnabled === false) return;
 
+        // If a shift is actively running and has a snapshotted goal, lock the UI to that goal
+        // to prevent background recalculations from overwriting the active session target.
+        if (state.loginTimestamp && state.shiftStartGoalSec) {
+          const h = Math.floor(state.shiftStartGoalSec / 3600);
+          const m = Math.floor((state.shiftStartGoalSec % 3600) / 60);
+          DOM.goalHours.value = String(h).padStart(2, "0");
+          DOM.goalMins.value = String(m).padStart(2, "0");
+          syncGoalTimeInput();
+          updatePresetHighlights();
+          return;
+        }
+
         const logs = getLogs();
         // If there is already a logged shift for this date, calculate the intra-day remaining deficit
         const hasLogForDate = logs.some((l) => l.date === targetDateStr);
@@ -10471,7 +10489,7 @@
         if (lastStateBackup) {
           lastStateBackup = null;
           const toast = DOM.undoToast;
-          if (toast) toast.style.bottom = "-100px";
+          if (toast) toast.classList.remove("toast-visible");
         }
 
         state.currentMode = mode;
@@ -11201,9 +11219,9 @@
             timeEl.innerHTML = formatFriendlyDuration(anchorGoalSec, "0h");
           }
           if (toast) {
-            toast.style.top = "90px";
+            toast.classList.add("toast-visible");
             setTimeout(() => {
-              toast.style.top = "-100px";
+              toast.classList.remove("toast-visible");
             }, 5000);
           }
           playGoalSound();
@@ -11621,10 +11639,10 @@
         resetSession();
 
         const toast = DOM.undoToast;
-        toast.style.bottom = "90px";
+        toast.classList.add("toast-visible");
         clearTimeout(undoTimeout);
         undoTimeout = setTimeout(() => {
-          toast.style.bottom = "-100px";
+          toast.classList.remove("toast-visible");
           lastStateBackup = null;
         }, 7000);
       }
@@ -11646,7 +11664,7 @@
         renderLogbook();
         renderInsights();
 
-        DOM.undoToast.style.bottom = "-100px";
+        DOM.undoToast.classList.remove("toast-visible");
         lastStateBackup = null;
       });
 
@@ -19073,7 +19091,7 @@
       window.closeSyncToast = function () {
         const toast = DOM.syncToast;
         if (toast) {
-          toast.style.top = "-100px";
+          toast.classList.remove("toast-visible");
           syncToastId = (syncToastId + 1) % Number.MAX_SAFE_INTEGER;
           clearTimeout(syncToastTimeout);
         }
@@ -19082,7 +19100,7 @@
       window.closeUndoToast = function () {
         const toast = DOM.undoToast;
         if (toast) {
-          toast.style.bottom = "-100px";
+          toast.classList.remove("toast-visible");
           clearTimeout(undoTimeout);
           // Defensive reference release to prevent stale restorations on manual dismissals
           lastStateBackup = null;
@@ -19091,13 +19109,13 @@
 
       window.closeGoalToast = function () {
         const toast = DOM.goalToast;
-        if (toast) toast.style.top = "-100px";
+        if (toast) toast.classList.remove("toast-visible");
       };
 
       window.closeAppToast = function () {
         const toast = DOM.appToast;
         if (toast) {
-          toast.style.bottom = "-100px";
+          toast.classList.remove("toast-visible");
           appToastId = (appToastId + 1) % Number.MAX_SAFE_INTEGER;
           clearTimeout(appToastTimeout);
         }
@@ -19141,7 +19159,7 @@
                     ${closeBtnHtml}
                   </div>
                 `;
-        toast.style.top = "30px";
+        toast.classList.add("toast-visible");
 
         syncToastId = (syncToastId + 1) % Number.MAX_SAFE_INTEGER;
         const currentId = syncToastId;
@@ -19151,7 +19169,7 @@
         if (!requireAck) {
           syncToastTimeout = setTimeout(() => {
             if (syncToastId === currentId) {
-              toast.style.top = "-100px";
+              toast.classList.remove("toast-visible");
             }
           }, 3500);
         }
@@ -19168,14 +19186,14 @@
         } else {
           toast.textContent = msg;
         }
-        toast.style.bottom = "30px";
+        toast.classList.add("toast-visible");
 
         appToastId = (appToastId + 1) % Number.MAX_SAFE_INTEGER;
         const currentId = appToastId;
         clearTimeout(appToastTimeout);
         appToastTimeout = setTimeout(() => {
           if (appToastId === currentId) {
-            toast.style.bottom = "-100px";
+            toast.classList.remove("toast-visible");
           }
         }, 3000);
       }
