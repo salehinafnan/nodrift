@@ -5,7 +5,7 @@
     <meta name="color-scheme" content="dark" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' 'unsafe-inline' blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; connect-src 'none'; img-src 'self' data:; font-src 'self' data: https://fonts.gstatic.com;"
+      content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; connect-src 'none'; img-src 'self' data:; font-src 'self' data: https://fonts.gstatic.com;"
     />
     <title>Work Hour Tracker</title>
 
@@ -8834,7 +8834,12 @@
 
       let isDbReloading = false;
       let _pendingWriteAfterReload = null;
-      const myTabId = crypto.randomUUID();
+      const myTabId =
+        typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+          ? crypto.randomUUID()
+          : "tab_" +
+            Math.random().toString(36).substring(2, 15) +
+            Date.now().toString(36);
 
       // Live session core tracking state structure
       let state = {
@@ -14672,6 +14677,7 @@
             } catch (err) {
               showAppToast("Error restoring data");
             }
+            reader.onload = null;
           };
           reader.readAsText(file);
           e.target.value = "";
@@ -19397,13 +19403,14 @@
           };
           if (forceSync) {
             if (idleSaveHandle) {
-              if (window.cancelIdleCallback) cancelIdleCallback(idleSaveHandle);
+              if (window.cancelIdleCallback)
+                window.cancelIdleCallback(idleSaveHandle);
               else clearTimeout(idleSaveHandle);
               idleSaveHandle = null;
             }
             writeTask();
           } else if (window.requestIdleCallback) {
-            if (idleSaveHandle) cancelIdleCallback(idleSaveHandle);
+            if (idleSaveHandle) window.cancelIdleCallback(idleSaveHandle);
             idleSaveHandle = window.requestIdleCallback(
               () => {
                 idleSaveHandle = null;
