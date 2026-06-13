@@ -2672,43 +2672,8 @@
       }
 
       /* =========================================================================
-       ADJUST TIME BUTTON — Context-aware footer icon states
+       ADJUST TIME BUTTON
        ========================================================================= */
-
-      /* Disabled state: no active session or idle-locked */
-      .sq-btn.adjust-time-btn.adjust-inactive {
-        opacity: 0.25;
-        cursor: not-allowed;
-        pointer-events: none;
-      }
-
-      /* Work-mode active: green hover */
-      .sq-btn.adjust-time-btn.adjust-work:hover {
-        background: color-mix(
-          in srgb,
-          var(--accent-work) 14%,
-          var(--element-bg)
-        );
-        border-color: var(--accent-work);
-      }
-
-      .sq-btn.adjust-time-btn.adjust-work:hover svg {
-        stroke: var(--accent-work);
-      }
-
-      /* Break-mode active: red hover */
-      .sq-btn.adjust-time-btn.adjust-break:hover {
-        background: color-mix(
-          in srgb,
-          var(--accent-break) 14%,
-          var(--element-bg)
-        );
-        border-color: var(--accent-break);
-      }
-
-      .sq-btn.adjust-time-btn.adjust-break:hover svg {
-        stroke: var(--accent-break);
-      }
 
       /* Adjust popup width override — narrower than Settings since content is simpler */
       #adjust-time-popup {
@@ -2719,45 +2684,45 @@
         padding: 0.55rem;
       }
 
-      /* Context badge row */
+      /* Context badge row (styled like a single-tab nav) */
       .adjust-context-badge {
         display: flex;
+        background: var(--element-bg);
+        padding: var(--tab-nav-padding, 2px);
+        border-radius: var(--header-el-radius, var(--radius-md));
+        border: var(--tab-nav-border, 1px solid var(--border-main));
+        align-items: stretch;
+      }
+
+      #adjust-context-label {
+        flex: 1;
+        display: flex;
         align-items: center;
-        gap: 7px;
+        justify-content: center;
         font-family: var(--font-sans);
         font-size: 0.68rem;
         font-weight: 700;
         letter-spacing: 0.03em;
-        padding: 7px 10px;
-        border-radius: var(--radius-md);
-        background: var(--element-bg-light, var(--element-bg));
-        border: 1px solid var(--border-main);
-      }
-
-      .adjust-context-dot {
-        width: 6px;
-        height: 6px;
-        border-radius: 50%;
-        flex-shrink: 0;
+        padding: 6px 10px;
+        border-radius: var(--tab-btn-radius, calc(var(--radius-md) - 2px));
+        background: var(--tab-btn-active-bg, var(--panel-bg));
+        box-shadow: var(--tab-btn-active-shadow);
+        border: var(--tab-btn-active-border, none);
+        outline: var(--tab-btn-active-outline, none);
+        outline-offset: -1px;
       }
 
       /* Smart Input */
       .adjust-smart-input-container {
         display: flex;
         align-items: center;
-        background: var(--element-bg-light, var(--element-bg));
-        border: 1px solid var(--border-main);
-        border-radius: var(--radius-md);
-        padding: 8px 12px;
-      }
-
-      .adjust-smart-input-container:focus-within {
-        border-color: var(--accent-blue);
       }
 
       .adjust-smart-input {
         width: 100%;
-        background: transparent;
+        box-sizing: border-box;
+        background: var(--element-bg-light, var(--element-bg));
+        border-radius: var(--radius-md);
         border: none;
         color: var(--text-main);
         font-family: var(--font-sans);
@@ -2765,7 +2730,7 @@
         font-weight: 500;
         text-align: center;
         outline: none;
-        padding: 0;
+        padding: 8px 12px;
       }
 
       .adjust-smart-input::placeholder {
@@ -8641,7 +8606,7 @@
               <button
                 title="Adjust Timer"
                 aria-label="Adjust Timer"
-                class="icon-btn sq-btn adjust-time-btn adjust-inactive"
+                class="icon-btn sq-btn adjust-time-btn"
                 id="adjust-time-btn"
                 onclick="toggleAdjustPopup(event)"
               >
@@ -8661,11 +8626,6 @@
               <div id="adjust-time-popup" class="idle-popup">
                 <!-- Row 1: Context badge — which timer is being adjusted -->
                 <div class="adjust-context-badge">
-                  <span
-                    id="adjust-context-dot"
-                    class="adjust-context-dot"
-                    style="background: var(--text-muted)"
-                  ></span>
                   <span
                     id="adjust-context-label"
                     style="color: var(--text-muted)"
@@ -9377,7 +9337,6 @@
         settingsHelpText: document.getElementById("settings-help-text"),
         adjustTimeBtn: document.getElementById("adjust-time-btn"),
         adjustTimePopup: document.getElementById("adjust-time-popup"),
-        adjustContextDot: document.getElementById("adjust-context-dot"),
         adjustContextLabel: document.getElementById("adjust-context-label"),
         adjustSmartInput: document.getElementById("adjust-smart-input"),
         adjustApplyBtn: document.getElementById("adjust-apply-btn"),
@@ -10833,26 +10792,7 @@
           }
         }
 
-        // --- Adjust button: context-aware state sync ---
-        const adjustBtn = DOM.adjustTimeBtn;
-        if (adjustBtn) {
-          const hasSession = !!state.loginTimestamp;
-          const isIdleLocked = !!state.idleLock;
-
-          adjustBtn.classList.remove(
-            "adjust-inactive",
-            "adjust-work",
-            "adjust-break",
-          );
-
-          if (!hasSession || isIdleLocked) {
-            adjustBtn.classList.add("adjust-inactive");
-          } else if (state.currentMode === "work") {
-            adjustBtn.classList.add("adjust-work");
-          } else if (state.currentMode === "break") {
-            adjustBtn.classList.add("adjust-break");
-          }
-        }
+        // --- Adjust button: (No longer syncs state dynamically) ---
       }
 
       let lastWeeklySummaryCheckMin = -1;
@@ -17938,9 +17878,6 @@
         const popup = DOM.adjustTimePopup;
         if (!popup) return;
 
-        // Hard guard — only usable during an active, non-locked session
-        if (!state.loginTimestamp || state.idleLock) return;
-
         const isShowing = popup.classList.contains("show");
 
         if (isShowing) {
@@ -17977,28 +17914,42 @@
        * whichever timer is currently running.
        */
       function _syncAdjustPopupContext() {
-        const dot = DOM.adjustContextDot;
         const label = DOM.adjustContextLabel;
         const applyBtn = DOM.adjustApplyBtn;
+        const smartInput = DOM.adjustSmartInput;
 
-        if (!dot || !label) return;
+        if (!label) return;
 
-        if (state.currentMode === "work") {
-          dot.style.background = "var(--accent-work)";
+        const hasSession = !!state.loginTimestamp && !state.idleLock;
+
+        if (hasSession && state.currentMode === "work") {
           label.textContent = "Production Timer";
           label.style.color = "var(--accent-work)";
-          if (applyBtn) applyBtn.className = "adjust-apply-btn btn-work";
-        } else if (state.currentMode === "break") {
-          dot.style.background = "var(--accent-break)";
+          if (applyBtn) {
+            applyBtn.className = "adjust-apply-btn btn-work";
+            applyBtn.disabled = false;
+          }
+          if (smartInput) smartInput.disabled = false;
+        } else if (hasSession && state.currentMode === "break") {
           label.textContent = "Break Timer";
           label.style.color = "var(--accent-break)";
-          if (applyBtn) applyBtn.className = "adjust-apply-btn btn-break";
+          if (applyBtn) {
+            applyBtn.className = "adjust-apply-btn btn-break";
+            applyBtn.disabled = false;
+          }
+          if (smartInput) smartInput.disabled = false;
         } else {
-          // Session started but mode is transitioning — should not normally occur
-          dot.style.background = "var(--accent-warning)";
-          label.textContent = "Active Session";
-          label.style.color = "var(--accent-warning)";
-          if (applyBtn) applyBtn.className = "adjust-apply-btn btn-log";
+          // No active session or idle locked
+          label.textContent = "No Active Timer";
+          label.style.color = "var(--text-muted)";
+          if (applyBtn) {
+            applyBtn.className = "adjust-apply-btn btn-log";
+            applyBtn.disabled = true;
+          }
+          if (smartInput) {
+            smartInput.disabled = true;
+            smartInput.value = "";
+          }
         }
       }
 
