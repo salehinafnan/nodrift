@@ -2646,6 +2646,140 @@
         transform: none;
       }
 
+      /* =========================================================================
+       ADJUST TIME BUTTON — Context-aware footer icon states
+       ========================================================================= */
+
+      /* Disabled state: no active session or idle-locked */
+      .sq-btn.adjust-time-btn.adjust-inactive {
+        opacity: 0.25;
+        cursor: not-allowed;
+        pointer-events: none;
+      }
+
+      /* Work-mode active: green hover */
+      .sq-btn.adjust-time-btn.adjust-work:hover {
+        background: color-mix(
+          in srgb,
+          var(--accent-work) 14%,
+          var(--element-bg)
+        );
+        border-color: var(--accent-work);
+      }
+
+      .sq-btn.adjust-time-btn.adjust-work:hover svg {
+        stroke: var(--accent-work);
+      }
+
+      /* Break-mode active: red hover */
+      .sq-btn.adjust-time-btn.adjust-break:hover {
+        background: color-mix(
+          in srgb,
+          var(--accent-break) 14%,
+          var(--element-bg)
+        );
+        border-color: var(--accent-break);
+      }
+
+      .sq-btn.adjust-time-btn.adjust-break:hover svg {
+        stroke: var(--accent-break);
+      }
+
+      /* Adjust popup width override — narrower than Settings since content is simpler */
+      #adjust-time-popup {
+        width: 15.5rem;
+        right: 0;
+        left: auto;
+        gap: 0.45rem;
+        padding: 0.55rem;
+      }
+
+      /* Context badge row */
+      .adjust-context-badge {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        font-family: var(--font-sans);
+        font-size: 0.68rem;
+        font-weight: 700;
+        letter-spacing: 0.03em;
+        padding: 7px 10px;
+        border-radius: var(--radius-md);
+        background: var(--element-bg-light, var(--element-bg));
+        border: 1px solid var(--border-main);
+      }
+
+      .adjust-context-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        flex-shrink: 0;
+      }
+
+      /* Smart Input */
+      .adjust-smart-input-container {
+        display: flex;
+        align-items: center;
+        background: var(--element-bg-light, var(--element-bg));
+        border: 1px solid var(--border-main);
+        border-radius: var(--radius-md);
+        padding: 8px 12px;
+      }
+
+      .adjust-smart-input-container:focus-within {
+        border-color: var(--accent-blue);
+      }
+
+      .adjust-smart-input {
+        width: 100%;
+        background: transparent;
+        border: none;
+        color: var(--text-main);
+        font-family: var(--font-sans);
+        font-size: 0.95rem;
+        font-weight: 500;
+        text-align: center;
+        outline: none;
+        padding: 0;
+      }
+
+      .adjust-smart-input::placeholder {
+        color: var(--text-muted);
+        opacity: 0.5;
+      }
+
+      .adjust-smart-input:focus {
+        color: var(--accent-blue);
+      }
+
+      /* Apply button — inherits btn-work / btn-break / btn-log from JS */
+      .adjust-apply-btn {
+        width: 100%;
+        padding: 0.42rem var(--space-3);
+        border-radius: var(--radius-sm);
+        font-size: 0.75rem;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+        cursor: pointer;
+        transition: opacity 0.15s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .adjust-apply-btn:hover:not(:disabled) {
+        opacity: 0.82;
+      }
+
+      .adjust-apply-btn:active:not(:disabled) {
+        opacity: 0.65;
+      }
+
+      .adjust-apply-btn:disabled {
+        opacity: 0.35;
+        cursor: not-allowed;
+      }
+
       /* Separator between standard actions and danger zone */
       .footer-divider {
         width: 1px;
@@ -4177,6 +4311,12 @@
         </symbol>
         <symbol id="sprite-084" viewBox="0 0 24 24">
           <use href="#icon-564f8c3a"></use>
+        </symbol>
+        <symbol id="sprite-085" viewBox="0 0 24 24">
+          <circle cx="11" cy="11" r="8"></circle>
+          <polyline points="11 7.5 11 11 13.5 12.5"></polyline>
+          <line x1="19" y1="18" x2="19" y2="22" stroke-linecap="round"></line>
+          <line x1="17" y1="20" x2="21" y2="20" stroke-linecap="round"></line>
         </symbol>
       </defs>
     </svg>
@@ -8285,7 +8425,9 @@
                           style="
                             display: flex;
                             justify-content: space-between;
+                            align-items: center;
                             width: 100%;
+                            gap: 10px;
                           "
                         >
                           <span
@@ -8293,30 +8435,29 @@
                             style="font-size: 0.65rem; color: var(--text-muted)"
                             >Threshold</span
                           >
-                          <span
-                            class="idle-popup-val"
-                            id="idle-val-display"
+                          <input
+                            type="text"
+                            id="idle-input-box"
+                            class="input-standard"
                             style="
+                              width: 10ch;
+                              height: 22px;
+                              padding: 0 4px;
+                              font-size: 0.75rem;
+                              text-align: center;
                               font-family: var(--font-mono);
-                              font-size: 0.7rem;
                               font-weight: 700;
                               color: var(--accent-blue);
                             "
-                            >60m</span
-                          >
+                            onfocus="this.select()"
+                            onblur="onIdleInputBlur(this.value)"
+                            onkeydown="
+                              if (event.key === 'Enter') {
+                                this.blur();
+                              }
+                            "
+                          />
                         </div>
-                        <input
-                          type="range"
-                          id="idle-slider"
-                          min="5"
-                          max="120"
-                          step="5"
-                          value="60"
-                          class="idle-range-input"
-                          style="width: 100%; height: 5px; border-radius: 2px"
-                          oninput="onIdleSliderInput(this.value)"
-                          onchange="onIdleSliderChange(this.value)"
-                        />
                       </div>
 
                       <div
@@ -8452,6 +8593,67 @@
                     >Hover over any setting to view its description.</span
                   >
                 </div>
+              </div>
+            </div>
+
+            <div class="icon-stack" style="position: relative">
+              <button
+                aria-label="Adjust Timer"
+                class="icon-btn sq-btn adjust-time-btn adjust-inactive"
+                id="adjust-time-btn"
+                onclick="toggleAdjustPopup(event)"
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  fill="none"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <use href="#sprite-085"></use>
+                </svg>
+              </button>
+              <span class="icon-tag">Adjust</span>
+
+              <!-- Adjust Time Floating Popup -->
+              <div id="adjust-time-popup" class="idle-popup">
+                <!-- Row 1: Context badge — which timer is being adjusted -->
+                <div class="adjust-context-badge">
+                  <span
+                    id="adjust-context-dot"
+                    class="adjust-context-dot"
+                    style="background: var(--text-muted)"
+                  ></span>
+                  <span
+                    id="adjust-context-label"
+                    style="color: var(--text-muted)"
+                    >No Active Timer</span
+                  >
+                </div>
+
+                <!-- Row 2: Smart input box -->
+                <div class="adjust-smart-input-container">
+                  <input
+                    id="adjust-smart-input"
+                    class="adjust-smart-input"
+                    type="text"
+                    placeholder="e.g. +15m, -5m 30s"
+                    onkeydown="
+                      if (event.key === 'Enter') applyTimeAdjustment();
+                    "
+                    autocomplete="off"
+                  />
+                </div>
+
+                <!-- Row 4: Apply button -->
+                <button
+                  id="adjust-apply-btn"
+                  class="adjust-apply-btn btn-log"
+                  onclick="applyTimeAdjustment()"
+                >
+                  Apply
+                </button>
               </div>
             </div>
 
@@ -9084,13 +9286,12 @@
         settingsConfigPopup: document.getElementById("settings-config-popup"),
         hudModal: document.getElementById("hud-modal"),
         hudContainerAnim: document.getElementById("hud-container-anim"),
-        idleValDisplay: document.getElementById("idle-val-display"),
+        idleInputBox: document.getElementById("idle-input-box"),
         goalAutopopulateToggle: document.getElementById(
           "goal-autopopulate-toggle",
         ),
         modeSimple: document.getElementById("mode-simple"),
         modeIntelligent: document.getElementById("mode-intelligent"),
-        idleSlider: document.getElementById("idle-slider"),
         snapshotRestoreSelect: document.getElementById(
           "snapshot-restore-select",
         ),
@@ -9138,6 +9339,12 @@
         appToastContent: document.getElementById("app-toast-content"),
         confirmDesc: document.getElementById("confirm-desc"),
         settingsHelpText: document.getElementById("settings-help-text"),
+        adjustTimeBtn: document.getElementById("adjust-time-btn"),
+        adjustTimePopup: document.getElementById("adjust-time-popup"),
+        adjustContextDot: document.getElementById("adjust-context-dot"),
+        adjustContextLabel: document.getElementById("adjust-context-label"),
+        adjustSmartInput: document.getElementById("adjust-smart-input"),
+        adjustApplyBtn: document.getElementById("adjust-apply-btn"),
       };
 
       /*==========================================================================
@@ -10361,8 +10568,6 @@
           lastActivity = getTrueTime();
           state.lastActivity = lastActivity;
           state.lastHeartbeat = lastActivity;
-        } else {
-          if (!state.idleWakeup) state.idleWakeup = now;
         }
       }
 
@@ -10589,6 +10794,27 @@
           } else {
             DOM.breakTimer.className = "timer-val timer-active";
             if (breakLabel) setStyle(breakLabel, "color", "var(--text-main)");
+          }
+        }
+
+        // --- Adjust button: context-aware state sync ---
+        const adjustBtn = DOM.adjustTimeBtn;
+        if (adjustBtn) {
+          const hasSession = !!state.loginTimestamp;
+          const isIdleLocked = !!state.idleLock;
+
+          adjustBtn.classList.remove(
+            "adjust-inactive",
+            "adjust-work",
+            "adjust-break",
+          );
+
+          if (!hasSession || isIdleLocked) {
+            adjustBtn.classList.add("adjust-inactive");
+          } else if (state.currentMode === "work") {
+            adjustBtn.classList.add("adjust-work");
+          } else if (state.currentMode === "break") {
+            adjustBtn.classList.add("adjust-break");
           }
         }
       }
@@ -11768,7 +11994,7 @@
        */
       function resolveIdle(choice) {
         const nowWall = Date.now();
-        const resolutionTime = state.idleWakeup || nowWall;
+        const resolutionTime = nowWall;
         state.idleWakeup = null;
         const totalIdleSeconds = Math.max(
           0,
@@ -15311,11 +15537,8 @@
           if (state.idleLock) {
             if (DOM.idleModal) DOM.idleModal.style.display = "flex";
 
-            const isReturned = !!state.idleWakeup;
-            const targetTimeMs = isReturned ? state.idleWakeup : liveNowMs;
-            const targetDate = isReturned
-              ? new Date(state.idleWakeup)
-              : liveNowDate;
+            const targetTimeMs = liveNowMs;
+            const targetDate = liveNowDate;
 
             setText(
               DOM.idleDurationText,
@@ -15326,7 +15549,7 @@
             if (currentTimeEl) {
               const labelEl = currentTimeEl.previousElementSibling;
               if (labelEl) {
-                setText(labelEl, isReturned ? "Return Time:" : "Current Time:");
+                setText(labelEl, "Current Time:");
               }
 
               const tz = DOM.primaryTz.value || "America/Los_Angeles";
@@ -17655,6 +17878,218 @@
       }
 
       /*==========================================================================
+       * ADJUST TIME POPUP — On-the-fly timer correction
+       * =========================================================================*/
+
+      /** Cleanup ref for the popup's outside-click dismissal listener. */
+      let activeAdjustCloseHandler = null;
+
+      /**
+       * Toggles the Adjust Time popup open/closed.
+       * Guards against opening when no session is active or when idle-locked.
+       * Refreshes context badge on every open.
+       */
+      window.toggleAdjustPopup = function (e) {
+        e.stopPropagation();
+        const popup = DOM.adjustTimePopup;
+        if (!popup) return;
+
+        // Hard guard — only usable during an active, non-locked session
+        if (!state.loginTimestamp || state.idleLock) return;
+
+        const isShowing = popup.classList.contains("show");
+
+        if (isShowing) {
+          popup.classList.remove("show");
+          if (activeAdjustCloseHandler) {
+            window.removeEventListener("click", activeAdjustCloseHandler);
+            activeAdjustCloseHandler = null;
+          }
+        } else {
+          _syncAdjustPopupContext();
+          popup.classList.add("show");
+
+          if (activeAdjustCloseHandler) {
+            window.removeEventListener("click", activeAdjustCloseHandler);
+          }
+
+          activeAdjustCloseHandler = (event) => {
+            if (!popup.contains(event.target)) {
+              popup.classList.remove("show");
+              window.removeEventListener("click", activeAdjustCloseHandler);
+              activeAdjustCloseHandler = null;
+            }
+          };
+
+          // Defer one tick so this open-click doesn't immediately close the popup
+          setTimeout(() => {
+            window.addEventListener("click", activeAdjustCloseHandler);
+          }, 0);
+        }
+      };
+
+      /**
+       * Refreshes the context badge and apply button class to reflect
+       * whichever timer is currently running.
+       */
+      function _syncAdjustPopupContext() {
+        const dot = DOM.adjustContextDot;
+        const label = DOM.adjustContextLabel;
+        const applyBtn = DOM.adjustApplyBtn;
+
+        if (!dot || !label) return;
+
+        if (state.currentMode === "work") {
+          dot.style.background = "var(--accent-work)";
+          label.textContent = "Production Timer";
+          label.style.color = "var(--accent-work)";
+          if (applyBtn) applyBtn.className = "adjust-apply-btn btn-work";
+        } else if (state.currentMode === "break") {
+          dot.style.background = "var(--accent-break)";
+          label.textContent = "Break Timer";
+          label.style.color = "var(--accent-break)";
+          if (applyBtn) applyBtn.className = "adjust-apply-btn btn-break";
+        } else {
+          // Session started but mode is transitioning — should not normally occur
+          dot.style.background = "var(--accent-warning)";
+          label.textContent = "Active Session";
+          label.style.color = "var(--accent-warning)";
+          if (applyBtn) applyBtn.className = "adjust-apply-btn btn-log";
+        }
+      }
+
+      /**
+       * Core adjustment logic. Executed when the user clicks Apply or hits Enter.
+       *
+       * Sequence:
+       *  1. Validate — reject if session inactive, idle-locked, or zero delta
+       *  2. Parse Input — extract operation (+/-) and duration from natural language string
+       *  3. Snapshot — flush live elapsed time into accumulated state
+       *  4. Apply delta — add or subtract totalSec to/from the correct bucket
+       *  5. Floor at 0 — timer can never go negative
+       *  6. Persist — saveState() + renderTimersOnly()
+       *  7. UX — reset input, close popup, show toast
+       */
+      window.applyTimeAdjustment = function () {
+        // Guard
+        if (!state.loginTimestamp || state.idleLock) return;
+
+        const rawInput = (DOM.adjustSmartInput?.value || "")
+          .trim()
+          .toLowerCase();
+        if (!rawInput) {
+          showAppToast("⚠️ Enter an adjustment (e.g., +15m, -5m 30s).");
+          return;
+        }
+
+        let isAdd = true;
+        if (rawInput.startsWith("-")) {
+          isAdd = false;
+        } else if (
+          rawInput.includes("sub") ||
+          rawInput.includes("omit") ||
+          rawInput.includes("remove")
+        ) {
+          isAdd = false;
+        }
+
+        // Parse h, m, s
+        const hMatch = rawInput.match(/(\d+)\s*h/);
+        const mMatch = rawInput.match(/(\d+)\s*m/);
+        const sMatch = rawInput.match(/(\d+)\s*s/);
+
+        let hh = hMatch ? parseInt(hMatch[1], 10) : 0;
+        let mm = mMatch ? parseInt(mMatch[1], 10) : 0;
+        let ss = sMatch ? parseInt(sMatch[1], 10) : 0;
+
+        // If no explicit units, treat pure numbers as minutes
+        if (!hMatch && !mMatch && !sMatch) {
+          const numMatch = rawInput.match(/\d+/);
+          if (numMatch) {
+            mm = parseInt(numMatch[0], 10);
+          }
+        }
+
+        const totalSec = hh * 3600 + mm * 60 + ss;
+
+        if (totalSec === 0) {
+          showAppToast("⚠️ Could not parse time. Try: +15m, -1h 30m, 45s.");
+          return;
+        }
+
+        // --- Snapshot active elapsed time into accumulated buckets ---
+        const nowWall = Date.now();
+        if (
+          state.currentMode !== null &&
+          !state.idleLock &&
+          state.sessionAnchorWall !== null
+        ) {
+          const elapsedSec = Math.max(
+            0,
+            (nowWall - state.sessionAnchorWall) / 1000,
+          );
+          if (state.currentMode === "work") {
+            state.workAccumulated = (state.workAccumulated || 0) + elapsedSec;
+          } else if (state.currentMode === "break") {
+            state.breakAccumulated = (state.breakAccumulated || 0) + elapsedSec;
+          }
+          // Restart the live counter from now so there's no time gap
+          state.sessionAnchorWall = nowWall;
+        }
+
+        // --- Apply the delta to the correct bucket ---
+        const targetMode = state.currentMode;
+
+        if (targetMode === "work") {
+          if (isAdd) {
+            state.workAccumulated = (state.workAccumulated || 0) + totalSec;
+          } else {
+            state.workAccumulated = Math.max(
+              0,
+              (state.workAccumulated || 0) - totalSec,
+            );
+          }
+        } else if (targetMode === "break") {
+          if (isAdd) {
+            state.breakAccumulated = (state.breakAccumulated || 0) + totalSec;
+          } else {
+            state.breakAccumulated = Math.max(
+              0,
+              (state.breakAccumulated || 0) - totalSec,
+            );
+          }
+        } else {
+          // Mode is null (should not happen given the guard above, but be safe)
+          showAppToast("⚠️ No active timer to adjust.");
+          return;
+        }
+
+        // --- Persist and re-render ---
+        saveState();
+        renderTimersOnly();
+
+        // --- Reset inputs ---
+        if (DOM.adjustSmartInput) DOM.adjustSmartInput.value = "";
+
+        // --- Close popup ---
+        if (DOM.adjustTimePopup) {
+          DOM.adjustTimePopup.classList.remove("show");
+        }
+        if (activeAdjustCloseHandler) {
+          window.removeEventListener("click", activeAdjustCloseHandler);
+          activeAdjustCloseHandler = null;
+        }
+
+        // --- Confirmation toast ---
+        const verb = isAdd ? "added to" : "subtracted from";
+        const timerLabel = targetMode === "work" ? "production" : "break";
+        const hPart = hh > 0 ? `${hh}h ` : "";
+        const mPart = mm > 0 ? `${mm}m ` : "";
+        const sPart = ss > 0 ? `${ss}s` : "";
+        showAppToast(`✓ ${hPart}${mPart}${sPart} ${verb} ${timerLabel} timer.`);
+      };
+
+      /*==========================================================================
        * 19. MANUAL LOG INSERTION UTILITIES
        * =========================================================================*/
       let activeSettingsCloseHandler = null;
@@ -17702,16 +18137,24 @@
         saveState();
       };
 
-      window.onIdleSliderInput = function (val) {
-        DOM.idleValDisplay.textContent = val + "m";
-        // Instantly update internal state during drag to bypass trackpad dropped-change events
-        state.idleThresholdMinutes = parseInt(val, 10);
+      window.onIdleInputBlur = function (val) {
+        if (!val.trim()) {
+          const currentMins = state.idleThresholdMinutes || 60;
+          const hh = Math.floor(currentMins / 60);
+          const mm = currentMins % 60;
+          DOM.idleInputBox.value = hh > 0 ? hh + "h " + mm + "m" : mm + "m";
+          return;
+        }
+        const parsed = parseGoalTimeStr(val);
+        const totalMins = parsed.hh * 60 + parsed.mm;
+        state.idleThresholdMinutes = totalMins > 0 ? totalMins : 1;
         _cachedIdleThresholdMs = state.idleThresholdMinutes * 60000;
-      };
 
-      window.onIdleSliderChange = function (val) {
-        state.idleThresholdMinutes = parseInt(val, 10);
-        _cachedIdleThresholdMs = state.idleThresholdMinutes * 60000;
+        const finalH = Math.floor(state.idleThresholdMinutes / 60);
+        const finalM = state.idleThresholdMinutes % 60;
+        DOM.idleInputBox.value =
+          finalH > 0 ? finalH + "h " + finalM + "m" : finalM + "m";
+
         saveState();
       };
 
@@ -17779,14 +18222,16 @@
         // Sync existing toggle/slider values
         const isIdleEnabled = state.idleTrackingEnabled !== false;
         const idleCheckbox = DOM.idleToggle;
-        const slider = DOM.idleSlider;
-        const valDisplay = DOM.idleValDisplay;
+        const idleInput = DOM.idleInputBox;
         const sliderContainer = DOM.idleRangeContainer;
         const mins = state.idleThresholdMinutes || 60;
 
         if (idleCheckbox) idleCheckbox.checked = isIdleEnabled;
-        if (slider) slider.value = mins;
-        if (valDisplay) valDisplay.textContent = mins + "m";
+        if (idleInput) {
+          const hh = Math.floor(mins / 60);
+          const mm = mins % 60;
+          idleInput.value = hh > 0 ? hh + "h " + mm + "m" : mm + "m";
+        }
         if (sliderContainer) {
           sliderContainer.style.display = isIdleEnabled ? "flex" : "none";
         }
@@ -18608,6 +19053,7 @@
           };
 
           bindInput("goal-time", parseGoalPreview);
+          bindInput("idle-input-box", parseGoalPreview);
           bindInput("manual-work", parseTimePreview);
           bindInput("manual-break", parseTimePreview);
           bindInput("edit-work", parseTimePreview);
@@ -19538,8 +19984,8 @@
             "Auto-Populate: Adjusts your daily target dynamically to pace you toward a 40-hour work week.",
           "idle-toggle":
             "Idle Lock: Pauses tracking automatically when keyboard/mouse are inactive beyond the threshold.",
-          "idle-slider":
-            "Idle Threshold: Configures the exact minutes of inactivity required to trigger the idle lock.",
+          "idle-input-box":
+            "Idle Threshold: Configures the exact amount of inactivity required to trigger the idle lock.",
           "auto-backup-toggle":
             "Auto-Backup: Automatically downloads a secure JSON backup file when your shift is submitted.",
           "auto-email-toggle":
@@ -19579,7 +20025,7 @@
         bindHover("mode-intelligent", DOM.modeIntelligent);
         bindHover("goal-autopopulate-toggle", DOM.goalAutopopulateToggle);
         bindHover("idle-toggle", DOM.idleToggle);
-        bindHover("idle-slider", DOM.idleSlider);
+        bindHover("idle-input-box", DOM.idleInputBox);
         bindHover("auto-backup-toggle", DOM.autoBackupToggle);
         bindHover("auto-email-toggle", DOM.autoEmailToggle);
         bindHover("snapshot-restore-select", DOM.snapshotRestoreSelect);
