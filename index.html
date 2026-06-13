@@ -3113,8 +3113,10 @@
       }
 
       .date-picker-group:focus-within {
-        border-color: var(--border-light);
+        border-color: var(--accent-blue);
         background: var(--element-hover);
+        outline: 1px solid var(--accent-blue) !important;
+        outline-offset: 0px;
       }
 
       .date-picker-group input.input-standard {
@@ -3130,16 +3132,25 @@
         font-feature-settings: "tnum" 1;
       }
 
+      .date-picker-group input.input-standard:focus-visible {
+        outline: none !important;
+      }
+
       .date-picker-group button.preset-pill {
         background: transparent;
         border: none;
         padding: 0;
+        width: 24px;
+        height: 24px;
+        border-radius: var(--radius-sm);
         color: var(--text-muted);
         cursor: pointer;
         display: flex;
         align-items: center;
         justify-content: center;
-        transition: color 0.15s ease;
+        transition:
+          color 0.15s ease,
+          background 0.15s ease;
         flex-shrink: 0;
         margin-left: var(--space-2);
       }
