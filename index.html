@@ -28,6 +28,7 @@
        1. GLOBAL BASE STYLES & VARIABLE CONFIGURATION
        ========================================================================= */
       :root {
+        --global-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
         /* Shared Color Scheme Accents */
         --accent-work: #34c759;
         --accent-break: #ff3b30;
@@ -156,7 +157,7 @@
         --track-bg: rgba(255, 255, 255, 0.08);
         --segmented-bg: rgba(255, 255, 255, 0.1);
         --segmented-active-bg: #222222;
-        --segmented-active-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+        --segmented-active-shadow: var(--global-shadow);
         --segmented-border: #1f1f23;
       }
 
@@ -253,7 +254,7 @@
         --track-bg: rgba(255, 255, 255, 0.1);
         --segmented-bg: rgba(120, 120, 128, 0.24);
         --segmented-active-bg: #2c2c2e;
-        --segmented-active-shadow: 0px 1px 2px rgba(0, 0, 0, 0.4);
+        --segmented-active-shadow: var(--global-shadow);
         --segmented-border: rgba(255, 255, 255, 0.05);
       }
 
@@ -922,7 +923,7 @@
         background: var(--element-hover);
         border: 1px solid var(--border-light);
         border-radius: var(--header-el-radius);
-        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+        box-shadow: var(--global-shadow);
         transform: translateX(-50%) translateY(4px);
         z-index: 100;
         transition: opacity 0.15s ease;
@@ -1191,7 +1192,7 @@
         transition: opacity 0.05s linear;
         z-index: 99999;
         font-family: var(--font-sans);
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+        box-shadow: var(--global-shadow);
         transform-origin: bottom center;
       }
 
@@ -1219,7 +1220,7 @@
         background: var(--element-hover);
         border: 1px solid var(--border-light);
         border-radius: var(--header-el-radius);
-        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+        box-shadow: var(--global-shadow);
         transform: translateX(-50%) translateY(4px);
         z-index: 100;
         transition: opacity 0.15s ease;
@@ -1259,7 +1260,7 @@
         background: var(--element-hover);
         color: var(--accent-blue);
         border-color: rgba(96, 165, 250, 0.35);
-        box-shadow: 0 1px 0 rgba(0, 0, 0, 0.2);
+        box-shadow: var(--global-shadow);
         transform: none;
       }
 
@@ -2111,7 +2112,7 @@
         margin-right: auto;
         letter-spacing: 0.05em;
         text-align: center;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+        box-shadow: var(--global-shadow);
         transition:
           opacity 0.25s ease,
           transform 0.25s ease;
@@ -2439,7 +2440,7 @@
         padding: 0.85rem;
         width: 18.5rem;
         /* Expanded width for descriptions */
-        box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.12);
+        box-shadow: var(--global-shadow);
         z-index: 1500;
         display: none;
         flex-direction: column;
@@ -3174,6 +3175,7 @@
       #sync-toast,
       #goal-toast,
       #app-toast {
+        box-shadow: var(--global-shadow);
         transition:
           transform 0.4s cubic-bezier(0.16, 1, 0.3, 1),
           opacity 0.3s ease;
@@ -3212,7 +3214,7 @@
         align-items: center;
         justify-content: center;
         z-index: 3000;
-        box-shadow: none;
+        box-shadow: var(--global-shadow);
         /* removed backdrop-filter for CPU perf */
         border-color: color-mix(in srgb, var(--accent-blue) 30%, transparent);
       }
@@ -3248,7 +3250,7 @@
         background: var(--accent-blue);
         color: var(--page-bg);
         transform: translateY(-1px);
-        box-shadow: none;
+        box-shadow: var(--global-shadow);
       }
 
       #sync-toast {
@@ -3265,7 +3267,7 @@
         align-items: center;
         justify-content: center;
         z-index: 3000;
-        box-shadow: none;
+        box-shadow: var(--global-shadow);
         /* removed backdrop-filter for CPU perf */
         border-color: color-mix(
           in srgb,
@@ -3288,7 +3290,7 @@
         align-items: center;
         justify-content: center;
         z-index: 4000;
-        box-shadow: none;
+        box-shadow: var(--global-shadow);
         /* removed backdrop-filter for CPU perf */
         border-color: color-mix(in srgb, var(--accent-work) 30%, transparent);
       }
@@ -3327,7 +3329,7 @@
         align-items: center;
         justify-content: center;
         z-index: 4000;
-        box-shadow: none;
+        box-shadow: var(--global-shadow);
         /* removed backdrop-filter for CPU perf */
         border-color: color-mix(in srgb, var(--accent-blue) 20%, transparent);
       }
@@ -3719,7 +3721,7 @@
         flex-direction: column;
         gap: 2px;
         min-width: max-content;
-        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+        box-shadow: var(--global-shadow);
         opacity: 0;
         pointer-events: none;
         transform: translateY(-4px);
@@ -3727,7 +3729,7 @@
       }
 
       [data-theme="sf-light"] .custom-select-panel {
-        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+        box-shadow: var(--global-shadow);
       }
 
       .custom-select-panel.cs-open {
@@ -3821,7 +3823,7 @@
         background: var(--element-hover);
         border: 1px solid var(--border-light);
         border-radius: var(--header-el-radius);
-        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+        box-shadow: var(--global-shadow);
         transform: translateY(4px);
         z-index: 100;
         transition: opacity 0.15s ease;
@@ -3830,7 +3832,7 @@
       [data-theme="sf-light"] .tz-presets,
       [data-theme="sf-light"] .goal-presets,
       [data-theme="sf-light"] .theme-presets {
-        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+        box-shadow: var(--global-shadow);
       }
 
       .theme-presets::before {
@@ -4259,7 +4261,7 @@
         </symbol>
         <symbol id="sprite-063" viewBox="0 0 24 24">
           <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
-          <path d="M15 5h2M16 4v2" stroke-width="1.5" />
+          <path d="M15 5h2M16 4v2" stroke-width="1.8" />
         </symbol>
         <symbol id="sprite-064" viewBox="0 0 24 24">
           <polygon points="12 2 2 7 12 12 22 7 12 2" />
@@ -4420,7 +4422,7 @@
         </symbol>
         <symbol id="icon-cebb1e32" viewBox="0 0 24 24">
           <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
-          <path d="M15 5h2M16 4v2" stroke-width="1.5"></path>
+          <path d="M15 5h2M16 4v2" stroke-width="1.8"></path>
         </symbol>
         <symbol id="icon-47bc3e7c" viewBox="0 0 24 24">
           <circle cx="12" cy="12" r="4"></circle>
@@ -4634,7 +4636,7 @@
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
-          stroke-width="2"
+          stroke-width="1.8"
           stroke-linecap="round"
           stroke-linejoin="round"
         >
@@ -4650,7 +4652,7 @@
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
-          stroke-width="2"
+          stroke-width="1.8"
           stroke-linecap="round"
           stroke-linejoin="round"
         >
@@ -4889,7 +4891,7 @@
               height="14"
               fill="none"
               stroke="var(--text-muted)"
-              stroke-width="2"
+              stroke-width="1.8"
               stroke-linecap="round"
               stroke-linejoin="round"
               style="
@@ -4914,7 +4916,7 @@
             viewBox="0 0 24 24"
             fill="none"
             stroke="var(--accent-blue)"
-            stroke-width="2"
+            stroke-width="1.8"
             stroke-linecap="round"
             stroke-linejoin="round"
             style="width: 16px; height: 16px; flex-shrink: 0; margin-top: 2px"
@@ -4954,7 +4956,7 @@
             viewBox="0 0 24 24"
             fill="none"
             stroke="var(--accent-work)"
-            stroke-width="2"
+            stroke-width="1.8"
             stroke-linecap="round"
             stroke-linejoin="round"
             style="width: 16px; height: 16px; flex-shrink: 0; margin-top: 2px"
@@ -5026,7 +5028,7 @@
             height="48"
             fill="none"
             stroke="currentColor"
-            stroke-width="2"
+            stroke-width="1.8"
           >
             <use href="#sprite-084"></use>
           </svg>
@@ -5192,7 +5194,7 @@
               class="ui-icon"
               fill="none"
               stroke="currentColor"
-              stroke-width="2"
+              stroke-width="1.8"
               stroke-linecap="round"
               stroke-linejoin="round"
             >
@@ -5211,7 +5213,7 @@
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
-              stroke-width="2"
+              stroke-width="1.8"
               stroke-linecap="round"
               stroke-linejoin="round"
             >
@@ -5985,7 +5987,7 @@
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
-          stroke-width="2"
+          stroke-width="1.8"
           stroke-linecap="round"
           stroke-linejoin="round"
         >
@@ -6000,7 +6002,7 @@
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
-          stroke-width="2"
+          stroke-width="1.8"
           stroke-linecap="round"
           stroke-linejoin="round"
         >
@@ -6351,7 +6353,7 @@
               class="ui-icon"
               fill="none"
               stroke="currentColor"
-              stroke-width="2"
+              stroke-width="1.8"
               style="width: 14px; height: 14px"
             >
               <use href="#sprite-009"></use>
@@ -6418,7 +6420,7 @@
             class="ui-icon"
             fill="none"
             stroke="currentColor"
-            stroke-width="2"
+            stroke-width="1.8"
             stroke-linecap="round"
             stroke-linejoin="round"
           >
@@ -6501,7 +6503,7 @@
                 height="14"
                 fill="none"
                 stroke="currentColor"
-                stroke-width="2"
+                stroke-width="1.8"
                 stroke-linecap="round"
                 stroke-linejoin="round"
               >
@@ -6576,7 +6578,7 @@
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
-          stroke-width="2"
+          stroke-width="1.8"
           stroke-linecap="round"
           stroke-linejoin="round"
         >
@@ -6592,7 +6594,7 @@
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
-          stroke-width="2"
+          stroke-width="1.8"
           stroke-linecap="round"
           stroke-linejoin="round"
         >
@@ -6745,7 +6747,7 @@
               height="20"
               fill="none"
               stroke="currentColor"
-              stroke-width="2"
+              stroke-width="1.8"
               stroke-linecap="round"
               stroke-linejoin="round"
             >
@@ -6766,7 +6768,7 @@
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
-                  stroke-width="2"
+                  stroke-width="1.8"
                   stroke-linecap="round"
                   stroke-linejoin="round"
                 >
@@ -6818,7 +6820,7 @@
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
-              stroke-width="2"
+              stroke-width="1.8"
               stroke-linecap="round"
               stroke-linejoin="round"
             >
@@ -7055,7 +7057,7 @@
             viewBox="0 0 24 24"
             fill="none"
             stroke="var(--accent-blue)"
-            stroke-width="2"
+            stroke-width="1.8"
             stroke-linecap="round"
             stroke-linejoin="round"
             style="
@@ -7160,7 +7162,7 @@
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
-                  stroke-width="2"
+                  stroke-width="1.8"
                   stroke-linecap="round"
                   stroke-linejoin="round"
                 >
@@ -7226,7 +7228,7 @@
                 height="14"
                 fill="none"
                 stroke="currentColor"
-                stroke-width="2"
+                stroke-width="1.8"
                 style="flex-shrink: 0"
               >
                 <use href="#sprite-014"></use>
@@ -7257,7 +7259,7 @@
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
-                  stroke-width="2"
+                  stroke-width="1.8"
                   stroke-linecap="round"
                   stroke-linejoin="round"
                 >
@@ -7319,7 +7321,7 @@
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
-                  stroke-width="2"
+                  stroke-width="1.8"
                   stroke-linecap="round"
                   stroke-linejoin="round"
                 >
@@ -7339,7 +7341,7 @@
                     height="16"
                     fill="none"
                     stroke="currentColor"
-                    stroke-width="2"
+                    stroke-width="1.8"
                     stroke-linecap="round"
                     stroke-linejoin="round"
                     style="color: #ff9500"
@@ -7360,7 +7362,7 @@
                     height="16"
                     fill="none"
                     stroke="currentColor"
-                    stroke-width="2"
+                    stroke-width="1.8"
                     stroke-linecap="round"
                     stroke-linejoin="round"
                     style="color: #818cf8"
@@ -7381,7 +7383,7 @@
                     height="16"
                     fill="none"
                     stroke="currentColor"
-                    stroke-width="2"
+                    stroke-width="1.8"
                     stroke-linecap="round"
                     stroke-linejoin="round"
                     style="color: #38bdf8"
@@ -7402,7 +7404,7 @@
                     height="16"
                     fill="none"
                     stroke="currentColor"
-                    stroke-width="2"
+                    stroke-width="1.8"
                     stroke-linecap="round"
                     stroke-linejoin="round"
                     style="color: #8e8e93"
@@ -7470,7 +7472,7 @@
               height="22"
               fill="none"
               stroke="currentColor"
-              stroke-width="2"
+              stroke-width="1.8"
               stroke-linecap="round"
               stroke-linejoin="round"
               style="flex-shrink: 0"
@@ -7486,7 +7488,7 @@
               height="22"
               fill="none"
               stroke="currentColor"
-              stroke-width="2"
+              stroke-width="1.8"
               stroke-linecap="round"
               stroke-linejoin="round"
               style="flex-shrink: 0"
@@ -7502,7 +7504,7 @@
               height="22"
               fill="none"
               stroke="currentColor"
-              stroke-width="2"
+              stroke-width="1.8"
               stroke-linecap="round"
               stroke-linejoin="round"
               style="flex-shrink: 0"
@@ -7549,7 +7551,7 @@
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
-                  stroke-width="2"
+                  stroke-width="1.8"
                   stroke-linecap="round"
                   stroke-linejoin="round"
                   width="14"
@@ -7571,7 +7573,7 @@
                   viewBox="0 0 24 24"
                   stroke="currentColor"
                   fill="none"
-                  stroke-width="2"
+                  stroke-width="1.8"
                   width="14"
                   height="14"
                 >
@@ -7600,7 +7602,7 @@
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
-                  stroke-width="2"
+                  stroke-width="1.8"
                   stroke-linecap="round"
                   stroke-linejoin="round"
                 >
@@ -7684,7 +7686,7 @@
                       viewBox="0 0 24 24"
                       fill="none"
                       stroke="currentColor"
-                      stroke-width="2"
+                      stroke-width="1.8"
                       stroke-linecap="round"
                       stroke-linejoin="round"
                       style="width: 12px; height: 12px"
@@ -7751,7 +7753,7 @@
                       viewBox="0 0 24 24"
                       fill="none"
                       stroke="currentColor"
-                      stroke-width="2"
+                      stroke-width="1.8"
                       stroke-linecap="round"
                       stroke-linejoin="round"
                       style="width: 12px; height: 12px"
@@ -7797,7 +7799,7 @@
                         height="11"
                         fill="none"
                         stroke="currentColor"
-                        stroke-width="2"
+                        stroke-width="1.8"
                         stroke-linecap="round"
                         stroke-linejoin="round"
                       >
@@ -7873,7 +7875,7 @@
                       height="11"
                       fill="none"
                       stroke="currentColor"
-                      stroke-width="2"
+                      stroke-width="1.8"
                       stroke-linecap="round"
                       stroke-linejoin="round"
                     >
@@ -7933,7 +7935,7 @@
                       height="11"
                       fill="none"
                       stroke="currentColor"
-                      stroke-width="2"
+                      stroke-width="1.8"
                       stroke-linecap="round"
                       stroke-linejoin="round"
                     >
@@ -8148,7 +8150,7 @@
                   viewBox="0 0 24 24"
                   stroke="currentColor"
                   fill="none"
-                  stroke-width="2"
+                  stroke-width="1.8"
                   style="width: 12px; height: 12px"
                 >
                   <use href="#sprite-028"></use>
@@ -8182,7 +8184,7 @@
                   viewBox="0 0 24 24"
                   stroke="currentColor"
                   fill="none"
-                  stroke-width="2"
+                  stroke-width="1.8"
                   style="width: 12px; height: 12px"
                 >
                   <use href="#sprite-029"></use>
@@ -8213,7 +8215,7 @@
                   viewBox="0 0 24 24"
                   stroke="currentColor"
                   fill="none"
-                  stroke-width="2"
+                  stroke-width="1.8"
                 >
                   <use href="#sprite-030"></use>
                 </svg>
@@ -8231,7 +8233,7 @@
                   viewBox="0 0 24 24"
                   stroke="currentColor"
                   fill="none"
-                  stroke-width="2"
+                  stroke-width="1.8"
                 >
                   <use href="#sprite-031"></use>
                 </svg>
@@ -8249,7 +8251,7 @@
                   viewBox="0 0 24 24"
                   stroke="currentColor"
                   fill="none"
-                  stroke-width="2"
+                  stroke-width="1.8"
                 >
                   <use href="#sprite-032"></use>
                 </svg>
@@ -8267,7 +8269,7 @@
                   viewBox="0 0 24 24"
                   stroke="currentColor"
                   fill="none"
-                  stroke-width="2"
+                  stroke-width="1.8"
                 >
                   <use href="#sprite-033"></use>
                 </svg>
@@ -8285,7 +8287,7 @@
                   viewBox="0 0 24 24"
                   stroke="currentColor"
                   fill="none"
-                  stroke-width="2"
+                  stroke-width="1.8"
                 >
                   <use href="#sprite-034"></use>
                 </svg>
@@ -8303,7 +8305,7 @@
                   viewBox="0 0 24 24"
                   stroke="currentColor"
                   fill="none"
-                  stroke-width="2"
+                  stroke-width="1.8"
                   stroke-linecap="round"
                   stroke-linejoin="round"
                 >
@@ -8324,11 +8326,71 @@
                   viewBox="0 0 24 24"
                   stroke="currentColor"
                   fill="none"
-                  stroke-width="2"
+                  stroke-width="1.8"
                 >
                   <use href="#sprite-035"></use>
                 </svg>
               </button>
+            </div>
+
+            <div class="icon-stack" style="position: relative">
+              <button
+                title="Adjust Timer"
+                aria-label="Adjust Timer"
+                class="icon-btn sq-btn adjust-time-btn"
+                id="adjust-time-btn"
+                onclick="toggleAdjustPopup(event)"
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  fill="none"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M21 12A9 9 0 1 0 12 21" />
+                  <polyline points="12 7 12 12 15 13.5" />
+                  <line x1="19" y1="14" x2="19" y2="18" />
+                  <line x1="17" y1="16" x2="21" y2="16" />
+                  <line x1="17" y1="21" x2="21" y2="21" />
+                </svg>
+              </button>
+
+              <!-- Adjust Time Floating Popup -->
+              <div id="adjust-time-popup" class="idle-popup">
+                <!-- Row 1: Context badge — which timer is being adjusted -->
+                <div class="adjust-context-badge">
+                  <span
+                    id="adjust-context-label"
+                    style="color: var(--text-muted)"
+                    >No Active Timer</span
+                  >
+                </div>
+
+                <!-- Row 2: Smart input box -->
+                <div class="adjust-smart-input-container">
+                  <input
+                    id="adjust-smart-input"
+                    class="adjust-smart-input"
+                    type="text"
+                    placeholder="e.g. +15m, -5m 30s"
+                    onkeydown="
+                      if (event.key === 'Enter') applyTimeAdjustment();
+                    "
+                    autocomplete="off"
+                  />
+                </div>
+
+                <!-- Row 4: Apply button -->
+                <button
+                  id="adjust-apply-btn"
+                  class="adjust-apply-btn btn-log"
+                  onclick="applyTimeAdjustment()"
+                >
+                  Apply
+                </button>
+              </div>
             </div>
 
             <div class="icon-stack">
@@ -8343,7 +8405,7 @@
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
-                  stroke-width="2"
+                  stroke-width="1.8"
                   stroke-linecap="round"
                   stroke-linejoin="round"
                 >
@@ -8590,7 +8652,7 @@
                               height="14"
                               fill="none"
                               stroke="currentColor"
-                              stroke-width="2"
+                              stroke-width="1.8"
                               stroke-linecap="round"
                               stroke-linejoin="round"
                             >
@@ -8622,7 +8684,7 @@
                     viewBox="0 0 24 24"
                     fill="none"
                     stroke="currentColor"
-                    stroke-width="2"
+                    stroke-width="1.8"
                     stroke-linecap="round"
                     stroke-linejoin="round"
                   >
@@ -8632,62 +8694,6 @@
                     >Hover over any setting to view its description.</span
                   >
                 </div>
-              </div>
-            </div>
-
-            <div class="icon-stack" style="position: relative">
-              <button
-                title="Adjust Timer"
-                aria-label="Adjust Timer"
-                class="icon-btn sq-btn adjust-time-btn"
-                id="adjust-time-btn"
-                onclick="toggleAdjustPopup(event)"
-              >
-                <svg
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  fill="none"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                >
-                  <use href="#sprite-085"></use>
-                </svg>
-              </button>
-
-              <!-- Adjust Time Floating Popup -->
-              <div id="adjust-time-popup" class="idle-popup">
-                <!-- Row 1: Context badge — which timer is being adjusted -->
-                <div class="adjust-context-badge">
-                  <span
-                    id="adjust-context-label"
-                    style="color: var(--text-muted)"
-                    >No Active Timer</span
-                  >
-                </div>
-
-                <!-- Row 2: Smart input box -->
-                <div class="adjust-smart-input-container">
-                  <input
-                    id="adjust-smart-input"
-                    class="adjust-smart-input"
-                    type="text"
-                    placeholder="e.g. +15m, -5m 30s"
-                    onkeydown="
-                      if (event.key === 'Enter') applyTimeAdjustment();
-                    "
-                    autocomplete="off"
-                  />
-                </div>
-
-                <!-- Row 4: Apply button -->
-                <button
-                  id="adjust-apply-btn"
-                  class="adjust-apply-btn btn-log"
-                  onclick="applyTimeAdjustment()"
-                >
-                  Apply
-                </button>
               </div>
             </div>
 
@@ -8702,7 +8708,7 @@
                   viewBox="0 0 24 24"
                   stroke="#f87171"
                   fill="none"
-                  stroke-width="2"
+                  stroke-width="1.8"
                 >
                   <use href="#sprite-038"></use>
                 </svg>
@@ -9049,18 +9055,18 @@
 
       // Vector Icon Resources (SVG mappings)
       const SVGs = {
-        play: `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><use href="#sprite-021"></use></svg>`,
-        pause: `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><use href="#sprite-022"></use></svg>`,
-        stop: `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><use href="#sprite-023"></use></svg>`,
-        copy: `<svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2"><use href="#sprite-040"></use></svg>`,
-        edit: `<svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2"><use href="#sprite-041"></use></svg>`,
-        plus: `<svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" width="18" height="18"><use href="#sprite-042"></use></svg>`,
-        note: `<svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2"><use href="#sprite-043"></use></svg>`,
-        trash: `<svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2"><use href="#sprite-044"></use></svg>`,
-        themeCobalt: `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #38bdf8;"><use href="#sprite-045"></use></svg>`,
-        themeOnyx: `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #8e8e93;"><use href="#sprite-046"></use></svg>`,
-        themeSfDark: `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #818cf8;"><use href="#sprite-047"></use></svg>`,
-        themeSfLight: `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #ff9500;"><use href="#sprite-048"></use></svg>`,
+        play: `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><use href="#sprite-021"></use></svg>`,
+        pause: `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><use href="#sprite-022"></use></svg>`,
+        stop: `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><use href="#sprite-023"></use></svg>`,
+        copy: `<svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.8"><use href="#sprite-040"></use></svg>`,
+        edit: `<svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.8"><use href="#sprite-041"></use></svg>`,
+        plus: `<svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.8" width="18" height="18"><use href="#sprite-042"></use></svg>`,
+        note: `<svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.8"><use href="#sprite-043"></use></svg>`,
+        trash: `<svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.8"><use href="#sprite-044"></use></svg>`,
+        themeCobalt: `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color: #38bdf8;"><use href="#sprite-045"></use></svg>`,
+        themeOnyx: `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color: #8e8e93;"><use href="#sprite-046"></use></svg>`,
+        themeSfDark: `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color: #818cf8;"><use href="#sprite-047"></use></svg>`,
+        themeSfLight: `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color: #ff9500;"><use href="#sprite-048"></use></svg>`,
       };
 
       let isDbReloading = false;
@@ -11978,12 +11984,12 @@
           titleEl.textContent = "System Pause Detected";
           descEl.textContent =
             "Your computer went to sleep or this browser tab was suspended to save resources. We paused your timer during this gap to keep your hours accurate.";
-          iconHtml = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="ui-icon" width="24" height="24"><use href="#sprite-050"></use></svg>`;
+          iconHtml = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="ui-icon" width="24" height="24"><use href="#sprite-050"></use></svg>`;
         } else {
           titleEl.textContent = "Inactivity Detected";
           descEl.textContent =
             "No keyboard or mouse movement was detected for your configured threshold. We paused your timer so you don't accidentally log unworked hours.";
-          iconHtml = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="ui-icon" width="24" height="24"><use href="#sprite-051"></use></svg>`;
+          iconHtml = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="ui-icon" width="24" height="24"><use href="#sprite-051"></use></svg>`;
         }
         headerEl.insertAdjacentHTML("afterbegin", iconHtml);
 
@@ -12279,13 +12285,13 @@
         if (activeCount > 0) {
           btn.classList.add("filter-active");
           btn.innerHTML = `
-            <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" width="14" height="14"><use href="#sprite-024"></use></svg>
+            <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.8" width="14" height="14"><use href="#sprite-024"></use></svg>
             Filters (${activeCount})
           `;
         } else {
           btn.classList.remove("filter-active");
           btn.innerHTML = `
-            <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" width="14" height="14"><use href="#sprite-024"></use></svg>
+            <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.8" width="14" height="14"><use href="#sprite-024"></use></svg>
             Filters
           `;
         }
@@ -13235,7 +13241,7 @@
           DOM.logContainer.style.contain = "none";
           DOM.logContainer.innerHTML = `
             <div style="padding: 80px 24px; display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; text-align: center; gap: 16px;">
-              <svg viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="width: 56px; height: 56px; opacity: 0.5;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width: 56px; height: 56px; opacity: 0.5;">
                 <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
                 <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
                 <path d="M9 14h6"></path>
@@ -15890,7 +15896,7 @@
           desc: "Begin a new work session or resume from break",
           category: "Timers",
           aliases: ["resume", "sw", "go", "working"],
-          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-work)" stroke-width="2"><use href="#sprite-053"></use></svg>`,
+          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-work)" stroke-width="1.8"><use href="#sprite-053"></use></svg>`,
           action: () => {
             if (state.currentMode !== "work") switchMode("work");
           },
@@ -15901,7 +15907,7 @@
           desc: "End the current active work session",
           category: "Timers",
           aliases: ["end", "done", "stop working"],
-          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-work)" stroke-width="2"><use href="#sprite-054"></use></svg>`,
+          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-work)" stroke-width="1.8"><use href="#sprite-054"></use></svg>`,
           action: () => {
             if (state.currentMode === "work") switchMode(null);
           },
@@ -15912,7 +15918,7 @@
           desc: "Pause work and begin a break session",
           category: "Timers",
           aliases: ["sb", "pause", "rest", "coffee", "lunch", "afk"],
-          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-break)" stroke-width="2"><use href="#sprite-055"></use></svg>`,
+          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-break)" stroke-width="1.8"><use href="#sprite-055"></use></svg>`,
           action: () => {
             if (state.currentMode !== "break") switchMode("break");
           },
@@ -15923,7 +15929,7 @@
           desc: "End the current break session",
           category: "Timers",
           aliases: ["resume work", "end break", "back"],
-          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-break)" stroke-width="2"><use href="#sprite-054"></use></svg>`,
+          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-break)" stroke-width="1.8"><use href="#sprite-054"></use></svg>`,
           action: () => {
             if (state.currentMode === "break") switchMode("work");
           },
@@ -15934,7 +15940,7 @@
           desc: "Open modal to log a custom past time entry",
           category: "Logs",
           aliases: ["manual", "edit", "past", "new log"],
-          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text-main)" stroke-width="2"><use href="#sprite-056"></use></svg>`,
+          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text-main)" stroke-width="1.8"><use href="#sprite-056"></use></svg>`,
           action: () => openManualModal(),
         },
         {
@@ -15943,7 +15949,7 @@
           desc: "Switch view to the main timers dashboard",
           category: "Navigation",
           aliases: ["main", "home", "timers", "ui", "app", "dash"],
-          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text-main)" stroke-width="2"><use href="#sprite-057"></use></svg>`,
+          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text-main)" stroke-width="1.8"><use href="#sprite-057"></use></svg>`,
           action: () => switchTab("dashboard"),
         },
         {
@@ -15952,7 +15958,7 @@
           desc: "Switch view to see historical logs",
           category: "Navigation",
           aliases: ["history", "past", "logs", "records", "list"],
-          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text-main)" stroke-width="2"><use href="#sprite-058"></use></svg>`,
+          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text-main)" stroke-width="1.8"><use href="#sprite-058"></use></svg>`,
           action: () => switchTab("logbook"),
         },
         {
@@ -15968,7 +15974,7 @@
             "progress",
             "week",
           ],
-          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text-main)" stroke-width="2"><use href="#sprite-059"></use></svg>`,
+          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text-main)" stroke-width="1.8"><use href="#sprite-059"></use></svg>`,
           action: () => switchTab("insights"),
         },
         {
@@ -15977,7 +15983,7 @@
           desc: "Increase daily goal slightly",
           category: "Goals",
           aliases: ["+15", "increase goal", "bump"],
-          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-work)" stroke-width="2"><use href="#sprite-056"></use></svg>`,
+          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-work)" stroke-width="1.8"><use href="#sprite-056"></use></svg>`,
           action: () => adjustGoal(15),
         },
         {
@@ -15986,7 +15992,7 @@
           desc: "Decrease daily goal slightly",
           category: "Goals",
           aliases: ["-15", "decrease goal", "drop"],
-          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-break)" stroke-width="2"><use href="#sprite-060"></use></svg>`,
+          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-break)" stroke-width="1.8"><use href="#sprite-060"></use></svg>`,
           action: () => adjustGoal(-15),
         },
         {
@@ -15996,7 +16002,7 @@
           category: "Goals",
           aliases: ["set goal", "daily goal"],
           keepOpen: true,
-          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-warning)" stroke-width="2"><use href="#sprite-061"></use></svg>`,
+          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-warning)" stroke-width="1.8"><use href="#sprite-061"></use></svg>`,
           action: (arg) => {
             if (!arg || !arg.trim()) {
               const input = DOM.hudInput;
@@ -16081,7 +16087,7 @@
           desc: "Pacific Standard Time (America/Los_Angeles)",
           category: "Timezones",
           aliases: ["pacific", "los angeles", "pt", "california"],
-          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-blue)" stroke-width="2"><use href="#sprite-062"></use></svg>`,
+          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-blue)" stroke-width="1.8"><use href="#sprite-062"></use></svg>`,
           action: () => selectPresetTZ("America/Los_Angeles"),
         },
         {
@@ -16090,7 +16096,7 @@
           desc: "Eastern Standard Time (America/New_York)",
           category: "Timezones",
           aliases: ["eastern", "new york", "et", "east"],
-          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-blue)" stroke-width="2"><use href="#sprite-062"></use></svg>`,
+          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-blue)" stroke-width="1.8"><use href="#sprite-062"></use></svg>`,
           action: () => selectPresetTZ("America/New_York"),
         },
         {
@@ -16099,7 +16105,7 @@
           desc: "Central Standard Time (America/Chicago)",
           category: "Timezones",
           aliases: ["central", "chicago", "ct", "midwest"],
-          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-blue)" stroke-width="2"><use href="#sprite-062"></use></svg>`,
+          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-blue)" stroke-width="1.8"><use href="#sprite-062"></use></svg>`,
           action: () => selectPresetTZ("America/Chicago"),
         },
         {
@@ -16108,7 +16114,7 @@
           desc: "Bright, clean system light mode",
           category: "Themes",
           aliases: ["light", "white", "bright", "system light"],
-          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#f3a31a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#sprite-066"></use></svg>`,
+          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#f3a31a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#sprite-066"></use></svg>`,
           previewAction: () =>
             document.documentElement.setAttribute("data-theme", "sf-light"),
           action: () => {
@@ -16123,7 +16129,7 @@
           desc: "System neutral charcoal dark mode",
           category: "Themes",
           aliases: ["dark", "charcoal", "gray", "system dark"],
-          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#8e8e93" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#sprite-065"></use></svg>`,
+          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#8e8e93" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#sprite-065"></use></svg>`,
           previewAction: () =>
             document.documentElement.setAttribute("data-theme", "sf-dark"),
           action: () => {
@@ -16138,7 +16144,7 @@
           desc: "Translucent blue glassmorphism mode",
           category: "Themes",
           aliases: ["blue", "transparent", "frosted", "glass"],
-          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#38bdf8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#sprite-064"></use></svg>`,
+          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#38bdf8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#sprite-064"></use></svg>`,
           previewAction: () =>
             document.documentElement.setAttribute("data-theme", "cobalt-glass"),
           action: () => {
@@ -16153,7 +16159,7 @@
           desc: "Deep pitch black dark mode",
           category: "Themes",
           aliases: ["darkest", "pitch black", "oled", "amoled", "black"],
-          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#sprite-063"></use></svg>`,
+          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#sprite-063"></use></svg>`,
           previewAction: () =>
             document.documentElement.setAttribute("data-theme", "onyx-black"),
           action: () => {
@@ -16168,7 +16174,7 @@
           desc: "Download visible logs as spreadsheet",
           category: "Data",
           aliases: ["excel", "spreadsheet", "download", "export"],
-          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text-main)" stroke-width="2"><use href="#sprite-067"></use></svg>`,
+          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text-main)" stroke-width="1.8"><use href="#sprite-067"></use></svg>`,
           action: () => exportCSV(),
         },
         {
@@ -16177,7 +16183,7 @@
           desc: "Download full JSON state backup to local drive",
           category: "Data",
           aliases: ["backup", "save data", "download full", "export full"],
-          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text-main)" stroke-width="2"><use href="#sprite-068"></use></svg>`,
+          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text-main)" stroke-width="1.8"><use href="#sprite-068"></use></svg>`,
           action: () => exportJSON(),
         },
         {
@@ -16186,7 +16192,7 @@
           desc: "Trigger JSON restore to merge or restore your backup logs",
           category: "Data",
           aliases: ["import", "upload", "load", "restore data"],
-          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text-main)" stroke-width="2"><use href="#sprite-069"></use></svg>`,
+          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text-main)" stroke-width="1.8"><use href="#sprite-069"></use></svg>`,
           action: () => DOM.importFile.click(),
         },
         {
@@ -16201,7 +16207,7 @@
             "clear cache",
             "reset",
           ],
-          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-break)" stroke-width="2"><use href="#sprite-070"></use></svg>`,
+          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-break)" stroke-width="1.8"><use href="#sprite-070"></use></svg>`,
           action: () => clearAllData(),
         },
         {
@@ -16218,7 +16224,7 @@
             "away",
             "leaves",
           ],
-          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text-main)" stroke-width="2"><use href="#sprite-071"></use></svg>`,
+          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text-main)" stroke-width="1.8"><use href="#sprite-071"></use></svg>`,
           action: () => openLeaveModal(),
         },
         {
@@ -16228,7 +16234,7 @@
           category: "Write Engine",
           aliases: ["logshift", "create", "insert", "new log"],
           keepOpen: true,
-          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text-main)" stroke-width="2"><use href="#sprite-072"></use></svg>`,
+          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text-main)" stroke-width="1.8"><use href="#sprite-072"></use></svg>`,
           action: () => {
             const input = DOM.hudInput;
             input.value = "add ";
@@ -16251,7 +16257,7 @@
             "manual",
             "docs",
           ],
-          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text-main)" stroke-width="2"><use href="#sprite-073"></use></svg>`,
+          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text-main)" stroke-width="1.8"><use href="#sprite-035"></use></svg>`,
           action: () => openHelpModal(),
         },
         {
@@ -16261,7 +16267,7 @@
           category: "Navigation",
           aliases: ["find", "lookup", "query"],
           keepOpen: true,
-          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text-main)" stroke-width="2"><use href="#sprite-074"></use></svg>`,
+          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text-main)" stroke-width="1.8"><use href="#sprite-074"></use></svg>`,
           action: (arg) => {
             if (!arg || !arg.trim()) {
               const input = DOM.hudInput;
@@ -16295,7 +16301,7 @@
           category: "Logs",
           aliases: ["log note", "append note", "write note", "add note"],
           keepOpen: true,
-          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text-main)" stroke-width="2"><use href="#sprite-072"></use></svg>`,
+          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text-main)" stroke-width="1.8"><use href="#sprite-072"></use></svg>`,
           action: (arg) => {
             if (!arg || !arg.trim()) {
               const input = DOM.hudInput;
@@ -16333,7 +16339,7 @@
           desc: "Copy your worked hours and goal progress to clipboard",
           category: "Data",
           aliases: ["copy status", "status", "copy report"],
-          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text-main)" stroke-width="2"><use href="#sprite-075"></use></svg>`,
+          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text-main)" stroke-width="1.8"><use href="#sprite-075"></use></svg>`,
           action: () => {
             const wSec = getCurrentWorkSeconds();
             const goalH = parseFloat(localStorage.getItem(GOAL_H_KEY)) || 8;
@@ -16354,7 +16360,7 @@
           desc: "Toggle whether daily goals auto-populate to keep you on pace",
           category: "Settings",
           aliases: ["auto-populate", "autopopulate"],
-          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-blue)" stroke-width="2"><use href="#sprite-036"></use></svg>`,
+          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-blue)" stroke-width="1.8"><use href="#sprite-036"></use></svg>`,
           action: () => {
             const cb = document.getElementById("goal-autopopulate-toggle");
             if (cb) {
@@ -16372,7 +16378,7 @@
           desc: "Toggle silent JSON download on End of Day submission",
           category: "Settings",
           aliases: ["auto-backup", "autobackup", "auto save"],
-          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-blue)" stroke-width="2"><use href="#sprite-036"></use></svg>`,
+          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-blue)" stroke-width="1.8"><use href="#sprite-036"></use></svg>`,
           action: () => {
             const cb = document.getElementById("auto-backup-toggle");
             if (cb) {
@@ -16390,7 +16396,7 @@
           desc: "Toggle copying report to clipboard and opening Gmail on submit",
           category: "Settings",
           aliases: ["auto-email", "autoemail", "auto mail"],
-          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-blue)" stroke-width="2"><use href="#sprite-036"></use></svg>`,
+          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-blue)" stroke-width="1.8"><use href="#sprite-036"></use></svg>`,
           action: () => {
             const cb = document.getElementById("auto-email-toggle");
             if (cb) {
@@ -16409,7 +16415,7 @@
           category: "Web",
           aliases: ["google", "search web"],
           keepOpen: true,
-          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text-main)" stroke-width="2"><use href="#sprite-074"></use></svg>`,
+          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text-main)" stroke-width="1.8"><use href="#sprite-074"></use></svg>`,
           action: (arg) => {
             if (!arg || !arg.trim()) {
               const input = DOM.hudInput;
@@ -16432,7 +16438,7 @@
           desc: "Copy all local storage state to clipboard for debugging",
           category: "Data",
           aliases: ["raw", "state", "dump"],
-          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text-main)" stroke-width="2"><use href="#sprite-076"></use></svg>`,
+          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text-main)" stroke-width="1.8"><use href="#sprite-076"></use></svg>`,
           action: () => {
             const raw = safeGetLocalStorage(STATE_KEY);
             if (raw) {
@@ -16451,7 +16457,7 @@
           category: "Logs",
           aliases: ["add leave", "mark leave"],
           keepOpen: true,
-          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text-main)" stroke-width="2"><use href="#sprite-071"></use></svg>`,
+          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text-main)" stroke-width="1.8"><use href="#sprite-071"></use></svg>`,
           action: (arg) => {
             if (!arg || !arg.trim()) {
               const input = DOM.hudInput;
@@ -16500,7 +16506,7 @@
           category: "Insights",
           aliases: ["stats", "hours", "total"],
           keepOpen: true,
-          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-blue)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#sprite-077"></use></svg>`,
+          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-blue)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#sprite-077"></use></svg>`,
           action: () => {
             const input = DOM.hudInput;
             if (input) {
@@ -16516,7 +16522,7 @@
           category: "Insights",
           aliases: ["invoice", "csv", "email", "timesheet"],
           keepOpen: true,
-          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-blue)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#sprite-078"></use></svg>`,
+          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-blue)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#sprite-078"></use></svg>`,
           action: () => {
             const input = DOM.hudInput;
             if (input) {
@@ -16539,7 +16545,7 @@
             "records",
           ],
           keepOpen: true,
-          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text-main)" stroke-width="2"><use href="#sprite-067"></use></svg>`,
+          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text-main)" stroke-width="1.8"><use href="#sprite-067"></use></svg>`,
           action: () => {
             const input = DOM.hudInput;
             if (input) {
@@ -16704,7 +16710,7 @@
                   title: `= ${mathResult}`,
                   desc: `Evaluated: ${query.trim()} (Press Enter to copy)`,
                   category: "Calculator",
-                  icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-blue)" stroke-width="2"><use href="#sprite-079"></use></svg>`,
+                  icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-blue)" stroke-width="1.8"><use href="#sprite-079"></use></svg>`,
                   action: () => {
                     navigator.clipboard
                       .writeText(mathResult.toString())
@@ -16723,7 +16729,7 @@
                 title: `= ...`,
                 desc: `Expression incomplete or invalid: "${query.trim()}"`,
                 category: "Calculator",
-                icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-break)" stroke-width="2"><use href="#sprite-014"></use></svg>`,
+                icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-break)" stroke-width="1.8"><use href="#sprite-014"></use></svg>`,
                 action: () => {},
               },
             });
@@ -16775,7 +16781,7 @@
               title: `Book Leave: ${type} on ${parsedDateStr}`,
               desc: "Press Enter to add to leave database",
               category: "Leave Engine",
-              icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-break)" stroke-width="2"><use href="#sprite-080"></use></svg>`,
+              icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-break)" stroke-width="1.8"><use href="#sprite-080"></use></svg>`,
               action: () => {
                 const leaves =
                   typeof getLeaveDates === "function" ? getLeaveDates() : [];
@@ -16813,7 +16819,7 @@
                   desc: `Current Notes: ${escapeHTML(match.log.notes) || "None"} (Press Enter to edit)`,
                   category: "Quick Edits",
                   keepOpen: true,
-                  icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-warning)" stroke-width="2"><use href="#sprite-009"></use></svg>`,
+                  icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-warning)" stroke-width="1.8"><use href="#sprite-009"></use></svg>`,
                   action: () => {
                     const input = DOM.hudInput;
                     if (input) {
@@ -16840,7 +16846,7 @@
                 title: `Save Notes to Log`,
                 desc: `New Notes: "${escapeHTML(newNotes)}"`,
                 category: "Quick Edits",
-                icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-blue)" stroke-width="2"><use href="#sprite-081"></use></svg>`,
+                icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-blue)" stroke-width="1.8"><use href="#sprite-081"></use></svg>`,
                 action: () => {
                   const allLogs =
                     typeof getLogs === "function" ? getLogs() : [];
@@ -16995,7 +17001,7 @@
                       ? `Notes: ${escapeHTML(cleanNotes)}`
                       : "No notes.",
                   category: "Write Engine",
-                  icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-blue)" stroke-width="2"><use href="#sprite-082"></use></svg>`,
+                  icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-blue)" stroke-width="1.8"><use href="#sprite-082"></use></svg>`,
                   action: () => {
                     const rawGoalEl = DOM.manualGoal;
                     const rawGoal = rawGoalEl ? rawGoalEl.value.trim() : "8h";
@@ -17117,7 +17123,7 @@
                 title: `Metrics (${titleSuffix}): ${formatDuration(totalW)}`,
                 desc: `Total: ${matchedLogs.length} shifts. ${metricStr} (Press Enter to copy)`,
                 category: "Insights",
-                icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-blue)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#sprite-077"></use></svg>`,
+                icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-blue)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#sprite-077"></use></svg>`,
                 action: () => {
                   navigator.clipboard
                     .writeText(
@@ -17178,7 +17184,7 @@
                 title: `<span style="color:var(--accent-blue);">CSV: ${titleLabel}</span>`,
                 desc: `${descLabel}. Press Enter to download spreadsheet.`,
                 category: "Invoicing",
-                icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-blue)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#sprite-078"></use></svg>`,
+                icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-blue)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#sprite-078"></use></svg>`,
                 action: () => {
                   let csvContent =
                     "data:text/csv;charset=utf-8,Date,Log In,Log Out,Work Duration,Break Duration,Notes\n";
@@ -17218,7 +17224,7 @@
                 title: `<span style="color:var(--accent-warning);">Email: ${titleLabel}</span>`,
                 desc: `${descLabel}. Press Enter to draft timesheet email.`,
                 category: "Invoicing",
-                icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-warning)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#sprite-083"></use></svg>`,
+                icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-warning)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#sprite-083"></use></svg>`,
                 action: () => {
                   let emailBody = `Timesheet Report: ${titleSuffix}\nTotal Shifts: ${matchedLogs.length}\nTotal Work Hours: ${typeof formatDuration === "function" ? formatDuration(totalW) : totalW}\n\nBreakdown:\n`;
                   matchedLogs.forEach((l) => {
@@ -17440,7 +17446,7 @@
                     ? `Notes: ${escapeHTML(l.notes)}`
                     : `No notes. Status: ${l.status || "N/A"}`,
                   category: "Logbook Results",
-                  icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text-muted)" stroke-width="2"><use href="#sprite-078"></use></svg>`,
+                  icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text-muted)" stroke-width="1.8"><use href="#sprite-078"></use></svg>`,
                   action: () => {
                     const summary = `Shift Log: ${l.date}\nTime: ${l.login} - ${l.logout}\nWork Time: ${formatDuration(l.workSec)}\nBreak Time: ${formatDuration(l.breakSec)}\nNotes: ${l.notes || "None"}`;
                     navigator.clipboard.writeText(summary).then(() => {
@@ -17550,7 +17556,7 @@
 
             html += `
                 <div onclick="executeHudIndex(${idx})" style="background: ${bg}; border-radius: var(--radius-sm); padding: 10px 12px; display: flex; align-items: center; cursor: pointer; transition: background 0.1s ease; margin-bottom: 2px;">
-                  <div style="display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 8px; background: var(--element-bg); margin-right: 12px; flex-shrink: 0; box-shadow: 0 1px 2px rgba(0,0,0,0.1);">
+                  <div style="display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 8px; background: var(--element-bg); margin-right: 12px; flex-shrink: 0; box-shadow: var(--global-shadow);">
                     ${cmd.icon || ""}
                   </div>
                   <div style="display: flex; flex-direction: column; flex: 1; overflow: hidden;">
@@ -19017,7 +19023,7 @@
                 <span class="badge ${badgeClass}">${safeType}</span>
               </div>
               <button class="leave-delete-btn" onclick="removeLeaveDate('${safeDate}')" title="Remove Leave">
-                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#sprite-004"></use></svg>
+                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#sprite-004"></use></svg>
               </button>
             </div>
           `;
@@ -20169,13 +20175,13 @@
         // Add a dismiss button for all toasts
         const closeBtnHtml = `
               <button class="toast-close-btn" onclick="closeSyncToast()">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#sprite-004"></use></svg>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#sprite-004"></use></svg>
               </button>
             `;
 
         toast.innerHTML = `
                   <div style="display: flex; align-items: center; gap: 12px;">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent-warning); flex-shrink: 0;"><use href="#sprite-084"></use></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent-warning); flex-shrink: 0;"><use href="#sprite-084"></use></svg>
                     <span>${msg}</span>
                     ${closeBtnHtml}
                   </div>
@@ -20965,9 +20971,9 @@
           popup.className = "cdp-popup";
           popup.innerHTML = `
             <div class="cdp-header">
-              <button class="cdp-nav-btn" id="cdp-prev"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"></polyline></svg></button>
+              <button class="cdp-nav-btn" id="cdp-prev"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="15 18 9 12 15 6"></polyline></svg></button>
               <div id="cdp-title"></div>
-              <button class="cdp-nav-btn" id="cdp-next"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg></button>
+              <button class="cdp-nav-btn" id="cdp-next"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="9 18 15 12 9 6"></polyline></svg></button>
             </div>
             <div class="cdp-grid" id="cdp-days"></div>
             <div class="cdp-footer">
