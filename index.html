@@ -15637,23 +15637,17 @@
           const isTabVisible = !document.hidden;
 
           if (discrepancy > 5000) {
-            if (monoDelta < wallDelta - 30000) {
-              if (!isActivelyTracking || !isTabVisible) {
-                triggerIdleLock(lastWall, "system");
-              }
-              // Previously: if (isActivelyTracking && isTabVisible) { ...; return; }
-              // The early return was wrong — it prevented the inactivity audit from
-              // running. Now we skip the system lock when not applicable but always
-              // continue to the inactivity check below.
-            } else if (state.sessionAnchorWall !== null) {
-              // Forward/Backward NTP drift = Shift the Anchor directly to preserve elapsed time
-              state.sessionAnchorWall += wallDelta - monoDelta;
+            const shiftAmount = wallDelta - monoDelta;
+            if (state.sessionAnchorWall !== null) {
+              state.sessionAnchorWall += shiftAmount;
               if (discrepancy > 60000) {
                 showSyncToast(
                   "System clock adjustment detected. Timer calibrated.",
                 );
               }
             }
+            lastActivity += shiftAmount;
+            if (state.tabHiddenAt) state.tabHiddenAt += shiftAmount;
           }
 
           state.lastHeartbeatWall = nowMs;
@@ -15757,20 +15751,17 @@
           const idleGap = nowWall - lastActivity;
 
           if (discrepancy > 5000) {
-            if (
-              monoDelta < wallDelta - 30000 &&
-              (document.hidden || Date.now() - lastActivity > 60000)
-            ) {
-              const timeOfIdle = state.lastHeartbeatWall || lastActivity;
-              triggerIdleLock(timeOfIdle, "system");
-            } else if (state.sessionAnchorWall !== null) {
-              state.sessionAnchorWall += wallDelta - monoDelta;
+            const shiftAmount = wallDelta - monoDelta;
+            if (state.sessionAnchorWall !== null) {
+              state.sessionAnchorWall += shiftAmount;
               if (discrepancy > 60000) {
                 showSyncToast(
                   "System clock adjustment detected. Timer calibrated.",
                 );
               }
             }
+            lastActivity += shiftAmount;
+            if (state.tabHiddenAt) state.tabHiddenAt += shiftAmount;
           }
 
           // Inactivity audit runs independently of the discrepancy check above.
