@@ -1,6 +1,6 @@
 <div align="center">
 
-# Work Hour Tracker
+# nodrift
 
 **Zero backend. Zero latency. Total privacy. One file.**
 
