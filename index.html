@@ -48,7 +48,8 @@
         --text-lg: 1.2rem;
 
         /* Aliases for old names */
-        --text-xl: 1.5rem; /* kept for compatibility if needed, else mapped */
+        --text-xl: 1.5rem;
+        /* kept for compatibility if needed, else mapped */
         --text-2xs: var(--text-3xs);
 
         /* Spacing Scale */
@@ -831,13 +832,12 @@
         align-items: center;
         gap: 6px;
         font-size: 0.78rem;
-        font-family: var(--font-mono);
+        font-family: var(--font-sans);
         letter-spacing: -0.04em;
-        min-width: 70px;
+        min-width: 65px;
         flex-shrink: 0;
         text-align: center;
         white-space: nowrap;
-        text-transform: uppercase;
         font-variant-numeric: tabular-nums;
         margin-left: 16px;
         justify-content: flex-end;
@@ -2280,10 +2280,12 @@
         align-items: flex-start;
         gap: 10px;
       }
+
       .warning-banner.info {
         background: rgba(118, 185, 248, 0.06);
         border: 1px solid rgba(118, 185, 248, 0.2);
       }
+
       .warning-banner.success {
         background: rgba(48, 209, 88, 0.06);
         border: 1px solid rgba(48, 209, 88, 0.2);
@@ -3851,6 +3853,7 @@
         transform: rotate(180deg);
         color: var(--text-main);
       }
+
       /* =========================================================================
          CUSTOM DATE PICKER (CDP)
          ========================================================================= */
@@ -3871,10 +3874,12 @@
         pointer-events: none;
         transition: opacity 0.08s ease;
       }
+
       .cdp-popup.cdp-open {
         opacity: 1;
         pointer-events: auto;
       }
+
       .cdp-header {
         display: flex;
         justify-content: space-between;
@@ -3883,6 +3888,7 @@
         color: var(--text-main);
         font-size: 0.95rem;
       }
+
       .cdp-nav-btn {
         background: transparent;
         border: none;
@@ -3894,22 +3900,26 @@
         align-items: center;
         justify-content: center;
       }
+
       .cdp-nav-btn:hover {
         background: var(--element-hover);
         color: var(--text-main);
       }
+
       .cdp-grid {
         display: grid;
         grid-template-columns: repeat(7, 1fr);
         gap: 2px;
         text-align: center;
       }
+
       .cdp-day-name {
         font-size: 0.75rem;
         color: var(--text-muted);
         font-weight: 600;
         padding-bottom: 6px;
       }
+
       .cdp-day {
         background: transparent;
         border: none;
@@ -3920,27 +3930,33 @@
         cursor: pointer;
         font-family: var(--font-sans);
       }
+
       .cdp-day:hover:not(.cdp-empty) {
         background: var(--element-hover);
       }
+
       .cdp-day.cdp-empty {
         cursor: default;
       }
+
       .cdp-day.cdp-today {
         color: var(--accent-blue);
         font-weight: 700;
       }
+
       .cdp-day.cdp-selected {
         background: var(--accent-blue);
         color: white;
         font-weight: 600;
       }
+
       .cdp-footer {
         display: flex;
         justify-content: space-between;
         padding-top: 6px;
         border-top: 1px solid var(--border-main);
       }
+
       .cdp-footer-btn {
         background: transparent;
         border: none;
@@ -3951,10 +3967,12 @@
         border-radius: 4px;
         font-weight: 500;
       }
+
       .cdp-footer-btn:hover {
         background: var(--element-hover);
         color: var(--text-main);
       }
+
       /* =========================================================================
        ADDED UTILITY CLASSES FOR JS REFACTORING
        ========================================================================= */
@@ -4017,10 +4035,12 @@
         .footer-icons {
           gap: 0.35rem !important;
         }
+
         .sidebar-footer .sq-btn {
           width: 32px !important;
           height: 32px !important;
         }
+
         .sidebar-footer .sq-btn svg {
           width: 18px !important;
           height: 18px !important;
@@ -9082,6 +9102,8 @@
       let appToastTimeout;
       let confirmCallback = null;
       let undoTimeout;
+      let lastEditedModalField = null;
+      let previousEditedModalField = null;
       let lastStateBackup = null;
       let displayBaseDate = null;
       let pendingSubmitData = null;
@@ -14499,6 +14521,9 @@
         DOM.editWork.value = formatDuration(log.workSec).slice(0, 5);
         DOM.editBreak.value = formatDuration(log.breakSec).slice(0, 5);
 
+        lastEditedModalField = null;
+        previousEditedModalField = null;
+
         // Populate goal input fields with the log's existing daily goal
         const currentGoalSec =
           log.dayGoal ||
@@ -14534,6 +14559,9 @@
         const log = logs.find((l) => l.id === editingLogId);
         if (!log) return;
 
+        if (DOM.editWork) handleTimeInputBlur({ target: DOM.editWork });
+        if (DOM.editBreak) handleTimeInputBlur({ target: DOM.editBreak });
+
         let newDate = DOM.editDate.value.trim();
         const newLogin = DOM.editLogin.value.trim() || "Manual";
         const newLogout = DOM.editLogout.value.trim() || "Entry";
@@ -14545,12 +14573,11 @@
         const parsedGoal = parseGoalTimeStr(rawGoal);
         const gh = parsedGoal.hh;
         const gm = parsedGoal.mm;
-        const goal = gh * 3600 + gm * 60 || 1; // Minimum 1 second to avoid falsy zero
+        const goal = gh * 3600 + gm * 60 || 1;
 
         let wSec = parseTime(newWork);
         let bSec = parseTime(newBreak);
 
-        // Cap at absolute 24 hours to prevent chart overflow
         if (wSec !== null) wSec = Math.min(wSec, 86400);
         if (bSec !== null) bSec = Math.min(bSec, 86400);
 
@@ -14567,22 +14594,9 @@
           bSec !== null &&
           newDate.match(/^\d{1,2}\/\d{1,2}\/(\d{2}|\d{4})$/)
         ) {
-          isEditSubmitting = true;
-          log.date = newDate;
-          log.displayDate = newDate.replace(/\/20(\d{2})$/, "/$1");
-          log.login = newLogin;
-          log.logout = newLogout;
-          log.workSec = wSec;
-          log.breakSec = bSec;
-
-          // Save the user-specified goal for this shift log
-          log.dayGoal = goal;
-          log.status = wSec - goal >= 0 ? "OVER" : "UNDER";
-          log.diff = formatDuration(Math.abs(wSec - goal));
-
           const [m, d, y] = newDate.split("/");
           const fullYear = y.length === 2 ? `20${y}` : y;
-          log.epochMs = Date.UTC(
+          const epochMs = Date.UTC(
             parseInt(fullYear),
             parseInt(m) - 1,
             parseInt(d),
@@ -14591,37 +14605,137 @@
             0,
           );
 
-          // Recalculate wall-clock epoch timestamps from the edited login/logout strings
-          const dateMs = log.epochMs; // noon UTC anchor for this date
-          const loginMinutes = parseTimeToMinutes(log.login);
-          const logoutMinutes = parseTimeToMinutes(log.logout);
+          const dateMs = epochMs;
+          const loginMinutes = parseTimeToMinutes(newLogin);
+          const logoutMinutes = parseTimeToMinutes(newLogout);
 
-          if (loginMinutes !== null) {
-            // Compute offset from midnight PST.
-            // Use the same noon-UTC anchor as a reference and back-calculate to midnight.
-            // Safe approximation: noon anchor − 12h = midnight for the date.
-            const midnightMs = dateMs - 12 * 3600 * 1000;
-            log.loginEpochMs = midnightMs + loginMinutes * 60 * 1000;
-            // If logout appears before login (next-day shift), add 24h
-            if (logoutMinutes !== null) {
-              let adjustedLogoutMin = logoutMinutes;
-              if (logoutMinutes < loginMinutes) adjustedLogoutMin += 1440;
-              log.logoutEpochMs = midnightMs + adjustedLogoutMin * 60 * 1000;
+          let derivedLoginEpochMs = getEpochFromDateTimeString(
+            newDate,
+            newLogin,
+          );
+          let derivedLogoutEpochMs = getEpochFromDateTimeString(
+            newDate,
+            newLogout,
+          );
+
+          if (derivedLoginEpochMs !== null && derivedLogoutEpochMs !== null) {
+            if (derivedLogoutEpochMs < derivedLoginEpochMs)
+              derivedLogoutEpochMs += 86400000;
+            else if (
+              derivedLogoutEpochMs === derivedLoginEpochMs &&
+              newLogin.toLowerCase() === newLogout.toLowerCase()
+            ) {
+              if (wSec + bSec > 0) derivedLogoutEpochMs += 86400000;
             }
+          } else if (derivedLoginEpochMs !== null) {
+            derivedLogoutEpochMs = derivedLoginEpochMs + (wSec + bSec) * 1000;
           } else {
-            // No valid login string — fall back to work-sec arithmetic
-            log.loginEpochMs = log.logoutEpochMs
-              ? log.logoutEpochMs - (log.workSec + log.breakSec) * 1000
-              : log.epochMs;
+            derivedLoginEpochMs = epochMs;
+            derivedLogoutEpochMs = derivedLoginEpochMs + (wSec + bSec) * 1000;
           }
 
-          log.notes = newNotes;
-          log.lastModified = Date.now();
-          log.searchStr =
-            `${log.displayDate} ${log.date} ${log.notes || ""}`.toLowerCase();
-          saveLogs(logs);
-          closeEditModal();
-          showAppToast("Shift updated successfully");
+          derivedLoginEpochMs = Math.floor(derivedLoginEpochMs / 60000) * 60000;
+          derivedLogoutEpochMs =
+            Math.floor(derivedLogoutEpochMs / 60000) * 60000;
+
+          const activeSessionInProgress = !!state.loginTimestamp;
+          let hasOverlap = false;
+          let overlapMsg = "";
+
+          for (let i = 0; i < logs.length; i++) {
+            const l = logs[i];
+            if (l.id === editingLogId) continue;
+            const lLogin =
+              Math.floor((l.loginEpochMs || l.epochMs) / 60000) * 60000;
+            const lLogout =
+              Math.floor(
+                (l.logoutEpochMs ||
+                  lLogin + ((l.workSec || 0) + (l.breakSec || 0)) * 1000) /
+                  60000,
+              ) * 60000;
+            if (
+              derivedLoginEpochMs < lLogout &&
+              derivedLogoutEpochMs > lLogin
+            ) {
+              hasOverlap = true;
+              overlapMsg =
+                "This time range overlaps with an existing shift on this date. Save anyway?";
+              break;
+            }
+          }
+
+          if (!hasOverlap && activeSessionInProgress && state.loginTimestamp) {
+            const liveLogin = Math.floor(state.loginTimestamp / 60000) * 60000;
+            const liveLogout =
+              Math.floor(
+                (state.idleLock ? state.idleStart : Date.now()) / 60000,
+              ) * 60000;
+            if (
+              derivedLoginEpochMs < liveLogout &&
+              derivedLogoutEpochMs > liveLogin
+            ) {
+              hasOverlap = true;
+              overlapMsg = "This overlaps with your active live session.";
+            }
+          }
+
+          const hasFatigueWarning = wSec > 57600;
+
+          const proceedWithSave = () => {
+            isEditSubmitting = true;
+            log.date = newDate;
+            log.displayDate = newDate.replace(/\/20(\d{2})$/, "/$1");
+            log.login = newLogin;
+            log.logout = newLogout;
+            log.workSec = wSec;
+            log.breakSec = bSec;
+            log.dayGoal = goal;
+            log.status = wSec - goal >= 0 ? "OVER" : "UNDER";
+            log.diff = formatDuration(Math.abs(wSec - goal));
+            log.epochMs = epochMs;
+            log.loginEpochMs = derivedLoginEpochMs;
+            log.logoutEpochMs = derivedLogoutEpochMs;
+            log.notes = newNotes;
+            log.lastModified = Date.now();
+            log.searchStr =
+              `${log.displayDate} ${log.date} ${log.notes || ""}`.toLowerCase();
+
+            saveLogs(logs);
+            closeEditModal();
+            showAppToast("Shift updated successfully");
+          };
+
+          if (hasOverlap) {
+            openConfirmModal(
+              "Overlap Detected",
+              overlapMsg,
+              () => {
+                if (hasFatigueWarning) {
+                  openConfirmModal(
+                    "Fatigue Warning",
+                    "This shift calculates to over 16 hours. Save anyway?",
+                    proceedWithSave,
+                    false,
+                    "Save Anyway",
+                  );
+                } else {
+                  proceedWithSave();
+                }
+              },
+              false,
+              "Save Anyway",
+            );
+          } else if (hasFatigueWarning) {
+            openConfirmModal(
+              "Fatigue Warning",
+              "This shift calculates to over 16 hours. Save anyway?",
+              proceedWithSave,
+              false,
+              "Save Anyway",
+            );
+          } else {
+            proceedWithSave();
+          }
         } else {
           showAppToast("Invalid format. Use MM/DD/YY and HH:MM");
         }
@@ -18414,6 +18528,8 @@
 
         DOM.manualGoal.value = `${String(DOM.goalHours.value).padStart(2, "0")}:${String(DOM.goalMins.value).padStart(2, "0")}`;
 
+        lastEditedModalField = null;
+        previousEditedModalField = null;
         DOM.manualModal.style.display = "flex";
       }
 
@@ -18437,8 +18553,10 @@
         if (isManualSubmitting) return;
 
         const manualDateInput = DOM.manualDate;
-        // Force blur formatting first
         handleDateInputBlur({ target: manualDateInput });
+        if (DOM.manualWork) handleTimeInputBlur({ target: DOM.manualWork });
+        if (DOM.manualBreak) handleTimeInputBlur({ target: DOM.manualBreak });
+
         let dateStr = manualDateInput.value.trim();
         const workStr = DOM.manualWork.value.trim();
         const breakStr = DOM.manualBreak.value.trim();
@@ -18451,12 +18569,11 @@
         const parsedGoal = parseGoalTimeStr(rawGoal);
         const gh = parsedGoal.hh;
         const gm = parsedGoal.mm;
-        const goal = gh * 3600 + gm * 60 || 1; // Minimum 1 second to avoid falsy zero
+        const goal = gh * 3600 + gm * 60 || 1;
 
         let wSec = parseTime(workStr);
         let bSec = parseTime(breakStr);
 
-        // Cap at absolute 24 hours to prevent chart overflow
         if (wSec !== null) wSec = Math.min(wSec, 86400);
         if (bSec !== null) bSec = Math.min(bSec, 86400);
 
@@ -18472,8 +18589,6 @@
           bSec !== null &&
           dateStr.match(/^\d{1,2}\/\d{1,2}\/(\d{2}|\d{4})$/)
         ) {
-          isManualSubmitting = true;
-          const diff = wSec - goal;
           const [m, d, y] = dateStr.split("/");
           const fullYear = y.length === 2 ? `20${y}` : y;
           const epochMs = Date.UTC(
@@ -18485,37 +18600,147 @@
             0,
           );
 
-          const entry = {
-            id:
-              "log_" +
-              Math.random().toString(36).substring(2, 11) +
-              Date.now().toString(36),
-            date: dateStr,
-            displayDate: dateStr.replace(/\/20(\d{2})$/, "/$1"),
-            epochMs: epochMs,
-            login: loginStr,
-            logout: logoutStr,
-            loginEpochMs: epochMs,
-            logoutEpochMs: epochMs + (wSec + bSec) * 1000,
-            workSec: wSec,
-            breakSec: bSec,
-            status: diff >= 0 ? "OVER" : "UNDER",
-            diff: formatDuration(Math.abs(diff)),
-            notes: notes,
-            dayGoal: goal,
-            lastModified: Date.now(),
-          };
-          entry.searchStr =
-            `${entry.displayDate} ${entry.date} manual entry ${notes}`.toLowerCase();
+          const dateMs = epochMs;
+          const loginMinutes = parseTimeToMinutes(loginStr);
+          const logoutMinutes = parseTimeToMinutes(logoutStr);
+
+          let derivedLoginEpochMs = getEpochFromDateTimeString(
+            dateStr,
+            loginStr,
+          );
+          let derivedLogoutEpochMs = getEpochFromDateTimeString(
+            dateStr,
+            logoutStr,
+          );
+
+          if (derivedLoginEpochMs !== null && derivedLogoutEpochMs !== null) {
+            if (derivedLogoutEpochMs < derivedLoginEpochMs)
+              derivedLogoutEpochMs += 86400000;
+            else if (
+              derivedLogoutEpochMs === derivedLoginEpochMs &&
+              loginStr.toLowerCase() === logoutStr.toLowerCase()
+            ) {
+              if (wSec + bSec > 0) derivedLogoutEpochMs += 86400000;
+            }
+          } else if (derivedLoginEpochMs !== null) {
+            derivedLogoutEpochMs = derivedLoginEpochMs + (wSec + bSec) * 1000;
+          } else {
+            derivedLoginEpochMs = epochMs;
+            derivedLogoutEpochMs = derivedLoginEpochMs + (wSec + bSec) * 1000;
+          }
+
+          derivedLoginEpochMs = Math.floor(derivedLoginEpochMs / 60000) * 60000;
+          derivedLogoutEpochMs =
+            Math.floor(derivedLogoutEpochMs / 60000) * 60000;
+
+          const activeSessionInProgress = !!state.loginTimestamp;
+          let hasOverlap = false;
+          let overlapMsg = "";
 
           const logs = getLogs();
-          logs.push(entry);
-          logs.sort((a, b) => b.epochMs - a.epochMs);
+          for (let i = 0; i < logs.length; i++) {
+            const l = logs[i];
+            const lLogin =
+              Math.floor((l.loginEpochMs || l.epochMs) / 60000) * 60000;
+            const lLogout =
+              Math.floor(
+                (l.logoutEpochMs ||
+                  lLogin + ((l.workSec || 0) + (l.breakSec || 0)) * 1000) /
+                  60000,
+              ) * 60000;
+            if (
+              derivedLoginEpochMs < lLogout &&
+              derivedLogoutEpochMs > lLogin
+            ) {
+              hasOverlap = true;
+              overlapMsg =
+                "This time range overlaps with an existing shift on this date. Save anyway?";
+              break;
+            }
+          }
 
-          saveLogs(logs);
+          if (!hasOverlap && activeSessionInProgress && state.loginTimestamp) {
+            const liveLogin = Math.floor(state.loginTimestamp / 60000) * 60000;
+            const liveLogout =
+              Math.floor(
+                (state.idleLock ? state.idleStart : Date.now()) / 60000,
+              ) * 60000;
+            if (
+              derivedLoginEpochMs < liveLogout &&
+              derivedLogoutEpochMs > liveLogin
+            ) {
+              hasOverlap = true;
+              overlapMsg = "This overlaps with your active live session.";
+            }
+          }
 
-          closeManualModal();
-          showAppToast("Manual shift added successfully");
+          const hasFatigueWarning = wSec > 57600;
+
+          const proceedWithSave = () => {
+            isManualSubmitting = true;
+            const diff = wSec - goal;
+            const entry = {
+              id:
+                "log_" +
+                Math.random().toString(36).substring(2, 11) +
+                Date.now().toString(36),
+              date: dateStr,
+              displayDate: dateStr.replace(/\/20(\d{2})$/, "/$1"),
+              epochMs: epochMs,
+              login: loginStr,
+              logout: logoutStr,
+              loginEpochMs: derivedLoginEpochMs,
+              logoutEpochMs: derivedLogoutEpochMs,
+              workSec: wSec,
+              breakSec: bSec,
+              status: diff >= 0 ? "OVER" : "UNDER",
+              diff: formatDuration(Math.abs(diff)),
+              notes: notes,
+              dayGoal: goal,
+              lastModified: Date.now(),
+            };
+            entry.searchStr =
+              `${entry.displayDate} ${entry.date} manual entry ${notes}`.toLowerCase();
+
+            logs.push(entry);
+            logs.sort((a, b) => b.epochMs - a.epochMs);
+
+            saveLogs(logs);
+            closeManualModal();
+            showAppToast("Manual shift added successfully");
+          };
+
+          if (hasOverlap) {
+            openConfirmModal(
+              "Overlap Detected",
+              overlapMsg,
+              () => {
+                if (hasFatigueWarning) {
+                  openConfirmModal(
+                    "Fatigue Warning",
+                    "This shift calculates to over 16 hours. Save anyway?",
+                    proceedWithSave,
+                    false,
+                    "Save Anyway",
+                  );
+                } else {
+                  proceedWithSave();
+                }
+              },
+              false,
+              "Save Anyway",
+            );
+          } else if (hasFatigueWarning) {
+            openConfirmModal(
+              "Fatigue Warning",
+              "This shift calculates to over 16 hours. Save anyway?",
+              proceedWithSave,
+              false,
+              "Save Anyway",
+            );
+          } else {
+            proceedWithSave();
+          }
         } else {
           showAppToast("Invalid format. Use MM/DD/YY and HH:MM");
         }
@@ -19384,14 +19609,162 @@
         },
       );
 
-      function calculateDurationFromTimes(loginVal, logoutVal, breakVal) {
+      function getEpochFromDateTimeString(dateStr, timeStr) {
+        if (
+          !dateStr ||
+          !timeStr ||
+          timeStr === "Manual" ||
+          timeStr === "Entry" ||
+          timeStr === "—"
+        )
+          return null;
+        let parts = dateStr.split("/");
+        if (parts.length !== 3) {
+          parts = dateStr.split("-");
+          if (parts.length === 3) {
+            parts = [parts[1], parts[2], parts[0]];
+          } else {
+            return null;
+          }
+        }
+        let mm = parseInt(parts[0], 10);
+        let dd = parseInt(parts[1], 10);
+        let yy = parts[2];
+        let fullYear =
+          yy.length === 2 ? 2000 + parseInt(yy, 10) : parseInt(yy, 10);
+
+        if (mm < 1 || mm > 12 || dd < 1 || dd > 31) return null;
+        const daysInMonth = new Date(fullYear, mm, 0).getDate();
+        if (dd > daysInMonth) return null;
+
+        const timeMin = parseTimeToMinutes(timeStr);
+        if (timeMin === null) return null;
+
+        const tz = DOM.primaryTz
+          ? DOM.primaryTz.value
+          : Intl.DateTimeFormat().resolvedOptions().timeZone;
+        const localH = Math.floor(timeMin / 60);
+        const localM = timeMin % 60;
+
+        let guessMs = Date.UTC(fullYear, mm - 1, dd, localH, localM, 0);
+        try {
+          const formatToTz = new Intl.DateTimeFormat("en-US", {
+            timeZone: tz,
+            year: "numeric",
+            month: "numeric",
+            day: "numeric",
+            hour: "numeric",
+            minute: "numeric",
+            second: "numeric",
+            hour12: false,
+          });
+
+          for (let i = 0; i < 3; i++) {
+            const partsTz = formatToTz.formatToParts(guessMs);
+            const p = {};
+            partsTz.forEach((part) => (p[part.type] = part.value));
+            let h = parseInt(p.hour, 10);
+            if (h === 24) h = 0;
+
+            const guessLocalMs = Date.UTC(
+              parseInt(p.year),
+              parseInt(p.month) - 1,
+              parseInt(p.day),
+              h,
+              parseInt(p.minute),
+              parseInt(p.second),
+            );
+            const wallMs = Date.UTC(fullYear, mm - 1, dd, localH, localM, 0);
+            const errorMs = wallMs - guessLocalMs;
+
+            if (errorMs === 0) break;
+            guessMs += errorMs;
+          }
+          return guessMs;
+        } catch (e) {
+          return new Date(fullYear, mm - 1, dd, localH, localM, 0).getTime();
+        }
+      }
+
+      function calculateLoginFromLogoutAndWork(
+        logoutVal,
+        workVal,
+        breakVal,
+        dateStr = "",
+      ) {
+        const logoutMin = parseTimeToMinutes(logoutVal);
+        if (logoutMin === null) return null;
+        const wp = parseGoalTimeStr(workVal);
+        const bp = parseGoalTimeStr(breakVal);
+        const workMin = wp.hh * 60 + wp.mm;
+        const breakMin = bp.hh * 60 + bp.mm;
+
+        if (dateStr) {
+          const logoutEpoch = getEpochFromDateTimeString(dateStr, logoutVal);
+          if (logoutEpoch) {
+            const loginEpoch = logoutEpoch - (workMin + breakMin) * 60000;
+            const tz = DOM.primaryTz
+              ? DOM.primaryTz.value
+              : Intl.DateTimeFormat().resolvedOptions().timeZone;
+            try {
+              const formatTz = new Intl.DateTimeFormat("en-US", {
+                timeZone: tz,
+                hour: "numeric",
+                minute: "numeric",
+                hour12: true,
+              });
+              return formatTz.format(new Date(loginEpoch));
+            } catch (e) {}
+          }
+        }
+
+        let loginMin = logoutMin - workMin - breakMin;
+        loginMin = ((loginMin % 1440) + 1440) % 1440;
+        return minutesToAMPM(loginMin);
+      }
+
+      function calculateDurationFromTimes(
+        loginVal,
+        logoutVal,
+        breakVal,
+        dateStr = "",
+      ) {
         const loginMin = parseTimeToMinutes(loginVal);
         const logoutMin = parseTimeToMinutes(logoutVal);
         const breakMin =
           parseGoalTimeStr(breakVal).hh * 60 + parseGoalTimeStr(breakVal).mm;
         if (loginMin !== null && logoutMin !== null) {
-          let diffMin = logoutMin - loginMin;
-          if (diffMin < 0) diffMin += 1440; // Crosses midnight
+          let diffMin = 0;
+
+          const rawWork =
+            document.getElementById("edit-work")?.value.trim() ||
+            document.getElementById("manual-work")?.value.trim() ||
+            "";
+          if (dateStr) {
+            const loginEpoch = getEpochFromDateTimeString(dateStr, loginVal);
+            let logoutEpoch = getEpochFromDateTimeString(dateStr, logoutVal);
+            if (loginEpoch !== null && logoutEpoch !== null) {
+              if (logoutEpoch < loginEpoch) {
+                logoutEpoch += 86400000;
+              } else if (
+                logoutEpoch === loginEpoch &&
+                loginVal.toLowerCase() === logoutVal.toLowerCase()
+              ) {
+                logoutEpoch += 86400000;
+              }
+              diffMin = Math.round((logoutEpoch - loginEpoch) / 60000);
+            } else {
+              diffMin = logoutMin - loginMin;
+              if (diffMin < 0) diffMin += 1440;
+              else if (diffMin === 0 && loginVal && logoutVal) diffMin = 1440;
+            }
+          } else {
+            diffMin = logoutMin - loginMin;
+            if (diffMin < 0) diffMin += 1440;
+            else if (diffMin === 0 && loginVal && logoutVal) {
+              diffMin = 1440;
+            }
+          }
           const workMin = Math.max(0, diffMin - breakMin);
           const h = Math.floor(workMin / 60);
           const m = workMin % 60;
@@ -19400,13 +19773,36 @@
         return null;
       }
 
-      function calculateLogoutFromLoginAndWork(loginVal, workVal, breakVal) {
+      function calculateLogoutFromLoginAndWork(
+        loginVal,
+        workVal,
+        breakVal,
+        dateStr = "",
+      ) {
         const loginMin = parseTimeToMinutes(loginVal);
         if (loginMin === null) return null;
         const wp = parseGoalTimeStr(workVal);
         const bp = parseGoalTimeStr(breakVal);
         const workMin = wp.hh * 60 + wp.mm;
         const breakMin = bp.hh * 60 + bp.mm;
+        if (dateStr) {
+          const loginEpoch = getEpochFromDateTimeString(dateStr, loginVal);
+          if (loginEpoch) {
+            const logoutEpoch = loginEpoch + (workMin + breakMin) * 60000;
+            const tz = DOM.primaryTz
+              ? DOM.primaryTz.value
+              : Intl.DateTimeFormat().resolvedOptions().timeZone;
+            try {
+              const formatTz = new Intl.DateTimeFormat("en-US", {
+                timeZone: tz,
+                hour: "numeric",
+                minute: "numeric",
+                hour12: true,
+              });
+              return formatTz.format(new Date(logoutEpoch));
+            } catch (e) {}
+          }
+        }
         return minutesToAMPM(loginMin + workMin + breakMin);
       }
 
@@ -19415,49 +19811,194 @@
         const logoutEl = document.getElementById(`${prefix}-logout`);
         const workEl = document.getElementById(`${prefix}-work`);
         const breakEl = document.getElementById(`${prefix}-break`);
+        const dateEl = document.getElementById(`${prefix}-date`);
         if (!loginEl || !logoutEl || !workEl || !breakEl) return;
 
-        const loginVal = loginEl.value.trim();
-        const logoutVal = logoutEl.value.trim();
-        const workVal = workEl.value.trim();
-        const breakVal = breakEl.value.trim() || "00:00";
+        breakEl.classList.remove("input-error");
+        breakEl.style.borderColor = "";
+        breakEl.title = "";
 
-        const loginMin = parseTimeToMinutes(loginVal);
-        const logoutMin = parseTimeToMinutes(logoutVal);
-        const hasLogin = loginMin !== null;
-        const hasLogout = logoutMin !== null;
+        let loginVal = loginEl.value.trim();
+        let logoutVal = logoutEl.value.trim();
+        let workVal = workEl.value.trim();
+        let breakVal = breakEl.value.trim() || "00:00";
+        const dateVal = dateEl ? dateEl.value.trim() : "";
 
-        if (
-          changedField === "login" ||
-          changedField === "logout" ||
-          changedField === "break"
-        ) {
+        const hasLogin = !!loginVal;
+        const hasLogout = !!logoutVal;
+        const hasWork = !!workVal;
+        const hasBreak = !!breakVal;
+
+        if (!hasLogin && !hasLogout) {
+          workEl.value = "";
+          return;
+        }
+        if (changedField === "logout" && !hasLogout) {
+          if (hasLogin && hasWork) {
+            logoutEl.value = calculateLogoutFromLoginAndWork(
+              loginVal,
+              workVal,
+              breakVal,
+              dateVal,
+            );
+          } else {
+            workEl.value = "";
+          }
+        }
+        if (changedField === "login" && !hasLogin) {
+          if (hasLogout && hasWork) {
+            loginEl.value = calculateLoginFromLogoutAndWork(
+              logoutVal,
+              workVal,
+              breakVal,
+              dateVal,
+            );
+          } else {
+            workEl.value = "";
+          }
+        }
+        if (changedField === "work" && !hasWork) {
           if (hasLogin && hasLogout) {
-            // Both timestamps present → derive work
-            const derived = calculateDurationFromTimes(
+            workEl.value = calculateDurationFromTimes(
               loginVal,
               logoutVal,
               breakVal,
+              dateVal,
             );
-            if (derived !== null) workEl.value = derived;
-          } else if (changedField !== "logout" && hasLogin && workVal) {
-            // Only login present + work is filled → derive logout
-            const derived = calculateLogoutFromLoginAndWork(
-              loginVal,
-              workVal,
-              breakVal,
-            );
-            if (derived !== null) logoutEl.value = derived;
           }
-        } else if (changedField === "work") {
-          if (hasLogin) {
-            // Work explicitly set → derive logout from login anchor
-            const derived = calculateLogoutFromLoginAndWork(
+        }
+
+        loginVal = loginEl.value.trim();
+        logoutVal = logoutEl.value.trim();
+        workVal = workEl.value.trim();
+        breakVal = breakEl.value.trim() || "00:00";
+
+        let parsedLogin = parseClockTimePreview(loginVal);
+        let parsedLogout = parseClockTimePreview(logoutVal);
+
+        if (parsedLogin && parsedLogout) {
+          const loginMin = parseTimeToMinutes(parsedLogin);
+          const logoutMin = parseTimeToMinutes(parsedLogout);
+          if (loginMin !== null && logoutMin !== null) {
+            let diff = logoutMin - loginMin;
+            if (diff < 0) diff += 1440;
+
+            const rawLogoutClean = logoutVal.toLowerCase().replace(/\s+/g, "");
+            const hasExplicitMeridian =
+              rawLogoutClean.includes("am") || rawLogoutClean.includes("pm");
+
+            if (!hasExplicitMeridian && diff > 960) {
+              const flippedLogoutMin = (logoutMin + 720) % 1440;
+              let flippedDiff = flippedLogoutMin - loginMin;
+              if (flippedDiff < 0) flippedDiff += 1440;
+
+              if (flippedDiff <= 960) {
+                logoutEl.value = minutesToAMPM(flippedLogoutMin);
+                logoutVal = logoutEl.value;
+              }
+            }
+          }
+        }
+
+        const hasLogin2 = !!loginVal;
+        const hasLogout2 = !!logoutVal;
+        const hasWork2 = !!workVal;
+
+        if (changedField === "login") {
+          if (hasLogout2)
+            workEl.value = calculateDurationFromTimes(
+              loginVal,
+              logoutVal,
+              breakVal,
+              dateVal,
+            );
+          else if (hasWork2)
+            logoutEl.value = calculateLogoutFromLoginAndWork(
               loginVal,
               workVal,
               breakVal,
+              dateVal,
             );
-            if (derived !== null) logoutEl.value = derived;
+        } else if (changedField === "logout") {
+          if (hasLogin2)
+            workEl.value = calculateDurationFromTimes(
+              loginVal,
+              logoutVal,
+              breakVal,
+              dateVal,
+            );
+          else if (hasWork2)
+            loginEl.value = calculateLoginFromLogoutAndWork(
+              logoutVal,
+              workVal,
+              breakVal,
+              dateVal,
+            );
+        } else if (changedField === "work") {
+          if (hasLogin2)
+            logoutEl.value = calculateLogoutFromLoginAndWork(
+              loginVal,
+              workVal,
+              breakVal,
+              dateVal,
+            );
+          else if (hasLogout2)
+            loginEl.value = calculateLoginFromLogoutAndWork(
+              logoutVal,
+              workVal,
+              breakVal,
+              dateVal,
+            );
+        } else if (changedField === "break") {
+          if (lastEditedModalField === "break") {
+            if (previousEditedModalField === "work" && hasLogin2 && hasWork2) {
+              logoutEl.value = calculateLogoutFromLoginAndWork(
+                loginVal,
+                workVal,
+                breakVal,
+                dateVal,
+              );
+            } else if (hasLogin2 && hasLogout2) {
+              workEl.value = calculateDurationFromTimes(
+                loginVal,
+                logoutVal,
+                breakVal,
+                dateVal,
+              );
+            }
+          }
+        } else if (!hasLogin2 && hasLogout2 && hasWork2 && hasBreak) {
+          loginEl.value = calculateLoginFromLogoutAndWork(
+            logoutVal,
+            workVal,
+            breakVal,
+            dateVal,
+          );
+        }
+
+        loginVal = loginEl.value.trim();
+        logoutVal = logoutEl.value.trim();
+        if (loginVal && logoutVal && dateVal) {
+          const epochIn = getEpochFromDateTimeString(dateVal, loginVal);
+          const epochOut = getEpochFromDateTimeString(dateVal, logoutVal);
+          const bParsed = parseGoalTimeStr(breakEl.value.trim() || "00:00");
+          const bMs = (bParsed.hh * 3600 + bParsed.mm * 60) * 1000;
+
+          if (epochIn !== null && epochOut !== null) {
+            let diff = epochOut - epochIn;
+            if (diff < 0) diff += 86400000;
+            else if (
+              diff === 0 &&
+              loginVal.toLowerCase() === logoutVal.toLowerCase()
+            )
+              diff = 86400000;
+            if (bMs > diff) {
+              breakEl.classList.add("input-error");
+              breakEl.style.borderColor = "var(--accent-break)";
+              breakEl.title = "Break cannot exceed total time.";
+              workEl.value = "";
+              return;
+            }
           }
         }
       }
@@ -19465,12 +20006,24 @@
       ["login", "logout", "work", "break"].forEach((field) => {
         const manualEl = document.getElementById(`manual-${field}`);
         const editEl = document.getElementById(`edit-${field}`);
-        if (manualEl)
+
+        const onFocus = () => {
+          if (lastEditedModalField !== field) {
+            previousEditedModalField = lastEditedModalField;
+            lastEditedModalField = field;
+          }
+        };
+
+        if (manualEl) {
           manualEl.addEventListener("blur", () =>
             syncModalFields("manual", field),
           );
-        if (editEl)
+          manualEl.addEventListener("focus", onFocus);
+        }
+        if (editEl) {
           editEl.addEventListener("blur", () => syncModalFields("edit", field));
+          editEl.addEventListener("focus", onFocus);
+        }
       });
 
       // Event listener for Manual Date Picker
@@ -19708,8 +20261,9 @@
       document
         .getElementById("confirm-action-btn")
         .addEventListener("click", () => {
-          if (confirmCallback) confirmCallback();
+          const cb = confirmCallback;
           closeConfirmModal();
+          if (cb) cb();
         });
 
       /**
@@ -20275,10 +20829,10 @@
       })();
 
       /* ═══════════════════════════════════════════════════════════════════
-         CUSTOM SELECT CONTROLLER
-         Self-contained. Keeps hidden <select> in DOM so all existing JS
-         logic (.value reads, .value sets, change listeners) works unchanged.
-         ═══════════════════════════════════════════════════════════════════ */
+       CUSTOM SELECT CONTROLLER
+       Self-contained. Keeps hidden <select> in DOM so all existing JS
+       logic (.value reads, .value sets, change listeners) works unchanged.
+       ═══════════════════════════════════════════════════════════════════ */
       (function initCustomSelects() {
         const nativeValueDesc = Object.getOwnPropertyDescriptor(
           HTMLSelectElement.prototype,
