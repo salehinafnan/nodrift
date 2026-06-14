@@ -1659,12 +1659,20 @@
         display: none;
       }
 
-      .logbook-controls-header {
+      .logbook-sticky-toolbar {
         position: sticky;
         top: 0;
         z-index: 100;
         background: var(--panel-bg);
-        padding: 2px 0 4px 0;
+        display: flex;
+        flex-direction: column;
+        margin: 0;
+        padding-top: 2px;
+      }
+
+      .logbook-controls-header {
+        position: relative;
+        padding: 0 0 4px 0;
         display: flex;
         justify-content: space-between;
         align-items: center;
@@ -1719,8 +1727,9 @@
         border: 1px solid var(--border-main);
         margin-bottom: 12px;
         gap: 6px;
-        position: relative;
-        z-index: 50;
+        position: sticky;
+        top: 48px;
+        z-index: 99;
         flex-shrink: 0;
         box-shadow: var(--panel-shadow);
         opacity: 0;
@@ -7538,260 +7547,343 @@
 
         <!-- Tab Content Area: Historical Shift Logbook -->
         <div id="tab-logbook" class="tab-content" style="display: none">
-          <div class="logbook-controls-header">
-            <div style="display: flex; gap: 8px; align-items: center">
-              <!-- Toggle Filters Button -->
-              <button
-                class="header-icon-btn"
-                id="filter-toggle-btn"
-                onclick="toggleFilters()"
-                title="Advanced Filters"
-              >
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="1.8"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  width="14"
-                  height="14"
+          <div class="logbook-sticky-toolbar">
+            <div class="logbook-controls-header">
+              <div style="display: flex; gap: 8px; align-items: center">
+                <!-- Toggle Filters Button -->
+                <button
+                  class="header-icon-btn"
+                  id="filter-toggle-btn"
+                  onclick="toggleFilters()"
+                  title="Advanced Filters"
                 >
-                  <use href="#sprite-024"></use>
-                </svg>
-                Filters
-              </button>
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.8"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    width="14"
+                    height="14"
+                  >
+                    <use href="#sprite-024"></use>
+                  </svg>
+                  Filters
+                </button>
 
-              <!-- Manual Log Addition Button -->
-              <button
-                class="header-icon-btn"
-                onclick="openManualModal()"
-                title="Add Manual Entry"
-                aria-label="Icon Button"
-              >
-                <svg
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  fill="none"
-                  stroke-width="1.8"
-                  width="14"
-                  height="14"
+                <!-- Manual Log Addition Button -->
+                <button
+                  class="header-icon-btn"
+                  onclick="openManualModal()"
+                  title="Add Manual Entry"
+                  aria-label="Icon Button"
                 >
-                  <use href="#sprite-025"></use>
-                </svg>
-                Add Log
-              </button>
-            </div>
-
-            <!-- Total Active Log Item Indicator Counter (Styled cleanly via CSS ID now) -->
-            <span id="log-count-display"></span>
-          </div>
-
-          <!-- Filter Drawer Container -->
-          <div id="advanced-filters" class="advanced-filters">
-            <!-- Hidden view presets container for JS safety -->
-            <select id="filter-view-presets" style="display: none !important">
-              <option value="">Views...</option>
-            </select>
-
-            <!-- Row 1: Search -->
-            <div class="filter-row">
-              <div class="filter-input-wrapper" style="flex: 1; min-width: 0">
-                <svg
-                  class="field-icon"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="1.8"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                >
-                  <use href="#sprite-026"></use>
-                </svg>
-                <input
-                  type="text"
-                  id="filter-search"
-                  class="filter-input"
-                  placeholder="Search notes or times..."
-                />
+                  <svg
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    fill="none"
+                    stroke-width="1.8"
+                    width="14"
+                    height="14"
+                  >
+                    <use href="#sprite-025"></use>
+                  </svg>
+                  Add Log
+                </button>
               </div>
+
+              <!-- Total Active Log Item Indicator Counter (Styled cleanly via CSS ID now) -->
+              <span id="log-count-display"></span>
             </div>
 
-            <!-- Row 2: Unified Constraints (Date Picker & Hours Filter) -->
-            <div class="filter-row">
-              <!-- Unified Date Picker -->
-              <div
-                style="
-                  flex: 1.5;
-                  min-width: 0;
-                  display: flex;
-                  align-items: center;
-                  background: rgba(255, 255, 255, 0.015);
-                  border: 1px solid var(--border-main);
-                  border-radius: 6px;
-                  padding: 0 6px;
-                  gap: 6px;
-                  height: 27px;
-                  box-sizing: border-box;
-                "
-              >
-                <!-- From Column with Clickable Calendar Button -->
-                <div
-                  style="
-                    display: flex;
-                    align-items: center;
-                    gap: 3px;
-                    flex: 1;
-                    min-width: 0;
-                  "
-                >
-                  <span
-                    class="form-label-xs"
-                    style="text-transform: none !important"
-                    >From</span
+            <!-- Filter Drawer Container -->
+            <div id="advanced-filters" class="advanced-filters">
+              <!-- Hidden view presets container for JS safety -->
+              <select id="filter-view-presets" style="display: none !important">
+                <option value="">Views...</option>
+              </select>
+
+              <!-- Row 1: Search -->
+              <div class="filter-row">
+                <div class="filter-input-wrapper" style="flex: 1; min-width: 0">
+                  <svg
+                    class="field-icon"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.8"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
                   >
+                    <use href="#sprite-026"></use>
+                  </svg>
                   <input
                     type="text"
-                    readonly
-                    id="filter-date-start"
+                    id="filter-search"
                     class="filter-input"
-                    style="
-                      border: none !important;
-                      background: transparent !important;
-                      padding: 0 !important;
-                      height: 100% !important;
-                      flex: 1;
-                      min-width: 0;
-                      font-size: 0.7rem;
-                      color: var(--text-main);
-                    "
+                    placeholder="Search notes or times..."
                   />
-                  <button
-                    type="button"
-                    onclick="safeShowPicker('filter-date-start')"
-                    style="
-                      background: transparent;
-                      border: none;
-                      padding: 0;
-                      cursor: pointer;
-                      color: var(--text-muted);
-                      display: flex;
-                      align-items: center;
-                      justify-content: center;
-                      flex-shrink: 0;
-                    "
-                    title="Open Calendar"
-                  >
-                    <svg
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="1.8"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      style="width: 12px; height: 12px"
-                    >
-                      <use href="#sprite-027"></use>
-                    </svg>
-                  </button>
-                </div>
-                <div
-                  style="
-                    width: 1px;
-                    height: 12px;
-                    background: var(--border-main);
-                  "
-                ></div>
-                <!-- To Column with Clickable Calendar Button -->
-                <div
-                  style="
-                    display: flex;
-                    align-items: center;
-                    gap: 3px;
-                    flex: 1;
-                    min-width: 0;
-                  "
-                >
-                  <span
-                    class="form-label-xs"
-                    style="text-transform: none !important"
-                    >To</span
-                  >
-                  <input
-                    type="text"
-                    readonly
-                    id="filter-date-end"
-                    class="filter-input"
-                    style="
-                      border: none !important;
-                      background: transparent !important;
-                      padding: 0 !important;
-                      height: 100% !important;
-                      flex: 1;
-                      min-width: 0;
-                      font-size: 0.7rem;
-                      color: var(--text-main);
-                    "
-                  />
-                  <button
-                    type="button"
-                    onclick="safeShowPicker('filter-date-end')"
-                    style="
-                      background: transparent;
-                      border: none;
-                      padding: 0;
-                      cursor: pointer;
-                      color: var(--text-muted);
-                      display: flex;
-                      align-items: center;
-                      justify-content: center;
-                      flex-shrink: 0;
-                    "
-                    title="Open Calendar"
-                  >
-                    <svg
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="1.8"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      style="width: 12px; height: 12px"
-                    >
-                      <use href="#sprite-027"></use>
-                    </svg>
-                  </button>
                 </div>
               </div>
 
-              <!-- Unified Hours Filter -->
-              <div
-                class="filter-hours-group"
-                style="
-                  flex: 1.2;
-                  min-width: 0;
-                  display: flex;
-                  gap: 4px;
-                  align-items: center;
-                "
-              >
+              <!-- Row 2: Unified Constraints (Date Picker & Hours Filter) -->
+              <div class="filter-row">
+                <!-- Unified Date Picker -->
+                <div
+                  style="
+                    flex: 1.5;
+                    min-width: 0;
+                    display: flex;
+                    align-items: center;
+                    background: rgba(255, 255, 255, 0.015);
+                    border: 1px solid var(--border-main);
+                    border-radius: 6px;
+                    padding: 0 6px;
+                    gap: 6px;
+                    height: 27px;
+                    box-sizing: border-box;
+                  "
+                >
+                  <!-- From Column with Clickable Calendar Button -->
+                  <div
+                    style="
+                      display: flex;
+                      align-items: center;
+                      gap: 3px;
+                      flex: 1;
+                      min-width: 0;
+                    "
+                  >
+                    <span
+                      class="form-label-xs"
+                      style="text-transform: none !important"
+                      >From</span
+                    >
+                    <input
+                      type="text"
+                      readonly
+                      id="filter-date-start"
+                      class="filter-input"
+                      style="
+                        border: none !important;
+                        background: transparent !important;
+                        padding: 0 !important;
+                        height: 100% !important;
+                        flex: 1;
+                        min-width: 0;
+                        font-size: 0.7rem;
+                        color: var(--text-main);
+                      "
+                    />
+                    <button
+                      type="button"
+                      onclick="safeShowPicker('filter-date-start')"
+                      style="
+                        background: transparent;
+                        border: none;
+                        padding: 0;
+                        cursor: pointer;
+                        color: var(--text-muted);
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        flex-shrink: 0;
+                      "
+                      title="Open Calendar"
+                    >
+                      <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.8"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        style="width: 12px; height: 12px"
+                      >
+                        <use href="#sprite-027"></use>
+                      </svg>
+                    </button>
+                  </div>
+                  <div
+                    style="
+                      width: 1px;
+                      height: 12px;
+                      background: var(--border-main);
+                    "
+                  ></div>
+                  <!-- To Column with Clickable Calendar Button -->
+                  <div
+                    style="
+                      display: flex;
+                      align-items: center;
+                      gap: 3px;
+                      flex: 1;
+                      min-width: 0;
+                    "
+                  >
+                    <span
+                      class="form-label-xs"
+                      style="text-transform: none !important"
+                      >To</span
+                    >
+                    <input
+                      type="text"
+                      readonly
+                      id="filter-date-end"
+                      class="filter-input"
+                      style="
+                        border: none !important;
+                        background: transparent !important;
+                        padding: 0 !important;
+                        height: 100% !important;
+                        flex: 1;
+                        min-width: 0;
+                        font-size: 0.7rem;
+                        color: var(--text-main);
+                      "
+                    />
+                    <button
+                      type="button"
+                      onclick="safeShowPicker('filter-date-end')"
+                      style="
+                        background: transparent;
+                        border: none;
+                        padding: 0;
+                        cursor: pointer;
+                        color: var(--text-muted);
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        flex-shrink: 0;
+                      "
+                      title="Open Calendar"
+                    >
+                      <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.8"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        style="width: 12px; height: 12px"
+                      >
+                        <use href="#sprite-027"></use>
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Unified Hours Filter -->
+                <div
+                  class="filter-hours-group"
+                  style="
+                    flex: 1.2;
+                    min-width: 0;
+                    display: flex;
+                    gap: 4px;
+                    align-items: center;
+                  "
+                >
+                  <div
+                    class="filter-select-wrapper"
+                    style="flex: 1.2; min-width: 0"
+                  >
+                    <div class="custom-select">
+                      <select id="filter-hours-op" style="display: none">
+                        <option value="ALL">Hours...</option>
+                        <option value="MORE">More than</option>
+                        <option value="LESS">Less than</option>
+                      </select>
+                      <button
+                        type="button"
+                        class="custom-select-trigger cs-sm"
+                        data-for="filter-hours-op"
+                        aria-haspopup="listbox"
+                      >
+                        <span class="cs-trigger-val">Hours...</span>
+                        <svg
+                          class="cs-chevron"
+                          viewBox="0 0 24 24"
+                          width="11"
+                          height="11"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="1.8"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                        >
+                          <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                      </button>
+                      <div
+                        class="custom-select-panel cs-compact"
+                        role="listbox"
+                      >
+                        <button
+                          type="button"
+                          class="custom-select-option cs-selected"
+                          data-value="ALL"
+                        >
+                          Hours...
+                        </button>
+                        <button
+                          type="button"
+                          class="custom-select-option"
+                          data-value="MORE"
+                        >
+                          More than
+                        </button>
+                        <button
+                          type="button"
+                          class="custom-select-option"
+                          data-value="LESS"
+                        >
+                          Less than
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                  <div
+                    class="filter-group-card"
+                    style="flex: 0.8; min-width: 0; padding: 0 6px"
+                  >
+                    <input
+                      type="number"
+                      id="filter-hours-val"
+                      class="filter-input"
+                      placeholder="0"
+                      min="0"
+                      disabled
+                      style="width: 100%; text-align: center"
+                    />
+                    <span class="filter-suffix" style="margin-left: 2px"
+                      >hrs</span
+                    >
+                  </div>
+                </div>
+              </div>
+
+              <!-- Row 3: Quick Action Options (Timeframe, Status, Has Notes, Clear) -->
+              <div class="filter-row">
                 <div
                   class="filter-select-wrapper"
-                  style="flex: 1.2; min-width: 0"
+                  style="flex: 1; min-width: 0"
                 >
                   <div class="custom-select">
-                    <select id="filter-hours-op" style="display: none">
-                      <option value="ALL">Hours...</option>
-                      <option value="MORE">More than</option>
-                      <option value="LESS">Less than</option>
+                    <select id="filter-time" style="display: none">
+                      <option value="ALL">All Time</option>
+                      <option value="TODAY">Today</option>
+                      <option value="WEEK">This Week</option>
+                      <option value="MONTH">This Month</option>
                     </select>
                     <button
                       type="button"
                       class="custom-select-trigger cs-sm"
-                      data-for="filter-hours-op"
+                      data-for="filter-time"
                       aria-haspopup="listbox"
                     >
-                      <span class="cs-trigger-val">Hours...</span>
+                      <span class="cs-trigger-val">All Time</span>
                       <svg
                         class="cs-chevron"
                         viewBox="0 0 24 24"
@@ -7812,205 +7904,134 @@
                         class="custom-select-option cs-selected"
                         data-value="ALL"
                       >
-                        Hours...
+                        All Time
                       </button>
                       <button
                         type="button"
                         class="custom-select-option"
-                        data-value="MORE"
+                        data-value="TODAY"
                       >
-                        More than
+                        Today
                       </button>
                       <button
                         type="button"
                         class="custom-select-option"
-                        data-value="LESS"
+                        data-value="WEEK"
                       >
-                        Less than
+                        This Week
+                      </button>
+                      <button
+                        type="button"
+                        class="custom-select-option"
+                        data-value="MONTH"
+                      >
+                        This Month
                       </button>
                     </div>
                   </div>
                 </div>
                 <div
-                  class="filter-group-card"
-                  style="flex: 0.8; min-width: 0; padding: 0 6px"
+                  class="filter-select-wrapper"
+                  style="flex: 1; min-width: 0"
                 >
-                  <input
-                    type="number"
-                    id="filter-hours-val"
-                    class="filter-input"
-                    placeholder="0"
-                    min="0"
-                    disabled
-                    style="width: 100%; text-align: center"
-                  />
-                  <span class="filter-suffix" style="margin-left: 2px"
-                    >hrs</span
-                  >
+                  <div class="custom-select">
+                    <select id="filter-status" style="display: none">
+                      <option value="ALL">All Status</option>
+                      <option value="OVER">Over Goal</option>
+                      <option value="UNDER">Under Goal</option>
+                    </select>
+                    <button
+                      type="button"
+                      class="custom-select-trigger cs-sm"
+                      data-for="filter-status"
+                      aria-haspopup="listbox"
+                    >
+                      <span class="cs-trigger-val">All Status</span>
+                      <svg
+                        class="cs-chevron"
+                        viewBox="0 0 24 24"
+                        width="11"
+                        height="11"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.8"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      >
+                        <polyline points="6 9 12 15 18 9"></polyline>
+                      </svg>
+                    </button>
+                    <div class="custom-select-panel cs-compact" role="listbox">
+                      <button
+                        type="button"
+                        class="custom-select-option cs-selected"
+                        data-value="ALL"
+                      >
+                        All Status
+                      </button>
+                      <button
+                        type="button"
+                        class="custom-select-option"
+                        data-value="OVER"
+                      >
+                        Over Goal
+                      </button>
+                      <button
+                        type="button"
+                        class="custom-select-option"
+                        data-value="UNDER"
+                      >
+                        Under Goal
+                      </button>
+                    </div>
+                  </div>
                 </div>
+                <label
+                  class="filter-checkbox-chip"
+                  style="
+                    flex: 1;
+                    min-width: 0;
+                    margin: 0;
+                    padding: 0 4px;
+                    box-sizing: border-box;
+                    justify-content: center;
+                    width: 100%;
+                  "
+                >
+                  <input type="checkbox" id="filter-notes" />
+                  <span class="checkbox-text">Has Notes</span>
+                </label>
+                <button
+                  class="clear-filter-btn"
+                  onclick="clearFilters()"
+                  style="
+                    flex: 1;
+                    height: 27px;
+                    padding: 0 8px;
+                    border-radius: 6px;
+                    font-size: 0.72rem;
+                    margin: 0;
+                    justify-content: center;
+                    width: 100%;
+                  "
+                >
+                  Clear Filters
+                </button>
               </div>
             </div>
 
-            <!-- Row 3: Quick Action Options (Timeframe, Status, Has Notes, Clear) -->
-            <div class="filter-row">
-              <div class="filter-select-wrapper" style="flex: 1; min-width: 0">
-                <div class="custom-select">
-                  <select id="filter-time" style="display: none">
-                    <option value="ALL">All Time</option>
-                    <option value="TODAY">Today</option>
-                    <option value="WEEK">This Week</option>
-                    <option value="MONTH">This Month</option>
-                  </select>
-                  <button
-                    type="button"
-                    class="custom-select-trigger cs-sm"
-                    data-for="filter-time"
-                    aria-haspopup="listbox"
-                  >
-                    <span class="cs-trigger-val">All Time</span>
-                    <svg
-                      class="cs-chevron"
-                      viewBox="0 0 24 24"
-                      width="11"
-                      height="11"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="1.8"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                    >
-                      <polyline points="6 9 12 15 18 9"></polyline>
-                    </svg>
-                  </button>
-                  <div class="custom-select-panel cs-compact" role="listbox">
-                    <button
-                      type="button"
-                      class="custom-select-option cs-selected"
-                      data-value="ALL"
-                    >
-                      All Time
-                    </button>
-                    <button
-                      type="button"
-                      class="custom-select-option"
-                      data-value="TODAY"
-                    >
-                      Today
-                    </button>
-                    <button
-                      type="button"
-                      class="custom-select-option"
-                      data-value="WEEK"
-                    >
-                      This Week
-                    </button>
-                    <button
-                      type="button"
-                      class="custom-select-option"
-                      data-value="MONTH"
-                    >
-                      This Month
-                    </button>
-                  </div>
-                </div>
-              </div>
-              <div class="filter-select-wrapper" style="flex: 1; min-width: 0">
-                <div class="custom-select">
-                  <select id="filter-status" style="display: none">
-                    <option value="ALL">All Status</option>
-                    <option value="OVER">Over Goal</option>
-                    <option value="UNDER">Under Goal</option>
-                  </select>
-                  <button
-                    type="button"
-                    class="custom-select-trigger cs-sm"
-                    data-for="filter-status"
-                    aria-haspopup="listbox"
-                  >
-                    <span class="cs-trigger-val">All Status</span>
-                    <svg
-                      class="cs-chevron"
-                      viewBox="0 0 24 24"
-                      width="11"
-                      height="11"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="1.8"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                    >
-                      <polyline points="6 9 12 15 18 9"></polyline>
-                    </svg>
-                  </button>
-                  <div class="custom-select-panel cs-compact" role="listbox">
-                    <button
-                      type="button"
-                      class="custom-select-option cs-selected"
-                      data-value="ALL"
-                    >
-                      All Status
-                    </button>
-                    <button
-                      type="button"
-                      class="custom-select-option"
-                      data-value="OVER"
-                    >
-                      Over Goal
-                    </button>
-                    <button
-                      type="button"
-                      class="custom-select-option"
-                      data-value="UNDER"
-                    >
-                      Under Goal
-                    </button>
-                  </div>
-                </div>
-              </div>
-              <label
-                class="filter-checkbox-chip"
-                style="
-                  flex: 1;
-                  min-width: 0;
-                  margin: 0;
-                  padding: 0 4px;
-                  box-sizing: border-box;
-                  justify-content: center;
-                  width: 100%;
-                "
-              >
-                <input type="checkbox" id="filter-notes" />
-                <span class="checkbox-text">Has Notes</span>
-              </label>
-              <button
-                class="clear-filter-btn"
-                onclick="clearFilters()"
-                style="
-                  flex: 1;
-                  height: 27px;
-                  padding: 0 8px;
-                  border-radius: 6px;
-                  font-size: 0.72rem;
-                  margin: 0;
-                  justify-content: center;
-                  width: 100%;
-                "
-              >
-                Clear Filters
-              </button>
-            </div>
+            <!-- Active Filter Chips Container -->
+            <div
+              id="filter-chips-container"
+              style="
+                display: flex;
+                flex-wrap: wrap;
+                gap: 6px;
+                margin-bottom: 12px;
+              "
+            ></div>
           </div>
-
-          <!-- Active Filter Chips Container -->
-          <div
-            id="filter-chips-container"
-            style="
-              display: flex;
-              flex-wrap: wrap;
-              gap: 6px;
-              margin-bottom: 12px;
-            "
-          ></div>
+          <!-- Close logbook-sticky-toolbar -->
 
           <!-- Dynamic Sticky Month Indicator -->
           <div
