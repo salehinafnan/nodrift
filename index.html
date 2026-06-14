@@ -3874,13 +3874,13 @@
         background: var(--panel-bg);
         border: 1px solid var(--border-light);
         border-radius: var(--radius-md);
-        box-shadow: var(--panel-shadow);
-        padding: 12px;
-        width: 260px;
+        box-shadow: var(--global-shadow);
+        padding: 10px;
+        width: 230px;
         font-family: var(--font-sans);
         display: flex;
         flex-direction: column;
-        gap: 12px;
+        gap: 10px;
         opacity: 0;
         pointer-events: none;
         transition: opacity 0.08s ease;
@@ -3897,7 +3897,7 @@
         align-items: center;
         font-weight: 600;
         color: var(--text-main);
-        font-size: 0.95rem;
+        font-size: 0.9rem;
       }
 
       .cdp-nav-btn {
@@ -3905,7 +3905,7 @@
         border: none;
         color: var(--text-muted);
         cursor: pointer;
-        padding: 7px;
+        padding: 5px;
         border-radius: 6px;
         display: flex;
         align-items: center;
@@ -3925,18 +3925,18 @@
       }
 
       .cdp-day-name {
-        font-size: 0.75rem;
+        font-size: 0.7rem;
         color: var(--text-muted);
         font-weight: 600;
-        padding-bottom: 6px;
+        padding-bottom: 4px;
       }
 
       .cdp-day {
         background: transparent;
         border: none;
         color: var(--text-main);
-        font-size: 0.85rem;
-        padding: 6px 0;
+        font-size: 0.8rem;
+        padding: 5px 0;
         border-radius: 6px;
         cursor: pointer;
         font-family: var(--font-sans);
@@ -3953,6 +3953,7 @@
       .cdp-day.cdp-today {
         color: var(--accent-blue);
         font-weight: 700;
+        box-shadow: inset 0 0 0 1px var(--accent-blue);
       }
 
       .cdp-day.cdp-selected {
@@ -7662,7 +7663,6 @@
                     >
                     <input
                       type="text"
-                      readonly
                       id="filter-date-start"
                       class="filter-input"
                       style="
@@ -7729,7 +7729,6 @@
                     >
                     <input
                       type="text"
-                      readonly
                       id="filter-date-end"
                       class="filter-input"
                       style="
@@ -19333,6 +19332,8 @@
           bindInput("manual-date", parseDatePreview);
           bindInput("edit-date", parseDatePreview);
           bindInput("leave-date-input", parseDatePreview);
+          bindInput("filter-date-start", parseDatePreview);
+          bindInput("filter-date-end", parseDatePreview);
           bindInput("manual-goal", parseGoalPreview);
           bindInput("edit-goal", parseGoalPreview);
 
@@ -19565,11 +19566,18 @@
           const formattedDate = `${String(mm).padStart(2, "0")}/${String(dd).padStart(2, "0")}/${shortY}`;
           if (formattedDate.match(/^\d{2}\/\d{2}\/\d{2}$/)) {
             input.value = formattedDate;
+            input.dispatchEvent(new Event("change", { bubbles: true }));
           }
         }
       }
 
-      ["manual-date", "edit-date", "leave-date-input"].forEach((id) => {
+      [
+        "manual-date",
+        "edit-date",
+        "leave-date-input",
+        "filter-date-start",
+        "filter-date-end",
+      ].forEach((id) => {
         const el = document.getElementById(id);
         if (el) el.addEventListener("blur", handleDateInputBlur);
       });
