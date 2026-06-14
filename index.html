@@ -8965,7 +8965,8 @@
         const ampm = h >= 12 ? "PM" : "AM";
         const paddedM = String(m).padStart(2, "0");
         const paddedS = String(s).padStart(2, "0");
-        return `${hours12}:${paddedM}:${paddedS} ${ampm}`;
+        const paddedH = String(hours12).padStart(2, "0");
+        return `${paddedH}:${paddedM}:${paddedS} ${ampm}`;
       }
 
       function minutesToAMPM(totalMinutes) {
