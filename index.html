@@ -6124,25 +6124,27 @@
         </div>
         <div class="form-row">
           <div class="form-group">
-            <label class="form-label" for="edit-work">Work Time (HH:MM)</label>
+            <label class="form-label" for="edit-work"
+              >Work Time (HH:MM:SS)</label
+            >
             <input
               type="text"
               id="edit-work"
               class="input-standard"
-              placeholder="08:00"
+              placeholder="08:00:00"
               onfocus="this.select()"
               onkeydown="if (event.key === 'Enter') this.blur();"
             />
           </div>
           <div class="form-group">
             <label class="form-label" for="edit-break"
-              >Break Time (HH:MM)</label
+              >Break Time (HH:MM:SS)</label
             >
             <input
               type="text"
               id="edit-break"
               class="input-standard"
-              placeholder="00:00"
+              placeholder="00:00:00"
               onfocus="this.select()"
               onkeydown="if (event.key === 'Enter') this.blur();"
             />
@@ -6267,23 +6269,25 @@
         </div>
         <div class="form-row">
           <div class="form-group">
-            <label class="form-label" for="manual-work">Work (HH:MM)</label>
+            <label class="form-label" for="manual-work">Work (HH:MM:SS)</label>
             <input
               type="text"
               id="manual-work"
               class="input-standard"
-              placeholder="08:00"
+              placeholder="08:00:00"
               onfocus="this.select()"
               onkeydown="if (event.key === 'Enter') this.blur();"
             />
           </div>
           <div class="form-group">
-            <label class="form-label" for="manual-break">Break (HH:MM)</label>
+            <label class="form-label" for="manual-break"
+              >Break (HH:MM:SS)</label
+            >
             <input
               type="text"
               id="manual-break"
               class="input-standard"
-              value="00:00"
+              value="00:00:00"
               onfocus="this.select()"
               onkeydown="if (event.key === 'Enter') this.blur();"
             />
@@ -8845,25 +8849,31 @@
       function parseGoalTimeStr(val) {
         let hh = 0;
         let mm = 0;
+        let ss = 0;
         const cleanVal = String(val).trim().replace(",", ".");
-        if (!cleanVal) return { hh: 8, mm: 0 };
+        if (!cleanVal) return { hh: 8, mm: 0, ss: 0 };
         const naturalMatch = cleanVal.match(
-          /^(?:(\d+(?:\.\d+)?)\s*h)?\s*(?:(\d+)\s*m)?$/i,
+          /^(?:(\d+(?:\.\d+)?)\s*h)?\s*(?:(\d+)\s*m)?(?:\s*(\d+)\s*s)?$/i,
         );
-        const colonMatch = cleanVal.match(/^(\d+):(\d{1,2})$/);
+        const colonMatch = cleanVal.match(/^(\d+):(\d{1,2})(?::(\d{1,2}))?$/);
         const decimalMatch = cleanVal.match(/^(\d+(?:\.\d+))$/);
         if (colonMatch) {
           hh = parseInt(colonMatch[1], 10);
           mm = parseInt(colonMatch[2], 10);
+          ss = colonMatch[3] ? parseInt(colonMatch[3], 10) : 0;
         } else if (decimalMatch) {
           const total = parseFloat(decimalMatch[1]);
           hh = Math.floor(total);
           mm = Math.round((total - hh) * 60);
-        } else if (naturalMatch && (naturalMatch[1] || naturalMatch[2])) {
+        } else if (
+          naturalMatch &&
+          (naturalMatch[1] || naturalMatch[2] || naturalMatch[3])
+        ) {
           const rawH = parseFloat(naturalMatch[1] || 0);
           hh = Math.floor(rawH);
           mm =
             Math.round((rawH - hh) * 60) + parseInt(naturalMatch[2] || 0, 10);
+          ss = parseInt(naturalMatch[3] || 0, 10);
         } else {
           const digits = cleanVal.replace(/\D/g, "");
           if (digits) {
@@ -8873,19 +8883,25 @@
             } else if (digits.length === 3) {
               hh = parseInt(digits.slice(0, 1), 10) || 0;
               mm = parseInt(digits.slice(1), 10) || 0;
+            } else if (digits.length === 4) {
+              hh = parseInt(digits.slice(0, 2), 10) || 0;
+              mm = parseInt(digits.slice(2, 4), 10) || 0;
             } else {
               hh = parseInt(digits.slice(0, 2), 10) || 0;
               mm = parseInt(digits.slice(2, 4), 10) || 0;
+              ss = parseInt(digits.slice(4, 6), 10) || 0;
             }
           } else {
             hh = 8;
           }
         }
+        mm += Math.floor(ss / 60);
+        ss = ss % 60;
         hh += Math.floor(mm / 60);
         mm = mm % 60;
         hh = Math.min(24, Math.max(0, hh));
         mm = Math.min(59, Math.max(0, mm));
-        return { hh, mm };
+        return { hh, mm, ss };
       }
 
       function getGoalSeconds(h, m) {
@@ -8893,6 +8909,28 @@
         const mVal = Math.max(0, parseFloat(m) || 0);
         const total = hVal * 3600 + mVal * 60;
         return total > 0 ? total : 1;
+      }
+
+      function parseClockTimeToSeconds(timeStr) {
+        if (
+          !timeStr ||
+          timeStr === "Manual" ||
+          timeStr === "Entry" ||
+          timeStr === "?" ||
+          timeStr === "-"
+        )
+          return null;
+        const match = String(timeStr)
+          .trim()
+          .match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(AM|PM)$/i);
+        if (!match) return null;
+        let hours = parseInt(match[1], 10);
+        const minutes = parseInt(match[2], 10);
+        const seconds = match[3] ? parseInt(match[3], 10) : 0;
+        const ampm = match[4].toUpperCase();
+        if (ampm === "PM" && hours < 12) hours += 12;
+        if (ampm === "AM" && hours === 12) hours = 0;
+        return hours * 3600 + minutes * 60 + seconds;
       }
 
       function parseTimeToMinutes(timeStr) {
@@ -8915,6 +8953,19 @@
         if (ampm === "PM" && hours < 12) hours += 12;
         if (ampm === "AM" && hours === 12) hours = 0;
         return hours * 60 + minutes;
+      }
+
+      function secondsToAMPM(totalSeconds) {
+        totalSeconds = ((Math.round(totalSeconds) % 86400) + 86400) % 86400;
+        const h = Math.floor(totalSeconds / 3600);
+        const m = Math.floor((totalSeconds % 3600) / 60);
+        const s = totalSeconds % 60;
+        let hours12 = h % 12;
+        if (hours12 === 0) hours12 = 12;
+        const ampm = h >= 12 ? "PM" : "AM";
+        const paddedM = String(m).padStart(2, "0");
+        const paddedS = String(s).padStart(2, "0");
+        return `${hours12}:${paddedM}:${paddedS} ${ampm}`;
       }
 
       function minutesToAMPM(totalMinutes) {
@@ -9131,8 +9182,10 @@
       let appToastTimeout;
       let confirmCallback = null;
       let undoTimeout;
-      let lastEditedModalField = null;
-      let previousEditedModalField = null;
+      let modalStates = {
+        edit: { last: null, prev: null, lastValue: null },
+        manual: { last: null, prev: null, lastValue: null },
+      };
       let lastStateBackup = null;
       let displayBaseDate = null;
       let pendingSubmitData = null;
@@ -14547,11 +14600,11 @@
         DOM.editDate.value = log.date;
         DOM.editLogin.value = log.login || "";
         DOM.editLogout.value = log.logout || "";
-        DOM.editWork.value = formatDuration(log.workSec).slice(0, 5);
-        DOM.editBreak.value = formatDuration(log.breakSec).slice(0, 5);
+        DOM.editWork.value = formatDuration(log.workSec);
+        DOM.editBreak.value = formatDuration(log.breakSec);
 
-        lastEditedModalField = null;
-        previousEditedModalField = null;
+        modalStates.edit.last = null;
+        modalStates.edit.prev = null;
 
         // Populate goal input fields with the log's existing daily goal
         const currentGoalSec =
@@ -14663,9 +14716,8 @@
             derivedLogoutEpochMs = derivedLoginEpochMs + (wSec + bSec) * 1000;
           }
 
-          derivedLoginEpochMs = Math.floor(derivedLoginEpochMs / 60000) * 60000;
-          derivedLogoutEpochMs =
-            Math.floor(derivedLogoutEpochMs / 60000) * 60000;
+          derivedLoginEpochMs = Math.floor(derivedLoginEpochMs / 1000) * 1000;
+          derivedLogoutEpochMs = Math.floor(derivedLogoutEpochMs / 1000) * 1000;
 
           const activeSessionInProgress = !!state.loginTimestamp;
           let hasOverlap = false;
@@ -14675,13 +14727,13 @@
             const l = logs[i];
             if (l.id === editingLogId) continue;
             const lLogin =
-              Math.floor((l.loginEpochMs || l.epochMs) / 60000) * 60000;
+              Math.floor((l.loginEpochMs || l.epochMs) / 1000) * 1000;
             const lLogout =
               Math.floor(
                 (l.logoutEpochMs ||
                   lLogin + ((l.workSec || 0) + (l.breakSec || 0)) * 1000) /
-                  60000,
-              ) * 60000;
+                  1000,
+              ) * 1000;
             if (
               derivedLoginEpochMs < lLogout &&
               derivedLogoutEpochMs > lLogin
@@ -14694,11 +14746,11 @@
           }
 
           if (!hasOverlap && activeSessionInProgress && state.loginTimestamp) {
-            const liveLogin = Math.floor(state.loginTimestamp / 60000) * 60000;
+            const liveLogin = Math.floor(state.loginTimestamp / 1000) * 1000;
             const liveLogout =
               Math.floor(
-                (state.idleLock ? state.idleStart : Date.now()) / 60000,
-              ) * 60000;
+                (state.idleLock ? state.idleStart : Date.now()) / 1000,
+              ) * 1000;
             if (
               derivedLoginEpochMs < liveLogout &&
               derivedLogoutEpochMs > liveLogin
@@ -16882,6 +16934,78 @@
           }
         }
 
+        // Live Timer Adjustments
+        let adjustMatch = q.match(
+          /^(adjust|add|increase|decrease|remove|subtract|deduct)\s+([+-]?\s*(?:[0-9.]+[hms]\s*)+)$/i,
+        );
+        if (!adjustMatch) {
+          adjustMatch = q.match(/^([+-])\s*((?:[0-9.]+[hms]\s*)+)$/i);
+        }
+        if (!adjustMatch) {
+          const explicitSignMatch = q.match(/^([+-])((?:[0-9.]+[hms]\s*)+)$/i);
+          if (explicitSignMatch) {
+            adjustMatch = [
+              explicitSignMatch[0],
+              explicitSignMatch[1],
+              explicitSignMatch[2],
+            ];
+          }
+        }
+
+        if (
+          adjustMatch &&
+          adjustMatch[2].trim().length > 0 &&
+          state.loginTimestamp &&
+          !state.idleLock
+        ) {
+          const keyword = adjustMatch[1].toLowerCase();
+          let payload = adjustMatch[2].trim();
+          let isNegative = false;
+
+          if (
+            ["decrease", "remove", "subtract", "deduct", "-"].includes(keyword)
+          ) {
+            isNegative = true;
+          }
+
+          if (isNegative && !payload.startsWith("-")) {
+            payload = "-" + payload;
+          } else if (
+            !isNegative &&
+            keyword !== "adjust" &&
+            !payload.startsWith("+") &&
+            !payload.startsWith("-")
+          ) {
+            payload = "+" + payload;
+          } else if (
+            keyword === "adjust" &&
+            !payload.startsWith("+") &&
+            !payload.startsWith("-")
+          ) {
+            payload = "+" + payload;
+          }
+
+          scored.push({
+            score: 10005, // Just above NLP Write Engine
+            cmd: {
+              key: "adjust_timer",
+              title: `Adjust Timer by ${payload}`,
+              desc: `Instantly applies this duration to the active timer (Press Enter)`,
+              category: "Live Timer",
+              keepOpen: false,
+              icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-warning)" stroke-width="1.8"><use href="#sprite-009"></use></svg>`,
+              action: () => {
+                if (typeof processTimeAdjustment === "function") {
+                  processTimeAdjustment(payload);
+                  closeHudModal();
+                } else {
+                  showAppToast("⚠️ processTimeAdjustment not available");
+                }
+              },
+            },
+          });
+        }
+
         // Natural Language Write Engine Check
         if (q.startsWith("add ") || q.startsWith("logshift ")) {
           const inputStr = q.replace(/^(add|logshift)\s+/, "").trim();
@@ -16974,14 +17098,15 @@
             } else {
               // Fallback to explicit duration (e.g., 8h 30m, 90m)
               const durMatch = remainingStr.match(
-                /\b(\d+(?:\.\d+)?h\s*\d*m?|\d+m)\b/i,
+                /\b(\d+(?:\.\d+)?h\s*\d*m?(?:\s*\d+s)?|\d+m(?:\s*\d+s)?|\d+s)\b/i,
               );
               if (durMatch) {
                 const parsed =
                   typeof parseGoalTimeStr === "function"
                     ? parseGoalTimeStr(durMatch[1])
-                    : { hh: 0, mm: 0 };
-                const sec = parsed.hh * 3600 + parsed.mm * 60;
+                    : { hh: 0, mm: 0, ss: 0 };
+                const sec =
+                  parsed.hh * 3600 + parsed.mm * 60 + (parsed.ss || 0);
                 if (sec > 0) {
                   workSec = sec;
                   remainingStr = remainingStr.replace(durMatch[0], "").trim();
@@ -18122,13 +18247,11 @@
        *  6. Persist — saveState() + renderTimersOnly()
        *  7. UX — reset input, close popup, show toast
        */
-      window.applyTimeAdjustment = function () {
+      window.processTimeAdjustment = function (rawInputStr) {
         // Guard
         if (!state.loginTimestamp || state.idleLock) return;
 
-        const rawInput = (DOM.adjustSmartInput?.value || "")
-          .trim()
-          .toLowerCase();
+        const rawInput = (rawInputStr || "").trim().toLowerCase();
         if (!rawInput) {
           showAppToast("⚠️ Enter an adjustment (e.g., +15m, -5m 30s).");
           return;
@@ -18140,25 +18263,27 @@
         } else if (
           rawInput.includes("sub") ||
           rawInput.includes("omit") ||
-          rawInput.includes("remove")
+          rawInput.includes("remove") ||
+          rawInput.includes("deduct") ||
+          rawInput.includes("dec")
         ) {
           isAdd = false;
         }
 
         // Parse h, m, s
-        const hMatch = rawInput.match(/(\d+)\s*h/);
-        const mMatch = rawInput.match(/(\d+)\s*m/);
-        const sMatch = rawInput.match(/(\d+)\s*s/);
+        const hMatch = rawInput.match(/([0-9.]+)\s*h/);
+        const mMatch = rawInput.match(/([0-9.]+)\s*m/);
+        const sMatch = rawInput.match(/([0-9.]+)\s*s/);
 
-        let hh = hMatch ? parseInt(hMatch[1], 10) : 0;
-        let mm = mMatch ? parseInt(mMatch[1], 10) : 0;
-        let ss = sMatch ? parseInt(sMatch[1], 10) : 0;
+        let hh = hMatch ? parseFloat(hMatch[1]) : 0;
+        let mm = mMatch ? parseFloat(mMatch[1]) : 0;
+        let ss = sMatch ? parseFloat(sMatch[1]) : 0;
 
         // If no explicit units, treat pure numbers as minutes
         if (!hMatch && !mMatch && !sMatch) {
-          const numMatch = rawInput.match(/\d+/);
+          const numMatch = rawInput.match(/[0-9.]+/);
           if (numMatch) {
-            mm = parseInt(numMatch[0], 10);
+            mm = parseFloat(numMatch[0]);
           }
         }
 
@@ -18220,6 +18345,21 @@
         saveState();
         renderTimersOnly();
 
+        // --- Confirmation toast ---
+        const verb = isAdd ? "added to" : "subtracted from";
+        const timerLabel = targetMode === "work" ? "production" : "break";
+        const hPart = hh > 0 ? `${hh}h ` : "";
+        const mPart = mm > 0 ? `${mm}m ` : "";
+        const sPart = ss > 0 ? `${ss}s` : "";
+        showAppToast(
+          `⚡ ${hPart}${mPart}${sPart} ${verb} ${timerLabel} timer.`,
+        );
+      };
+
+      window.applyTimeAdjustment = function () {
+        const val = DOM.adjustSmartInput?.value || "";
+        processTimeAdjustment(val);
+
         // --- Reset inputs ---
         if (DOM.adjustSmartInput) DOM.adjustSmartInput.value = "";
 
@@ -18231,14 +18371,6 @@
           window.removeEventListener("click", activeAdjustCloseHandler);
           activeAdjustCloseHandler = null;
         }
-
-        // --- Confirmation toast ---
-        const verb = isAdd ? "added to" : "subtracted from";
-        const timerLabel = targetMode === "work" ? "production" : "break";
-        const hPart = hh > 0 ? `${hh}h ` : "";
-        const mPart = mm > 0 ? `${mm}m ` : "";
-        const sPart = ss > 0 ? `${ss}s` : "";
-        showAppToast(`✓ ${hPart}${mPart}${sPart} ${verb} ${timerLabel} timer.`);
       };
 
       /*==========================================================================
@@ -18548,8 +18680,8 @@
 
         DOM.manualGoal.value = `${String(DOM.goalHours.value).padStart(2, "0")}:${String(DOM.goalMins.value).padStart(2, "0")}`;
 
-        lastEditedModalField = null;
-        previousEditedModalField = null;
+        modalStates.manual.last = null;
+        modalStates.manual.prev = null;
         DOM.manualModal.style.display = "flex";
       }
 
@@ -18649,9 +18781,8 @@
             derivedLogoutEpochMs = derivedLoginEpochMs + (wSec + bSec) * 1000;
           }
 
-          derivedLoginEpochMs = Math.floor(derivedLoginEpochMs / 60000) * 60000;
-          derivedLogoutEpochMs =
-            Math.floor(derivedLogoutEpochMs / 60000) * 60000;
+          derivedLoginEpochMs = Math.floor(derivedLoginEpochMs / 1000) * 1000;
+          derivedLogoutEpochMs = Math.floor(derivedLogoutEpochMs / 1000) * 1000;
 
           const activeSessionInProgress = !!state.loginTimestamp;
           let hasOverlap = false;
@@ -18661,13 +18792,13 @@
           for (let i = 0; i < logs.length; i++) {
             const l = logs[i];
             const lLogin =
-              Math.floor((l.loginEpochMs || l.epochMs) / 60000) * 60000;
+              Math.floor((l.loginEpochMs || l.epochMs) / 1000) * 1000;
             const lLogout =
               Math.floor(
                 (l.logoutEpochMs ||
                   lLogin + ((l.workSec || 0) + (l.breakSec || 0)) * 1000) /
-                  60000,
-              ) * 60000;
+                  1000,
+              ) * 1000;
             if (
               derivedLoginEpochMs < lLogout &&
               derivedLogoutEpochMs > lLogin
@@ -18680,11 +18811,11 @@
           }
 
           if (!hasOverlap && activeSessionInProgress && state.loginTimestamp) {
-            const liveLogin = Math.floor(state.loginTimestamp / 60000) * 60000;
+            const liveLogin = Math.floor(state.loginTimestamp / 1000) * 1000;
             const liveLogout =
               Math.floor(
-                (state.idleLock ? state.idleStart : Date.now()) / 60000,
-              ) * 60000;
+                (state.idleLock ? state.idleStart : Date.now()) / 1000,
+              ) * 1000;
             if (
               derivedLoginEpochMs < liveLogout &&
               derivedLogoutEpochMs > liveLogin
@@ -19367,7 +19498,11 @@
         if (!val) return;
 
         const parsed = parseGoalTimeStr(val);
-        input.value = `${String(parsed.hh).padStart(2, "0")}:${String(parsed.mm).padStart(2, "0")}`;
+        if (input.id.includes("goal")) {
+          input.value = `${String(parsed.hh).padStart(2, "0")}:${String(parsed.mm).padStart(2, "0")}`;
+        } else {
+          input.value = `${String(parsed.hh).padStart(2, "0")}:${String(parsed.mm).padStart(2, "0")}:${String(parsed.ss).padStart(2, "0")}`;
+        }
       }
 
       [
@@ -19579,6 +19714,7 @@
 
         let h = 12,
           m = 0,
+          s = 0,
           ampm = "AM";
         let matched = false;
 
@@ -19590,21 +19726,32 @@
           matched = true;
         } else {
           const hColonMAndAmPmMatch = clean.match(
-            /^(\d{1,2})(?::(\d{2}))?([ap]m?)?$/,
+            /^(\d{1,2})(?::(\d{2}))?(?::(\d{2}))?([ap]m?)?$/,
           );
           if (hColonMAndAmPmMatch) {
             h = parseInt(hColonMAndAmPmMatch[1], 10);
             m = hColonMAndAmPmMatch[2]
               ? parseInt(hColonMAndAmPmMatch[2], 10)
               : 0;
-            ampm = hColonMAndAmPmMatch[3]
-              ? hColonMAndAmPmMatch[3].toUpperCase()
+            s = hColonMAndAmPmMatch[3]
+              ? parseInt(hColonMAndAmPmMatch[3], 10)
+              : 0;
+            ampm = hColonMAndAmPmMatch[4]
+              ? hColonMAndAmPmMatch[4].toUpperCase()
               : null;
             matched = true;
           }
         }
 
-        if (matched && h >= 0 && h <= 24 && m >= 0 && m <= 59) {
+        if (
+          matched &&
+          h >= 0 &&
+          h <= 24 &&
+          m >= 0 &&
+          m <= 59 &&
+          s >= 0 &&
+          s <= 59
+        ) {
           if (ampm === null) {
             if (h >= 12) {
               ampm = "PM";
@@ -19618,7 +19765,7 @@
             if (h > 12) h = h % 12 || 12;
             if (h === 0) h = 12;
           }
-          return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")} ${ampm}`;
+          return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")} ${ampm}`;
         }
         return "";
       }
@@ -19666,16 +19813,17 @@
         const daysInMonth = new Date(fullYear, mm, 0).getDate();
         if (dd > daysInMonth) return null;
 
-        const timeMin = parseTimeToMinutes(timeStr);
-        if (timeMin === null) return null;
+        const timeSec = parseClockTimeToSeconds(timeStr);
+        if (timeSec === null) return null;
 
         const tz = DOM.primaryTz
           ? DOM.primaryTz.value
           : Intl.DateTimeFormat().resolvedOptions().timeZone;
-        const localH = Math.floor(timeMin / 60);
-        const localM = timeMin % 60;
+        const localH = Math.floor(timeSec / 3600);
+        const localM = Math.floor((timeSec % 3600) / 60);
+        const localS = timeSec % 60;
 
-        let guessMs = Date.UTC(fullYear, mm - 1, dd, localH, localM, 0);
+        let guessMs = Date.UTC(fullYear, mm - 1, dd, localH, localM, localS);
         try {
           const formatToTz = new Intl.DateTimeFormat("en-US", {
             timeZone: tz,
@@ -19703,7 +19851,14 @@
               parseInt(p.minute),
               parseInt(p.second),
             );
-            const wallMs = Date.UTC(fullYear, mm - 1, dd, localH, localM, 0);
+            const wallMs = Date.UTC(
+              fullYear,
+              mm - 1,
+              dd,
+              localH,
+              localM,
+              localS,
+            );
             const errorMs = wallMs - guessLocalMs;
 
             if (errorMs === 0) break;
@@ -19721,17 +19876,17 @@
         breakVal,
         dateStr = "",
       ) {
-        const logoutMin = parseTimeToMinutes(logoutVal);
-        if (logoutMin === null) return null;
+        const logoutSec = parseClockTimeToSeconds(logoutVal);
+        if (logoutSec === null) return null;
         const wp = parseGoalTimeStr(workVal);
         const bp = parseGoalTimeStr(breakVal);
-        const workMin = wp.hh * 60 + wp.mm;
-        const breakMin = bp.hh * 60 + bp.mm;
+        const workSec = wp.hh * 3600 + wp.mm * 60 + wp.ss;
+        const breakSec = bp.hh * 3600 + bp.mm * 60 + bp.ss;
 
         if (dateStr) {
           const logoutEpoch = getEpochFromDateTimeString(dateStr, logoutVal);
           if (logoutEpoch) {
-            const loginEpoch = logoutEpoch - (workMin + breakMin) * 60000;
+            const loginEpoch = logoutEpoch - (workSec + breakSec) * 1000;
             const tz = DOM.primaryTz
               ? DOM.primaryTz.value
               : Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -19740,16 +19895,15 @@
                 timeZone: tz,
                 hour: "numeric",
                 minute: "numeric",
+                second: "numeric",
                 hour12: true,
               });
               return formatTz.format(new Date(loginEpoch));
             } catch (e) {}
           }
         }
-
-        let loginMin = logoutMin - workMin - breakMin;
-        loginMin = ((loginMin % 1440) + 1440) % 1440;
-        return minutesToAMPM(loginMin);
+        const totalSec = logoutSec - workSec - breakSec;
+        return secondsToAMPM(totalSec);
       }
 
       function calculateDurationFromTimes(
@@ -19758,12 +19912,12 @@
         breakVal,
         dateStr = "",
       ) {
-        const loginMin = parseTimeToMinutes(loginVal);
-        const logoutMin = parseTimeToMinutes(logoutVal);
-        const breakMin =
-          parseGoalTimeStr(breakVal).hh * 60 + parseGoalTimeStr(breakVal).mm;
-        if (loginMin !== null && logoutMin !== null) {
-          let diffMin = 0;
+        const loginSec = parseClockTimeToSeconds(loginVal);
+        const logoutSec = parseClockTimeToSeconds(logoutVal);
+        const bp = parseGoalTimeStr(breakVal);
+        const breakSec = bp.hh * 3600 + bp.mm * 60 + bp.ss;
+        if (loginSec !== null && logoutSec !== null) {
+          let diffSec = 0;
 
           const rawWork =
             document.getElementById("edit-work")?.value.trim() ||
@@ -19781,23 +19935,24 @@
               ) {
                 logoutEpoch += 86400000;
               }
-              diffMin = Math.round((logoutEpoch - loginEpoch) / 60000);
+              diffSec = Math.max(
+                0,
+                Math.floor((logoutEpoch - loginEpoch) / 1000) - breakSec,
+              );
             } else {
-              diffMin = logoutMin - loginMin;
-              if (diffMin < 0) diffMin += 1440;
-              else if (diffMin === 0 && loginVal && logoutVal) diffMin = 1440;
+              let outS = logoutSec;
+              if (outS < loginSec) outS += 86400;
+              else if (outS === loginSec && loginVal && logoutVal)
+                outS += 86400;
+              diffSec = Math.max(0, outS - loginSec - breakSec);
             }
           } else {
-            diffMin = logoutMin - loginMin;
-            if (diffMin < 0) diffMin += 1440;
-            else if (diffMin === 0 && loginVal && logoutVal) {
-              diffMin = 1440;
-            }
+            let outS = logoutSec;
+            if (outS < loginSec) outS += 86400;
+            else if (outS === loginSec && loginVal && logoutVal) outS += 86400;
+            diffSec = Math.max(0, outS - loginSec - breakSec);
           }
-          const workMin = Math.max(0, diffMin - breakMin);
-          const h = Math.floor(workMin / 60);
-          const m = workMin % 60;
-          return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+          return formatDuration(diffSec);
         }
         return null;
       }
@@ -19808,16 +19963,16 @@
         breakVal,
         dateStr = "",
       ) {
-        const loginMin = parseTimeToMinutes(loginVal);
-        if (loginMin === null) return null;
+        const loginSec = parseClockTimeToSeconds(loginVal);
+        if (loginSec === null) return null;
         const wp = parseGoalTimeStr(workVal);
         const bp = parseGoalTimeStr(breakVal);
-        const workMin = wp.hh * 60 + wp.mm;
-        const breakMin = bp.hh * 60 + bp.mm;
+        const workSec = wp.hh * 3600 + wp.mm * 60 + wp.ss;
+        const breakSec = bp.hh * 3600 + bp.mm * 60 + bp.ss;
         if (dateStr) {
           const loginEpoch = getEpochFromDateTimeString(dateStr, loginVal);
           if (loginEpoch) {
-            const logoutEpoch = loginEpoch + (workMin + breakMin) * 60000;
+            const logoutEpoch = loginEpoch + (workSec + breakSec) * 1000;
             const tz = DOM.primaryTz
               ? DOM.primaryTz.value
               : Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -19826,13 +19981,15 @@
                 timeZone: tz,
                 hour: "numeric",
                 minute: "numeric",
+                second: "numeric",
                 hour12: true,
               });
               return formatTz.format(new Date(logoutEpoch));
             } catch (e) {}
           }
         }
-        return minutesToAMPM(loginMin + workMin + breakMin);
+        const totalSec = loginSec + workSec + breakSec;
+        return secondsToAMPM(totalSec);
       }
 
       function syncModalFields(prefix, changedField) {
@@ -19906,23 +20063,23 @@
         let parsedLogout = parseClockTimePreview(logoutVal);
 
         if (parsedLogin && parsedLogout) {
-          const loginMin = parseTimeToMinutes(parsedLogin);
-          const logoutMin = parseTimeToMinutes(parsedLogout);
-          if (loginMin !== null && logoutMin !== null) {
-            let diff = logoutMin - loginMin;
-            if (diff < 0) diff += 1440;
+          const loginSec = parseClockTimeToSeconds(parsedLogin);
+          const logoutSec = parseClockTimeToSeconds(parsedLogout);
+          if (loginSec !== null && logoutSec !== null) {
+            let diff = logoutSec - loginSec;
+            if (diff < 0) diff += 86400;
 
             const rawLogoutClean = logoutVal.toLowerCase().replace(/\s+/g, "");
             const hasExplicitMeridian =
               rawLogoutClean.includes("am") || rawLogoutClean.includes("pm");
 
-            if (!hasExplicitMeridian && diff > 960) {
-              const flippedLogoutMin = (logoutMin + 720) % 1440;
-              let flippedDiff = flippedLogoutMin - loginMin;
-              if (flippedDiff < 0) flippedDiff += 1440;
+            if (!hasExplicitMeridian && diff > 57600) {
+              const flippedLogoutSec = (logoutSec + 43200) % 86400;
+              let flippedDiff = flippedLogoutSec - loginSec;
+              if (flippedDiff < 0) flippedDiff += 86400;
 
-              if (flippedDiff <= 960) {
-                logoutEl.value = minutesToAMPM(flippedLogoutMin);
+              if (flippedDiff <= 57600) {
+                logoutEl.value = secondsToAMPM(flippedLogoutSec);
                 logoutVal = logoutEl.value;
               }
             }
@@ -19979,8 +20136,8 @@
               dateVal,
             );
         } else if (changedField === "break") {
-          if (lastEditedModalField === "break") {
-            if (previousEditedModalField === "work" && hasLogin2 && hasWork2) {
+          if (modalStates[prefix].last === "break") {
+            if (modalStates[prefix].prev === "work" && hasLogin2 && hasWork2) {
               logoutEl.value = calculateLogoutFromLoginAndWork(
                 loginVal,
                 workVal,
@@ -20011,7 +20168,7 @@
           const epochIn = getEpochFromDateTimeString(dateVal, loginVal);
           const epochOut = getEpochFromDateTimeString(dateVal, logoutVal);
           const bParsed = parseGoalTimeStr(breakEl.value.trim() || "00:00");
-          const bMs = (bParsed.hh * 3600 + bParsed.mm * 60) * 1000;
+          const bMs = (bParsed.hh * 3600 + bParsed.mm * 60 + bParsed.ss) * 1000;
 
           if (epochIn !== null && epochOut !== null) {
             let diff = epochOut - epochIn;
@@ -20032,26 +20189,57 @@
         }
       }
 
+      function getParsedTimeForField(field, rawVal) {
+        if (!rawVal) return null;
+        if (field === "login" || field === "logout") {
+          return parseClockTimeToSeconds(rawVal);
+        } else {
+          const wp = parseGoalTimeStr(rawVal);
+          return wp.hh * 3600 + wp.mm * 60 + wp.ss;
+        }
+      }
+
       ["login", "logout", "work", "break"].forEach((field) => {
         const manualEl = document.getElementById(`manual-${field}`);
         const editEl = document.getElementById(`edit-${field}`);
 
-        const onFocus = () => {
-          if (lastEditedModalField !== field) {
-            previousEditedModalField = lastEditedModalField;
-            lastEditedModalField = field;
-          }
-        };
-
         if (manualEl) {
-          manualEl.addEventListener("blur", () =>
-            syncModalFields("manual", field),
-          );
-          manualEl.addEventListener("focus", onFocus);
+          manualEl.addEventListener("blur", () => {
+            const rawVal = manualEl.value.trim();
+            const newVal = getParsedTimeForField(field, rawVal);
+            if (modalStates["manual"].lastValue === newVal && newVal !== null)
+              return;
+            syncModalFields("manual", field);
+          });
+          manualEl.addEventListener("focus", () => {
+            if (modalStates["manual"].last !== field) {
+              modalStates["manual"].prev = modalStates["manual"].last;
+              modalStates["manual"].last = field;
+            }
+            modalStates["manual"].lastValue = getParsedTimeForField(
+              field,
+              manualEl.value.trim(),
+            );
+          });
         }
         if (editEl) {
-          editEl.addEventListener("blur", () => syncModalFields("edit", field));
-          editEl.addEventListener("focus", onFocus);
+          editEl.addEventListener("blur", () => {
+            const rawVal = editEl.value.trim();
+            const newVal = getParsedTimeForField(field, rawVal);
+            if (modalStates["edit"].lastValue === newVal && newVal !== null)
+              return;
+            syncModalFields("edit", field);
+          });
+          editEl.addEventListener("focus", () => {
+            if (modalStates["edit"].last !== field) {
+              modalStates["edit"].prev = modalStates["edit"].last;
+              modalStates["edit"].last = field;
+            }
+            modalStates["edit"].lastValue = getParsedTimeForField(
+              field,
+              editEl.value.trim(),
+            );
+          });
         }
       });
 
