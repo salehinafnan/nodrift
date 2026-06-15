@@ -5399,6 +5399,11 @@
               text field for modifying notes seamlessly.
             </li>
             <li style="margin-top: var(--space-2)">
+              <strong>Live Timer Adjustments:</strong> Type <code>+15m</code>,
+              <code>-5m</code>, or <code>add 10m</code> to instantly add or
+              subtract time from your currently running session.
+            </li>
+            <li style="margin-top: var(--space-2)">
               <strong>Dynamic Metrics Aggregation:</strong> Type
               <code>metrics</code> followed by a timeframe (<code>today</code>,
               <code>week</code>, <code>month</code>, <code>all</code>) to sum up
@@ -5414,6 +5419,20 @@
                 <code>leave holiday 12/25/2026</code> to bypass modal forms
                 completely.</span
               >
+            </li>
+            <li style="margin-top: var(--space-2)">
+              <strong>Instant Invoices & Reports:</strong> Type
+              <code>export</code> (e.g. <code>export week</code>) to generate
+              timesheets, or <code>report</code> to instantly copy your current
+              session's status to the clipboard.
+            </li>
+            <li style="margin-top: var(--space-2)">
+              <strong>Quick Setting Toggles:</strong> Type
+              <code>toggle auto-populate</code>,
+              <code>toggle auto-backup</code>, or
+              <code>toggle auto-email</code> to instantly flip application
+              settings without opening the configuration menu. You can also type
+              <code>json</code> to copy raw state for debugging.
             </li>
           </ul>
 
@@ -5534,6 +5553,10 @@
               through the Insights calendar week.
             </li>
             <li>
+              <strong>H:</strong> Jumps the Insights timeline instantly back to
+              the current week.
+            </li>
+            <li>
               <strong>Selected Log Actions:</strong> Highlight an entry with the
               arrow keys, then press:
               <ul style="margin-top: 4px; padding-left: var(--space-4)">
@@ -5575,6 +5598,12 @@
               <strong>Submit EOD:</strong> Ends and saves the current session to
               your Logbook. You will be prompted to enter shift notes. This
               action is final — the shift is written to permanent storage.
+            </li>
+            <li>
+              <strong>Adjust Timer:</strong> Click the adjustment icon in the
+              footer (or use the Command Center) to instantly add or subtract
+              time (e.g. <code>+15m</code>, <code>-5m 30s</code>) from your
+              currently active timer.
             </li>
           </ul>
           <hr />
@@ -5670,6 +5699,20 @@
             inactivity or system sleep.
           </p>
           <hr />
+          <h4>Data Integrity Protections</h4>
+          <ul>
+            <li>
+              <strong>Multiple Tab Prevention:</strong> The application actively
+              prevents multiple tabs or instances from running simultaneously to
+              protect your database from corruption.
+            </li>
+            <li>
+              <strong>Ghost Shift Detection:</strong> If you accidentally log a
+              shift that is under 60 seconds, the UI will intercept it and throw
+              a warning to prevent database spam.
+            </li>
+          </ul>
+          <hr />
           <h4>Smart Time Inputs</h4>
           <p>
             Whenever you edit a time value (like in the Add Log or Edit Shift
@@ -5721,6 +5764,14 @@
               week.
             </li>
           </ul>
+          <hr />
+          <h4>Consistency Heatmap</h4>
+          <p>
+            Click the <strong>Heatmap</strong> icon in the header or toolbar to
+            open the Consistency Heatmap modal. This visual calendar provides a
+            macroscopic view of your tracking consistency and work density over
+            time.
+          </p>
           <hr />
           <h4>M–T–W–T–F Day Segments</h4>
           <p>
@@ -5908,8 +5959,10 @@
             <li>
               <strong>Load / JSON restore (upload icon):</strong> Imports a
               previously saved <code>.json</code> backup file. Existing logs are
-              merged with the imported data; duplicate entries are de-duplicated
-              automatically.
+              merged with the imported data. If there are duplicates or
+              colliding entries, an interactive
+              <strong>Import Conflict Wizard</strong> will guide you through
+              resolving them.
             </li>
             <li>
               <strong>Recommended cadence:</strong> Export a JSON backup at
@@ -5933,6 +5986,11 @@
               <strong>Idle Threshold:</strong> The slider sets how long you must
               be inactive (5–120 minutes) before the idle lock triggers. Default
               is 60 minutes.
+            </li>
+            <li>
+              <strong>Auto-Populate Daily Goal:</strong> Toggle whether the app
+              automatically adjusts your daily goal to keep you on pace for the
+              40-hour weekly target.
             </li>
             <li>
               <strong>Auto-save Backup:</strong> When enabled, the app
