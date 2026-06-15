@@ -1181,11 +1181,11 @@
         transform: translate(-50%, -100%) translateY(-6px);
         opacity: 0;
         pointer-events: none;
-        background: rgba(10, 10, 10, 0.95);
-        border: 1px solid rgba(255, 255, 255, 0.15);
-        color: var(--accent-work);
+        background: var(--panel-bg);
+        border: 1px solid var(--border-main);
+        color: var(--text-main);
         font-size: 0.72rem;
-        font-weight: 700;
+        font-weight: 600;
         padding: 4px 10px;
         border-radius: 6px;
         white-space: nowrap;
@@ -19270,7 +19270,7 @@
           const parseTimePreview = (val) => {
             if (!val.trim()) return "";
             const parsed = parseGoalTimeStr(val);
-            return `${String(parsed.hh).padStart(2, "0")}:${String(parsed.mm).padStart(2, "0")}`;
+            return `${String(parsed.hh).padStart(2, "0")}:${String(parsed.mm).padStart(2, "0")}:${String(parsed.ss || 0).padStart(2, "0")}`;
           };
 
           const parseDatePreview = (val) => {
@@ -19467,6 +19467,8 @@
 
           bindInput("manual-login", parseLoginPreview);
           bindInput("manual-logout", parseLogoutPreview);
+          bindInput("edit-login", parseLoginPreview);
+          bindInput("edit-logout", parseLogoutPreview);
         };
 
         setupDynamicPreview();
