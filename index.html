@@ -130,7 +130,7 @@
         --accent-work: #ffffff;
         --accent-break: #ffffff;
         --accent-blue: #ffffff;
-        --accent-warning: #f59f0b;
+        --accent-warning: #ffffff;
         --btn-work-bg: #ffffff;
         --btn-work-border: #ffffff;
         --btn-work-text: #000000;
@@ -150,59 +150,63 @@
       }
 
       /* =========================================================================
-       3. COBALT GLASSMORPHISM THEME (DARK TRANS-BLUE)
+       3. E-INK BRUTALIST THEME (MONOCHROME)
        ========================================================================= */
-      :root[data-theme="cobalt-glass"] {
-        --page-bg: #050814;
-        --panel-bg: #111a2e;
-        --panel-shadow: none;
+      :root[data-theme="theme-eink"] {
+        --page-bg: #e8e8e8;
+        --panel-bg: #ffffff;
+        --panel-shadow: 4px 4px 0 #111111;
         --panel-blur: none;
-        --element-bg: #0a1122;
-        --element-hover: #1a243d;
-        --element-bg-light: #1a2840;
-        --border-main: #253352;
-        --border-light: #3d4d75;
-        --text-main: #f8fafc;
-        --text-muted: #7c9bbf;
-        --accent-work: #43df7c;
-        --accent-break: #fc6e6e;
-        --accent-blue: #76b9f8;
-        --accent-warning: #f3a31a;
-        --btn-work-bg: color-mix(
-          in srgb,
-          var(--accent-work) 18%,
-          var(--panel-bg)
-        );
-        --btn-work-border: var(--accent-work);
-        --btn-work-text: var(--accent-work);
-        --btn-break-bg: color-mix(
-          in srgb,
-          var(--accent-break) 18%,
-          var(--panel-bg)
-        );
-        --btn-break-border: var(--accent-break);
-        --btn-break-text: var(--accent-break);
-        --btn-log-bg: color-mix(
-          in srgb,
-          var(--accent-blue) 18%,
-          var(--panel-bg)
-        );
-        --btn-log-border: var(--accent-blue);
-        --btn-log-text: var(--accent-blue);
-        --dropdown-bg: #0f172a;
-        --modal-bg: #0f172a;
-        --track-bg: rgba(255, 255, 255, 0.08);
-        --segmented-bg: rgba(255, 255, 255, 0.1);
-        --segmented-active-bg: #0a1122;
+        --element-bg: #e8e8e8;
+        --element-hover: #cccccc;
+        --element-bg-light: #ffffff;
+        --border-main: #111111;
+        --border-light: #888888;
+        --text-main: #111111;
+        --text-muted: #444444;
+        --accent-work: #111111;
+        --accent-break: #111111;
+        --accent-blue: #111111;
+        --accent-warning: #444444;
+        --btn-work-bg: #111111;
+        --btn-work-border: #111111;
+        --btn-work-text: #ffffff;
+        --btn-break-bg: #ffffff;
+        --btn-break-border: #111111;
+        --btn-break-text: #111111;
+        --btn-log-bg: #ffffff;
+        --btn-log-border: #111111;
+        --btn-log-text: #111111;
+        --dropdown-bg: #ffffff;
+        --modal-bg: #ffffff;
+        --track-bg: rgba(0, 0, 0, 0.1);
+        --segmented-bg: #e8e8e8;
+        --segmented-active-bg: #ffffff;
         --segmented-active-shadow: none;
-        --segmented-border: #253352;
+        --segmented-border: #111111;
       }
 
-      :root[data-theme="cobalt-glass"] .console-panel,
-      :root[data-theme="cobalt-glass"] .stat-card,
-      :root[data-theme="cobalt-glass"] .status-badge {
-        border: 1px solid rgba(255, 255, 255, 0.15);
-        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+      :root[data-theme="theme-eink"] .console-panel,
+      :root[data-theme="theme-eink"] .status-badge,
+      :root[data-theme="theme-eink"] .theme-toggle-btn {
+        border: 1px solid #111111;
+        box-shadow: 3px 3px 0 #111111;
+      }
+
+      :root[data-theme="theme-eink"] .stat-card {
+        border: 1px solid #111111;
+      }
+
+      :root[data-theme="theme-eink"] .btn-work {
+        border: 1px solid #111111 !important;
+      }
+
+      :root[data-theme="theme-eink"] .btn-break {
+        border: 1px dashed #111111 !important;
+      }
+
+      :root[data-theme="theme-eink"] .btn-log {
+        border: 1px solid #111111 !important;
       }
 
       :root[data-theme="vercel-dark"] .progress-segment {
@@ -545,7 +549,7 @@
       :root[data-theme="sf-dark"] .tab-content:hover::-webkit-scrollbar-thumb,
       :root[data-theme="vercel-dark"]
         .tab-content:hover::-webkit-scrollbar-thumb,
-      :root[data-theme="cobalt-glass"]
+      :root[data-theme="theme-eink"]
         .tab-content:hover::-webkit-scrollbar-thumb {
         background: rgba(255, 255, 255, 0.18);
       }
@@ -560,7 +564,7 @@
 
       :root[data-theme="sf-dark"] ::-webkit-scrollbar-thumb:hover,
       :root[data-theme="vercel-dark"] ::-webkit-scrollbar-thumb:hover,
-      :root[data-theme="cobalt-glass"] ::-webkit-scrollbar-thumb:hover {
+      :root[data-theme="theme-eink"] ::-webkit-scrollbar-thumb:hover {
         background: rgba(255, 255, 255, 0.3) !important;
       }
 
@@ -878,7 +882,9 @@
       .tz-chevron {
         color: currentColor;
         flex-shrink: 0;
-        transition: none;
+        transition:
+          transform 0.2s,
+          color 0.2s;
       }
 
       .tz-container:hover .tz-chevron,
@@ -1485,29 +1491,32 @@
         background: #333333;
       }
 
-      /* ── COBALT GLASS THEME: High-Contrast Solid Tonal Darkening ── */
-      :root[data-theme="cobalt-glass"] .btn-work:hover:not(:disabled) {
-        background: color-mix(in srgb, #000 10%, var(--btn-work-bg));
+      /* ── E-INK BRUTALIST THEME: Inverse Hovers ── */
+      :root[data-theme="theme-eink"] .btn-work:hover:not(:disabled) {
+        background: #ffffff;
+        color: #111111;
       }
 
-      :root[data-theme="cobalt-glass"] .btn-work:active:not(:disabled) {
-        background: color-mix(in srgb, #000 22%, var(--btn-work-bg));
+      :root[data-theme="theme-eink"] .btn-work:active:not(:disabled) {
+        background: #e8e8e8;
       }
 
-      :root[data-theme="cobalt-glass"] .btn-break:hover:not(:disabled) {
-        background: color-mix(in srgb, #000 10%, var(--btn-break-bg));
+      :root[data-theme="theme-eink"] .btn-break:hover:not(:disabled) {
+        background: #111111;
+        color: #ffffff;
       }
 
-      :root[data-theme="cobalt-glass"] .btn-break:active:not(:disabled) {
-        background: color-mix(in srgb, #000 22%, var(--btn-break-bg));
+      :root[data-theme="theme-eink"] .btn-break:active:not(:disabled) {
+        background: #333333;
       }
 
-      :root[data-theme="cobalt-glass"] .btn-log:hover:not(:disabled) {
-        background: color-mix(in srgb, #000 10%, var(--btn-log-bg));
+      :root[data-theme="theme-eink"] .btn-log:hover:not(:disabled) {
+        background: #111111;
+        color: #ffffff;
       }
 
-      :root[data-theme="cobalt-glass"] .btn-log:active:not(:disabled) {
-        background: color-mix(in srgb, #000 22%, var(--btn-log-bg));
+      :root[data-theme="theme-eink"] .btn-log:active:not(:disabled) {
+        background: #333333;
       }
 
       /* =========================================================================
@@ -5507,8 +5516,8 @@
             </li>
             <li>
               <strong>Live Theme Auditioning:</strong> Search for themes (e.g.
-              <code>theme cobalt</code>) and simply use your Arrow Keys to
-              preview them in real-time across the app before hitting Enter.
+              <code>theme eink</code>) and simply use your Arrow Keys to preview
+              them in real-time across the app before hitting Enter.
             </li>
             <li>
               <strong>Smart Goal Calculus:</strong> Type
@@ -6125,8 +6134,8 @@
               <strong>Theme:</strong> Click the theme toggle button in the
               header to open the theme picker. Choose from
               <strong>SF Dark</strong>, <strong>SF Light</strong>,
-              <strong>Vercel Dark</strong>, or <strong>Cobalt Glass</strong>.
-              Your selection is saved automatically.
+              <strong>Vercel Dark</strong>, or <strong>E-Ink</strong>. Your
+              selection is saved automatically.
             </li>
             <li>
               <strong>Timezone:</strong> Click the timezone label
@@ -7601,8 +7610,8 @@
                 </button>
                 <button
                   class="preset-pill"
-                  onclick="setThemeDirect('cobalt-glass')"
-                  onmouseenter="previewTheme('cobalt-glass')"
+                  onclick="setThemeDirect('theme-eink')"
+                  onmouseenter="previewTheme('theme-eink')"
                   style="display: inline-flex; align-items: center; gap: 8px"
                 >
                   <svg
@@ -7614,12 +7623,13 @@
                     stroke-width="1.8"
                     stroke-linecap="round"
                     stroke-linejoin="round"
-                    style="color: #38bdf8"
+                    style="color: currentColor"
                   >
-                    <use href="#sprite-017"></use>
+                    <use href="#sprite-045"></use>
                   </svg>
-                  Cobalt Glass
+                  E-Ink
                 </button>
+
                 <button
                   class="preset-pill"
                   onclick="setThemeDirect('vercel-dark')"
@@ -7635,7 +7645,7 @@
                     stroke-width="1.8"
                     stroke-linecap="round"
                     stroke-linejoin="round"
-                    style="color: #ededed"
+                    style="color: currentColor"
                   >
                     <use href="#sprite-018"></use>
                   </svg>
@@ -9363,7 +9373,7 @@
         plus: `<svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.8" width="18" height="18"><use href="#sprite-042"></use></svg>`,
         note: `<svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.8"><use href="#sprite-043"></use></svg>`,
         trash: `<svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.8"><use href="#sprite-044"></use></svg>`,
-        themeCobalt: `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color: #38bdf8;"><use href="#sprite-045"></use></svg>`,
+        themeEink: `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color: #111111;"><use href="#sprite-045"></use></svg>`,
         themeVercel: `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color: #ededed;"><use href="#sprite-046"></use></svg>`,
         themeSfDark: `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color: #818cf8;"><use href="#sprite-047"></use></svg>`,
         themeSfLight: `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color: #ff9500;"><use href="#sprite-048"></use></svg>`,
@@ -10353,8 +10363,12 @@
         currentTheme = "sf-light";
       } else if (currentTheme === "midnight") {
         currentTheme = "sf-dark";
-      } else if (currentTheme === "linear" || currentTheme === "cyber-glass") {
-        currentTheme = "cobalt-glass";
+      } else if (
+        currentTheme === "linear" ||
+        currentTheme === "cyber-glass" ||
+        currentTheme === "cobalt-glass"
+      ) {
+        currentTheme = "theme-eink";
       } else if (currentTheme === "pure-noir") {
         currentTheme = "vercel-dark";
       }
@@ -10452,8 +10466,8 @@
       function renderThemeToggle() {
         const iconSpan = DOM.themeToggleIcon;
         if (!iconSpan) return;
-        if (currentTheme === "cobalt-glass") {
-          iconSpan.innerHTML = SVGs.themeCobalt;
+        if (currentTheme === "theme-eink") {
+          iconSpan.innerHTML = SVGs.themeEink;
         } else if (currentTheme === "vercel-dark") {
           iconSpan.innerHTML = SVGs.themeVercel;
         } else if (currentTheme === "sf-light") {
@@ -10542,12 +10556,7 @@
        * Legacy toggle remains as a fallback cycle trigger for shortcuts
        */
       function toggleTheme() {
-        const themeCycle = [
-          "sf-light",
-          "sf-dark",
-          "cobalt-glass",
-          "vercel-dark",
-        ];
+        const themeCycle = ["sf-light", "sf-dark", "theme-eink", "vercel-dark"];
         let idx = themeCycle.indexOf(currentTheme);
         if (idx === -1) idx = 0;
         const nextTheme = themeCycle[(idx + 1) % themeCycle.length];
@@ -14172,14 +14181,14 @@
             lHigh.style.background = "var(--accent-work)";
             lExceeded.style.background =
               "color-mix(in srgb, var(--accent-work) 80%, #ffffff)";
-          } else if (currentTheme === "cobalt-glass") {
+          } else if (currentTheme === "theme-eink") {
             lLow.style.background =
-              "color-mix(in srgb, var(--accent-blue) 20%, transparent)";
+              "color-mix(in srgb, var(--border-main) 20%, transparent)";
             lMed.style.background =
-              "color-mix(in srgb, var(--accent-blue) 55%, transparent)";
-            lHigh.style.background = "var(--accent-blue)";
-            lExceeded.style.background =
-              "color-mix(in srgb, var(--accent-blue) 75%, #ffffff)";
+              "color-mix(in srgb, var(--border-main) 40%, transparent)";
+            lHigh.style.background =
+              "color-mix(in srgb, var(--border-main) 80%, transparent)";
+            lExceeded.style.background = "var(--border-main)";
           } else {
             lLow.style.background =
               "color-mix(in srgb, var(--accent-blue) 30%, transparent)";
@@ -14256,10 +14265,10 @@
             :root[data-theme="vercel-dark"] .heatmap-high { background: #cccccc !important; }
             :root[data-theme="vercel-dark"] .heatmap-med { background: #777777 !important; }
             :root[data-theme="vercel-dark"] .heatmap-low { background: #333333 !important; }
-            :root[data-theme="cobalt-glass"] .heatmap-exc { background: color-mix(in srgb, var(--accent-blue) 80%, #ffffff) !important; }
-            :root[data-theme="cobalt-glass"] .heatmap-high { background: var(--accent-blue) !important; }
-            :root[data-theme="cobalt-glass"] .heatmap-med { background: color-mix(in srgb, var(--accent-blue) 55%, transparent) !important; }
-            :root[data-theme="cobalt-glass"] .heatmap-low { background: color-mix(in srgb, var(--accent-blue) 20%, transparent) !important; }
+            :root[data-theme="theme-eink"] .heatmap-exc { background: #111111 !important; }
+            :root[data-theme="theme-eink"] .heatmap-high { background: #444444 !important; }
+            :root[data-theme="theme-eink"] .heatmap-med { background: #888888 !important; }
+            :root[data-theme="theme-eink"] .heatmap-low { background: #cccccc !important; }
             :root[data-theme="sf-dark"] .heatmap-exc, :root[data-theme="sf-light"] .heatmap-exc { background: color-mix(in srgb, var(--accent-work) 80%, var(--accent-warning)) !important; }
             :root[data-theme="sf-dark"] .heatmap-high, :root[data-theme="sf-light"] .heatmap-high { background: var(--accent-work) !important; }
             :root[data-theme="sf-dark"] .heatmap-med, :root[data-theme="sf-light"] .heatmap-med { background: color-mix(in srgb, var(--accent-work) 55%, var(--accent-blue)) !important; }
@@ -16626,18 +16635,18 @@
           },
         },
         {
-          key: "theme cobalt",
-          title: "Switch Theme: Cobalt Glass",
-          desc: "Translucent blue glassmorphism mode",
+          key: "theme eink",
+          title: "Switch Theme: E-Ink",
+          desc: "Stark minimalist brutalist monochrome",
           category: "Themes",
-          aliases: ["blue", "transparent", "frosted", "glass"],
-          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#38bdf8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#sprite-064"></use></svg>`,
+          aliases: ["brutalist", "e-ink", "monochrome", "grayscale"],
+          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#111111" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#sprite-064"></use></svg>`,
           previewAction: () =>
-            document.documentElement.setAttribute("data-theme", "cobalt-glass"),
+            document.documentElement.setAttribute("data-theme", "theme-eink"),
           action: () => {
             window.originalThemeBeforeHud = null;
-            setThemeDirect("cobalt-glass");
-            showAppToast("Theme switched to Cobalt Glass");
+            setThemeDirect("theme-eink");
+            showAppToast("Theme switched to E-Ink");
           },
         },
         {
@@ -18380,7 +18389,7 @@
           e.preventDefault();
 
           const friendlyNames = {
-            "cobalt-glass": "Cobalt Glass",
+            "theme-eink": "E-Ink",
             "vercel-dark": "Vercel Dark",
             "sf-light": "SF Light",
             "sf-dark": "SF Dark",
