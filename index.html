@@ -991,6 +991,26 @@
         user-select: none;
       }
 
+      @keyframes pulse-highlight {
+        0% {
+          outline: 2.5px solid var(--accent-blue);
+          outline-offset: 2px;
+        }
+        70% {
+          outline: 2.5px solid var(--accent-blue);
+          outline-offset: 2px;
+        }
+        100% {
+          outline: 0px solid transparent;
+          outline-offset: 0px;
+        }
+      }
+
+      .progress-segment.segment-highlight {
+        animation: pulse-highlight 3s forwards;
+        z-index: 5;
+      }
+
       .goal-inputs span.unit {
         font-size: 0.8rem;
         color: var(--text-muted);
@@ -2698,17 +2718,19 @@
         padding: 0.55rem;
       }
 
-      /* Context badge row (styled like a single-tab nav) */
-      .adjust-context-badge {
+      /* Segmented control for switching target (Work / Break) */
+      .adjust-segmented-control {
         display: flex;
         background: var(--element-bg);
         padding: var(--tab-nav-padding, 2px);
         border-radius: var(--header-el-radius, var(--radius-md));
         border: var(--tab-nav-border, 1px solid var(--border-main));
+        gap: var(--tab-nav-gap, 2px);
         align-items: stretch;
+        width: 100%;
       }
 
-      #adjust-context-label {
+      .adjust-seg-btn {
         flex: 1;
         display: flex;
         align-items: center;
@@ -2719,11 +2741,37 @@
         letter-spacing: 0.03em;
         padding: 6px 10px;
         border-radius: var(--tab-btn-radius, calc(var(--radius-md) - 2px));
+        background: transparent;
+        color: var(--text-muted);
+        border: none;
+        cursor: pointer;
+        transition: var(--tab-transition);
+      }
+
+      .adjust-seg-btn:hover:not(.active):not(:disabled) {
+        color: var(--text-main);
+        background: rgba(128, 128, 128, 0.08);
+      }
+
+      .adjust-seg-btn.active[data-target="work"] {
         background: var(--tab-btn-active-bg, var(--panel-bg));
+        color: var(--accent-work);
         box-shadow: var(--tab-btn-active-shadow);
         border: var(--tab-btn-active-border, none);
         outline: var(--tab-btn-active-outline, none);
-        outline-offset: -1px;
+      }
+
+      .adjust-seg-btn.active[data-target="break"] {
+        background: var(--tab-btn-active-bg, var(--panel-bg));
+        color: var(--accent-break);
+        box-shadow: var(--tab-btn-active-shadow);
+        border: var(--tab-btn-active-border, none);
+        outline: var(--tab-btn-active-outline, none);
+      }
+
+      .adjust-seg-btn:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
       }
 
       /* Smart Input */
@@ -5232,6 +5280,44 @@
           </button>
         </h3>
 
+        <!-- Help Search Input -->
+        <div
+          style="margin-bottom: var(--space-3); position: relative; width: 100%"
+        >
+          <input
+            type="text"
+            id="help-search-input"
+            class="input-standard"
+            placeholder="Search help guide, commands, or shortcuts..."
+            style="
+              padding-left: 2.2rem;
+              font-size: var(--text-sm);
+              height: var(--header-el-height);
+              box-sizing: border-box;
+            "
+            oninput="window.searchHelpContent(this.value)"
+          />
+          <svg
+            viewBox="0 0 24 24"
+            width="14"
+            height="14"
+            fill="none"
+            stroke="var(--text-muted)"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            style="
+              position: absolute;
+              left: 12px;
+              top: 50%;
+              transform: translateY(-50%);
+              pointer-events: none;
+            "
+          >
+            <use href="#sprite-026"></use>
+          </svg>
+        </div>
+
         <!-- Help Tabs -->
         <div class="help-tab-nav">
           <button
@@ -5285,6 +5371,16 @@
             nodrift is a self-contained browser app for logging and analyzing
             your daily work sessions. All data is stored locally in your browser
             — no account or internet connection required after the page loads.
+          </p>
+          <hr />
+          <h4>Resilient Dual-Storage Engine</h4>
+          <p>
+            To protect your database from browser crashes or sudden tab
+            closures, the app uses a dual-layer storage layout. Logs are written
+            asynchronously to a local <strong>IndexedDB</strong> database, and
+            simultaneously mirrored to a synchronous
+            <strong>Emergency Sync Backup</strong> in local storage. On load,
+            the app automatically checks and restores any missing records.
           </p>
           <hr />
           <h4>Interface at a Glance</h4>
@@ -5489,6 +5585,27 @@
                 Google tab.</span
               >
             </li>
+            <li style="margin-top: var(--space-2)">
+              <strong>Fuzzy Command Aliases:</strong> You can use rapid keyboard
+              aliases instead of full names. For example, type
+              <code>sw</code> to Start Work, <code>tb</code> to Take Break,
+              <code>rw</code> to Resume Work, <code>eod</code> to open the
+              Submit EOD modal, or <code>nuke</code> to trigger a complete data
+              wipe.
+            </li>
+            <li style="margin-top: var(--space-2)">
+              <strong>Dynamic Calculator:</strong> Type any mathematical
+              expression (e.g. <code>12.5 * 1.5</code> or <code>150 / 60</code>)
+              and press Enter to instantly evaluate it and copy the result to
+              your clipboard.
+            </li>
+            <li style="margin-top: var(--space-2)">
+              <strong>Live Theme Previewing:</strong> Search for design themes
+              (e.g. type <code>theme</code>). Use the
+              <strong>Arrow Keys</strong> to scroll through choices and preview
+              themes dynamically across the user interface before pressing Enter
+              to finalize.
+            </li>
           </ul>
         </div>
 
@@ -5576,6 +5693,17 @@
               </ul>
             </li>
           </ul>
+          <hr />
+          <h4>Activating Keyboard Navigation</h4>
+          <p>
+            To use the log-specific keyboard actions (Edit, Copy, View Notes,
+            Delete), you must first activate keyboard focus on the log list. You
+            can trigger this by pressing <strong>Alt + K</strong> to focus the
+            filter search box, or by pressing <strong>Tab</strong> sequentially
+            until focus lands on the log rows. Use the
+            <strong>Up / Down Arrow Keys</strong> to highlight individual log
+            cards, and press the corresponding action keys.
+          </p>
         </div>
 
         <!-- Tab 2: Tracking -->
@@ -5645,10 +5773,12 @@
               defaults to a fixed 6 hours.
             </li>
             <li>
-              <strong>Manual Adjustments:</strong> The dynamic goal is only an
-              initial recommendation. You can override it at any point using
-              presets, the <strong>−15m / +15m</strong> adjusters, or by typing
-              directly in the header.
+              <strong>Manual Adjustments & Custom Presets:</strong> The dynamic
+              goal is only an initial recommendation. You can override it at any
+              point using presets, the <strong>−15m / +15m</strong> adjusters,
+              or by typing directly in the header. You can also
+              <strong>double-click</strong> any preset pill to permanently
+              assign your own custom duration to it.
             </li>
           </ul>
           <hr />
@@ -5738,6 +5868,19 @@
               <code>8h 30m</code> converts to <code>08:30</code>.
             </li>
           </ul>
+          <hr />
+          <h4>Storage Block Warnings</h4>
+          <p>
+            nodrift constantly validates browser storage health. If browser data
+            writing fails (e.g., due to strict private browsing restrictions,
+            disabled cookies, or running out of local disk space), a red alert
+            badge will flash in the status bar:
+            <strong>Storage write blocked! Running in temporary memory</strong>.
+            If you see this, your data is only in temporary memory—<strong
+              >download a JSON backup immediately</strong
+            >
+            using the toolbar to avoid losing your shift history.
+          </p>
         </div>
 
         <!-- Tab 3: Insights -->
@@ -5832,6 +5975,13 @@
             (non-leave) weekdays to reach your 40-hour weekly target. It
             recalculates automatically as you log hours each day.
           </p>
+          <p>
+            <strong>Note on Scheduled Leave:</strong> Scheduling a leave day
+            automatically deducts exactly 8 hours from your cumulative weekly
+            40-hour pacing target, and that date is marked with a diagonal
+            stripe pattern. This ensures your required daily pace recalculates
+            fairly without penalizing your consistency scores.
+          </p>
         </div>
 
         <!-- Tab 4: Logbook -->
@@ -5914,7 +6064,8 @@
             Once you have configured a filter combination you use regularly,
             save it as a named <strong>Saved View</strong>. Saved views appear
             in the dropdown at the top of the filter drawer and can be recalled
-            with a single click.
+            with a single click. You can also delete custom views by selecting
+            them and clicking the delete option inside the filter drawer.
           </p>
           <hr />
           <h4>Managing Leaves & Holidays</h4>
@@ -6025,6 +6176,47 @@
               <strong>−15m</strong> / <strong>+15m</strong> to fine-tune, or
               double-click either preset pill to permanently reassign it to a
               custom value.
+            </li>
+          </ul>
+          <hr />
+          <h4>Database Safety & Recovery Systems</h4>
+          <ul>
+            <li>
+              <strong>Restore Snapshot:</strong> Before any database write,
+              nodrift automatically takes a backup state snapshot in local
+              storage. If you ever make a mistake or lose tracking, open
+              <strong>Settings (⚙)</strong> and select a prior timestamp from
+              the <strong>Restore Snapshot</strong> list to instantly restore
+              that exact database state.
+            </li>
+            <li>
+              <strong>Import Collision Conflict Wizard:</strong> When loading a
+              <code>.json</code> backup, nodrift scans for overlapping dates. If
+              conflicts occur, an interactive wizard will display a side-by-side
+              comparison of local vs. backup records and prompt you to choose:
+              <ul style="margin-top: 4px; padding-left: var(--space-4)">
+                <li>
+                  <strong>Keep Current Local:</strong> Discards the backup's
+                  overlapping shifts and keeps your local data intact.
+                </li>
+                <li>
+                  <strong>Overwrite with Backup:</strong> Erases the local
+                  conflicting entries and writes the backup's records.
+                </li>
+                <li>
+                  <strong>Keep Both:</strong> Imports all entries, creating
+                  duplicate shifts on those dates for you to resolve manually.
+                </li>
+              </ul>
+            </li>
+            <li>
+              <strong>Multi-Tab Eviction Protocol:</strong> Opening nodrift in
+              multiple browser tabs simultaneously triggers the
+              <strong>Multiple Tabs Detected</strong> screen. To prevent clock
+              conflicts and data corruption, only one tab can own the master
+              tracking lease. Click <strong>Take Over Here</strong> on your
+              desired tab to safely evict other instances, synchronize existing
+              states, and resume tracking.
             </li>
           </ul>
           <hr />
@@ -7353,7 +7545,7 @@
                   class="preset-pill dynamic-preset"
                   id="preset-0"
                   ondblclick="changePreset(0)"
-                  title="Double-click to edit preset"
+                  title="Click to apply preset, double-click to customize"
                 >
                   6h
                 </button>
@@ -7361,7 +7553,7 @@
                   class="preset-pill dynamic-preset"
                   id="preset-1"
                   ondblclick="changePreset(1)"
-                  title="Double-click to edit preset"
+                  title="Click to apply preset, double-click to customize"
                 >
                   10h
                 </button>
@@ -8444,13 +8636,24 @@
 
               <!-- Adjust Time Floating Popup -->
               <div id="adjust-time-popup" class="idle-popup">
-                <!-- Row 1: Context badge — which timer is being adjusted -->
-                <div class="adjust-context-badge">
-                  <span
-                    id="adjust-context-label"
-                    style="color: var(--text-muted)"
-                    >No Active Timer</span
+                <!-- Row 1: Target Timer Segmented Control -->
+                <div class="adjust-segmented-control">
+                  <button
+                    id="adjust-target-work"
+                    class="adjust-seg-btn active"
+                    data-target="work"
+                    onclick="setAdjustTarget('work')"
                   >
+                    Work
+                  </button>
+                  <button
+                    id="adjust-target-break"
+                    class="adjust-seg-btn"
+                    data-target="break"
+                    onclick="setAdjustTarget('break')"
+                  >
+                    Break
+                  </button>
                 </div>
 
                 <!-- Row 2: Smart input box -->
@@ -9513,7 +9716,8 @@
         settingsHelpText: document.getElementById("settings-help-text"),
         adjustTimeBtn: document.getElementById("adjust-time-btn"),
         adjustTimePopup: document.getElementById("adjust-time-popup"),
-        adjustContextLabel: document.getElementById("adjust-context-label"),
+        adjustTargetWork: document.getElementById("adjust-target-work"),
+        adjustTargetBreak: document.getElementById("adjust-target-break"),
         adjustSmartInput: document.getElementById("adjust-smart-input"),
         adjustApplyBtn: document.getElementById("adjust-apply-btn"),
       };
@@ -12474,6 +12678,69 @@
         }
       });
 
+      // Hover tooltips for .progress-segment items
+      document.addEventListener("mouseover", (e) => {
+        const seg = e.target.closest(".progress-segment");
+        if (seg) {
+          const dateStr = seg.dataset.date;
+          if (!dateStr) return;
+          const workSec = parseFloat(seg.dataset.work) || 0;
+          const breakSec = parseFloat(seg.dataset.break) || 0;
+          const isLeave = seg.dataset.isLeave === "true";
+          const goalSec = parseFloat(seg.dataset.goal) || 0;
+          const notes = seg.dataset.notes || "";
+
+          const tooltip = DOM.appTooltip;
+          if (tooltip) {
+            const [m, d, y] = dateStr.split("/").map(Number);
+            const dateObj = new Date(2000 + y, m - 1, d);
+            const formattedDate = dateObj.toLocaleDateString("en-US", {
+              weekday: "short",
+              month: "short",
+              day: "numeric",
+            });
+
+            let content = `<strong>${formattedDate}</strong>`;
+            if (isLeave) {
+              content += `<br>Leave / Vacation`;
+            } else {
+              content += `<br>Work: ${formatDuration(workSec)} (Goal: ${formatDuration(goalSec)})`;
+              content += `<br>Break: ${formatDuration(breakSec)}`;
+              if (notes) {
+                const formattedNotes = escapeHTML(notes)
+                  .split(" | ")
+                  .map((n) => `• ${n}`)
+                  .join("<br>");
+                content += `<br><span style="color:var(--text-muted);font-weight:normal;">Notes:<br>${formattedNotes}</span>`;
+              }
+            }
+
+            tooltip.innerHTML = content;
+            tooltip.style.whiteSpace = "pre-line";
+            tooltip.style.maxWidth = "280px";
+            tooltip.style.lineHeight = "1.4";
+
+            const rect = seg.getBoundingClientRect();
+            tooltip.style.left = `${rect.left + window.scrollX + rect.width / 2}px`;
+            tooltip.style.top = `${rect.top + window.scrollY}px`;
+            tooltip.classList.add("visible");
+          }
+        }
+      });
+
+      document.addEventListener("mouseout", (e) => {
+        const seg = e.target.closest(".progress-segment");
+        if (seg) {
+          const tooltip = DOM.appTooltip;
+          if (tooltip) {
+            tooltip.classList.remove("visible");
+            tooltip.style.whiteSpace = "";
+            tooltip.style.maxWidth = "";
+            tooltip.style.lineHeight = "";
+          }
+        }
+      });
+
       /**
        * Changes active filtering badge highlight flags on advanced filters toggle.
        */
@@ -13735,33 +14002,60 @@
 
       window.heatmapClickFilter = function (dateStr) {
         closeHeatmapModal();
-        switchTab("logbook");
 
-        // Silently clear filters to avoid jarring toasts and redundant renders
-        DOM.filterTime.value = "ALL";
-        DOM.filterStatus.value = "ALL";
-        DOM.filterDateStart.value = "";
-        DOM.filterDateEnd.value = "";
-        DOM.filterHoursOp.value = "ALL";
-        DOM.filterHoursVal.value = "";
-        DOM.filterHoursVal.disabled = true;
-        DOM.filterNotes.checked = false;
-        DOM.filterViewPresets.value = "";
-
-        const searchInput = DOM.filterSearch;
-        if (searchInput) {
-          searchInput.value = dateStr;
+        // Recalibrate displayBaseDate for Insights
+        const parts = dateStr.split("/");
+        if (parts.length === 3) {
+          const mm = parseInt(parts[0], 10);
+          const dd = parseInt(parts[1], 10);
+          const yy = parseInt(parts[2], 10);
+          const fullY = 2000 + yy;
+          displayBaseDate = new Date(Date.UTC(fullY, mm - 1, dd, 12, 0, 0));
         }
 
-        saveActiveFilters();
-        renderLogbook();
+        insightsCacheKey = null;
+        window.heatmapSelectedDateHighlight = dateStr;
+        renderInsights();
 
-        // Automatically expand the filter drawer if closed
-        const panel = DOM.advancedFilters;
-        const btn = DOM.filterToggleBtn;
-        if (panel && !panel.classList.contains("show")) {
-          panel.classList.add("show");
-          if (btn) btn.classList.add("active");
+        const logs = getLogs();
+        const hasLog = logs.some((l) => l.date === dateStr);
+
+        if (hasLog) {
+          switchTab("logbook");
+
+          // Silently clear filters to avoid jarring toasts and redundant renders
+          DOM.filterTime.value = "ALL";
+          DOM.filterStatus.value = "ALL";
+          DOM.filterDateStart.value = "";
+          DOM.filterDateEnd.value = "";
+          DOM.filterHoursOp.value = "ALL";
+          DOM.filterHoursVal.value = "";
+          DOM.filterHoursVal.disabled = true;
+          DOM.filterNotes.checked = false;
+          DOM.filterViewPresets.value = "";
+
+          const searchInput = DOM.filterSearch;
+          if (searchInput) {
+            searchInput.value = dateStr;
+          }
+
+          saveActiveFilters();
+          renderLogbook();
+
+          if (virtualScrollLogs.length > 0) {
+            selectedLogIdx = 0;
+            renderLogbook();
+          }
+
+          // Automatically expand the filter drawer if closed
+          const panel = DOM.advancedFilters;
+          const btn = DOM.filterToggleBtn;
+          if (panel && !panel.classList.contains("show")) {
+            panel.classList.add("show");
+            if (btn) btn.classList.add("active");
+          }
+        } else {
+          switchTab("insights");
         }
       };
 
@@ -14197,10 +14491,16 @@
               latestLogoutMin: null,
               login: "—",
               logout: "—",
+              notesList: [],
             };
           }
           logsByDate[l.displayDate].w += l.workSec;
           logsByDate[l.displayDate].b += l.breakSec;
+          if (l.notes && l.notes.trim()) {
+            if (!logsByDate[l.displayDate].notesList.includes(l.notes.trim())) {
+              logsByDate[l.displayDate].notesList.push(l.notes.trim());
+            }
+          }
 
           // Deterministically find the oldest shift of the day to set the daily master anchor
           if (l.dayGoal) {
@@ -14588,33 +14888,50 @@
           )}/${dayDate.getUTCFullYear().toString().slice(-2)}`;
 
           let dayWorkSeconds = logsByDate[dateStr] ? logsByDate[dateStr].w : 0;
+          let dayBreakSeconds = logsByDate[dateStr] ? logsByDate[dateStr].b : 0;
           const isToday = dateStr === todayStr;
-          if (isToday) dayWorkSeconds += getCurrentWorkSeconds();
+          if (isToday) {
+            dayWorkSeconds += getCurrentWorkSeconds();
+            dayBreakSeconds += getCurrentBreakSeconds();
+          }
 
           const isVacation = isVacationDate(dateStr);
           const segment = DOM.progressSegments[i];
 
           if (segment) {
-            // =========================================================================
-            // LEAVE & WEEKEND BREAKDOWN RULES:
-            // 1. Leave Days: Marked with a dashed diagonal pattern (is-leave) instead of
-            //    evaluating goals or expecting hours.
-            // 2. Weekend Days (Sat/Sun): Rendered in this breakdown list for reference,
-            //    showing work/break totals and daily variances, but strictly excluded
-            //    from the top-level 40-hour totals.
-            // =========================================================================
+            const fallbackGoal =
+              isToday && state.loginTimestamp && state.shiftStartGoalSec
+                ? state.shiftStartGoalSec
+                : liveGoalSec;
+            const anchorGoal = dailyAnchorMap.get(dateStr) || fallbackGoal;
+
+            segment.dataset.date = dateStr;
+            segment.dataset.work = dayWorkSeconds;
+            segment.dataset.break = dayBreakSeconds;
+            segment.dataset.isLeave = isVacation ? "true" : "false";
+            segment.dataset.goal = isVacation ? 0 : anchorGoal;
+
+            let dayNotes = "";
+            if (logsByDate[dateStr] && logsByDate[dateStr].notesList) {
+              dayNotes = logsByDate[dateStr].notesList.join(" | ");
+            }
+            if (isToday && state.notes && state.notes.trim()) {
+              dayNotes = dayNotes
+                ? `${dayNotes} | ${state.notes.trim()}`
+                : state.notes.trim();
+            }
+            segment.dataset.notes = dayNotes;
+
+            if (window.heatmapSelectedDateHighlight === dateStr) {
+              segment.classList.add("segment-highlight");
+              window.heatmapSelectedDateHighlight = null;
+            } else {
+              segment.classList.remove("segment-highlight");
+            }
 
             if (isVacation) {
               segment.classList.add("is-leave");
             } else {
-              // Priority 1: Submitted Anchor Goal (from dailyAnchorMap)
-              // Priority 2: Currently Active Shift Goal (from state snapshot)
-              // Priority 3: Fallback UI Goal (liveGoalSec)
-              const fallbackGoal =
-                isToday && state.loginTimestamp && state.shiftStartGoalSec
-                  ? state.shiftStartGoalSec
-                  : liveGoalSec;
-              const anchorGoal = dailyAnchorMap.get(dateStr) || fallbackGoal;
               const fill = DOM.progressSegmentFills[i];
               const fillScale = Math.min(dayWorkSeconds / anchorGoal, 1);
               fill.style.width = `${fillScale * 100}%`;
@@ -18290,6 +18607,36 @@
       /** Cleanup ref for the popup's outside-click dismissal listener. */
       let activeAdjustCloseHandler = null;
 
+      /** Selected target for time adjustments ('work' or 'break') */
+      let selectedAdjustTarget = "work";
+
+      window.setAdjustTarget = function (target) {
+        const hasSession = !!state.loginTimestamp && !state.idleLock;
+        if (!hasSession) return;
+
+        selectedAdjustTarget = target;
+
+        const workBtn = DOM.adjustTargetWork;
+        const breakBtn = DOM.adjustTargetBreak;
+        const applyBtn = DOM.adjustApplyBtn;
+
+        if (workBtn && breakBtn) {
+          if (target === "work") {
+            workBtn.classList.add("active");
+            breakBtn.classList.remove("active");
+            if (applyBtn) {
+              applyBtn.className = "adjust-apply-btn btn-work";
+            }
+          } else {
+            workBtn.classList.remove("active");
+            breakBtn.classList.add("active");
+            if (applyBtn) {
+              applyBtn.className = "adjust-apply-btn btn-break";
+            }
+          }
+        }
+      };
+
       /**
        * Toggles the Adjust Time popup open/closed.
        * Guards against opening when no session is active or when idle-locked.
@@ -18336,41 +18683,54 @@
        * whichever timer is currently running.
        */
       function _syncAdjustPopupContext() {
-        const label = DOM.adjustContextLabel;
+        const workBtn = DOM.adjustTargetWork;
+        const breakBtn = DOM.adjustTargetBreak;
         const applyBtn = DOM.adjustApplyBtn;
         const smartInput = DOM.adjustSmartInput;
 
-        if (!label) return;
-
         const hasSession = !!state.loginTimestamp && !state.idleLock;
 
-        if (hasSession && state.currentMode === "work") {
-          label.textContent = "Production Timer";
-          label.style.color = "var(--accent-work)";
+        if (hasSession) {
+          // If we have an active timer running, automatically select its mode as the initial target
+          if (state.currentMode === "work" || state.currentMode === "break") {
+            selectedAdjustTarget = state.currentMode;
+          } else {
+            // Otherwise, default to "work" if not already set or invalid
+            if (
+              selectedAdjustTarget !== "work" &&
+              selectedAdjustTarget !== "break"
+            ) {
+              selectedAdjustTarget = "work";
+            }
+          }
+
+          // Enable inputs and buttons
+          if (workBtn) workBtn.disabled = false;
+          if (breakBtn) breakBtn.disabled = false;
+          if (smartInput) smartInput.disabled = false;
           if (applyBtn) {
-            applyBtn.className = "adjust-apply-btn btn-work";
             applyBtn.disabled = false;
           }
-          if (smartInput) smartInput.disabled = false;
-        } else if (hasSession && state.currentMode === "break") {
-          label.textContent = "Break Timer";
-          label.style.color = "var(--accent-break)";
-          if (applyBtn) {
-            applyBtn.className = "adjust-apply-btn btn-break";
-            applyBtn.disabled = false;
-          }
-          if (smartInput) smartInput.disabled = false;
+
+          // Sync the UI segmented buttons active states
+          setAdjustTarget(selectedAdjustTarget);
         } else {
-          // No active session or idle locked
-          label.textContent = "No Active Timer";
-          label.style.color = "var(--text-muted)";
-          if (applyBtn) {
-            applyBtn.className = "adjust-apply-btn btn-log";
-            applyBtn.disabled = true;
+          // No active session or idle locked: disable everything
+          if (workBtn) {
+            workBtn.classList.remove("active");
+            workBtn.disabled = true;
+          }
+          if (breakBtn) {
+            breakBtn.classList.remove("active");
+            breakBtn.disabled = true;
           }
           if (smartInput) {
             smartInput.disabled = true;
             smartInput.value = "";
+          }
+          if (applyBtn) {
+            applyBtn.className = "adjust-apply-btn btn-log";
+            applyBtn.disabled = true;
           }
         }
       }
@@ -18455,7 +18815,7 @@
         }
 
         // --- Apply the delta to the correct bucket ---
-        const targetMode = state.currentMode;
+        const targetMode = selectedAdjustTarget;
 
         if (targetMode === "work") {
           if (isAdd) {
@@ -19114,6 +19474,10 @@
 
         goalTimeEl.value = `${hh}h ${mm}m`;
 
+        state.goalAutopopulateEnabled = false;
+        saveState();
+        syncSettingsUI();
+
         renderTimersOnly();
         insightsCacheKey = null; // Forces recalculation on insights tab with new goals
         renderInsights();
@@ -19146,6 +19510,10 @@
           if (btn) {
             btn.textContent = val + "h";
             btn.setAttribute("data-hours", val);
+            btn.setAttribute(
+              "title",
+              `Click to apply ${val}h preset, double-click to customize`,
+            );
             btn.onclick = () => window.setGoalPreset(val);
           }
         });
@@ -19339,6 +19707,11 @@
         localStorage.setItem(GOAL_M_KEY, 0);
         const goalTimeEl = DOM.goalTime;
         if (goalTimeEl) goalTimeEl.value = `${hours}h 0m`;
+
+        state.goalAutopopulateEnabled = false;
+        saveState();
+        syncSettingsUI();
+
         updatePresetHighlights();
         renderTimersOnly();
         insightsCacheKey = null; // Forces recalculation with new goal preset
@@ -19362,15 +19735,16 @@
         const goalTimeEl = DOM.goalTime;
         if (goalTimeEl) goalTimeEl.value = `${newH}h ${newM}m`;
 
+        state.goalAutopopulateEnabled = false;
+        saveState();
+        syncSettingsUI();
+
         updatePresetHighlights();
         renderTimersOnly();
         insightsCacheKey = null; // Forces recalculation on goal adjustments
         renderInsights();
       };
 
-      /**
-       * Executes updatePresetHighlights logic.
-       */
       function updatePresetHighlights() {
         const currentH = parseFloat(localStorage.getItem(GOAL_H_KEY)) || 0;
         const currentM = parseFloat(localStorage.getItem(GOAL_M_KEY)) || 0;
@@ -20503,10 +20877,73 @@
 
       window.openHelpModal = function () {
         DOM.helpModal.style.display = "flex";
+        const input = document.getElementById("help-search-input");
+        if (input) {
+          input.value = "";
+          window.searchHelpContent("");
+          setTimeout(() => input.focus(), 150);
+        }
       };
 
       window.closeHelpModal = function () {
         DOM.helpModal.style.display = "none";
+        const input = document.getElementById("help-search-input");
+        if (input) {
+          input.value = "";
+          window.searchHelpContent("");
+        }
+      };
+
+      window.searchHelpContent = function (query) {
+        const q = query.trim().toLowerCase();
+        const tabNav = document.querySelector(".help-tab-nav");
+        const allTabs = document.querySelectorAll(".help-tab-content");
+
+        if (!q) {
+          if (tabNav) tabNav.style.display = "flex";
+          allTabs.forEach((tab) => {
+            tab.style.display = tab.classList.contains("active")
+              ? "block"
+              : "none";
+            const elements = tab.querySelectorAll("h4, p, li, ul, hr");
+            elements.forEach((el) => (el.style.display = ""));
+          });
+          return;
+        }
+
+        if (tabNav) tabNav.style.display = "none";
+
+        allTabs.forEach((tab) => {
+          let hasMatchInTab = false;
+          tab.style.display = "block";
+
+          const blocks = tab.querySelectorAll("h4, p, li, hr");
+          blocks.forEach((el) => {
+            if (el.tagName === "HR") {
+              el.style.display = "none";
+              return;
+            }
+            const text = el.textContent.toLowerCase();
+            if (text.includes(q)) {
+              el.style.display = "";
+              hasMatchInTab = true;
+            } else {
+              el.style.display = "none";
+            }
+          });
+
+          const uls = tab.querySelectorAll("ul");
+          uls.forEach((ul) => {
+            const lis = ul.querySelectorAll("li");
+            let hasVisibleLi = false;
+            lis.forEach((li) => {
+              if (li.style.display !== "none") hasVisibleLi = true;
+            });
+            ul.style.display = hasVisibleLi ? "" : "none";
+          });
+
+          tab.style.display = hasMatchInTab ? "block" : "none";
+        });
       };
 
       window.switchHelpTab = function (tabId, btn) {
