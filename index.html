@@ -9758,8 +9758,21 @@
         }
       });
 
+      window.addEventListener("pagehide", () => {
+        try {
+          const leaseStr = localStorage.getItem(LEASE_KEY);
+          if (leaseStr) {
+            const lease = JSON.parse(leaseStr);
+            if (lease.ownerId === instanceId && lease.tabId === myTabId) {
+              lease.lastHeartbeat = 0;
+              localStorage.setItem(LEASE_KEY, JSON.stringify(lease));
+            }
+          }
+        } catch (e) {}
+      });
+
       tabSyncChannel.onmessage = (e) => {
-        if (e.data.id === instanceId) return;
+        if (e.data.fromTabId === myTabId) return;
 
         if (e.data.type === "takeover_request") {
           if (state.currentMode !== null && !state.idleLock) {
@@ -9853,9 +9866,25 @@
               }
             }
           } else if (lease.ownerId === instanceId) {
-            if (isTabConflict) {
-              isTabConflict = false;
-              DOM.tabConflictModal.style.display = "none";
+            if (
+              lease.tabId &&
+              lease.tabId !== myTabId &&
+              now - lease.lastHeartbeat < 3000
+            ) {
+              if (!isTabConflict) {
+                isTabConflict = true;
+                if (state.currentMode !== null) {
+                  state.currentMode = null;
+                  state.sessionAnchorWall = null;
+                }
+                renderStaticUI();
+                DOM.tabConflictModal.style.display = "flex";
+              }
+            } else {
+              if (isTabConflict) {
+                isTabConflict = false;
+                DOM.tabConflictModal.style.display = "none";
+              }
             }
           }
         } catch (e) {
@@ -9927,9 +9956,13 @@
                 const existingLease = JSON.parse(existingLeaseStr);
                 const now = Date.now();
                 if (
-                  existingLease.ownerId &&
-                  existingLease.ownerId !== instanceId &&
-                  now - existingLease.lastHeartbeat < 3000
+                  (existingLease.ownerId &&
+                    existingLease.ownerId !== instanceId &&
+                    now - existingLease.lastHeartbeat < 3000) ||
+                  (existingLease.ownerId === instanceId &&
+                    existingLease.tabId &&
+                    existingLease.tabId !== myTabId &&
+                    now - existingLease.lastHeartbeat < 3000)
                 ) {
                   isTabConflict = true;
                   DOM.tabConflictModal.style.display = "flex";
@@ -9949,6 +9982,7 @@
                 if (stagingId === instanceId) {
                   const lease = {
                     ownerId: instanceId,
+                    tabId: myTabId,
                     lastHeartbeat: Date.now(),
                     generationCounter: 1,
                   };
@@ -9995,10 +10029,19 @@
               checkLeaseState();
               return;
             }
+            if (
+              currentLease.ownerId === instanceId &&
+              currentLease.tabId &&
+              currentLease.tabId !== myTabId
+            ) {
+              checkLeaseState();
+              return;
+            }
             gen = (currentLease.generationCounter || 0) + 1;
           }
           const lease = {
             ownerId: instanceId,
+            tabId: myTabId,
             lastHeartbeat: now,
             generationCounter: gen,
           };
@@ -10017,6 +10060,7 @@
 
         const lease = {
           ownerId: instanceId,
+          tabId: myTabId,
           lastHeartbeat: Date.now(),
           generationCounter: 1,
         };
@@ -10294,7 +10338,7 @@
         // Broadcast database modification to other active tabs to sync memory caches
         tabSyncChannel.postMessage({
           type: "database_mutated",
-          id: instanceId,
+          fromTabId: myTabId,
         });
 
         // FIX 3: INSTANT SYNCHRONOUS EMERGENCY BACKUP
