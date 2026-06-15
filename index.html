@@ -1411,8 +1411,9 @@
 
       :root[data-theme] .btn-work:active:not(:disabled),
       :root[data-theme] .btn-break:active:not(:disabled),
-      :root[data-theme] .btn-log:active:not(:disabled) {
-        transform: none;
+      :root[data-theme] .btn-log:active:not(:disabled),
+      .preset-pill:active {
+        transform: scale(0.98);
         opacity: 1;
       }
 
@@ -4079,6 +4080,28 @@
           height: 18px !important;
         }
       }
+      /* =========================================================================
+         ZEN MODE (FOCUS MODE)
+         ========================================================================= */
+      body.zen-mode .console-panel {
+        max-width: 800px !important;
+        grid-template-columns: 1fr !important;
+        height: auto !important;
+        min-height: 60vh;
+      }
+      body.zen-mode .status-bar {
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+      body.zen-mode .main-ui {
+        width: 100%;
+        margin: 0 auto;
+        justify-content: center;
+        gap: 2.5rem;
+      }
+      body.zen-mode .sidebar {
+        display: none !important;
+      }
     </style>
   </head>
 
@@ -5633,6 +5656,10 @@
             <li>
               <strong>Alt + T:</strong> Cycles through the four design themes
               (Vercel Dark, Cobalt Glass, etc.).
+            </li>
+            <li>
+              <strong>Alt + Z:</strong> Toggles Zen Mode to hide side panels and
+              center the timer.
             </li>
             <li>
               <strong>Alt + Plus/Minus (= / -):</strong> Fine-tunes your Daily
@@ -18382,6 +18409,14 @@
         if (e.altKey && e.key.toLowerCase() === "n") {
           e.preventDefault();
           openManualModal();
+        }
+
+        // Alt+Z toggles Zen Mode
+        if (e.altKey && e.key.toLowerCase() === "z") {
+          e.preventDefault();
+          document.body.classList.toggle("zen-mode");
+          const isZen = document.body.classList.contains("zen-mode");
+          showAppToast(isZen ? "Zen Mode: ON" : "Zen Mode: OFF");
         }
 
         // Alt+T cycles design themes
