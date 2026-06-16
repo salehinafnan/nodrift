@@ -233,14 +233,14 @@
         --accent-blue: #0a84ff;
         --accent-warning: #ff9f0a;
         --btn-work-bg: rgba(48, 209, 88, 0.15);
-        --btn-work-border: #30d158;
+        --btn-work-border: rgba(48, 209, 88, 0.3);
         --btn-work-text: #30d158;
         --btn-break-bg: rgba(255, 69, 58, 0.15);
-        --btn-break-border: #ff453a;
+        --btn-break-border: rgba(255, 69, 58, 0.3);
         --btn-break-text: #ff453a;
         --btn-log-bg: rgba(10, 132, 255, 0.15);
         --btn-log-text: #0a84ff;
-        --btn-log-border: #0a84ff;
+        --btn-log-border: rgba(10, 132, 255, 0.3);
         --dropdown-bg: #2c2c2e;
         --modal-bg: #252527;
         --track-bg: rgba(255, 255, 255, 0.1);
@@ -269,15 +269,15 @@
         --accent-break: #ff3b30;
         --accent-blue: #007aff;
         --accent-warning: #ff9500;
-        --btn-work-bg: rgba(52, 199, 89, 0.15);
-        --btn-work-border: #34c759;
+        --btn-work-bg: rgba(52, 199, 89, 0.18);
+        --btn-work-border: rgba(52, 199, 89, 0.35);
         --btn-work-text: #34c759;
-        --btn-break-bg: rgba(255, 59, 48, 0.15);
-        --btn-break-border: #ff3b30;
+        --btn-break-bg: rgba(255, 59, 48, 0.18);
+        --btn-break-border: rgba(255, 59, 48, 0.35);
         --btn-break-text: #ff3b30;
-        --btn-log-bg: rgba(0, 122, 255, 0.15);
+        --btn-log-bg: rgba(0, 122, 255, 0.18);
         --btn-log-text: #007aff;
-        --btn-log-border: #007aff;
+        --btn-log-border: rgba(0, 122, 255, 0.35);
         --dropdown-bg: #ffffff;
         --modal-bg: #ffffff;
         --track-bg: rgba(0, 0, 0, 0.08);
@@ -430,15 +430,14 @@
         transition:
           background-color 0.15s ease,
           border-color 0.15s ease,
-          color 0.15s ease;
+          color 0.15s ease,
+          filter 0.15s ease,
+          transform 0.1s cubic-bezier(0.2, 0.8, 0.2, 1);
       }
 
-      .action-row > button:hover:not(:disabled) {
-        opacity: 0.88;
-      }
-
+      /* Base active state removes generic opacity fade */
       .action-row > button:active:not(:disabled) {
-        opacity: 0.75;
+        transform: scale(0.97);
       }
 
       .btn-secondary {
@@ -575,6 +574,8 @@
       body {
         margin: 0;
         padding: 20px;
+        padding-top: max(20px, env(safe-area-inset-top));
+        padding-bottom: max(20px, env(safe-area-inset-bottom));
         font-family: var(--font-sans);
         background: var(--page-bg);
 
@@ -1419,52 +1420,54 @@
 
       /* ── SF DARK THEME: Translucent Neon Glow Alpha Opacity Changes ── */
       :root[data-theme="sf-dark"] .btn-work:hover:not(:disabled) {
-        background: rgba(48, 209, 88, 0.28);
+        background: rgba(48, 209, 88, 0.25);
+        border-color: rgba(48, 209, 88, 0.4);
       }
-
       :root[data-theme="sf-dark"] .btn-work:active:not(:disabled) {
-        background: rgba(48, 209, 88, 0.4);
+        background: rgba(48, 209, 88, 0.35);
+        border-color: rgba(48, 209, 88, 0.5);
       }
-
       :root[data-theme="sf-dark"] .btn-break:hover:not(:disabled) {
-        background: rgba(255, 69, 58, 0.28);
+        background: rgba(255, 69, 58, 0.25);
+        border-color: rgba(255, 69, 58, 0.4);
       }
-
       :root[data-theme="sf-dark"] .btn-break:active:not(:disabled) {
-        background: rgba(255, 69, 58, 0.4);
+        background: rgba(255, 69, 58, 0.35);
+        border-color: rgba(255, 69, 58, 0.5);
       }
-
       :root[data-theme="sf-dark"] .btn-log:hover:not(:disabled) {
-        background: rgba(10, 132, 255, 0.28);
+        background: rgba(10, 132, 255, 0.25);
+        border-color: rgba(10, 132, 255, 0.4);
       }
-
       :root[data-theme="sf-dark"] .btn-log:active:not(:disabled) {
-        background: rgba(10, 132, 255, 0.4);
+        background: rgba(10, 132, 255, 0.35);
+        border-color: rgba(10, 132, 255, 0.5);
       }
 
       /* ── SF LIGHT THEME: Translucent Contrast Preservation ── */
       :root[data-theme="sf-light"] .btn-work:hover:not(:disabled) {
         background: rgba(52, 199, 89, 0.28);
+        border-color: rgba(52, 199, 89, 0.45);
       }
-
       :root[data-theme="sf-light"] .btn-work:active:not(:disabled) {
-        background: rgba(52, 199, 89, 0.4);
+        background: rgba(52, 199, 89, 0.38);
+        border-color: rgba(52, 199, 89, 0.55);
       }
-
       :root[data-theme="sf-light"] .btn-break:hover:not(:disabled) {
         background: rgba(255, 59, 48, 0.28);
+        border-color: rgba(255, 59, 48, 0.45);
       }
-
       :root[data-theme="sf-light"] .btn-break:active:not(:disabled) {
-        background: rgba(255, 59, 48, 0.4);
+        background: rgba(255, 59, 48, 0.38);
+        border-color: rgba(255, 59, 48, 0.55);
       }
-
       :root[data-theme="sf-light"] .btn-log:hover:not(:disabled) {
         background: rgba(0, 122, 255, 0.28);
+        border-color: rgba(0, 122, 255, 0.45);
       }
-
       :root[data-theme="sf-light"] .btn-log:active:not(:disabled) {
-        background: rgba(0, 122, 255, 0.4);
+        background: rgba(0, 122, 255, 0.38);
+        border-color: rgba(0, 122, 255, 0.55);
       }
 
       /* ── VERCEL DARK THEME: Pure Contrast States ── */
