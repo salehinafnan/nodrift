@@ -5,7 +5,7 @@
     <meta name="color-scheme" content="dark" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; connect-src 'none'; img-src 'self' data:; font-src 'self' data: https://fonts.gstatic.com;"
+      content="default-src 'self'; script-src 'self' 'unsafe-inline' blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; connect-src 'none'; img-src 'self' data:; font-src 'self' data: https://fonts.gstatic.com;"
     />
     <title>nodrift</title>
 
@@ -93,6 +93,16 @@
         --segment-height: 20px;
         --segment-gap: 6px;
         --segment-radius: 6px;
+        --segment-active-bg: linear-gradient(
+          135deg,
+          var(--accent-blue) 0%,
+          #4f46e5 100%
+        );
+        --segment-completed-bg: linear-gradient(
+          135deg,
+          #4ade80 0%,
+          #0d9488 100%
+        );
 
         /* Dynamic Button & Tab Layout Fallbacks */
         --actions-gap: 12px;
@@ -147,10 +157,18 @@
         --segmented-active-bg: #333333;
         --segmented-active-shadow: var(--global-shadow);
         --segmented-border: #444444;
+        --segment-active-bg: linear-gradient(135deg, #8e8e93 0%, #3a3a3c 100%);
+        --segment-completed-bg: linear-gradient(
+          135deg,
+          #ffffff 0%,
+          #888888 100%
+        );
+        --tab-btn-active-bg: #ededed;
+        --tab-btn-active-color: #000000;
       }
 
       /* =========================================================================
-       3. E-INK BRUTALIST THEME (MONOCHROME)
+   3. E-INK BRUTALIST THEME (MONOCHROME)
        ========================================================================= */
       :root[data-theme="theme-eink"] {
         --page-bg: #e8e8e8;
@@ -184,6 +202,14 @@
         --segmented-active-bg: #ffffff;
         --segmented-active-shadow: none;
         --segmented-border: #111111;
+        --segment-active-bg: linear-gradient(135deg, #555555 0%, #1c1c1c 100%);
+        --segment-completed-bg: linear-gradient(
+          135deg,
+          #111111 0%,
+          #666666 100%
+        );
+        --tab-btn-active-bg: #111111;
+        --tab-btn-active-color: #ffffff;
       }
 
       :root[data-theme="theme-eink"] .console-panel,
@@ -213,9 +239,16 @@
         border-color: var(--border-light);
       }
 
+      :root[data-theme="vercel-dark"] .day-segment-label,
+      :root[data-theme="theme-eink"] .day-segment-label {
+        color: #ffffff !important;
+        mix-blend-mode: difference;
+        opacity: 1;
+      }
+
       /* =========================================================================
-       3.1. SF NEUTRAL DARK THEME (SYSTEM CHARCOAL)
-       ========================================================================= */
+   3.1. SF NEUTRAL DARK THEME (SYSTEM CHARCOAL)
+   ========================================================================= */
       :root[data-theme="sf-dark"] {
         --page-bg: #000000;
         --panel-bg: #1c1c1e;
@@ -828,7 +861,7 @@
         font-size: 0.78rem;
         font-family: var(--font-sans);
         letter-spacing: -0.04em;
-        min-width: 65px;
+        min-width: 70px;
         flex-shrink: 0;
         text-align: center;
         white-space: nowrap;
@@ -991,10 +1024,12 @@
           outline: 2.5px solid var(--accent-blue);
           outline-offset: 2px;
         }
+
         70% {
           outline: 2.5px solid var(--accent-blue);
           outline-offset: 2px;
         }
+
         100% {
           outline: 0px solid transparent;
           outline-offset: 0px;
@@ -1172,7 +1207,7 @@
         height: 100%;
         width: 0%;
         background: var(--accent-blue);
-        border-radius: inherit;
+        border-radius: 0;
         box-shadow: none;
         transition: none;
         position: relative;
@@ -1186,6 +1221,36 @@
       .progress-rail.goal-completed #progress-fill {
         background: linear-gradient(135deg, #4ade80 0%, #0d9488 100%);
         box-shadow: 0 0 8px rgba(74, 222, 128, 0.35);
+      }
+
+      :root[data-theme="vercel-dark"] .progress-rail.goal-completed {
+        border: 1px solid rgba(255, 255, 255, 0.4) !important;
+      }
+
+      :root[data-theme="vercel-dark"]
+        .progress-rail.goal-completed
+        #progress-fill {
+        background: linear-gradient(
+          135deg,
+          #ffffff 0%,
+          #888888 100%
+        ) !important;
+        box-shadow: none;
+      }
+
+      :root[data-theme="theme-eink"] .progress-rail.goal-completed {
+        border: 1px solid #111111 !important;
+      }
+
+      :root[data-theme="theme-eink"]
+        .progress-rail.goal-completed
+        #progress-fill {
+        background: linear-gradient(
+          135deg,
+          #111111 0%,
+          #666666 100%
+        ) !important;
+        box-shadow: none;
       }
 
       /* Unified High-Performance Dynamic Floating Tooltip */
@@ -1423,22 +1488,27 @@
         background: rgba(48, 209, 88, 0.25);
         border-color: rgba(48, 209, 88, 0.4);
       }
+
       :root[data-theme="sf-dark"] .btn-work:active:not(:disabled) {
         background: rgba(48, 209, 88, 0.35);
         border-color: rgba(48, 209, 88, 0.5);
       }
+
       :root[data-theme="sf-dark"] .btn-break:hover:not(:disabled) {
         background: rgba(255, 69, 58, 0.25);
         border-color: rgba(255, 69, 58, 0.4);
       }
+
       :root[data-theme="sf-dark"] .btn-break:active:not(:disabled) {
         background: rgba(255, 69, 58, 0.35);
         border-color: rgba(255, 69, 58, 0.5);
       }
+
       :root[data-theme="sf-dark"] .btn-log:hover:not(:disabled) {
         background: rgba(10, 132, 255, 0.25);
         border-color: rgba(10, 132, 255, 0.4);
       }
+
       :root[data-theme="sf-dark"] .btn-log:active:not(:disabled) {
         background: rgba(10, 132, 255, 0.35);
         border-color: rgba(10, 132, 255, 0.5);
@@ -1449,22 +1519,27 @@
         background: rgba(52, 199, 89, 0.28);
         border-color: rgba(52, 199, 89, 0.45);
       }
+
       :root[data-theme="sf-light"] .btn-work:active:not(:disabled) {
         background: rgba(52, 199, 89, 0.38);
         border-color: rgba(52, 199, 89, 0.55);
       }
+
       :root[data-theme="sf-light"] .btn-break:hover:not(:disabled) {
         background: rgba(255, 59, 48, 0.28);
         border-color: rgba(255, 59, 48, 0.45);
       }
+
       :root[data-theme="sf-light"] .btn-break:active:not(:disabled) {
         background: rgba(255, 59, 48, 0.38);
         border-color: rgba(255, 59, 48, 0.55);
       }
+
       :root[data-theme="sf-light"] .btn-log:hover:not(:disabled) {
         background: rgba(0, 122, 255, 0.28);
         border-color: rgba(0, 122, 255, 0.45);
       }
+
       :root[data-theme="sf-light"] .btn-log:active:not(:disabled) {
         background: rgba(0, 122, 255, 0.38);
         border-color: rgba(0, 122, 255, 0.55);
@@ -1552,7 +1627,7 @@
         align-items: center;
         justify-content: center;
         cursor: pointer;
-        z-index: 2000;
+
         opacity: 0;
         pointer-events: none;
         box-sizing: border-box;
@@ -2951,7 +3026,7 @@
       }
 
       #weekly-progress-card.goal-reached .progress-segment-fill {
-        background: linear-gradient(135deg, #4ade80 0%, #0d9488 100%);
+        background: var(--segment-completed-bg);
         box-shadow: none;
       }
 
@@ -2982,7 +3057,7 @@
         right: 0;
         bottom: 0;
         background: rgba(0, 0, 0, 0.58);
-        z-index: 2000;
+
         display: none;
         align-items: center;
         justify-content: center;
@@ -3247,7 +3322,7 @@
         gap: 12px;
         align-items: center;
         justify-content: center;
-        z-index: 3000;
+
         box-shadow: var(--global-shadow);
         /* removed backdrop-filter for CPU perf */
         border-color: color-mix(in srgb, var(--accent-blue) 30%, transparent);
@@ -3300,7 +3375,7 @@
         gap: 12px;
         align-items: center;
         justify-content: center;
-        z-index: 3000;
+
         box-shadow: var(--global-shadow);
         /* removed backdrop-filter for CPU perf */
         border-color: color-mix(
@@ -3323,7 +3398,7 @@
         gap: 12px;
         align-items: center;
         justify-content: center;
-        z-index: 4000;
+
         box-shadow: var(--global-shadow);
         /* removed backdrop-filter for CPU perf */
         border-color: color-mix(in srgb, var(--accent-work) 30%, transparent);
@@ -3362,7 +3437,7 @@
         gap: 12px;
         align-items: center;
         justify-content: center;
-        z-index: 4000;
+
         box-shadow: var(--global-shadow);
         /* removed backdrop-filter for CPU perf */
         border-color: color-mix(in srgb, var(--accent-blue) 20%, transparent);
@@ -3466,6 +3541,10 @@
         display: inline-block;
         text-align: left;
         white-space: nowrap;
+      }
+
+      .stat-column > span:not(.badge) {
+        color: var(--text-main);
       }
 
       .work-col {
@@ -3804,15 +3883,11 @@
       }
 
       .segment-active {
-        background: linear-gradient(
-          135deg,
-          var(--accent-blue) 0%,
-          #4f46e5 100%
-        ) !important;
+        background: var(--segment-active-bg) !important;
       }
 
       .segment-completed {
-        background: var(--accent-work) !important;
+        background: var(--segment-completed-bg) !important;
       }
 
       .collapsible-wrapper {
@@ -3895,7 +3970,7 @@
          ========================================================================= */
       .cdp-popup {
         position: absolute;
-        z-index: 4000;
+
         background: var(--panel-bg);
         border: 1px solid var(--border-light);
         border-radius: var(--radius-md);
@@ -5087,7 +5162,7 @@
     </div>
 
     <!-- Backup Collision Conflict Wizard Modal -->
-    <div id="conflict-wizard-modal" class="modal-overlay" style="z-index: 3600">
+    <div id="conflict-wizard-modal" class="modal-overlay">
       <div
         class="modal-container modal-width-md accent-warning"
         role="dialog"
@@ -5213,7 +5288,7 @@
     <div id="sync-toast" class="toast-top"></div>
 
     <!-- Help & User Guide Modal -->
-    <div id="help-modal" class="modal-overlay" style="z-index: 3500">
+    <div id="help-modal" class="modal-overlay">
       <div
         class="modal-container modal-width-lg accent-info"
         role="dialog"
@@ -6248,7 +6323,7 @@
       </button>
     </div>
 
-    <div id="confirm-modal" class="modal-overlay" style="z-index: 3500">
+    <div id="confirm-modal" class="modal-overlay">
       <div
         class="modal-container modal-width-sm accent-warning"
         role="dialog"
@@ -6271,7 +6346,7 @@
     </div>
 
     <!-- Log Edit Form Popup -->
-    <div id="edit-modal" class="modal-overlay" style="z-index: 3500">
+    <div id="edit-modal" class="modal-overlay">
       <div
         class="modal-container modal-width-sm accent-info"
         role="dialog"
@@ -6413,7 +6488,7 @@
     </div>
 
     <!-- Manual Entry Form Popup Overlay -->
-    <div id="manual-modal" class="modal-overlay" style="z-index: 3500">
+    <div id="manual-modal" class="modal-overlay">
       <div
         class="modal-container modal-width-sm accent-success"
         role="dialog"
@@ -6608,7 +6683,7 @@
     <!-- Unified Dynamic Floating Tooltip -->
     <div id="app-tooltip" class="app-tooltip"></div>
 
-    <div id="preset-modal" class="modal-overlay" style="z-index: 3500">
+    <div id="preset-modal" class="modal-overlay">
       <div
         class="modal-container modal-width-sm accent-info"
         role="dialog"
@@ -6644,7 +6719,6 @@
     <div
       id="leave-modal"
       class="modal-overlay"
-      style="z-index: 3500"
       onclick="if (event.target === this) closeLeaveModal();"
     >
       <div
@@ -6850,7 +6924,6 @@
       class="modal-overlay"
       onclick="if (event.target === this) closeHeatmapModal();"
       style="
-        z-index: 4000;
         align-items: center;
         justify-content: center;
         opacity: 0;
@@ -6893,8 +6966,8 @@
             padding: 8px 12px;
             color: var(--text-main);
             font-size: 0.72rem;
-            box-shadow: none;
-            z-index: 6000;
+            box-shadow: var(--global-shadow);
+            z-index: 1000;
             pointer-events: none;
             width: 230px;
             text-align: left;
@@ -7033,7 +7106,7 @@
                   border-radius: var(--radius-md);
                   box-shadow: none;
                   transform: translateX(-50%) translateY(4px);
-                  z-index: 7000;
+
                   transition:
                     opacity 0.2s ease,
                     transform 0.2s ease;
@@ -7259,7 +7332,6 @@
       class="modal-overlay"
       onclick="if (event.target === this) closeHudModal();"
       style="
-        z-index: 5000;
         align-items: flex-start;
         padding-top: 15vh;
         opacity: 0;
@@ -9264,26 +9336,37 @@
     <script>
       // Global safety interceptors to prevent crashes in private modes, storage limits, or security restrictions
       (function () {
+        const _fallbackStorage = new Map();
+        let _warnedQuota = false;
+
         const originalSetItem = Storage.prototype.setItem;
         Storage.prototype.setItem = function (key, value) {
           try {
             originalSetItem.apply(this, arguments);
           } catch (e) {
-            console.warn(
-              "Storage quota exceeded or write blocked. Session will continue in temporary memory.",
-              e,
-            );
+            if (!_warnedQuota) {
+              console.warn(
+                "Storage quota exceeded or write blocked. Session will continue in temporary memory.",
+                e,
+              );
+              _warnedQuota = true;
+            }
             window.storageWriteError = true;
           }
+          _fallbackStorage.set(key, value);
         };
 
         const originalGetItem = Storage.prototype.getItem;
         Storage.prototype.getItem = function (key) {
           try {
-            return originalGetItem.apply(this, arguments);
+            const val = originalGetItem.apply(this, arguments);
+            if (val !== null) {
+              _fallbackStorage.set(key, val); // sync memory
+              return val;
+            }
+            return _fallbackStorage.has(key) ? _fallbackStorage.get(key) : null;
           } catch (e) {
-            console.warn("Storage read blocked.", e);
-            return null;
+            return _fallbackStorage.has(key) ? _fallbackStorage.get(key) : null;
           }
         };
 
@@ -9291,9 +9374,8 @@
         Storage.prototype.removeItem = function (key) {
           try {
             originalRemoveItem.apply(this, arguments);
-          } catch (e) {
-            console.warn("Storage delete blocked.", e);
-          }
+          } catch (e) {}
+          _fallbackStorage.delete(key);
         };
       })();
 
@@ -9386,13 +9468,12 @@
       let isDbReloading = false;
       let _pendingWriteAfterReload = null;
       const myTabId =
-        typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
-          ? crypto.randomUUID()
-          : "tab_" +
-            Math.random().toString(36).substring(2, 15) +
-            Date.now().toString(36);
+        "tab_" +
+        Math.random().toString(36).substring(2, 15) +
+        Date.now().toString(36);
 
       // Live session core tracking state structure
+      window.dirtyChunks = new Set();
       let state = {
         workAccumulated: 0,
         breakAccumulated: 0,
@@ -9483,16 +9564,20 @@
 
       // High-performance background Web Worker ticker to keep loop active continuously when backgrounded
       const tickerWorkerCode = `
-        let intervalId = null;
+        let timeoutId = null;
         self.onmessage = function(e) {
           if (e.data === 'start') {
-            if (intervalId) clearInterval(intervalId);
-            intervalId = setInterval(() => {
+            if (timeoutId) clearTimeout(timeoutId);
+            timeoutId = setTimeout(() => {
               self.postMessage('tick');
             }, 1000);
           } else if (e.data === 'stop') {
-            if (intervalId) clearInterval(intervalId);
-            intervalId = null;
+            if (timeoutId) clearTimeout(timeoutId);
+            timeoutId = null;
+          } else if (e.data === 'ack') {
+            timeoutId = setTimeout(() => {
+              self.postMessage('tick');
+            }, 1000);
           }
         };
       `;
@@ -9506,6 +9591,7 @@
       tickerWorker.onmessage = function (e) {
         if (e.data === "tick") {
           tick();
+          tickerWorker.postMessage("ack");
         }
       };
 
@@ -9550,13 +9636,10 @@
         filterViewPresets: document.getElementById("filter-view-presets"),
         weekMonthLabel: document.getElementById("week-month-label"),
         weeklyBreakdown: document.getElementById("weekly-breakdown"),
-        weeklyBreak: document.getElementById("total-weekly-break"),
-        goalHours: document.getElementById("goal-hours"),
         todayWorkVal: document.getElementById("today-work-val"),
         todayBreakVal: document.getElementById("today-break-val"),
-        todayVarianceVal: document.getElementById("today-variance-val"),
-        todayVarianceBadge: document.getElementById("today-variance-badge"),
-        todayFocusVal: document.getElementById("today-focus-val"),
+        weeklyBreak: document.getElementById("total-weekly-break"),
+        goalHours: document.getElementById("goal-hours"),
         goalMins: document.getElementById("goal-mins"),
         primaryTz: document.getElementById("primary-tz"),
         submitModal: document.getElementById("submit-modal"),
@@ -9703,6 +9786,40 @@
       /*==========================================================================
        * 3. DATE-TIME FORMATTING CONFIGURATORS
        * =========================================================================*/
+      const _cachedLocaleDayFirst = new Intl.DateTimeFormat()
+        .format(new Date(2026, 11, 25))
+        .startsWith("25");
+      const _cachedResolvedTz =
+        Intl.DateTimeFormat().resolvedOptions().timeZone;
+      const _formatTzCache = {};
+      function getCachedTzFormatter(tz) {
+        if (!_formatTzCache[tz]) {
+          _formatTzCache[tz] = new Intl.DateTimeFormat("en-US", {
+            timeZone: tz,
+            year: "numeric",
+            month: "numeric",
+            day: "numeric",
+            hour: "numeric",
+            minute: "numeric",
+            second: "numeric",
+            hour12: false,
+          });
+        }
+        return _formatTzCache[tz];
+      }
+      const _formatTimeOnlyCache = {};
+      function getCachedTimeOnlyFormatter(tz) {
+        if (!_formatTimeOnlyCache[tz]) {
+          _formatTimeOnlyCache[tz] = new Intl.DateTimeFormat("en-US", {
+            timeZone: tz,
+            hour: "numeric",
+            minute: "numeric",
+            second: "numeric",
+            hour12: true,
+          });
+        }
+        return _formatTimeOnlyCache[tz];
+      }
       const pstFormatter = new Intl.DateTimeFormat("en-US", {
         timeZone: "America/Los_Angeles",
         hour12: true,
@@ -9819,14 +9936,22 @@
        * Persists historical logs grouped into chronological chunk blocks.
        * @param {Array} logsData - Full array of log entries to divide and save.
        */
+      let _dbChunkHashes = new Map();
+
       async function saveLogsToDB(logsData) {
         if (isDbReloading) {
           _pendingWriteAfterReload = logsData;
           return Promise.resolve();
         }
+
+        const chunksToProcess = window.dirtyChunks
+          ? new Set(window.dirtyChunks)
+          : new Set();
+        if (window.dirtyChunks) window.dirtyChunks.clear();
+
         try {
           const db = await dbPromise;
-          return new Promise((resolve) => {
+          return new Promise((resolve, reject) => {
             const groupChunks = () => {
               const chunks = {};
               const dataLen = logsData.length;
@@ -9858,14 +9983,22 @@
               reqKeys.onsuccess = () => {
                 const newKeySet = new Set(Object.keys(chunks));
                 reqKeys.result.forEach((k) => {
-                  if (!newKeySet.has(k)) store.delete(k);
+                  if (!newKeySet.has(k)) {
+                    store.delete(k);
+                  }
                 });
-                newKeySet.forEach((chunkId) =>
-                  store.put({ chunkId, data: chunks[chunkId] }),
-                );
+                const rebuildAll = chunksToProcess.has("ALL");
+                newKeySet.forEach((chunkId) => {
+                  if (rebuildAll || chunksToProcess.has(chunkId)) {
+                    store.put({ chunkId, data: chunks[chunkId] });
+                  }
+                });
                 tx.oncomplete = () => resolve();
                 tx.onerror = (e) => {
                   console.error("IDB chunk write failed:", e);
+                  chunksToProcess.forEach((c) => {
+                    if (window.dirtyChunks) window.dirtyChunks.add(c);
+                  });
                   showAppToast(
                     "⚠️ Storage write failed — data may not be saved",
                   );
@@ -9874,6 +10007,9 @@
               };
               reqKeys.onerror = (e) => {
                 console.error("IndexedDB key read failed:", e);
+                chunksToProcess.forEach((c) => {
+                  if (window.dirtyChunks) window.dirtyChunks.add(c);
+                });
                 showAppToast("⚠️ Storage read failed — save may be incomplete");
                 reject(e);
               };
@@ -9908,20 +10044,11 @@
           const done = (val) => {
             if (!settled) {
               settled = true;
-              clearTimeout(timeoutId);
               resolve(val);
             }
           };
 
-          // Fallback safety timeout of 1500ms to prevent infinite deadlock hangs
-          const timeoutId = setTimeout(() => {
-            if (!settled) {
-              console.warn(
-                "IndexedDB transaction timed out (deadlock detected). Falling back.",
-              );
-              done(null);
-            }
-          }, 1500);
+          // Timeout removed to allow slow hardware to complete initialization
 
           try {
             const txCheck = db.transaction(
@@ -9949,6 +10076,10 @@
                     let allLogs = [];
                     reqChunk.result.forEach((chunk) => {
                       allLogs = allLogs.concat(chunk.data);
+                      _dbChunkHashes.set(
+                        chunk.chunkId,
+                        JSON.stringify(chunk.data),
+                      );
                     });
                     for (let i = 0; i < allLogs.length; i++)
                       allLogs[i]._idx = i;
@@ -9983,7 +10114,8 @@
       const tabSyncChannel = new BroadcastChannel("work_tracker_sync");
       let instanceId = sessionStorage.getItem("production_tab_instance_id");
       if (!instanceId) {
-        instanceId = Math.random().toString(36).substring(2, 15);
+        instanceId =
+          Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
         try {
           sessionStorage.setItem("production_tab_instance_id", instanceId);
         } catch (e) {
@@ -10030,7 +10162,8 @@
               state.breakAccumulated =
                 (state.breakAccumulated || 0) + elapsedSeconds;
             }
-            state.sessionAnchorWall = nowWall;
+            state.currentMode = null;
+            state.sessionAnchorWall = null;
           }
           saveState(true);
 
@@ -10042,10 +10175,6 @@
 
           isTabConflict = true;
           DOM.tabConflictModal.style.display = "flex";
-          if (state.currentMode !== null) {
-            state.currentMode = null;
-            state.sessionAnchorWall = null;
-          }
           renderStaticUI();
 
           tabSyncChannel.postMessage({
@@ -10090,11 +10219,19 @@
                 renderInsights();
               }
               isDbReloading = false;
-              _pendingWriteAfterReload = null;
+              if (_pendingWriteAfterReload !== null) {
+                const pendingData = _pendingWriteAfterReload;
+                _pendingWriteAfterReload = null;
+                saveLogsToDB(pendingData);
+              }
             })
             .catch(() => {
               isDbReloading = false;
-              _pendingWriteAfterReload = null;
+              if (_pendingWriteAfterReload !== null) {
+                const pendingData = _pendingWriteAfterReload;
+                _pendingWriteAfterReload = null;
+                saveLogsToDB(pendingData);
+              }
             });
         }
       };
@@ -10575,6 +10712,16 @@
       /**
        * Returns logs array reference.
        */
+      function isLogOver(l) {
+        const goal =
+          l.dayGoal != null && l.dayGoal > 0
+            ? l.dayGoal
+            : (window.dailyAnchorMap
+                ? window.dailyAnchorMap.get(l.date)
+                : null) || 8 * 3600;
+        return (l.workSec || 0) >= goal;
+      }
+
       function getLogs() {
         return cachedLogs;
       }
@@ -11151,6 +11298,7 @@
         saveState();
         renderStaticUI();
         renderTimersOnly();
+        updateLiveTodayRow();
       }
 
       /*==========================================================================
@@ -11230,6 +11378,8 @@
       }
 
       let lastWeeklySummaryCheckMin = -1;
+      let lastLiveWorkMin = -1;
+      let lastLiveBreakMin = -1;
 
       /**
        * Updates the main timer and status clock displays once per second.
@@ -11294,6 +11444,18 @@
         }
 
         updateProgress(workSeconds);
+
+        // Sync today's Insights card the exact second today's active work or break minutes increment
+        const currentWorkMin = Math.floor(workSeconds / 60);
+        const currentBreakMin = Math.floor(breakSeconds / 60);
+        if (
+          currentWorkMin !== lastLiveWorkMin ||
+          currentBreakMin !== lastLiveBreakMin
+        ) {
+          lastLiveWorkMin = currentWorkMin;
+          lastLiveBreakMin = currentBreakMin;
+          updateLiveTodayRow();
+        }
 
         // Only call the heavy weekly summary calculation when the minute rolls over
         const currentMin = nowDate.getMinutes();
@@ -11583,14 +11745,12 @@
           (logsByDate[todayStr] ? logsByDate[todayStr].b : 0) +
           getCurrentBreakSeconds();
 
-        const todayWorkValEl = DOM.todayWorkVal;
-        if (todayWorkValEl) {
-          todayWorkValEl.innerHTML = formatFriendlyDuration(todayW);
+        if (DOM.todayWorkVal) {
+          DOM.todayWorkVal.innerHTML = formatFriendlyDuration(todayW);
         }
 
-        const todayBreakValEl = DOM.todayBreakVal;
-        if (todayBreakValEl) {
-          todayBreakValEl.innerHTML = formatFriendlyDuration(todayB);
+        if (DOM.todayBreakVal) {
+          DOM.todayBreakVal.innerHTML = formatFriendlyDuration(todayB);
         }
 
         const liveGoalSec = getGoalSeconds(
@@ -11606,14 +11766,15 @@
         const diffM = diffMinsTotal % 60;
         const varianceTime = `${diffH}h ${diffM}m`;
 
-        const todayVarianceValEl = DOM.todayVarianceVal;
+        const todayVarianceValEl =
+          document.getElementById("today-variance-val");
         const todayVarianceBadgeEl = document.getElementById(
           "today-variance-badge",
         );
 
         if (todayVarianceValEl && todayVarianceBadgeEl) {
           todayVarianceValEl.innerHTML = varianceTime;
-          todayVarianceValEl.className = isOver ? "text-work" : "text-warning";
+          todayVarianceValEl.className = "";
 
           todayVarianceBadgeEl.innerHTML = isOver ? "O" : "U";
           todayVarianceBadgeEl.className = isOver
@@ -11621,7 +11782,7 @@
             : "badge badge-under";
         }
 
-        const todayFocusValEl = DOM.todayFocusVal;
+        const todayFocusValEl = document.getElementById("today-focus-val");
         if (todayFocusValEl) {
           const focusVal =
             todayW + todayB > 0
@@ -12079,7 +12240,7 @@
           logoutEpochMs: logoutTs,
           workSec: Math.floor(workSec),
           breakSec: Math.floor(breakSec),
-          status: diff >= 0 ? "OVER" : "UNDER",
+
           diff: formatDuration(Math.abs(diff)),
           notes: "Auto-submitted (Midnight Reset)",
           dayGoal: goal,
@@ -12091,6 +12252,15 @@
 
         const logs = getLogs();
         logs.unshift(entry);
+        const _parts = entry.date.split("/");
+        if (_parts.length === 3) {
+          const _yy = _parts[2];
+          const _fullYear = _yy.length === 2 ? `20${_yy}` : _yy;
+          if (window.dirtyChunks)
+            window.dirtyChunks.add(
+              `${_fullYear}-${_parts[0].padStart(2, "0")}`,
+            );
+        }
         saveLogs(logs);
       }
 
@@ -12150,6 +12320,7 @@
           })
           .join("\n\n");
 
+        const mailTab = window.open("about:blank", "_blank");
         navigator.clipboard
           .writeText(txt)
           .then(() => {
@@ -12190,17 +12361,14 @@
               emailSubject,
             )}&body=${encodeURIComponent(emailBody)}`;
 
-            // Reverts back to standard '_blank' behavior for absolute browser compatibility
-            const newTab = window.open(gmailUrl, "_blank");
-            if (
-              !newTab ||
-              newTab.closed ||
-              typeof newTab.closed === "undefined"
-            ) {
+            if (mailTab && !mailTab.closed) {
+              mailTab.location.href = gmailUrl;
+            } else {
               window.location.href = mailtoUrl;
             }
           })
           .catch((err) => {
+            if (mailTab && !mailTab.closed) mailTab.close();
             console.warn("Clipboard access denied on EOD submit:", err);
           });
       }
@@ -12270,7 +12438,7 @@
           logoutEpochMs: logoutTimestamp,
           workSec: workSeconds,
           breakSec: breakSeconds,
-          status: diff >= 0 ? "OVER" : "UNDER",
+
           diff: formatDuration(Math.abs(diff)),
           notes: forceNotes,
           dayGoal: goal,
@@ -12304,6 +12472,7 @@
 
         const logs = getLogs();
         logs.shift();
+        if (window.dirtyChunks) window.dirtyChunks.add("ALL");
         saveLogs(logs);
 
         renderStaticUI();
@@ -12392,13 +12561,7 @@
 
         if (state.idleStart) {
           const tz = DOM.primaryTz.value || "America/Los_Angeles";
-          const timeFormatter = new Intl.DateTimeFormat("en-US", {
-            timeZone: tz,
-            hour12: true,
-            hour: "2-digit",
-            minute: "2-digit",
-            second: "2-digit",
-          });
+          const timeFormatter = getCachedTimeOnlyFormatter(tz);
           lastActiveEl.textContent = timeFormatter.format(
             new Date(state.idleStart),
           );
@@ -13251,7 +13414,10 @@
             return false;
 
           // Status
-          if (criteria.status !== "ALL" && l.status !== criteria.status)
+          if (
+            criteria.status !== "ALL" &&
+            (isLogOver(l) ? "OVER" : "UNDER") !== criteria.status
+          )
             return false;
 
           // Notes
@@ -13327,29 +13493,37 @@
         () => {
           if (!scrollAnimationFrameActive) {
             scrollAnimationFrameActive = true;
-            window.requestAnimationFrame(() => {
-              renderVirtualVisibleItems();
 
-              const currentScrollTop = DOM.tabLogbook.scrollTop;
+            const currentScrollTop = DOM.tabLogbook.scrollTop;
+            if (!cachedViewportHeight)
+              cachedViewportHeight = DOM.tabLogbook.clientHeight || 400;
+            const viewportHeight = cachedViewportHeight;
+            const scrollHeight = DOM.tabLogbook.scrollHeight;
+
+            window.requestAnimationFrame(() => {
+              renderVirtualVisibleItems(currentScrollTop, viewportHeight);
+
+              let safeScrollTop = currentScrollTop;
+              const maxScroll = Math.max(0, scrollHeight - viewportHeight);
+              if (safeScrollTop > maxScroll) {
+                safeScrollTop = maxScroll;
+                DOM.tabLogbook.scrollTop = maxScroll;
+              }
 
               // Toggle visibility for the premium Scroll-to-Top action
               const btn = DOM.logbookScrollTopBtn;
               if (btn) {
                 const logbookVisible = DOM.tabLogbook.style.display !== "none";
-                const isScrollingDown = currentScrollTop > lastLogbookScrollTop;
+                const isScrollingDown = safeScrollTop > lastLogbookScrollTop;
 
-                if (
-                  logbookVisible &&
-                  currentScrollTop > 150 &&
-                  isScrollingDown
-                ) {
+                if (logbookVisible && safeScrollTop > 150 && isScrollingDown) {
                   btn.classList.add("visible");
-                } else if (!isScrollingDown || currentScrollTop <= 150) {
+                } else if (!isScrollingDown || safeScrollTop <= 150) {
                   btn.classList.remove("visible");
                 }
               }
 
-              lastLogbookScrollTop = currentScrollTop;
+              lastLogbookScrollTop = safeScrollTop;
               scrollAnimationFrameActive = false;
             });
           }
@@ -13407,7 +13581,10 @@
         "Dec",
       ];
 
-      function renderVirtualVisibleItems() {
+      function renderVirtualVisibleItems(
+        passedScrollTop,
+        passedViewportHeight,
+      ) {
         if (virtualScrollLogs.length === 0) {
           const stickyIndicator = document.getElementById(
             "sticky-month-indicator",
@@ -13418,12 +13595,18 @@
           return;
         }
         const scrollContainer = DOM.tabLogbook;
-        const scrollTop = scrollContainer.scrollTop;
+        const scrollTop =
+          passedScrollTop !== undefined
+            ? passedScrollTop
+            : scrollContainer.scrollTop;
         // Uses the layout-cached clientHeight value to prevent CPU-based style recalculations
         if (!cachedViewportHeight) {
           cachedViewportHeight = scrollContainer.clientHeight || 400;
         }
-        const viewportHeight = cachedViewportHeight;
+        const viewportHeight =
+          passedViewportHeight !== undefined
+            ? passedViewportHeight
+            : cachedViewportHeight;
         const itemHeight = getDynamicItemHeight();
 
         const overscan = 5;
@@ -13490,7 +13673,7 @@
           const log = virtualScrollLogs[i];
           const isSelected = i === selectedLogIdx;
           renderKeyParts.push(
-            `${log.id}|${isSelected}|${log.workSec}|${log.breakSec}|${log.status}|${log.notes || ""}`,
+            `${log.id}|${isSelected}|${log.workSec}|${log.breakSec}|${isLogOver(log) ? "OVER" : "UNDER"}|${log.notes || ""}`,
           );
         }
         const fullRenderKey = `${startIndex}-${endIndex}-${renderKeyParts.join(";")}`;
@@ -13527,7 +13710,7 @@
           const isSelected = i === selectedLogIdx;
           const child = children[poolIndex];
 
-          const rowKey = `${log.id}|${isSelected}|${log.workSec}|${log.breakSec}|${log.status}|${log.notes || ""}`;
+          const rowKey = `${log.id}|${isSelected}|${log.workSec}|${log.breakSec}|${isLogOver(log) ? "OVER" : "UNDER"}|${log.notes || ""}`;
           if (child.dataset.rowKey !== rowKey) {
             child.dataset.rowKey = rowKey;
             child.className = isSelected ? "log-row kb-selected" : "log-row";
@@ -13555,7 +13738,7 @@
             dom.dayName.textContent = _DAY_NAMES_SHORT[dayNum];
             dom.dateSub.textContent = `(${displayMonthDay})`;
             dom.meta.textContent = `${log.login} - ${log.logout}`;
-            dom.statusBadge.textContent = log.status === "OVER" ? "O" : "U";
+            dom.statusBadge.textContent = isLogOver(log) ? "O" : "U";
 
             const logDKey = log.displayDate || log.date;
             const dt = window._dailyTotalsMap
@@ -13593,8 +13776,10 @@
               dom.weekendBadgeLeft.style.display = "none";
               dom.weekendBadgeRight.style.display = "none";
             }
-            dom.statusBadge.className = `log-status-badge badge ${log.status === "OVER" ? "badge-over" : "badge-under"}`;
-            dom.diffText.className = `log-diff-text ${log.status === "OVER" ? "text-work" : "text-warning"}`;
+            dom.statusBadge.className = `log-status-badge badge ${
+              isLogOver(log) ? "badge-over" : "badge-under"
+            }`;
+            dom.diffText.className = "log-diff-text";
 
             dom.copyBtn.dataset.id = log.id;
             dom.editBtn.dataset.id = log.id;
@@ -13905,14 +14090,14 @@
               <span>Variance:</span>
               <span class="font-mono" style="display: inline-flex; align-items: center; gap: 4px;">
                 <span class="badge ${badgeClass}" style="width: 14px; height: 14px; font-size: 0.55rem;">${statusLetter}</span>
-                <span class="${textClass}" style="font-weight: 600;">${varianceStr}</span>
+                <span>${varianceStr}</span>
               </span>
             </div>
             <div style="display: flex; justify-content: space-between; align-items: center;">
               <span>Focus:</span>
               <span class="font-mono" style="display: inline-flex; align-items: center; gap: 4px;">
                 <span class="badge badge-f" style="width: 14px; height: 14px; font-size: 0.55rem;">F</span>
-                <span style="font-weight: 600; color: var(--text-main);">${focusText}</span>
+                <span>${focusText}</span>
               </span>
             </div>
           </div>
@@ -14421,6 +14606,7 @@
       }
 
       function closeHeatmapModal() {
+        window.isHoveringTodayHeatmap = false;
         const modal = DOM.heatmapModal;
         const anim = DOM.heatmapContainerAnim;
         if (!modal || !anim) return;
@@ -14696,7 +14882,7 @@
                                     </div>
                                   </div>
                                   <div class="breakdown-row-meta">
-                                    <span>${loginStr} - ${logoutStr}</span>
+                                    <span ${isToday ? 'id="today-meta-val"' : ""}>${loginStr} - ${logoutStr}</span>
                                     <div class="font-mono stats-alignment-wrapper" style="font-size: var(--font-size-entry-meta); color: var(--text-muted); display: flex; gap: 12px;">
                                       <div class="stat-column work-col flex-center">
                                         <span class="badge badge-leave">Worked Leave</span>
@@ -14814,19 +15000,19 @@
                         </div>
                       </div>
                       <div class="breakdown-row-meta">
-                        <span>${loginStr} - ${logoutStr}</span>
+                        <span ${isToday ? 'id="today-meta-val"' : ""}>${loginStr} - ${logoutStr}</span>
                         <div class="font-mono stats-alignment-wrapper" style="font-size: var(--font-size-entry-meta); color: var(--text-muted); display: flex; gap: 12px;">
                           <div class="stat-column work-col flex-center">
                             <span ${
                               isToday ? 'id="today-variance-badge"' : ""
                             } class="badge ${badgeClass}">${ouLetter}</span><span ${
                               isToday ? 'id="today-variance-val"' : ""
-                            } class="${textClass}" style="font-weight: 600;">${varianceTime}</span>
+                            }>${varianceTime}</span>
                           </div>
                           <div class="stat-column break-col flex-center">
                             <span class="badge badge-f">F</span><span ${
                               isToday ? 'id="today-focus-val"' : ""
-                            } style="font-weight: 600; color: var(--text-muted);">${focusText}</span>
+                            }>${focusText}</span>
                           </div>
                         </div>
                       </div>
@@ -14979,6 +15165,7 @@
         }
 
         DOM.weeklyBreakdown.innerHTML = breakdownHTML;
+
         setText(DOM.weeklyBreak, formatFriendlyDuration(totalB_AllWeek, "0m"));
 
         // Instantly trigger live calculations if viewing the current active week
@@ -14986,6 +15173,132 @@
           updateLiveWeeklySummary(true);
         }
       }
+
+      function updateLiveTodayRow() {
+        const insightsTab = DOM.tabInsights;
+        if (
+          !insightsTab ||
+          insightsTab.style.display === "none" ||
+          document.hidden
+        )
+          return;
+
+        const todayStr = getPSTDate();
+        const logs = getLogs();
+
+        let loggedWork = 0;
+        let loggedBreak = 0;
+        for (let i = 0; i < logs.length; i++) {
+          if (logs[i].date === todayStr || logs[i].displayDate === todayStr) {
+            loggedWork += logs[i].workSec || 0;
+            loggedBreak += logs[i].breakSec || 0;
+          }
+        }
+
+        const todayW = loggedWork + getCurrentWorkSeconds();
+        const todayB = loggedBreak + getCurrentBreakSeconds();
+
+        const workValEl =
+          DOM.todayWorkVal || document.getElementById("today-work-val");
+        const breakValEl =
+          DOM.todayBreakVal || document.getElementById("today-break-val");
+
+        if (workValEl) {
+          workValEl.innerHTML = formatFriendlyDuration(todayW);
+        }
+        if (breakValEl) {
+          breakValEl.innerHTML = formatFriendlyDuration(todayB);
+        }
+
+        const liveGoalSec =
+          domWriteCache._goalSecCached ||
+          getGoalSeconds(DOM.goalHours.value, DOM.goalMins.value);
+        const anchorGoal = dailyAnchorMap.get(todayStr) || liveGoalSec;
+        const diffSec = todayW - anchorGoal;
+        const isOver = diffSec >= 0;
+        const absDiffSec = Math.abs(diffSec);
+        const diffMinsTotal = Math.floor(absDiffSec / 60);
+        const diffH = Math.floor(diffMinsTotal / 60);
+        const diffM = diffMinsTotal % 60;
+        const varianceTime = `${diffH}h ${diffM}m`;
+
+        const todayVarianceValEl =
+          document.getElementById("today-variance-val");
+        const todayVarianceBadgeEl = document.getElementById(
+          "today-variance-badge",
+        );
+
+        if (todayVarianceValEl && todayVarianceBadgeEl) {
+          todayVarianceValEl.innerHTML = varianceTime;
+          todayVarianceValEl.className = "";
+
+          todayVarianceBadgeEl.innerHTML = isOver ? "O" : "U";
+          todayVarianceBadgeEl.className = isOver
+            ? "badge badge-over"
+            : "badge badge-under";
+        }
+
+        const todayFocusValEl = document.getElementById("today-focus-val");
+        if (todayFocusValEl) {
+          const focusVal =
+            todayW + todayB > 0
+              ? Math.min(100, Math.round((todayW / (todayW + todayB)) * 100))
+              : 0;
+          todayFocusValEl.innerHTML = focusVal > 0 ? `${focusVal}%` : `—`;
+        }
+
+        const todayMetaValEl = document.getElementById("today-meta-val");
+        if (todayMetaValEl) {
+          let loginStr = "—";
+          let logoutStr = "—";
+
+          let earliestLoginMin = null;
+          let latestLogoutMin = null;
+
+          for (let i = 0; i < logs.length; i++) {
+            const l = logs[i];
+            if (l.date === todayStr || l.displayDate === todayStr) {
+              const loginMin = parseTimeToMinutes(l.login);
+              const logoutMin = parseTimeToMinutes(l.logout);
+              if (loginMin !== null) {
+                if (earliestLoginMin === null || loginMin < earliestLoginMin) {
+                  earliestLoginMin = loginMin;
+                  loginStr = l.login;
+                }
+              }
+              if (logoutMin !== null) {
+                if (latestLogoutMin === null || logoutMin > latestLogoutMin) {
+                  latestLogoutMin = logoutMin;
+                  logoutStr = l.logout;
+                }
+              }
+            }
+          }
+
+          if (state.loginTimestamp) {
+            const todayLoginStr = loginFormatter.format(
+              new Date(state.loginTimestamp),
+            );
+            if (loginStr === "—") {
+              loginStr = todayLoginStr;
+            }
+            if (state.currentMode === "work") {
+              logoutStr = "Active";
+            } else if (state.currentMode === "break") {
+              logoutStr = "Break";
+            } else {
+              logoutStr = "Paused";
+            }
+          }
+
+          const metaText = `${loginStr} - ${logoutStr}`;
+          if (todayMetaValEl.textContent !== metaText) {
+            todayMetaValEl.textContent = metaText;
+          }
+        }
+      }
+
+      // Cache variables to prevent redundant DOM style and property write updates on ticks
 
       /*==========================================================================
        * 15. EDIT AND DELETE ACTION PROCEDURES
@@ -15074,6 +15387,17 @@
         const logs = getLogs();
         const log = logs.find((l) => l.id === editingLogId);
         if (!log) return;
+        if (log.date) {
+          const _parts = log.date.split("/");
+          if (_parts.length === 3) {
+            const _yy = _parts[2];
+            const _fullYear = _yy.length === 2 ? `20${_yy}` : _yy;
+            if (window.dirtyChunks)
+              window.dirtyChunks.add(
+                `${_fullYear}-${_parts[0].padStart(2, "0")}`,
+              );
+          }
+        }
 
         if (DOM.editWork) handleTimeInputBlur({ target: DOM.editWork });
         if (DOM.editBreak) handleTimeInputBlur({ target: DOM.editBreak });
@@ -15084,7 +15408,14 @@
         const newWork = DOM.editWork.value.trim();
         const newBreak = DOM.editBreak.value.trim();
         const newNotes = DOM.editNotes.value.trim();
-
+        const parseDur = (str) => {
+          if (!str) return 0;
+          const match = str.match(/(\d+)\s*[hH]?\s*(\d+)?\s*[mM]?/);
+          if (!match) return 0;
+          return parseInt(match[1] || 0) * 3600 + parseInt(match[2] || 0) * 60;
+        };
+        const totalSec = parseDur(newWork) + parseDur(newBreak);
+        log.totalSeconds = totalSec;
         const rawGoal = DOM.editGoal.value.trim();
         const parsedGoal = parseGoalTimeStr(rawGoal);
         const gh = parsedGoal.hh;
@@ -15135,14 +15466,7 @@
           );
 
           if (derivedLoginEpochMs !== null && derivedLogoutEpochMs !== null) {
-            if (derivedLogoutEpochMs < derivedLoginEpochMs)
-              derivedLogoutEpochMs += 86400000;
-            else if (
-              derivedLogoutEpochMs === derivedLoginEpochMs &&
-              newLogin.toLowerCase() === newLogout.toLowerCase()
-            ) {
-              if (wSec + bSec > 0) derivedLogoutEpochMs += 86400000;
-            }
+            derivedLogoutEpochMs = derivedLoginEpochMs + (wSec + bSec) * 1000;
           } else if (derivedLoginEpochMs !== null) {
             derivedLogoutEpochMs = derivedLoginEpochMs + (wSec + bSec) * 1000;
           } else {
@@ -15199,13 +15523,22 @@
           const proceedWithSave = () => {
             isEditSubmitting = true;
             log.date = newDate;
+            const _parts = newDate.split("/");
+            if (_parts.length === 3) {
+              const _yy = _parts[2];
+              const _fullYear = _yy.length === 2 ? `20${_yy}` : _yy;
+              if (window.dirtyChunks)
+                window.dirtyChunks.add(
+                  `${_fullYear}-${_parts[0].padStart(2, "0")}`,
+                );
+            }
             log.displayDate = newDate.replace(/\/20(\d{2})$/, "/$1");
             log.login = newLogin;
             log.logout = newLogout;
             log.workSec = wSec;
             log.breakSec = bSec;
             log.dayGoal = goal;
-            log.status = wSec - goal >= 0 ? "OVER" : "UNDER";
+
             log.diff = formatDuration(Math.abs(wSec - goal));
             log.epochMs = epochMs;
             log.loginEpochMs = derivedLoginEpochMs;
@@ -15320,10 +15653,7 @@
             (typeof getGoalSeconds === "function"
               ? getGoalSeconds(DOM.goalHours.value, DOM.goalMins.value)
               : 8 * 3600);
-          const deltaDec = (
-            (l.status === "OVER" ? 1 : -1) *
-            (Math.abs(l.workSec - goalSec) / 3600)
-          ).toFixed(2);
+          const deltaDec = ((l.workSec - goalSec) / 3600).toFixed(2);
           const notes = l.notes
             ? l.notes.replace(/"/g, '""').replace(/\n/g, " ")
             : "";
@@ -15349,6 +15679,7 @@
         a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
         a.download = `Production_Report.csv`;
         a.click();
+        requestAnimationFrame(() => URL.revokeObjectURL(a.href));
         showAppToast("Exported logs as CSV");
       }
 
@@ -15379,6 +15710,7 @@
         );
         a.download = `Backup_${getPSTDate().replace(/\//g, "-")}.json`;
         a.click();
+        requestAnimationFrame(() => URL.revokeObjectURL(a.href));
         showAppToast("JSON Backup created");
       }
 
@@ -15445,6 +15777,30 @@
             ) {
               return `Log entry at index ${i} has loginEpochMs after logoutEpochMs.`;
             }
+          }
+        }
+
+        if (data.state !== undefined) {
+          if (typeof data.state !== "object" || data.state === null) {
+            return "'state' field must be an object.";
+          }
+          if (
+            data.state.idleThresholdMinutes !== undefined &&
+            typeof data.state.idleThresholdMinutes !== "number"
+          ) {
+            return "idleThresholdMinutes must be a number.";
+          }
+          if (
+            data.state.idleTrackingEnabled !== undefined &&
+            typeof data.state.idleTrackingEnabled !== "boolean"
+          ) {
+            return "idleTrackingEnabled must be a boolean.";
+          }
+          if (
+            data.state.autoEmailEnabled !== undefined &&
+            typeof data.state.autoEmailEnabled !== "boolean"
+          ) {
+            return "autoEmailEnabled must be a boolean.";
           }
         }
 
@@ -15708,6 +16064,7 @@
 
             const finalLogs = Array.from(uniqueMap.values());
             finalLogs.sort((a, b) => b.epochMs - a.epochMs);
+            if (window.dirtyChunks) window.dirtyChunks.add("ALL");
             saveLogs(finalLogs);
           }
 
@@ -15795,6 +16152,7 @@
           "Factory Reset",
           "Are you sure you want to permanently delete ALL logs and settings? This is irreversible.",
           () => {
+            if (window.dirtyChunks) window.dirtyChunks.add("ALL");
             saveLogs([]);
             localStorage.removeItem(STATE_KEY);
             localStorage.removeItem(GOAL_H_KEY);
@@ -16102,42 +16460,13 @@
         // Execute rollover checks for multi-day gaps (sleep/hibernate/page load recovery)
         checkMidnightReset(now);
 
-        // Real-Time Anchor Audit & Drift Correction (Runs ONLY in intelligent mode)
+        // Update last heartbeat for passive background tracking
         if (
           state.trackingMode === "intelligent" &&
           state.currentMode !== null &&
           !state.idleLock
         ) {
-          const nowMonotonic = performance.now();
-          const lastWall = state.lastHeartbeatWall || nowMs;
-          const lastMono = state.lastHeartbeatMonotonic || nowMonotonic;
-
-          // UNCLAMPED wallDelta allows negative values to capture backward NTP jumps
-          const wallDelta = nowMs - lastWall;
-          const monoDelta = Math.max(0, nowMonotonic - lastMono);
-          const discrepancy = Math.abs(wallDelta - monoDelta);
-
-          // 5-second deadzone prevents micro-jitter floating point accumulation
-          const isActivelyTracking =
-            state.currentMode !== null && !state.idleLock;
-          const isTabVisible = !document.hidden;
-
-          if (discrepancy > 5000) {
-            const shiftAmount = wallDelta - monoDelta;
-            if (state.sessionAnchorWall !== null) {
-              state.sessionAnchorWall += shiftAmount;
-              if (discrepancy > 60000) {
-                showSyncToast(
-                  "System clock adjustment detected. Timer calibrated.",
-                );
-              }
-            }
-            lastActivity += shiftAmount;
-            if (state.tabHiddenAt) state.tabHiddenAt += shiftAmount;
-          }
-
           state.lastHeartbeatWall = nowMs;
-          state.lastHeartbeatMonotonic = nowMonotonic;
         }
 
         // Increment ticks and trigger a structural state auto-save every 10 seconds
@@ -16185,13 +16514,7 @@
               const tz = DOM.primaryTz.value || "America/Los_Angeles";
               if (cachedIdleTz !== tz || !cachedIdleFormatter) {
                 cachedIdleTz = tz;
-                cachedIdleFormatter = new Intl.DateTimeFormat("en-US", {
-                  timeZone: tz,
-                  hour12: true,
-                  hour: "2-digit",
-                  minute: "2-digit",
-                  second: "2-digit",
-                });
+                cachedIdleFormatter = getCachedTimeOnlyFormatter(tz);
               }
               setText(currentTimeEl, cachedIdleFormatter.format(targetDate));
             }
@@ -16221,39 +16544,15 @@
         const nowWall = Date.now();
         const nowMonotonic = performance.now();
 
-        // Only perform complex sleep/drift auditing if in Intelligent Mode
+        // Inactivity audit runs independently of the discrepancy check above.
+        // System sleep detection and user
+        // inactivity detection are orthogonal concerns and must not be mutually exclusive.
         if (
           state.trackingMode === "intelligent" &&
           state.currentMode !== null &&
           !state.idleLock
         ) {
-          const lastWall = state.lastHeartbeatWall || nowWall;
-          const lastMono = state.lastHeartbeatMonotonic || nowMonotonic;
-
-          // UNCLAMPED wallDelta allows negative values to capture backward NTP jumps
-          const wallDelta = nowWall - lastWall;
-          const monoDelta = Math.max(0, nowMonotonic - lastMono);
-          const discrepancy = Math.abs(wallDelta - monoDelta);
           const idleGap = nowWall - lastActivity;
-
-          if (discrepancy > 5000) {
-            const shiftAmount = wallDelta - monoDelta;
-            if (state.sessionAnchorWall !== null) {
-              state.sessionAnchorWall += shiftAmount;
-              if (discrepancy > 60000) {
-                showSyncToast(
-                  "System clock adjustment detected. Timer calibrated.",
-                );
-              }
-            }
-            lastActivity += shiftAmount;
-            if (state.tabHiddenAt) state.tabHiddenAt += shiftAmount;
-          }
-
-          // Inactivity audit runs independently of the discrepancy check above.
-          // Previously this was an "else if", which meant any clock discrepancy > 5s
-          // would permanently block this check. System sleep detection and user
-          // inactivity detection are orthogonal concerns and must not be mutually exclusive.
           if (
             !state.idleLock &&
             state.idleTrackingEnabled !== false &&
@@ -16329,6 +16628,50 @@
         } catch (e) {
           console.warn("Failed to release lease on pagehide", e);
         }
+      });
+
+      /*==========================================================================
+       * 17.5 MODAL MANAGER (Z-Index Escalation Prevention)
+       * =========================================================================*/
+      const ModalManager = { zBase: 2000 };
+      const modalObserver = new MutationObserver((mutations) => {
+        let anyVisible = false;
+        for (const m of mutations) {
+          if (
+            m.target &&
+            m.target.classList &&
+            (m.target.classList.contains("modal-overlay") ||
+              m.target.classList.contains("idle-popup"))
+          ) {
+            const isVisible =
+              m.target.style.display === "flex" ||
+              m.target.style.display === "block";
+            if (isVisible && !m.target.dataset.zManaged) {
+              ModalManager.zBase += 10;
+              m.target.style.zIndex = ModalManager.zBase;
+              m.target.dataset.zManaged = "true";
+            } else if (!isVisible) {
+              m.target.dataset.zManaged = "";
+            }
+          }
+        }
+        document
+          .querySelectorAll(".modal-overlay, .idle-popup")
+          .forEach((el) => {
+            if (el.style.display === "flex" || el.style.display === "block") {
+              anyVisible = true;
+            }
+          });
+        if (!anyVisible) {
+          ModalManager.zBase = 2000;
+        }
+      });
+
+      document.querySelectorAll(".modal-overlay, .idle-popup").forEach((el) => {
+        modalObserver.observe(el, {
+          attributes: true,
+          attributeFilter: ["style", "class"],
+        });
       });
 
       /*==========================================================================
@@ -17200,8 +17543,59 @@
           /[\+\-\*\/]/.test(query)
         ) {
           try {
-            // eslint-disable-next-line no-new-func
-            const mathResult = new Function("return " + query.trim())();
+            function safeMathEval(expr) {
+              const tokens = expr.match(/(?:\d+\.\d+|\d+|\+|\-|\*|\/|\(|\))/g);
+              if (!tokens) throw new Error("Invalid");
+              let pos = 0;
+              function parsePrimary() {
+                if (pos >= tokens.length) throw new Error("EOF");
+                if (tokens[pos] === "(") {
+                  pos++;
+                  const val = parseExpression();
+                  if (tokens[pos] === ")") pos++;
+                  return val;
+                }
+                if (tokens[pos] === "-") {
+                  pos++;
+                  return -parsePrimary();
+                }
+                if (tokens[pos] === "+") {
+                  pos++;
+                  return parsePrimary();
+                }
+                return parseFloat(tokens[pos++]);
+              }
+              function parseTerm() {
+                let val = parsePrimary();
+                while (
+                  pos < tokens.length &&
+                  (tokens[pos] === "*" || tokens[pos] === "/")
+                ) {
+                  const op = tokens[pos++];
+                  const next = parsePrimary();
+                  if (op === "*") val *= next;
+                  else val /= next;
+                }
+                return val;
+              }
+              function parseExpression() {
+                let val = parseTerm();
+                while (
+                  pos < tokens.length &&
+                  (tokens[pos] === "+" || tokens[pos] === "-")
+                ) {
+                  const op = tokens[pos++];
+                  const next = parseTerm();
+                  if (op === "+") val += next;
+                  else val -= next;
+                }
+                return val;
+              }
+              const result = parseExpression();
+              if (pos < tokens.length) throw new Error("Unexpected token");
+              return result;
+            }
+            const mathResult = safeMathEval(query.trim());
             if (typeof mathResult === "number" && !isNaN(mathResult)) {
               scored.push({
                 score: 9999, // Guarantee top spot
@@ -17356,6 +17750,7 @@
                     log.searchStr =
                       `${log.displayDate} ${log.date} ${log.notes}`.toLowerCase();
                     log.lastModified = Date.now();
+                    if (window.dirtyChunks) window.dirtyChunks.add("ALL");
                     if (typeof saveLogs === "function") saveLogs(allLogs);
                     if (typeof updateLogbookTable === "function")
                       updateLogbookTable();
@@ -17479,6 +17874,9 @@
             }
 
             // 2. Parse Time Range or Duration
+            let isOvernight = false;
+            let startSecVal = null;
+            let endSecVal = null;
             const rangeMatch = remainingStr.match(
               /\b(\d{1,2}(?::\d{2})?\s*(?:am|pm)?)\s*(?:to|-)\s*(\d{1,2}(?::\d{2})?\s*(?:am|pm)?)\b/i,
             );
@@ -17503,6 +17901,7 @@
               if (startResult !== null && endResult !== null) {
                 let startSec = startResult.sec;
                 let endSec = endResult.sec;
+                startSecVal = startSec;
 
                 const startHasMeridian = startResult.hasMeridian;
                 const endHasMeridian = endResult.hasMeridian;
@@ -17517,13 +17916,19 @@
                   if (correctedDiff > 0 && correctedDiff <= 57600) {
                     // Correction produces a plausible daytime range (> 0, <= 16 hours). Use it.
                     diff = correctedDiff;
+                    endSec = correctedEndSec;
                   } else {
                     // Correction is implausible. Fall back to original overnight logic.
                     diff += 86400;
+                    endSec += 86400;
+                    isOvernight = true;
                   }
                 } else if (diff < 0) {
                   diff += 86400;
+                  endSec += 86400;
+                  isOvernight = true;
                 }
+                endSecVal = endSec;
                 workSec = diff;
                 loginStr = rangeMatch[1].toUpperCase();
                 logoutStr = rangeMatch[2].toUpperCase();
@@ -17595,44 +18000,131 @@
                       0,
                       0,
                     );
-                    const diff = workSec - goal;
+                    const midnightEpochMs = epochMs - 43200000; // Noon minus 12 hours
+                    const entriesToInsert = [];
 
-                    const entry = {
-                      id:
-                        "log_" +
-                        Math.random().toString(36).substring(2, 11) +
-                        Date.now().toString(36),
-                      date: parsedDateStr,
-                      displayDate: parsedDateStr,
-                      epochMs: epochMs,
-                      login: loginStr,
-                      logout: logoutStr,
-                      loginEpochMs: epochMs,
-                      logoutEpochMs: epochMs + workSec * 1000,
-                      workSec: workSec,
-                      breakSec: 0,
-                      notes: cleanNotes,
-                      goal: goal,
-                      dayGoal: goal,
-                      status: diff >= 0 ? "OVER" : "UNDER",
-                      diffStr:
-                        typeof formatDuration === "function"
-                          ? formatDuration(Math.abs(diff))
-                          : diff,
-                      diff:
-                        typeof formatDuration === "function"
-                          ? formatDuration(Math.abs(diff))
-                          : diff,
-                      isAbsence: false,
-                      lastModified: Date.now(),
-                    };
-                    entry.searchStr =
-                      `${entry.displayDate} ${entry.date} nlp entry ${cleanNotes}`.toLowerCase();
+                    if (
+                      isOvernight &&
+                      startSecVal !== null &&
+                      endSecVal !== null
+                    ) {
+                      const day1WorkSec = 86400 - startSecVal;
+                      const day2WorkSec = endSecVal - 86400;
+
+                      const diff1 = day1WorkSec - goal;
+                      entriesToInsert.push({
+                        id:
+                          "log_" +
+                          Math.random().toString(36).substring(2, 11) +
+                          Date.now().toString(36),
+                        date: parsedDateStr,
+                        displayDate: parsedDateStr,
+                        epochMs: epochMs,
+                        login: loginStr,
+                        logout: "11:59 PM",
+                        loginEpochMs: midnightEpochMs + startSecVal * 1000,
+                        logoutEpochMs: midnightEpochMs + 86399000,
+                        workSec: day1WorkSec,
+                        breakSec: 0,
+                        notes: cleanNotes + " (Part 1)",
+                        goal: goal,
+                        dayGoal: goal,
+
+                        diffStr:
+                          typeof formatDuration === "function"
+                            ? formatDuration(Math.abs(diff1))
+                            : diff1,
+                        diff:
+                          typeof formatDuration === "function"
+                            ? formatDuration(Math.abs(diff1))
+                            : diff1,
+                        isAbsence: false,
+                        lastModified: Date.now(),
+                      });
+
+                      const nextDate = new Date(midnightEpochMs + 86400000);
+                      const nextDateStr = `${String(nextDate.getUTCMonth() + 1).padStart(2, "0")}/${String(nextDate.getUTCDate()).padStart(2, "0")}/${String(nextDate.getUTCFullYear()).slice(-2)}`;
+                      const nextEpochMs = epochMs + 86400000;
+
+                      const diff2 = day2WorkSec - goal;
+                      entriesToInsert.push({
+                        id:
+                          "log_" +
+                          Math.random().toString(36).substring(2, 11) +
+                          Date.now().toString(36),
+                        date: nextDateStr,
+                        displayDate: nextDateStr,
+                        epochMs: nextEpochMs,
+                        login: "12:00 AM",
+                        logout: logoutStr,
+                        loginEpochMs: midnightEpochMs + 86400000,
+                        logoutEpochMs: midnightEpochMs + endSecVal * 1000,
+                        workSec: day2WorkSec,
+                        breakSec: 0,
+                        notes: cleanNotes + " (Part 2)",
+                        goal: goal,
+                        dayGoal: goal,
+
+                        diffStr:
+                          typeof formatDuration === "function"
+                            ? formatDuration(Math.abs(diff2))
+                            : diff2,
+                        diff:
+                          typeof formatDuration === "function"
+                            ? formatDuration(Math.abs(diff2))
+                            : diff2,
+                        isAbsence: false,
+                        lastModified: Date.now(),
+                      });
+                    } else {
+                      let actualLoginEpoch = epochMs;
+                      let actualLogoutEpoch = epochMs + workSec * 1000;
+                      if (startSecVal !== null) {
+                        actualLoginEpoch = midnightEpochMs + startSecVal * 1000;
+                        actualLogoutEpoch = midnightEpochMs + endSecVal * 1000;
+                      }
+
+                      const diff = workSec - goal;
+                      entriesToInsert.push({
+                        id:
+                          "log_" +
+                          Math.random().toString(36).substring(2, 11) +
+                          Date.now().toString(36),
+                        date: parsedDateStr,
+                        displayDate: parsedDateStr,
+                        epochMs: epochMs,
+                        login: loginStr,
+                        logout: logoutStr,
+                        loginEpochMs: actualLoginEpoch,
+                        logoutEpochMs: actualLogoutEpoch,
+                        workSec: workSec,
+                        breakSec: 0,
+                        notes: cleanNotes,
+                        goal: goal,
+                        dayGoal: goal,
+
+                        diffStr:
+                          typeof formatDuration === "function"
+                            ? formatDuration(Math.abs(diff))
+                            : diff,
+                        diff:
+                          typeof formatDuration === "function"
+                            ? formatDuration(Math.abs(diff))
+                            : diff,
+                        isAbsence: false,
+                        lastModified: Date.now(),
+                      });
+                    }
 
                     const logs = typeof getLogs === "function" ? getLogs() : [];
-                    logs.unshift(entry);
+                    entriesToInsert.forEach((entry) => {
+                      entry.searchStr =
+                        `${entry.displayDate} ${entry.date} nlp entry ${entry.notes}`.toLowerCase();
+                      logs.unshift(entry);
+                    });
                     logs.sort((a, b) => b.epochMs - a.epochMs);
 
+                    if (window.dirtyChunks) window.dirtyChunks.add("ALL");
                     if (typeof saveLogs === "function") saveLogs(logs);
                     if (typeof updateLogbookTable === "function")
                       updateLogbookTable();
@@ -17760,7 +18252,7 @@
                 icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-blue)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#sprite-078"></use></svg>`,
                 action: () => {
                   let csvContent =
-                    "data:text/csv;charset=utf-8,Date,Log In,Log Out,Work Duration,Break Duration,Notes\n";
+                    "Date,Log In,Log Out,Work Duration,Break Duration,Notes\n";
                   matchedLogs.forEach((l) => {
                     const wd =
                       typeof formatDuration === "function"
@@ -17770,12 +18262,17 @@
                       typeof formatDuration === "function"
                         ? formatDuration(l.breakSec)
                         : l.breakSec;
-                    const cleanNotes = (l.notes || "").replace(/"/g, '""');
+                    const cleanNotes = (l.notes || "")
+                      .replace(/"/g, '""')
+                      .replace(/\n/g, " ");
                     csvContent += `"${l.date}","${l.login}","${l.logout}","${wd}","${bd}","${cleanNotes}"\n`;
                   });
-                  const encodedUri = encodeURI(csvContent);
+                  const blob = new Blob([csvContent], {
+                    type: "text/csv;charset=utf-8;",
+                  });
+                  const url = URL.createObjectURL(blob);
                   const link = document.createElement("a");
-                  link.setAttribute("href", encodedUri);
+                  link.setAttribute("href", url);
                   link.setAttribute(
                     "download",
                     `Timesheet_${titleSuffix.replace(/\s+/g, "_")}.csv`,
@@ -17783,6 +18280,7 @@
                   document.body.appendChild(link);
                   link.click();
                   document.body.removeChild(link);
+                  requestAnimationFrame(() => URL.revokeObjectURL(url));
                   if (typeof showAppToast === "function")
                     showAppToast(`Timesheet CSV downloaded!`);
                   if (typeof closeHudModal === "function") closeHudModal();
@@ -17977,7 +18475,7 @@
 
             if (targetStatus)
               filteredLogs = filteredLogs.filter(
-                (l) => l.status === targetStatus,
+                (l) => (isLogOver(l) ? "OVER" : "UNDER") === targetStatus,
               );
             if (minSec > 0 || maxSec < Infinity) {
               filteredLogs = filteredLogs.filter(
@@ -17994,7 +18492,10 @@
               } else {
                 const dateScore = hudFuzzyScore(cleanQuery, l.date || "");
                 const noteScore = hudFuzzyScore(cleanQuery, l.notes || "");
-                const statusScore = hudFuzzyScore(cleanQuery, l.status || "");
+                const statusScore = hudFuzzyScore(
+                  cleanQuery,
+                  (isLogOver(l) ? "OVER" : "UNDER") || "",
+                );
                 const maxLogScore = Math.max(dateScore, noteScore, statusScore);
                 if (maxLogScore > 0) {
                   logMatches.push({ log: l, score: maxLogScore });
@@ -18017,7 +18518,7 @@
                   title: `Log: ${l.date} (${formatDuration(l.workSec)})`,
                   desc: l.notes
                     ? `Notes: ${escapeHTML(l.notes)}`
-                    : `No notes. Status: ${l.status || "N/A"}`,
+                    : `No notes. Status: ${(isLogOver(l) ? "OVER" : "UNDER") || "N/A"}`,
                   category: "Logbook Results",
                   icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text-muted)" stroke-width="1.8"><use href="#sprite-078"></use></svg>`,
                   action: () => {
@@ -18180,10 +18681,14 @@
       setTimeout(() => {
         const hudInput = DOM.hudInput;
         if (hudInput) {
+          let _hudDebounceTimer;
           hudInput.addEventListener("input", (e) => {
             hudActiveIndex = 0;
-            filterHudCommands(e.target.value);
             updateHudThemePreview();
+            clearTimeout(_hudDebounceTimer);
+            _hudDebounceTimer = setTimeout(() => {
+              filterHudCommands(e.target.value);
+            }, 100);
           });
           hudInput.addEventListener("keydown", (e) => {
             if (e.key === "ArrowDown") {
@@ -18276,9 +18781,12 @@
           }
         }
 
-        const isEditable = ["INPUT", "TEXTAREA", "SELECT"].includes(
-          e.target.tagName,
-        );
+        const isEditable =
+          ["INPUT", "TEXTAREA", "SELECT", "BUTTON"].includes(
+            e.target.tagName,
+          ) ||
+          e.target.isContentEditable ||
+          e.target.closest("button") !== null;
 
         if (isEditable) {
           if (e.key === "Escape") {
@@ -18615,8 +19123,7 @@
       };
 
       /**
-       * Toggles the Adjust Time popup open/closed.
-       * Guards against opening when no session is active or when idle-locked.
+       * Shows/hides the Adjust Time popup.
        * Refreshes context badge on every open.
        */
       window.toggleAdjustPopup = function (e) {
@@ -18628,29 +19135,33 @@
 
         if (isShowing) {
           popup.classList.remove("show");
-          if (activeAdjustCloseHandler) {
-            window.removeEventListener("click", activeAdjustCloseHandler);
-            activeAdjustCloseHandler = null;
+          if (adjustPopupAbortController) {
+            adjustPopupAbortController.abort();
+            adjustPopupAbortController = null;
           }
         } else {
           _syncAdjustPopupContext();
           popup.classList.add("show");
 
-          if (activeAdjustCloseHandler) {
-            window.removeEventListener("click", activeAdjustCloseHandler);
+          if (adjustPopupAbortController) {
+            adjustPopupAbortController.abort();
           }
 
-          activeAdjustCloseHandler = (event) => {
-            if (!popup.contains(event.target)) {
-              popup.classList.remove("show");
-              window.removeEventListener("click", activeAdjustCloseHandler);
-              activeAdjustCloseHandler = null;
-            }
-          };
+          adjustPopupAbortController = new AbortController();
 
           // Defer one tick so this open-click doesn't immediately close the popup
           setTimeout(() => {
-            window.addEventListener("click", activeAdjustCloseHandler);
+            window.addEventListener(
+              "click",
+              (event) => {
+                if (!popup.contains(event.target)) {
+                  popup.classList.remove("show");
+                  adjustPopupAbortController.abort();
+                  adjustPopupAbortController = null;
+                }
+              },
+              { signal: adjustPopupAbortController.signal },
+            );
           }, 0);
         }
       };
@@ -18844,16 +19355,16 @@
         if (DOM.adjustTimePopup) {
           DOM.adjustTimePopup.classList.remove("show");
         }
-        if (activeAdjustCloseHandler) {
-          window.removeEventListener("click", activeAdjustCloseHandler);
-          activeAdjustCloseHandler = null;
+        if (adjustPopupAbortController) {
+          adjustPopupAbortController.abort();
+          adjustPopupAbortController = null;
         }
       };
 
       /*==========================================================================
        * 19. MANUAL LOG INSERTION UTILITIES
        * =========================================================================*/
-      let activeSettingsCloseHandler = null;
+      let settingsPopupAbortController = null;
 
       window.toggleSettingsPopup = function (e) {
         e.stopPropagation();
@@ -18863,26 +19374,30 @@
         const isShowing = popup.classList.contains("show");
         if (isShowing) {
           popup.classList.remove("show");
-          if (activeSettingsCloseHandler) {
-            window.removeEventListener("click", activeSettingsCloseHandler);
-            activeSettingsCloseHandler = null;
+          if (settingsPopupAbortController) {
+            settingsPopupAbortController.abort();
+            settingsPopupAbortController = null;
           }
         } else {
           popup.classList.add("show");
           syncSettingsUI();
 
-          if (activeSettingsCloseHandler) {
-            window.removeEventListener("click", activeSettingsCloseHandler);
+          if (settingsPopupAbortController) {
+            settingsPopupAbortController.abort();
           }
 
-          activeSettingsCloseHandler = (event) => {
-            if (!popup.contains(event.target)) {
-              popup.classList.remove("show");
-              window.removeEventListener("click", activeSettingsCloseHandler);
-              activeSettingsCloseHandler = null;
-            }
-          };
-          window.addEventListener("click", activeSettingsCloseHandler);
+          settingsPopupAbortController = new AbortController();
+          window.addEventListener(
+            "click",
+            (event) => {
+              if (!popup.contains(event.target)) {
+                popup.classList.remove("show");
+                settingsPopupAbortController.abort();
+                settingsPopupAbortController = null;
+              }
+            },
+            { signal: settingsPopupAbortController.signal },
+          );
         }
       };
 
@@ -19055,6 +19570,7 @@
             "Restore Snapshot?",
             `Are you sure you want to restore the snapshot from ${target.date}? This will overwrite your current active logbook logs.`,
             () => {
+              if (window.dirtyChunks) window.dirtyChunks.add("ALL");
               saveLogs(target.logs);
               renderStaticUI();
               renderTimersOnly();
@@ -19085,8 +19601,12 @@
           );
           if (alreadySnapshottedToday) return;
 
-          const currentLogs = getLogs();
+          let currentLogs = getLogs();
           if (currentLogs.length === 0) return;
+
+          if (currentLogs.length > 100) {
+            currentLogs = currentLogs.slice(0, 100);
+          }
 
           snapshots.unshift({
             date: todayStr,
@@ -19321,7 +19841,7 @@
               logoutEpochMs: derivedLogoutEpochMs,
               workSec: wSec,
               breakSec: bSec,
-              status: diff >= 0 ? "OVER" : "UNDER",
+
               diff: formatDuration(Math.abs(diff)),
               notes: notes,
               dayGoal: goal,
@@ -19333,6 +19853,7 @@
             logs.push(entry);
             logs.sort((a, b) => b.epochMs - a.epochMs);
 
+            if (window.dirtyChunks) window.dirtyChunks.add("ALL");
             saveLogs(logs);
             closeManualModal();
             showAppToast("Manual shift added successfully");
@@ -19652,13 +20173,20 @@
                 <span style="font-variant-numeric: tabular-nums; font-feature-settings: 'tnum' 1;">${safeDate}</span>
                 <span class="badge ${badgeClass}">${safeType}</span>
               </div>
-              <button class="leave-delete-btn" onclick="removeLeaveDate('${safeDate}')" title="Remove Leave">
+              <button class="leave-delete-btn" data-action="remove-leave" data-date="${safeDate}" title="Remove Leave">
                 <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#sprite-004"></use></svg>
               </button>
             </div>
           `;
         });
         listContainer.innerHTML = html;
+      }
+
+      if (DOM.leaveDatesList) {
+        DOM.leaveDatesList.addEventListener("click", (e) => {
+          const btn = e.target.closest('button[data-action="remove-leave"]');
+          if (btn) removeLeaveDate(btn.dataset.date);
+        });
       }
 
       window.savePresetModal = function () {
@@ -19830,10 +20358,7 @@
             } else if (val.includes("/")) {
               const parts = val.split("/");
               if (parts.length >= 2) {
-                const checkLocaleDate = new Intl.DateTimeFormat().format(
-                  new Date(2026, 11, 25),
-                );
-                const isDayFirst = checkLocaleDate.startsWith("25");
+                const isDayFirst = _cachedLocaleDayFirst;
                 const firstVal = parseInt(parts[0], 10) || 1;
                 const secondVal = parseInt(parts[1], 10) || 1;
                 let m, d;
@@ -20078,10 +20603,7 @@
         } else if (val.includes("/")) {
           const parts = val.split("/");
           if (parts.length >= 2) {
-            const checkLocaleDate = new Intl.DateTimeFormat().format(
-              new Date(2026, 11, 25),
-            );
-            const isDayFirst = checkLocaleDate.startsWith("25");
+            const isDayFirst = _cachedLocaleDayFirst;
             const firstVal = parseInt(parts[0], 10) || 1;
             const secondVal = parseInt(parts[1], 10) || 1;
             let m, d;
@@ -20309,25 +20831,14 @@
         const timeSec = parseClockTimeToSeconds(timeStr);
         if (timeSec === null) return null;
 
-        const tz = DOM.primaryTz
-          ? DOM.primaryTz.value
-          : Intl.DateTimeFormat().resolvedOptions().timeZone;
+        const tz = DOM.primaryTz ? DOM.primaryTz.value : _cachedResolvedTz;
         const localH = Math.floor(timeSec / 3600);
         const localM = Math.floor((timeSec % 3600) / 60);
         const localS = timeSec % 60;
 
         let guessMs = Date.UTC(fullYear, mm - 1, dd, localH, localM, localS);
         try {
-          const formatToTz = new Intl.DateTimeFormat("en-US", {
-            timeZone: tz,
-            year: "numeric",
-            month: "numeric",
-            day: "numeric",
-            hour: "numeric",
-            minute: "numeric",
-            second: "numeric",
-            hour12: false,
-          });
+          const formatToTz = getCachedTzFormatter(tz);
 
           for (let i = 0; i < 3; i++) {
             const partsTz = formatToTz.formatToParts(guessMs);
@@ -20380,17 +20891,9 @@
           const logoutEpoch = getEpochFromDateTimeString(dateStr, logoutVal);
           if (logoutEpoch) {
             const loginEpoch = logoutEpoch - (workSec + breakSec) * 1000;
-            const tz = DOM.primaryTz
-              ? DOM.primaryTz.value
-              : Intl.DateTimeFormat().resolvedOptions().timeZone;
+            const tz = DOM.primaryTz ? DOM.primaryTz.value : _cachedResolvedTz;
             try {
-              const formatTz = new Intl.DateTimeFormat("en-US", {
-                timeZone: tz,
-                hour: "numeric",
-                minute: "numeric",
-                second: "numeric",
-                hour12: true,
-              });
+              const formatTz = getCachedTimeOnlyFormatter(tz);
               return formatTz.format(new Date(loginEpoch));
             } catch (e) {}
           }
@@ -20466,17 +20969,9 @@
           const loginEpoch = getEpochFromDateTimeString(dateStr, loginVal);
           if (loginEpoch) {
             const logoutEpoch = loginEpoch + (workSec + breakSec) * 1000;
-            const tz = DOM.primaryTz
-              ? DOM.primaryTz.value
-              : Intl.DateTimeFormat().resolvedOptions().timeZone;
+            const tz = DOM.primaryTz ? DOM.primaryTz.value : _cachedResolvedTz;
             try {
-              const formatTz = new Intl.DateTimeFormat("en-US", {
-                timeZone: tz,
-                hour: "numeric",
-                minute: "numeric",
-                second: "numeric",
-                hour12: true,
-              });
+              const formatTz = getCachedTimeOnlyFormatter(tz);
               return formatTz.format(new Date(logoutEpoch));
             } catch (e) {}
           }
@@ -21069,7 +21564,9 @@
           targetContent.style.display = "flex";
           targetContent.style.flexDirection = "column";
           // Reset tracker to force an immediate update on tab selection
-          lastWeeklyUpdateMinute = -1;
+          lastWeeklySummaryCheckMin = -1;
+          lastLiveWorkMin = -1;
+          lastLiveBreakMin = -1;
           updateLiveWeeklySummary(true);
         } else {
           targetContent.style.display = "block";
@@ -21189,6 +21686,7 @@
             try {
               localStorage.setItem(STATE_KEY, JSON.stringify(state));
             } catch (e) {
+              window.storageWriteError = true;
               console.warn(
                 "Storage write blocked: running in RAM-only mode",
                 e,
@@ -21490,7 +21988,8 @@
           if (!l.status) {
             const goal =
               l.dayGoal != null && l.dayGoal > 0 ? l.dayGoal : 8 * 3600;
-            l.status = (l.workSec || 0) >= goal ? "OVER" : "UNDER";
+            l.dayGoal = goal;
+            l.status = l.workSec >= goal ? "OVER" : "UNDER";
             keysMutated = true;
           }
         });
@@ -21609,10 +22108,10 @@
       })();
 
       /* ═══════════════════════════════════════════════════════════════════
-       CUSTOM SELECT CONTROLLER
-       Self-contained. Keeps hidden <select> in DOM so all existing JS
-       logic (.value reads, .value sets, change listeners) works unchanged.
-       ═══════════════════════════════════════════════════════════════════ */
+     CUSTOM SELECT CONTROLLER
+     Self-contained. Keeps hidden <select> in DOM so all existing JS
+     logic (.value reads, .value sets, change listeners) works unchanged.
+     ═══════════════════════════════════════════════════════════════════ */
       (function initCustomSelects() {
         const nativeValueDesc = Object.getOwnPropertyDescriptor(
           HTMLSelectElement.prototype,
@@ -21650,8 +22149,12 @@
         }
 
         /* Close on any click OUTSIDE a custom-select */
-        document.addEventListener("click", (e) => {
-          if (!e.target.closest(".custom-select")) closeAll();
+        document.addEventListener("pointerdown", (e) => {
+          const path = e.composedPath();
+          const inSelect = path.some(
+            (el) => el.classList && el.classList.contains("custom-select"),
+          );
+          if (!inSelect) closeAll();
         });
 
         document.querySelectorAll(".custom-select").forEach((wrapper) => {
@@ -21784,13 +22287,18 @@
               );
             });
 
-          document.addEventListener("click", (e) => {
-            if (
-              popup.classList.contains("cdp-open") &&
-              !popup.contains(e.target)
-            ) {
-              const isTrigger = e.target.closest('[onclick^="safeShowPicker"]');
-              if (!isTrigger) popup.classList.remove("cdp-open");
+          document.addEventListener("pointerdown", (e) => {
+            if (!popup.classList.contains("cdp-open")) return;
+            const path = e.composedPath();
+            const inPopup = path.includes(popup);
+            const inTrigger = path.some(
+              (el) =>
+                el.hasAttribute &&
+                el.hasAttribute("onclick") &&
+                el.getAttribute("onclick").includes("safeShowPicker"),
+            );
+            if (!inPopup && !inTrigger) {
+              popup.classList.remove("cdp-open");
             }
           });
         }
