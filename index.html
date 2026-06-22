@@ -10139,23 +10139,40 @@
         if (e.data.fromTabId === myTabId) return;
 
         if (e.data.type === "takeover_request") {
-          if (state.currentMode !== null && !state.idleLock) {
-            const nowWall = Date.now();
-            const elapsedSeconds = Math.max(
-              0,
-              (nowWall - state.sessionAnchorWall) / 1000,
-            );
-            if (state.currentMode === "work") {
-              state.workAccumulated =
-                (state.workAccumulated || 0) + elapsedSeconds;
-            } else if (state.currentMode === "break") {
-              state.breakAccumulated =
-                (state.breakAccumulated || 0) + elapsedSeconds;
+          if (!isTabConflict) {
+            if (state.currentMode !== null) {
+              if (!state.idleLock) {
+                const nowWall = Date.now();
+                const elapsedSeconds = Math.max(
+                  0,
+                  (nowWall - state.sessionAnchorWall) / 1000,
+                );
+                if (state.currentMode === "work") {
+                  state.workAccumulated =
+                    (state.workAccumulated || 0) + elapsedSeconds;
+                } else if (state.currentMode === "break") {
+                  state.breakAccumulated =
+                    (state.breakAccumulated || 0) + elapsedSeconds;
+                }
+                state.sessionAnchorWall = nowWall;
+                state.lastHeartbeatWall = nowWall;
+                state.lastHeartbeatMonotonic = performance.now();
+              }
+
+              if (state.tabHiddenAt) {
+                delete state.tabHiddenAt;
+              }
+
+              try {
+                localStorage.setItem(STATE_KEY, JSON.stringify(state));
+              } catch (err) {}
             }
-            state.currentMode = null;
-            state.sessionAnchorWall = null;
+
+            tabSyncChannel.postMessage({
+              type: "takeover_acknowledged",
+              targetTabId: e.data.fromTabId,
+            });
           }
-          saveState(true);
 
           if (typeof webLockReleaser === "function") {
             webLockReleaser();
@@ -10166,30 +10183,15 @@
           isTabConflict = true;
           DOM.tabConflictModal.style.display = "flex";
           renderStaticUI();
-
-          tabSyncChannel.postMessage({
-            type: "takeover_acknowledged",
-            targetTabId: e.data.fromTabId,
-          });
         } else if (
           e.data.type === "takeover_acknowledged" &&
           e.data.targetTabId === myTabId
         ) {
-          if (window.takeoverFallbackTimeout) {
-            clearTimeout(window.takeoverFallbackTimeout);
-            window.takeoverFallbackTimeout = null;
-            loadState();
-            loadLogsFromDB().then((logs) => {
-              cachedLogs = logs;
-              cachedTodayDate = null;
-              rebuildWeeklyCache();
-              renderStaticUI();
-              renderTimersOnly();
-              renderLogbook();
-              renderInsights();
-              showSyncToast("Tab takeover successful. Session synchronized");
-              acquireLease();
-            });
+          if (
+            window.takeoverFallbackTimeout &&
+            typeof window.takeoverBootSequence === "function"
+          ) {
+            window.takeoverBootSequence();
           }
         } else if (e.data.type === "database_mutated") {
           isDbReloading = true;
@@ -10245,11 +10247,6 @@
                   webLockReleaser = null;
                 }
                 usingWebLocks = false;
-                if (state.currentMode !== null) {
-                  // Silently halt active tracking without writing stale data to storage
-                  state.currentMode = null;
-                  state.sessionAnchorWall = null;
-                }
                 renderStaticUI();
                 DOM.tabConflictModal.style.display = "flex";
               }
@@ -10267,10 +10264,6 @@
                   webLockReleaser = null;
                 }
                 usingWebLocks = false;
-                if (state.currentMode !== null) {
-                  state.currentMode = null;
-                  state.sessionAnchorWall = null;
-                }
                 renderStaticUI();
                 DOM.tabConflictModal.style.display = "flex";
               }
@@ -10301,10 +10294,15 @@
           navigator.locks.request
         ) {
           return new Promise((resolve) => {
+            const lockOptions = window.isForceTakeoverActive
+              ? { steal: true }
+              : { ifAvailable: true };
+            window.isForceTakeoverActive = false;
+
             navigator.locks
               .request(
                 "work_tracker_primary_lock",
-                { ifAvailable: true },
+                lockOptions,
                 async (lock) => {
                   if (lock) {
                     // Lock acquired — this tab is the sole owner
@@ -10449,8 +10447,14 @@
        * Reclaims master tracking ownership on the local tab and forces other instances to step down.
        */
       function forceTakeover() {
+        window.isForceTakeoverActive = true;
         isTabConflict = false;
         DOM.tabConflictModal.style.display = "none";
+
+        tabSyncChannel.postMessage({
+          type: "takeover_request",
+          fromTabId: myTabId,
+        });
 
         const lease = {
           ownerId: instanceId,
@@ -10461,12 +10465,16 @@
         localStorage.setItem(LEASE_KEY, JSON.stringify(lease));
 
         // Prepare failsafe boot sequence for dead tab scenarios
-        const bootSequence = () => {
+        window.takeoverBootSequence = () => {
           if (window.takeoverFallbackTimeout) {
             clearTimeout(window.takeoverFallbackTimeout);
             window.takeoverFallbackTimeout = null;
           }
           loadState();
+          if (state.tabHiddenAt) {
+            delete state.tabHiddenAt;
+            saveState(true);
+          }
           loadLogsFromDB().then((logs) => {
             cachedLogs = logs;
             cachedTodayDate = null;
@@ -10480,12 +10488,10 @@
           });
         };
 
-        window.takeoverFallbackTimeout = setTimeout(bootSequence, 1000);
-
-        tabSyncChannel.postMessage({
-          type: "takeover_request",
-          fromTabId: myTabId,
-        });
+        window.takeoverFallbackTimeout = setTimeout(
+          window.takeoverBootSequence,
+          1000,
+        );
       }
 
       // Custom unified 4-theme preference loader with legacy fallback mappings
