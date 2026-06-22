@@ -723,45 +723,32 @@
       .nodrift-logo {
         display: flex;
         align-items: center;
-        gap: 3px;
         user-select: none;
         cursor: default;
         margin-right: 1.2rem;
-      }
-
-      .nodrift-icon {
-        display: flex;
-        gap: 2px;
-      }
-
-      .nodrift-slash {
-        width: 2px;
-        height: 10px;
-        background-color: var(--slash-color, var(--accent-blue));
-        border-radius: 1px;
-        transform: skewX(-20deg);
-        transition: background-color 0.3s ease;
-      }
-
-      .nodrift-slash:nth-child(2) {
-        opacity: 0.5;
-      }
-
-      .nodrift-wordmark {
         font-family: "Instrument Sans", sans-serif;
-        font-size: 0.95rem;
-        font-weight: 700;
-        letter-spacing: none;
+        font-size: 1.05rem;
         line-height: 1;
       }
 
       .nodrift-no {
-        color: var(--accent-blue);
+        color: var(--slash-color, var(--accent-blue));
         font-weight: 600;
+        transition: color 0.3s ease;
       }
 
       .nodrift-drift {
         color: var(--text-main);
+        font-weight: 700;
+      }
+
+      .nodrift-cursor {
+        width: 8px;
+        height: 3px;
+        background-color: var(--slash-color, var(--accent-blue));
+        align-self: flex-end;
+        margin: 0 0 1px 3px;
+        transition: background-color 0.3s ease;
       }
 
       .status-badge {
@@ -7436,15 +7423,10 @@
         <!-- Header Status Bar -->
         <div class="status-bar">
           <div class="status-badge status-time">
-            <div class="nodrift-logo" aria-label="nodrift">
-              <div class="nodrift-icon">
-                <div class="nodrift-slash"></div>
-                <div class="nodrift-slash"></div>
-              </div>
-              <div class="nodrift-wordmark">
-                <span class="nodrift-no">no</span
-                ><span class="nodrift-drift">drift</span>
-              </div>
+            <div class="nodrift-logo" aria-label="nodrift" id="nodrift-logo">
+              <span class="nodrift-no">no</span
+              ><span class="nodrift-drift">drift</span>
+              <div class="nodrift-cursor" id="nodrift-cursor"></div>
             </div>
 
             <!-- Hidden native select for standard app compatibility -->
@@ -11431,6 +11413,19 @@
         const root = document.documentElement;
         if (root.style.getPropertyValue("--slash-color") !== slashColor) {
           root.style.setProperty("--slash-color", slashColor);
+        }
+
+        const cursor = document.getElementById("nodrift-cursor");
+        if (cursor) {
+          if (state.currentMode === "work") {
+            cursor.style.opacity =
+              Math.floor(workSeconds) % 2 === 0 ? "1" : "0";
+          } else if (state.currentMode === "break") {
+            cursor.style.opacity =
+              Math.floor(breakSeconds) % 2 === 0 ? "1" : "0";
+          } else {
+            cursor.style.opacity = "1";
+          }
         }
 
         const faviconKey = iconColor;
