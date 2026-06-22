@@ -16720,6 +16720,15 @@
           settingsPopup.classList.remove("show");
         }
 
+        const adjustPopup = DOM.adjustTimePopup;
+        if (adjustPopup && adjustPopup.classList.contains("show")) {
+          adjustPopup.classList.remove("show");
+          if (adjustPopupAbortController) {
+            adjustPopupAbortController.abort();
+            adjustPopupAbortController = null;
+          }
+        }
+
         const panel = DOM.advancedFilters;
         const btn = DOM.filterToggleBtn;
         if (panel && panel.classList.contains("show")) {
@@ -19087,7 +19096,7 @@
        * =========================================================================*/
 
       /** Cleanup ref for the popup's outside-click dismissal listener. */
-      let activeAdjustCloseHandler = null;
+      let adjustPopupAbortController = null;
 
       /** Selected target for time adjustments ('work' or 'break') */
       let selectedAdjustTarget = "work";
