@@ -12489,7 +12489,8 @@
         if (!lastStateBackup) return;
         state = lastStateBackup;
         state.activeDate = getPSTDate(); // Prevent checkMidnightReset re-triggering after undo
-        state.lastHeartbeat = Date.now(); // Bug 2 fix — prevent spurious idle lock on reload
+        state.lastHeartbeatWall = Date.now(); // prevent spurious idle lock on reload
+        state.lastHeartbeatMonotonic = performance.now();
         saveState();
 
         const logs = getLogs();
@@ -12640,12 +12641,8 @@
         switchMode(targetMode);
 
         if (state.sessionAnchorWall) {
-          const backdateDelta = nowWall - resolutionTime;
           state.sessionAnchorWall = resolutionTime;
           state.lastHeartbeatWall = resolutionTime;
-          if (state.lastHeartbeatMonotonic) {
-            state.lastHeartbeatMonotonic -= backdateDelta;
-          }
         }
       }
 
@@ -16333,7 +16330,6 @@
               );
               state.workAccumulated = 0;
               state.breakAccumulated = 0;
-              state.idleStart = midnightMs;
               state.activeDate = pstDateFormatter.format(nextDayObj);
               continue;
             }
@@ -16365,7 +16361,6 @@
               state.idleStart < midnightMs
             ) {
               state.sessionAnchorWall = null;
-              state.idleStart = midnightMs;
             }
 
             // Create the log entry for the prior day using our safe atomic helper
@@ -16401,8 +16396,7 @@
             // Adjust anchors for the loop's next iteration (or continuation)
             // Preserves all other state properties like trackingMode intact.
             if (state.idleLock) {
-              // idleStart was already updated to midnightMs earlier in the loop.
-              // We must also align the login timestamp to midnight so the new day's shift starts cleanly.
+              // Also align the login timestamp to midnight so the new day's shift starts cleanly.
               if (state.loginTimestamp) {
                 state.loginTimestamp = midnightMs;
               }
@@ -16584,22 +16578,6 @@
         // Execute rollover checks AFTER idle locks to prevent multi-day work accumulation
         checkMidnightReset(new Date(nowWall));
 
-        // Throttling-immune idle check: if the tab was hidden for longer than the
-        // idle threshold, trigger idle lock now. This runs regardless of whether
-        // tick() was throttled by the browser in the background — it is a pure
-        // wall-clock comparison computed at the moment the user returns to the tab.
-        if (
-          state.tabHiddenAt &&
-          state.idleTrackingEnabled !== false &&
-          !state.idleLock &&
-          state.trackingMode === "intelligent" &&
-          state.currentMode !== null
-        ) {
-          const hiddenDuration = nowWall - state.tabHiddenAt;
-          if (hiddenDuration > _cachedIdleThresholdMs) {
-            triggerIdleLock(state.tabHiddenAt, "inactivity");
-          }
-        }
         if (state.tabHiddenAt) {
           delete state.tabHiddenAt;
         }
@@ -22094,7 +22072,7 @@
 
           if (!state.idleLock && lastActivity) {
             if (now - lastActivity > _cachedIdleThresholdMs) {
-              triggerIdleLock(lastActivity, "system");
+              triggerIdleLock(lastActivity, "inactivity");
             }
           }
         }
