@@ -1379,9 +1379,9 @@
       /* iOS Style Active Slider */
       #mode-simple.active,
       #mode-intelligent.active {
-        background: var(--segmented-active-bg);
-        color: var(--accent-blue);
-        box-shadow: var(--segmented-active-shadow);
+        background: var(--tab-btn-active-bg);
+        color: var(--tab-btn-active-color);
+        box-shadow: var(--tab-btn-active-shadow);
         border: none;
       }
 
@@ -2807,6 +2807,11 @@
         box-shadow: var(--tab-btn-active-shadow);
         border: var(--tab-btn-active-border, none);
         outline: var(--tab-btn-active-outline, none);
+      }
+
+      :root[data-theme="theme-eink"] .adjust-seg-btn.active,
+      :root[data-theme="vercel-dark"] .adjust-seg-btn.active {
+        color: var(--tab-btn-active-color);
       }
 
       .adjust-seg-btn:disabled {
@@ -20961,7 +20966,6 @@
         if (input) {
           input.value = "";
           window.searchHelpContent("");
-          setTimeout(() => input.focus(), 150);
         }
       };
 
