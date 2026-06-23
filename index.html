@@ -10942,7 +10942,7 @@
           DOM.workTimer.className = "timer-val timer-work-active";
           if (workLabel) setStyle(workLabel, "color", "var(--accent-work)");
         } else {
-          if (workSec === 0) {
+          if (workSec === 0 || state.currentMode === "break") {
             DOM.workTimer.className = "timer-val timer-inactive";
             if (workLabel) setStyle(workLabel, "color", "var(--text-main)");
           } else {
@@ -10955,7 +10955,7 @@
           DOM.breakTimer.className = "timer-val timer-break-active";
           if (breakLabel) setStyle(breakLabel, "color", "var(--accent-break)");
         } else {
-          if (breakSec === 0) {
+          if (breakSec === 0 || state.currentMode === "work") {
             DOM.breakTimer.className = "timer-val timer-inactive";
             if (breakLabel) setStyle(breakLabel, "color", "var(--text-main)");
           } else {
