@@ -45,52 +45,52 @@ flowchart TD
     classDef ui fill:#1e3a8a,stroke:#3b82f6,stroke-width:2px,color:#fff
     classDef action fill:#0f172a,stroke:#94a3b8,stroke-width:2px,stroke-dasharray: 5 5,color:#fff
 
-    subgraph Phase1 [1. Initialization & Bootstrap]
+    subgraph Phase1 ["1. Initialization & Bootstrap"]
         direction TB
-        Boot([App Launch: initApp]) ::: init
-        LoadDB[(Load Logs from IndexedDB)] ::: store
-        CheckHealth{DB Healthy?} ::: logic
-        MergeEmerg[(Merge Emergency Backup)] ::: store
-        HydrateLS[(Hydrate Session State<br/>LocalStorage)] ::: store
-        StartWorker[[Start Web Worker Thread]] ::: worker
+        Boot(["App Launch: initApp"]) ::: init
+        LoadDB[("Load Logs from IndexedDB")] ::: store
+        CheckHealth{"DB Healthy?"} ::: logic
+        MergeEmerg[("Merge Emergency Backup")] ::: store
+        HydrateLS[("Hydrate Session State<br/>LocalStorage")] ::: store
+        StartWorker[["Start Web Worker Thread"]] ::: worker
         
         Boot --> LoadDB
         LoadDB --> CheckHealth
         CheckHealth -- Yes --> MergeEmerg
-        CheckHealth -- No --> DisableWrites[Disable Writes: RAM Only] ::: store
+        CheckHealth -- No --> DisableWrites["Disable Writes: RAM Only"] ::: store
         MergeEmerg --> HydrateLS
         DisableWrites --> HydrateLS
         HydrateLS --> StartWorker
     end
 
-    subgraph Phase2 [2. Core Timer & Event Loop]
+    subgraph Phase2 ["2. Core Timer & Event Loop"]
         direction TB
-        Tick((Worker Tick<br/>1000ms)) ::: worker
-        Delta[Calculate Time Delta<br/>performance.now] ::: logic
-        CheckMode{state.currentMode?} ::: logic
-        UpdateWork[state.workAccumulated += delta] ::: logic
-        UpdateBreak[state.breakAccumulated += delta] ::: logic
-        SaveLS[(saveState<br/>Debounced 150ms)] ::: store
+        Tick(("Worker Tick<br/>1000ms")) ::: worker
+        Delta["Calculate Time Delta<br/>performance.now"] ::: logic
+        CheckMode{"state.currentMode?"} ::: logic
+        UpdateWork["state.workAccumulated += delta"] ::: logic
+        UpdateBreak["state.breakAccumulated += delta"] ::: logic
+        SaveLS[("saveState<br/>Debounced 150ms")] ::: store
         
         Tick --> Delta
         Delta --> CheckMode
         CheckMode -- 'work' --> UpdateWork
         CheckMode -- 'break' --> UpdateBreak
-        CheckMode -- 'null' --> Wait[Standby] ::: logic
+        CheckMode -- 'null' --> Wait["Standby"] ::: logic
         UpdateWork --> SaveLS
         UpdateBreak --> SaveLS
     end
 
-    subgraph Phase3 [3. Intelligent Idle Management]
+    subgraph Phase3 ["3. Intelligent Idle Management"]
         direction TB
-        Activity((Mouse/Key Events)) ::: ui
-        SetLastAct[Update lastActivity timestamp] ::: logic
-        Heartbeat{Date.now - lastActivity<br/>> idleThreshold?} ::: logic
-        Lock[Trigger Idle Lock<br/>Pause Timers] ::: logic
-        Modal((Show Idle Modal)) ::: ui
-        UserResolve{User Resolution} ::: ui
-        Keep[Keep Idle Time] ::: action
-        Discard[Discard Idle Gap] ::: action
+        Activity(("Mouse/Key Events")) ::: ui
+        SetLastAct["Update lastActivity timestamp"] ::: logic
+        Heartbeat{"Date.now - lastActivity<br/>> idleThreshold?"} ::: logic
+        Lock["Trigger Idle Lock<br/>Pause Timers"] ::: logic
+        Modal(("Show Idle Modal")) ::: ui
+        UserResolve{"User Resolution"} ::: ui
+        Keep["Keep Idle Time"] ::: action
+        Discard["Discard Idle Gap"] ::: action
         
         Activity --> SetLastAct
         SetLastAct --> Heartbeat
@@ -100,21 +100,21 @@ flowchart TD
         Modal --> UserResolve
         UserResolve -- Click Keep --> Keep
         UserResolve -- Click Discard --> Discard
-        Keep --> Resume[Resume Timers] ::: logic
-        Discard --> SubTime[Subtract Gap from state] ::: logic
+        Keep --> Resume["Resume Timers"] ::: logic
+        Discard --> SubTime["Subtract Gap from state"] ::: logic
         SubTime --> Resume
     end
 
-    subgraph Phase4 [4. Submission & Export Workflow]
+    subgraph Phase4 ["4. Submission & Export Workflow"]
         direction TB
-        ClickSubmit((User Clicks Submit)) ::: ui
-        Build[Build Log Object] ::: logic
-        WriteDB[(saveLogsToDB<br/>IndexedDB)] ::: store
-        WriteEmerg[(Update Emergency Backup<br/>LocalStorage)] ::: store
-        CheckHooks{Check Setting Hooks} ::: logic
-        AutoBackup[Generate JSON Auto-Backup] ::: action
-        AutoEmail[Draft Summary Email] ::: action
-        Reset[Reset Session State<br/>Clear variables] ::: logic
+        ClickSubmit(("User Clicks Submit")) ::: ui
+        Build["Build Log Object"] ::: logic
+        WriteDB[("saveLogsToDB<br/>IndexedDB")] ::: store
+        WriteEmerg[("Update Emergency Backup<br/>LocalStorage")] ::: store
+        CheckHooks{"Check Setting Hooks"} ::: logic
+        AutoBackup["Generate JSON Auto-Backup"] ::: action
+        AutoEmail["Draft Summary Email"] ::: action
+        Reset["Reset Session State<br/>Clear variables"] ::: logic
         
         ClickSubmit --> Build
         Build --> WriteDB
