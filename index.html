@@ -7211,7 +7211,7 @@
           <!-- TOP: Production Section -->
           <div class="timer-group">
             <div class="label-xs">Production Time</div>
-            <div id="work-timer" class="timer-val" aria-live="polite">
+            <div id="work-timer" class="timer-val">
               <span class="timer-digit"></span><span class="timer-colon">:</span
               ><span class="timer-digit"></span
               ><span class="timer-colon">:</span
@@ -7242,7 +7242,7 @@
           <!-- BOTTOM: Break Section (Standardized Label for Scannability) -->
           <div class="timer-group">
             <div class="label-xs">Break Time</div>
-            <div id="break-timer" class="timer-val" aria-live="polite">
+            <div id="break-timer" class="timer-val">
               <span class="timer-digit"></span><span class="timer-colon">:</span
               ><span class="timer-digit"></span
               ><span class="timer-colon">:</span
@@ -10416,12 +10416,6 @@
           triggerAutoSnapshot();
         }
 
-        // Broadcast database modification to other active tabs to sync memory caches
-        tabSyncChannel.postMessage({
-          type: "database_mutated",
-          fromTabId: myTabId,
-        });
-
         // FIX 3: INSTANT SYNCHRONOUS EMERGENCY BACKUP
         try {
           localStorage.setItem(
@@ -10436,15 +10430,27 @@
 
         // Delay database operations until the current thread yields, batching parallel changes
         if (!pendingDBSave) {
-          pendingDBSave = Promise.resolve().then(async () => {
-            try {
-              await saveLogsToDB(cachedLogs);
-            } catch (err) {
-              console.error("Failed to persist logs to DB", err);
-            } finally {
-              pendingDBSave = null;
+          pendingDBSave = (async () => {
+            let savedVersion = -1;
+            // Loop ensures subsequent rapid synchronous calls to saveLogs are batch-written
+            while (savedVersion !== dataVersion) {
+              let currentVersionToSave = dataVersion;
+              try {
+                await saveLogsToDB(cachedLogs);
+                savedVersion = currentVersionToSave;
+
+                // BROADCAST ONLY AFTER INDEXED-DB COMMIT SUCCEEDS
+                tabSyncChannel.postMessage({
+                  type: "database_mutated",
+                  fromTabId: myTabId,
+                });
+              } catch (err) {
+                console.error("Failed to persist logs to DB", err);
+                break; // Break spin-loop on terminal DB failure
+              }
             }
-          });
+            pendingDBSave = null;
+          })();
         }
       }
 
@@ -13716,13 +13722,13 @@
           return str.replace(/:(\d{2}):\d{2}/, ":$1"); // Removes seconds
         };
 
-        const displayLogin = cleanTimeDisplay(loginStr);
-        const displayLogout = cleanTimeDisplay(logoutStr);
+        const displayLogin = escapeHTML(cleanTimeDisplay(loginStr));
+        const displayLogout = escapeHTML(cleanTimeDisplay(logoutStr));
         const hasTimes =
           (loginStr && loginStr !== "—") || (logoutStr && logoutStr !== "—");
 
         if (leaveRecord) {
-          const leaveType = leaveRecord.type || "Leave";
+          const leaveType = escapeHTML(leaveRecord.type || "Leave");
           let leaveBadgeClass = "badge-leave";
           if (leaveType === "Sick") leaveBadgeClass = "badge-leave-sick";
           if (leaveType === "Casual") leaveBadgeClass = "badge-leave-casual";
@@ -16401,7 +16407,7 @@
           title: "Start Break",
           desc: "Pause work and begin a break session",
           category: "Timers",
-          aliases: ["sb", "pause", "rest", "coffee", "lunch", "afk"],
+          aliases: ["sb", "tb", "pause", "rest", "coffee", "lunch", "afk"],
           icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-break)" stroke-width="1.8">${getSprite("sprite-055")}</svg>`,
           action: () => {
             if (state.currentMode !== "break") switchMode("break");
@@ -16412,10 +16418,22 @@
           title: "Stop Break Timer",
           desc: "End the current break session",
           category: "Timers",
-          aliases: ["resume work", "end break", "back"],
+          aliases: ["rw", "resume work", "end break", "back"],
           icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-break)" stroke-width="1.8">${getSprite("sprite-054")}</svg>`,
           action: () => {
             if (state.currentMode === "break") switchMode("work");
+          },
+        },
+        {
+          key: "submit eod",
+          title: "Submit End of Day",
+          desc: "End active session and log your final shift",
+          category: "Timers",
+          aliases: ["eod", "end of day", "submit", "finish"],
+          icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-blue)" stroke-width="1.8">${getSprite("sprite-023")}</svg>`,
+          action: () => {
+            closeHudModal();
+            openSubmitModal();
           },
         },
         {
@@ -18178,6 +18196,7 @@
 
         HUD_COMMANDS.forEach((cmd) => {
           let maxScore = 0;
+          let cmdToPush = cmd; // Default to reference
 
           // Handling dynamic inputs like 'goal 8'
           if (cmd.key === "goal " && q.startsWith("goal ")) {
@@ -18192,7 +18211,11 @@
                     : 0;
                 const goalSec = num * 3600;
                 const pct = Math.round((curSec / goalSec) * 100);
-                cmd.desc = `Set custom goal to ${num}h (Current session progress would be ${pct}%)`;
+                // Create a shallow clone to protect the global constant
+                cmdToPush = {
+                  ...cmd,
+                  desc: `Set custom goal to ${num}h (Current session progress would be ${pct}%)`,
+                };
               }
             }
           } else if (cmd.key.endsWith(" ") && q.startsWith(cmd.key.trim())) {
@@ -18214,7 +18237,7 @@
           }
 
           if (maxScore > 0) {
-            scored.push({ cmd, score: maxScore });
+            scored.push({ cmd: cmdToPush, score: maxScore });
           }
         });
 
