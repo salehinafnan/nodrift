@@ -1,5 +1,5 @@
 <div align="center">
-  <h1>[nodrift_]</h1>
+  <img src="./nodrift_logo.svg" alt="nodrift logo" height="40" />
   <p><strong>Zero backend. Zero latency. Total privacy. One file.</strong></p>
 </div>
 
