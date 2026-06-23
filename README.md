@@ -38,25 +38,16 @@ NoDrift operates on a sophisticated client-side architecture featuring backgroun
 
 ```mermaid
 flowchart TD
-    classDef init fill:#312e81,stroke:#6366f1,stroke-width:2px,color:#fff
-    classDef worker fill:#064e3b,stroke:#10b981,stroke-width:2px,color:#fff
-    classDef logic fill:#701a75,stroke:#d946ef,stroke-width:2px,color:#fff
-    classDef store fill:#7f1d1d,stroke:#ef4444,stroke-width:2px,color:#fff
-    classDef ui fill:#1e3a8a,stroke:#3b82f6,stroke-width:2px,color:#fff
-    classDef action fill:#0f172a,stroke:#94a3b8,stroke-width:2px,stroke-dasharray: 5 5,color:#fff
-
     subgraph Phase1 ["1. Initialization & Bootstrap"]
-        direction TB
-        Boot(["App Launch: initApp"])
+        Boot(["App Launch"])
         LoadDB[("Load Logs from IndexedDB")]
-        CheckHealth{"DB Healthy?"}
         MergeEmerg[("Merge Emergency Backup")]
-        HydrateLS[("Hydrate Session State<br/>LocalStorage")]
+        HydrateLS[("Hydrate Session State")]
         StartWorker[["Start Web Worker Thread"]]
         DisableWrites["Disable Writes: RAM Only"]
         
         Boot --> LoadDB
-        LoadDB --> CheckHealth
+        LoadDB --> CheckHealth{"DB Healthy?"}
         CheckHealth -- Yes --> MergeEmerg
         CheckHealth -- No --> DisableWrites
         MergeEmerg --> HydrateLS
@@ -65,31 +56,28 @@ flowchart TD
     end
 
     subgraph Phase2 ["2. Core Timer & Event Loop"]
-        direction TB
-        Tick(("Worker Tick<br/>1000ms"))
-        Delta["Calculate Time Delta<br/>performance.now"]
+        Tick(("Worker Tick (1000ms)"))
+        Delta["Calculate Time Delta"]
         CheckMode{"state.currentMode?"}
-        UpdateWork["state.workAccumulated += delta"]
-        UpdateBreak["state.breakAccumulated += delta"]
-        SaveLS[("saveState<br/>Debounced 150ms")]
+        UpdateWork["Accumulate Work Time"]
+        UpdateBreak["Accumulate Break Time"]
+        SaveLS[("Debounced saveState (150ms)")]
         Wait["Standby"]
         
         Tick --> Delta
         Delta --> CheckMode
-        CheckMode -- 'work' --> UpdateWork
-        CheckMode -- 'break' --> UpdateBreak
-        CheckMode -- 'null' --> Wait
+        CheckMode -- "work" --> UpdateWork
+        CheckMode -- "break" --> UpdateBreak
+        CheckMode -- "null" --> Wait
         UpdateWork --> SaveLS
         UpdateBreak --> SaveLS
     end
 
     subgraph Phase3 ["3. Intelligent Idle Management"]
-        direction TB
         Activity(("Mouse/Key Events"))
         SetLastAct["Update lastActivity timestamp"]
-        Heartbeat{"Date.now - lastActivity<br/>> idleThreshold?"}
-        Lock["Trigger Idle Lock<br/>Pause Timers"]
-        Modal(("Show Idle Modal"))
+        Heartbeat{"Exceeds idleThreshold?"}
+        Lock["Pause Timers & Show Modal"]
         UserResolve{"User Resolution"}
         Keep["Keep Idle Time"]
         Discard["Discard Idle Gap"]
@@ -100,8 +88,7 @@ flowchart TD
         SetLastAct --> Heartbeat
         Tick -.-> Heartbeat
         Heartbeat -- Yes --> Lock
-        Lock --> Modal
-        Modal --> UserResolve
+        Lock --> UserResolve
         UserResolve -- Click Keep --> Keep
         UserResolve -- Click Discard --> Discard
         Keep --> Resume
@@ -110,40 +97,36 @@ flowchart TD
     end
 
     subgraph Phase4 ["4. Submission & Export Workflow"]
-        direction TB
         ClickSubmit(("User Clicks Submit"))
         Build["Build Log Object"]
-        WriteDB[("saveLogsToDB<br/>IndexedDB")]
-        WriteEmerg[("Update Emergency Backup<br/>LocalStorage")]
-        CheckHooks{"Check Setting Hooks"}
+        WriteDB[("saveLogsToDB (IndexedDB)")]
+        WriteEmerg[("Update Emergency Backup")]
+        CheckHooks{"Check Hooks"}
         AutoBackup["Generate JSON Auto-Backup"]
         AutoEmail["Draft Summary Email"]
-        Reset["Reset Session State<br/>Clear variables"]
+        Reset["Reset Session State"]
         
         ClickSubmit --> Build
         Build --> WriteDB
         Build --> WriteEmerg
         WriteDB --> CheckHooks
-        CheckHooks -- autoBackup enabled --> AutoBackup
-        CheckHooks -- autoEmail enabled --> AutoEmail
+        CheckHooks -- "autoBackup" --> AutoBackup
+        CheckHooks -- "autoEmail" --> AutoEmail
         AutoBackup --> Reset
         AutoEmail --> Reset
-        CheckHooks -- none --> Reset
+        CheckHooks -- "none" --> Reset
     end
 
-    %% Global Inter-Phase Connectors
     StartWorker ===> Tick
     SaveLS -.-> ClickSubmit
     Resume -.-> Tick
     Reset -.-> Wait
 
-    %% Class Assignments
-    class Boot init
-    class StartWorker,Tick worker
-    class CheckHealth,Delta,CheckMode,UpdateWork,UpdateBreak,Wait,SetLastAct,Heartbeat,Lock,Resume,SubTime,Build,CheckHooks,Reset logic
-    class LoadDB,MergeEmerg,HydrateLS,DisableWrites,SaveLS,WriteDB,WriteEmerg store
-    class Activity,Modal,UserResolve,ClickSubmit ui
-    class Keep,Discard,AutoBackup,AutoEmail action
+    %% Clean, professional styling that inherits GitHub's native Dark/Light mode theme
+    style Phase1 fill:none,stroke:#8b949e,stroke-width:1px,stroke-dasharray: 5 5
+    style Phase2 fill:none,stroke:#8b949e,stroke-width:1px,stroke-dasharray: 5 5
+    style Phase3 fill:none,stroke:#8b949e,stroke-width:1px,stroke-dasharray: 5 5
+    style Phase4 fill:none,stroke:#8b949e,stroke-width:1px,stroke-dasharray: 5 5
 ```
 
 ---
