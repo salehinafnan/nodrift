@@ -119,6 +119,8 @@
           0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
         --tab-btn-active-border: none;
         --tab-btn-active-outline: none;
+        --tab-btn-bg-hover: rgba(255, 255, 255, 0.08);
+        --tab-btn-bg-active: rgba(255, 255, 255, 0.12);
         --tab-transition: color 0.15s ease, background-color 0.15s ease;
       }
 
@@ -461,8 +463,6 @@
         border-radius: var(--radius-sm);
         font-weight: 600;
         transition:
-          background-color 0.15s ease,
-          border-color 0.15s ease,
           color 0.15s ease,
           filter 0.15s ease,
           transform 0.1s cubic-bezier(0.2, 0.8, 0.2, 1);
@@ -477,6 +477,9 @@
         background: transparent;
         border: 1px solid var(--border-light);
         color: var(--text-main);
+        transition:
+          background-color 0.15s ease,
+          color 0.15s ease;
       }
 
       .btn-secondary:hover:not(:disabled) {
@@ -1321,13 +1324,30 @@
         cursor: pointer;
         transition: none;
         white-space: nowrap;
+        position: relative;
+        z-index: 1;
+      }
+
+      .preset-pill::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        box-shadow: var(--global-shadow);
+        opacity: 0;
+        transition: opacity 0.15s ease;
+        pointer-events: none;
+        z-index: -1;
+      }
+
+      .preset-pill:hover::after {
+        opacity: 1;
       }
 
       .preset-pill:hover {
         background: var(--element-hover);
         color: var(--accent-blue);
         border-color: rgba(96, 165, 250, 0.35);
-        box-shadow: var(--global-shadow);
         transform: none;
       }
 
@@ -1337,6 +1357,10 @@
         color: var(--accent-blue);
         box-shadow: none;
         border-width: 1.5px;
+      }
+
+      .preset-pill.active::after {
+        display: none;
       }
 
       .ios-pill {
@@ -1410,9 +1434,7 @@
         letter-spacing: none;
         border-radius: var(--radius-xl);
         transition:
-          background-color 0.15s ease,
           color 0.15s ease,
-          border-color 0.15s ease,
           opacity 0.15s ease;
       }
 
@@ -1425,15 +1447,26 @@
         font-weight: 600;
         font-size: 0.85rem;
         position: relative;
-        overflow: hidden;
+        z-index: 1;
         transition:
-          background-color 0.15s ease,
           opacity 0.15s ease,
           transform 0.2s cubic-bezier(0.25, 1, 0.5, 1);
       }
 
       button::before {
-        display: none;
+        content: "";
+        position: absolute;
+        inset: 0;
+        opacity: 0;
+        z-index: -1;
+        border-radius: inherit;
+        pointer-events: none;
+        transition: opacity 0.15s ease;
+      }
+
+      button:hover:not(:disabled)::before,
+      button:active:not(:disabled)::before {
+        opacity: 1;
       }
 
       button:not(.btn-work):not(.btn-break):not(.btn-log):hover:not(:disabled) {
@@ -1471,117 +1504,147 @@
       }
 
       /* ── SF DARK THEME: Translucent Neon Glow Alpha Opacity Changes ── */
-      :root[data-theme="sf-dark"] .btn-work:hover:not(:disabled) {
+      :root[data-theme="sf-dark"] .btn-work::before {
         background: rgba(48, 209, 88, 0.25);
+      }
+      :root[data-theme="sf-dark"] .btn-work:hover:not(:disabled) {
+        background: transparent !important;
         border-color: rgba(48, 209, 88, 0.4);
       }
-
-      :root[data-theme="sf-dark"] .btn-work:active:not(:disabled) {
+      :root[data-theme="sf-dark"] .btn-work:active:not(:disabled)::before {
         background: rgba(48, 209, 88, 0.35);
+      }
+      :root[data-theme="sf-dark"] .btn-work:active:not(:disabled) {
+        background: transparent !important;
         border-color: rgba(48, 209, 88, 0.5);
       }
 
-      :root[data-theme="sf-dark"] .btn-break:hover:not(:disabled) {
+      :root[data-theme="sf-dark"] .btn-break::before {
         background: rgba(255, 69, 58, 0.25);
+      }
+      :root[data-theme="sf-dark"] .btn-break:hover:not(:disabled) {
+        background: transparent !important;
         border-color: rgba(255, 69, 58, 0.4);
       }
-
-      :root[data-theme="sf-dark"] .btn-break:active:not(:disabled) {
+      :root[data-theme="sf-dark"] .btn-break:active:not(:disabled)::before {
         background: rgba(255, 69, 58, 0.35);
+      }
+      :root[data-theme="sf-dark"] .btn-break:active:not(:disabled) {
+        background: transparent !important;
         border-color: rgba(255, 69, 58, 0.5);
       }
 
-      :root[data-theme="sf-dark"] .btn-log:hover:not(:disabled) {
+      :root[data-theme="sf-dark"] .btn-log::before {
         background: rgba(10, 132, 255, 0.25);
+      }
+      :root[data-theme="sf-dark"] .btn-log:hover:not(:disabled) {
+        background: transparent !important;
         border-color: rgba(10, 132, 255, 0.4);
       }
-
-      :root[data-theme="sf-dark"] .btn-log:active:not(:disabled) {
+      :root[data-theme="sf-dark"] .btn-log:active:not(:disabled)::before {
         background: rgba(10, 132, 255, 0.35);
+      }
+      :root[data-theme="sf-dark"] .btn-log:active:not(:disabled) {
+        background: transparent !important;
         border-color: rgba(10, 132, 255, 0.5);
       }
 
       /* ── SF LIGHT THEME: Translucent Contrast Preservation ── */
-      :root[data-theme="sf-light"] .btn-work:hover:not(:disabled) {
+      :root[data-theme="sf-light"] .btn-work::before {
         background: rgba(52, 199, 89, 0.28);
+      }
+      :root[data-theme="sf-light"] .btn-work:hover:not(:disabled) {
+        background: transparent !important;
         border-color: rgba(52, 199, 89, 0.45);
       }
-
-      :root[data-theme="sf-light"] .btn-work:active:not(:disabled) {
+      :root[data-theme="sf-light"] .btn-work:active:not(:disabled)::before {
         background: rgba(52, 199, 89, 0.38);
+      }
+      :root[data-theme="sf-light"] .btn-work:active:not(:disabled) {
+        background: transparent !important;
         border-color: rgba(52, 199, 89, 0.55);
       }
 
-      :root[data-theme="sf-light"] .btn-break:hover:not(:disabled) {
+      :root[data-theme="sf-light"] .btn-break::before {
         background: rgba(255, 59, 48, 0.28);
+      }
+      :root[data-theme="sf-light"] .btn-break:hover:not(:disabled) {
+        background: transparent !important;
         border-color: rgba(255, 59, 48, 0.45);
       }
-
-      :root[data-theme="sf-light"] .btn-break:active:not(:disabled) {
+      :root[data-theme="sf-light"] .btn-break:active:not(:disabled)::before {
         background: rgba(255, 59, 48, 0.38);
+      }
+      :root[data-theme="sf-light"] .btn-break:active:not(:disabled) {
+        background: transparent !important;
         border-color: rgba(255, 59, 48, 0.55);
       }
 
-      :root[data-theme="sf-light"] .btn-log:hover:not(:disabled) {
+      :root[data-theme="sf-light"] .btn-log::before {
         background: rgba(0, 122, 255, 0.28);
+      }
+      :root[data-theme="sf-light"] .btn-log:hover:not(:disabled) {
+        background: transparent !important;
         border-color: rgba(0, 122, 255, 0.45);
       }
-
-      :root[data-theme="sf-light"] .btn-log:active:not(:disabled) {
+      :root[data-theme="sf-light"] .btn-log:active:not(:disabled)::before {
         background: rgba(0, 122, 255, 0.38);
+      }
+      :root[data-theme="sf-light"] .btn-log:active:not(:disabled) {
+        background: transparent !important;
         border-color: rgba(0, 122, 255, 0.55);
       }
 
       /* ── VERCEL DARK THEME: Pure Contrast States ── */
-      :root[data-theme="vercel-dark"] .btn-work:hover:not(:disabled) {
+      :root[data-theme="vercel-dark"] .btn-work::before {
         background: #b3b3b3;
       }
-
-      :root[data-theme="vercel-dark"] .btn-work:active:not(:disabled) {
+      :root[data-theme="vercel-dark"] .btn-work:active:not(:disabled)::before {
         background: #8c8c8c;
       }
 
-      :root[data-theme="vercel-dark"] .btn-break:hover:not(:disabled) {
+      :root[data-theme="vercel-dark"] .btn-break::before {
         background: #222222;
       }
-
-      :root[data-theme="vercel-dark"] .btn-break:active:not(:disabled) {
+      :root[data-theme="vercel-dark"] .btn-break:active:not(:disabled)::before {
         background: #333333;
       }
 
-      :root[data-theme="vercel-dark"] .btn-log:hover:not(:disabled) {
+      :root[data-theme="vercel-dark"] .btn-log::before {
         background: #222222;
       }
-
-      :root[data-theme="vercel-dark"] .btn-log:active:not(:disabled) {
+      :root[data-theme="vercel-dark"] .btn-log:active:not(:disabled)::before {
         background: #333333;
       }
 
       /* ── E-INK BRUTALIST THEME: Inverse Hovers ── */
-      :root[data-theme="theme-eink"] .btn-work:hover:not(:disabled) {
+      :root[data-theme="theme-eink"] .btn-work::before {
         background: #ffffff;
+      }
+      :root[data-theme="theme-eink"] .btn-work:hover:not(:disabled) {
         color: #111111;
       }
-
-      :root[data-theme="theme-eink"] .btn-work:active:not(:disabled) {
+      :root[data-theme="theme-eink"] .btn-work:active:not(:disabled)::before {
         background: #e8e8e8;
       }
 
-      :root[data-theme="theme-eink"] .btn-break:hover:not(:disabled) {
+      :root[data-theme="theme-eink"] .btn-break::before {
         background: #111111;
+      }
+      :root[data-theme="theme-eink"] .btn-break:hover:not(:disabled) {
         color: #ffffff;
       }
-
-      :root[data-theme="theme-eink"] .btn-break:active:not(:disabled) {
+      :root[data-theme="theme-eink"] .btn-break:active:not(:disabled)::before {
         background: #333333;
       }
 
-      :root[data-theme="theme-eink"] .btn-log:hover:not(:disabled) {
+      :root[data-theme="theme-eink"] .btn-log::before {
         background: #111111;
+      }
+      :root[data-theme="theme-eink"] .btn-log:hover:not(:disabled) {
         color: #ffffff;
       }
-
-      :root[data-theme="theme-eink"] .btn-log:active:not(:disabled) {
+      :root[data-theme="theme-eink"] .btn-log:active:not(:disabled)::before {
         background: #333333;
       }
 
@@ -1892,11 +1955,7 @@
         font-weight: 500;
         outline: none;
         height: 27px;
-        transition:
-          background-color 0.15s ease,
-          border-color 0.15s ease,
-          box-shadow 0.15s ease,
-          transform 0.1s ease;
+        transition: transform 0.1s ease;
         box-sizing: border-box;
         cursor: pointer;
       }
@@ -1940,8 +1999,6 @@
         cursor: pointer;
         user-select: none;
         transition:
-          background-color 0.15s ease,
-          border-color 0.15s ease,
           color 0.15s ease,
           transform 0.1s ease;
         box-sizing: border-box;
@@ -2200,10 +2257,8 @@
         display: flex;
         flex-direction: column;
         justify-content: center;
-        transition:
-          border-color 0.15s ease,
-          background-color 0.15s ease;
         cursor: pointer;
+        will-change: transform;
       }
 
       .log-row:hover,
@@ -2371,7 +2426,9 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        transition: none;
+        transition:
+          background-color 0.15s ease,
+          color 0.15s ease;
       }
 
       .icon-btn:hover:not(:disabled) {
