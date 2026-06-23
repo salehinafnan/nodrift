@@ -3621,7 +3621,7 @@
         align-items: center;
         justify-content: center;
         border-radius: 4px;
-        font-weight: 500;
+        font-weight: 600;
         vertical-align: middle;
         font-family: var(--font-sans);
         line-height: 1;
@@ -3629,7 +3629,7 @@
 
       .badge-leave {
         font-size: var(--text-3xs);
-        color: var(--accent-work);
+        color: color-mix(in srgb, var(--text-main) 30%, var(--accent-work));
         background: color-mix(in srgb, var(--accent-work) 10%, transparent);
         border: 1px solid
           color-mix(in srgb, var(--accent-work) 30%, transparent);
@@ -3639,7 +3639,7 @@
 
       .badge-weekend {
         font-size: var(--text-3xs);
-        color: var(--accent-blue);
+        color: color-mix(in srgb, var(--text-main) 30%, var(--accent-blue));
         background: color-mix(in srgb, var(--accent-blue) 10%, transparent);
         border: 1px solid
           color-mix(in srgb, var(--accent-blue) 30%, transparent);
@@ -3651,7 +3651,7 @@
         width: 16px;
         height: 16px;
         font-size: 0.6rem;
-        color: var(--accent-work);
+        color: color-mix(in srgb, var(--text-main) 30%, var(--accent-work));
         background: color-mix(in srgb, var(--accent-work) 10%, transparent);
         border: 1px solid
           color-mix(in srgb, var(--accent-work) 30%, transparent);
@@ -3667,7 +3667,7 @@
         width: 16px;
         height: 16px;
         font-size: 0.6rem;
-        color: var(--accent-break);
+        color: color-mix(in srgb, var(--text-main) 30%, var(--accent-break));
         background: color-mix(in srgb, var(--accent-break) 10%, transparent);
         border: 1px solid
           color-mix(in srgb, var(--accent-break) 30%, transparent);
@@ -3677,7 +3677,7 @@
         width: 16px;
         height: 16px;
         font-size: 0.6rem;
-        color: var(--accent-blue);
+        color: color-mix(in srgb, var(--text-main) 30%, var(--accent-blue));
         background: color-mix(in srgb, var(--accent-blue) 15%, transparent);
         border: 1px solid
           color-mix(in srgb, var(--accent-blue) 30%, transparent);
@@ -3687,7 +3687,7 @@
         width: 16px;
         height: 16px;
         font-size: 0.6rem;
-        color: var(--accent-work);
+        color: color-mix(in srgb, var(--text-main) 30%, var(--accent-work));
         background: color-mix(in srgb, var(--accent-work) 15%, transparent);
         border: 1px solid
           color-mix(in srgb, var(--accent-work) 30%, transparent);
@@ -3697,7 +3697,7 @@
         width: 16px;
         height: 16px;
         font-size: 0.6rem;
-        color: var(--accent-warning);
+        color: color-mix(in srgb, var(--text-main) 30%, var(--accent-warning));
         background: color-mix(in srgb, var(--accent-warning) 15%, transparent);
         border: 1px solid
           color-mix(in srgb, var(--accent-warning) 30%, transparent);
@@ -3706,7 +3706,7 @@
       .badge-leave-sick {
         font-size: var(--text-3xs);
         padding: 2px 6px;
-        color: var(--accent-break);
+        color: color-mix(in srgb, var(--text-main) 30%, var(--accent-break));
         background: color-mix(in srgb, var(--accent-break) 11%, transparent);
         border: 1px solid
           color-mix(in srgb, var(--accent-break) 20%, transparent);
@@ -3715,7 +3715,7 @@
       .badge-leave-casual {
         font-size: var(--text-3xs);
         padding: 2px 6px;
-        color: var(--accent-warning);
+        color: color-mix(in srgb, var(--text-main) 30%, var(--accent-warning));
         background: color-mix(in srgb, var(--accent-warning) 11%, transparent);
         border: 1px solid
           color-mix(in srgb, var(--accent-warning) 20%, transparent);
@@ -3724,10 +3724,34 @@
       .badge-leave-holiday {
         font-size: var(--text-3xs);
         padding: 2px 6px;
-        color: var(--accent-work);
+        color: color-mix(in srgb, var(--text-main) 30%, var(--accent-work));
         background: color-mix(in srgb, var(--accent-work) 11%, transparent);
         border: 1px solid
           color-mix(in srgb, var(--accent-work) 20%, transparent);
+      }
+
+      .badge-trend-ahead {
+        font-size: 0.55rem;
+        padding: 2px 6px;
+        gap: 2px;
+        font-variant-numeric: tabular-nums;
+        font-feature-settings: "tnum" 1;
+        color: color-mix(in srgb, var(--text-main) 30%, var(--accent-work));
+        background: color-mix(in srgb, var(--accent-work) 10%, transparent);
+        border: 1px solid
+          color-mix(in srgb, var(--accent-work) 30%, transparent);
+      }
+
+      .badge-trend-behind {
+        font-size: 0.55rem;
+        padding: 2px 6px;
+        gap: 2px;
+        font-variant-numeric: tabular-nums;
+        font-feature-settings: "tnum" 1;
+        color: color-mix(in srgb, var(--text-main) 30%, var(--accent-warning));
+        background: color-mix(in srgb, var(--accent-warning) 10%, transparent);
+        border: 1px solid
+          color-mix(in srgb, var(--accent-warning) 30%, transparent);
       }
 
       /* Leave & Holidays Modal — List Components */
@@ -11394,9 +11418,9 @@
           let trendHTML = "";
           if (expectedSecSoFar > 0) {
             if (trendDiffSec >= 0) {
-              trendHTML = `<span class="badge" style="background: color-mix(in srgb, var(--accent-work) 10%, transparent); color: var(--accent-work) !important; border: 1px solid color-mix(in srgb, var(--accent-work) 30%, transparent); padding: 2px 6px; font-size: 0.55rem; display: inline-flex; align-items: center; gap: 2px; line-height: 1; font-variant-numeric: tabular-nums; font-feature-settings: 'tnum' 1;">↑ ${trendDiffH}h ahead</span>`;
+              trendHTML = `<span class="badge badge-trend-ahead">↑ ${trendDiffH}h ahead</span>`;
             } else {
-              trendHTML = `<span class="badge" style="background: color-mix(in srgb, var(--accent-warning) 10%, transparent); color: var(--accent-warning) !important; border: 1px solid color-mix(in srgb, var(--accent-warning) 30%, transparent); padding: 2px 6px; font-size: 0.55rem; display: inline-flex; align-items: center; gap: 2px; line-height: 1; font-variant-numeric: tabular-nums; font-feature-settings: 'tnum' 1;">↓ ${trendDiffH}h behind</span>`;
+              trendHTML = `<span class="badge badge-trend-behind">↓ ${trendDiffH}h behind</span>`;
             }
           }
 
