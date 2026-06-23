@@ -1,21 +1,13 @@
 <div align="center">
-  <img src="https://via.placeholder.com/150?text=NoDrift" alt="NoDrift Logo" width="120" />
-  <h1>NoDrift</h1>
+  <h1>[nodrift_]</h1>
   <p><strong>Zero backend. Zero latency. Total privacy. One file.</strong></p>
-
-  <p>
-    <a href="https://github.com/nodrift/nodrift/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue?style=for-the-badge" alt="License" /></a>
-    <img src="https://img.shields.io/badge/Lines-14%2C152-blueviolet?style=for-the-badge" alt="Lines" />
-    <img src="https://img.shields.io/badge/Size-526KB-orange?style=for-the-badge" alt="Size" />
-    <img src="https://img.shields.io/badge/Dependencies-0-brightgreen?style=for-the-badge" alt="Dependencies" />
-  </p>
 </div>
 
 ---
 
 ## 📖 Overview
 
-Most time trackers are bloated SaaS tools that harvest data or barebones stopwatches that break when you close the tab. **NoDrift** is an enterprise-grade, single-file web application that runs entirely in your browser. 
+Most time trackers are bloated SaaS tools that harvest data or barebones stopwatches that break when you close the tab. **nodrift** is an enterprise-grade, single-file web application that runs entirely in your browser.
 
 It tracks active work hours, rest breaks, daily goals, and weekly workloads with analytical precision. Everything is stored locally on your machine via a failsafe IndexedDB + LocalStorage matrix. **No accounts. No servers. No subscriptions.**
 
@@ -34,7 +26,7 @@ It tracks active work hours, rest breaks, daily goals, and weekly workloads with
 
 ## 🏗️ Architecture & Workflow
 
-NoDrift operates on a sophisticated client-side architecture featuring background threads, debounced state persistence, and emergency fallback systems.
+nodrift operates on a sophisticated client-side architecture featuring background threads, debounced state persistence, and emergency fallback systems.
 
 ```mermaid
 flowchart TD
