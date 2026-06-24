@@ -9728,7 +9728,8 @@
                     store.delete(k);
                   }
                 });
-                const rebuildAll = chunksToProcess.has("ALL");
+                const rebuildAll =
+                  chunksToProcess.has("ALL") || chunksToProcess.size === 0;
                 newKeySet.forEach((chunkId) => {
                   if (rebuildAll || chunksToProcess.has(chunkId)) {
                     store.put({ chunkId, data: chunks[chunkId] });
@@ -9890,7 +9891,11 @@
         if (e.data.fromTabId === myTabId) return;
 
         if (e.data.type === "takeover_request") {
-          if (!isTabConflict) {
+          const leaseStr = localStorage.getItem(LEASE_KEY);
+          const lease = leaseStr ? JSON.parse(leaseStr) : {};
+          const isMaster = lease.ownerId === instanceId;
+
+          if (!isTabConflict && isMaster) {
             if (state.currentMode !== null) {
               if (!state.idleLock) {
                 const nowWall = Date.now();
@@ -10122,7 +10127,17 @@
             setTimeout(() => {
               try {
                 const stagingId = localStorage.getItem(STAGING_KEY);
-                if (stagingId === instanceId) {
+                const latestLeaseStr = localStorage.getItem(LEASE_KEY);
+                const latestLease = latestLeaseStr
+                  ? JSON.parse(latestLeaseStr)
+                  : null;
+                const now = Date.now();
+                const isLeaseTaken =
+                  latestLease &&
+                  latestLease.ownerId !== instanceId &&
+                  now - latestLease.lastHeartbeat < 3000;
+
+                if (stagingId === instanceId && !isLeaseTaken) {
                   const lease = {
                     ownerId: instanceId,
                     tabId: myTabId,
@@ -10155,8 +10170,7 @@
        */
       function renewLease() {
         if (isTabConflict) return;
-        // Web Locks API holds the lock passively for the tab's lifetime — no periodic renewal needed
-        if (usingWebLocks) return;
+        // Ensure localStorage lease is always updated so fallback logic and stale detections work
 
         const now = Date.now();
         // Only renew lease and touch localStorage once every 2 seconds (50% disk I/O reduction)
@@ -10897,6 +10911,9 @@
           lastActivity = getTrueTime();
           state.lastActivity = lastActivity;
           state.lastHeartbeatWall = lastActivity;
+        } else if (!state.idleWakeup) {
+          state.idleWakeup = now;
+          saveState();
         }
       }
 
@@ -12169,7 +12186,7 @@
       /**
        * Serializes session accumulation into storage shift logs.
        */
-      function executeSubmit(e, forceNotes = "", overrideDate = null) {
+      async function executeSubmit(e, forceNotes = "", overrideDate = null) {
         const workSeconds = pendingSubmitData
           ? pendingSubmitData.workSec
           : Math.floor(getCurrentWorkSeconds());
@@ -12244,6 +12261,7 @@
         lastStateBackup = JSON.parse(JSON.stringify(state));
         logs.unshift(entry);
         saveLogs(logs);
+        if (pendingDBSave) await pendingDBSave;
         resetSession();
 
         dismissOtherToasts("undo-toast");
@@ -12369,7 +12387,7 @@
        */
       function resolveIdle(choice) {
         const nowWall = Date.now();
-        const resolutionTime = nowWall;
+        const resolutionTime = state.idleWakeup || nowWall;
         state.idleWakeup = null;
         const totalIdleSeconds = Math.max(
           0,
@@ -16312,6 +16330,9 @@
               if (state.loginTimestamp) {
                 state.loginTimestamp = midnightMs;
               }
+              if (state.idleStart && state.idleStart < midnightMs) {
+                state.idleStart = midnightMs;
+              }
             } else if (activeMode !== null) {
               state.currentMode = activeMode;
               state.loginTimestamp = midnightMs;
@@ -16382,6 +16403,18 @@
         // Renew our master lease lock
         renewLease();
 
+        // Pure idle/sleep audit check BEFORE midnight reset
+        if (
+          state.trackingMode === "intelligent" &&
+          state.idleTrackingEnabled !== false &&
+          !state.idleLock &&
+          state.currentMode !== null
+        ) {
+          if (nowMs - lastActivity > _cachedIdleThresholdMs) {
+            triggerIdleLock(lastActivity, "inactivity");
+          }
+        }
+
         // Execute rollover checks for multi-day gaps (sleep/hibernate/page load recovery)
         checkMidnightReset(now);
 
@@ -16398,18 +16431,6 @@
         saveTicks++;
         if (saveTicks % 15 === 0) {
           saveState();
-        }
-
-        // Pure idle/sleep audit check: ONLY runs in intelligent mode
-        if (
-          state.trackingMode === "intelligent" &&
-          state.idleTrackingEnabled !== false &&
-          !state.idleLock &&
-          state.currentMode !== null
-        ) {
-          if (nowMs - lastActivity > _cachedIdleThresholdMs) {
-            triggerIdleLock(lastActivity, "inactivity");
-          }
         }
 
         const runUIUpdates = () => {
@@ -16501,6 +16522,10 @@
         }
 
         if (state.idleLock) {
+          if (!state.idleWakeup) {
+            state.idleWakeup = nowWall;
+            saveState();
+          }
           if (DOM.idleModal) DOM.idleModal.style.display = "flex";
           updateIdleModalLabels();
         }
