@@ -15680,12 +15680,20 @@
         }
 
         // Prototype pollution guard: re-serialize and check for dangerous keys
-        const serialized = JSON.stringify(data);
-        if (
-          serialized.includes("__proto__") ||
-          serialized.includes("constructor") ||
-          serialized.includes("prototype")
-        ) {
+        function hasForbiddenKeys(obj) {
+          if (!obj || typeof obj !== "object") return false;
+          for (const key in obj) {
+            if (
+              key === "__proto__" ||
+              key === "constructor" ||
+              key === "prototype"
+            )
+              return true;
+            if (hasForbiddenKeys(obj[key])) return true;
+          }
+          return false;
+        }
+        if (hasForbiddenKeys(data)) {
           return "Backup contains forbidden prototype keys.";
         }
 
@@ -15713,6 +15721,18 @@
               (!Number.isFinite(l.breakSec) || l.breakSec < 0)
             ) {
               return `Log entry at index ${i} has an invalid breakSec value.`;
+            }
+            if (
+              l.dayGoal !== undefined &&
+              (!Number.isFinite(l.dayGoal) || l.dayGoal < 0)
+            ) {
+              return `Log entry at index ${i} has an invalid dayGoal value.`;
+            }
+            if (l.id !== undefined && typeof l.id !== "string") {
+              return `Log entry at index ${i} has an invalid id.`;
+            }
+            if (l.notes !== undefined && typeof l.notes !== "string") {
+              return `Log entry at index ${i} has invalid notes.`;
             }
             if (
               l.loginEpochMs !== undefined &&
@@ -15893,24 +15913,18 @@
           tempImportData = null;
 
           if (data.state) {
-            const activeSessionInProgress =
-              state.currentMode !== null || state.workAccumulated > 0;
-            if (activeSessionInProgress) {
-              state.idleTrackingEnabled =
-                data.state.idleTrackingEnabled !== undefined
-                  ? data.state.idleTrackingEnabled
-                  : state.idleTrackingEnabled;
-              state.idleThresholdMinutes =
-                data.state.idleThresholdMinutes !== undefined
-                  ? data.state.idleThresholdMinutes
-                  : state.idleThresholdMinutes;
-              state.autoEmailEnabled =
-                data.state.autoEmailEnabled !== undefined
-                  ? data.state.autoEmailEnabled
-                  : state.autoEmailEnabled;
-            } else {
-              state = data.state;
-            }
+            state.idleTrackingEnabled =
+              data.state.idleTrackingEnabled !== undefined
+                ? data.state.idleTrackingEnabled
+                : state.idleTrackingEnabled;
+            state.idleThresholdMinutes =
+              data.state.idleThresholdMinutes !== undefined
+                ? data.state.idleThresholdMinutes
+                : state.idleThresholdMinutes;
+            state.autoEmailEnabled =
+              data.state.autoEmailEnabled !== undefined
+                ? data.state.autoEmailEnabled
+                : state.autoEmailEnabled;
             saveState();
           }
           if (data.goalH !== undefined) {
@@ -15978,9 +15992,14 @@
               mergedLogs = [...filteredBackupLogs, ...currentLogs];
               logsAddedCount = filteredBackupLogs.length;
             } else if (resolutionType === "overwrite") {
-              const backupDates = new Set(validatedLogs.map((l) => l.date));
+              const backupKeys = new Set(validatedLogs.map((l) => l.id));
+              const backupTimeKeys = new Set(
+                validatedLogs.map((l) => `${l.date}_${l.login}_${l.logout}`),
+              );
               const filteredLocalLogs = currentLogs.filter(
-                (l) => !backupDates.has(l.date),
+                (l) =>
+                  !backupKeys.has(l.id) &&
+                  !backupTimeKeys.has(`${l.date}_${l.login}_${l.logout}`),
               );
               mergedLogs = [...validatedLogs, ...filteredLocalLogs];
               logsAddedCount =
@@ -15989,26 +16008,29 @@
               logsOverwrittenCount =
                 currentLogs.length - filteredLocalLogs.length;
             } else if (resolutionType === "keep-both") {
-              const existingIds = new Set(currentLogs.map((l) => l.id));
-              validatedLogs.forEach((l) => {
-                if (existingIds.has(l.id)) {
-                  l.id =
-                    "log_" +
-                    Math.random().toString(36).substring(2, 11) +
-                    Date.now().toString(36);
-                }
-              });
               mergedLogs = [...validatedLogs, ...currentLogs];
               logsAddedCount = validatedLogs.length;
             }
 
             const uniqueMap = new Map();
             mergedLogs.forEach((l) => {
-              const key = l.id || `${l.epochMs}_${l.workSec}_${l.breakSec}`;
-              uniqueMap.set(key, l);
+              const key = `${l.epochMs}_${l.loginEpochMs}_${l.logoutEpochMs}_${l.workSec}_${l.breakSec}`;
+              if (!uniqueMap.has(key)) {
+                uniqueMap.set(key, l);
+              }
             });
 
             const finalLogs = Array.from(uniqueMap.values());
+            const usedIds = new Set();
+            finalLogs.forEach((l) => {
+              if (usedIds.has(l.id)) {
+                l.id =
+                  "log_" +
+                  Math.random().toString(36).substring(2, 11) +
+                  Date.now().toString(36);
+              }
+              usedIds.add(l.id);
+            });
             finalLogs.sort((a, b) => b.epochMs - a.epochMs);
             if (window.dirtyChunks) window.dirtyChunks.add("ALL");
             saveLogs(finalLogs);
@@ -20485,7 +20507,7 @@
       function handleDateInputBlur(e) {
         const input = e.target;
         const val = input.value.trim().toLowerCase();
-        if (!val) return;
+        if (!val || val.endsWith("/")) return;
 
         const nowPST = getPSTDateObj();
         const currentYearFull = nowPST.getUTCFullYear();
@@ -20796,6 +20818,7 @@
             const errorMs = wallMs - guessLocalMs;
 
             if (errorMs === 0) break;
+            if (i === 2 && Math.abs(errorMs) === 3600000) break; // Accept offset during DST skips
             guessMs += errorMs;
           }
           return guessMs;
@@ -20974,35 +20997,8 @@
 
         loginVal = loginEl.value.trim();
         logoutVal = logoutEl.value.trim();
-        workVal = workEl.value.trim();
-        breakVal = breakEl.value.trim() || "00:00";
-
         let parsedLogin = parseClockTimePreview(loginVal);
         let parsedLogout = parseClockTimePreview(logoutVal);
-
-        if (parsedLogin && parsedLogout) {
-          const loginSec = parseClockTimeToSeconds(parsedLogin);
-          const logoutSec = parseClockTimeToSeconds(parsedLogout);
-          if (loginSec !== null && logoutSec !== null) {
-            let diff = logoutSec - loginSec;
-            if (diff < 0) diff += 86400;
-
-            const rawLogoutClean = logoutVal.toLowerCase().replace(/\s+/g, "");
-            const hasExplicitMeridian =
-              rawLogoutClean.includes("am") || rawLogoutClean.includes("pm");
-
-            if (!hasExplicitMeridian && diff > 57600) {
-              const flippedLogoutSec = (logoutSec + 43200) % 86400;
-              let flippedDiff = flippedLogoutSec - loginSec;
-              if (flippedDiff < 0) flippedDiff += 86400;
-
-              if (flippedDiff <= 57600) {
-                logoutEl.value = secondsToAMPM(flippedLogoutSec);
-                logoutVal = logoutEl.value;
-              }
-            }
-          }
-        }
 
         const hasLogin2 = !!loginVal;
         const hasLogout2 = !!logoutVal;
@@ -21054,22 +21050,20 @@
               dateVal,
             );
         } else if (changedField === "break") {
-          if (modalStates[prefix].last === "break") {
-            if (modalStates[prefix].prev === "work" && hasLogin2 && hasWork2) {
-              logoutEl.value = calculateLogoutFromLoginAndWork(
-                loginVal,
-                workVal,
-                breakVal,
-                dateVal,
-              );
-            } else if (hasLogin2 && hasLogout2) {
-              workEl.value = calculateDurationFromTimes(
-                loginVal,
-                logoutVal,
-                breakVal,
-                dateVal,
-              );
-            }
+          if (hasLogin2 && hasLogout2) {
+            workEl.value = calculateDurationFromTimes(
+              loginVal,
+              logoutVal,
+              breakVal,
+              dateVal,
+            );
+          } else if (hasLogin2 && hasWork2) {
+            logoutEl.value = calculateLogoutFromLoginAndWork(
+              loginVal,
+              workVal,
+              breakVal,
+              dateVal,
+            );
           }
         } else if (!hasLogin2 && hasLogout2 && hasWork2 && hasBreak) {
           loginEl.value = calculateLoginFromLogoutAndWork(
@@ -21100,7 +21094,6 @@
               breakEl.classList.add("input-error");
               breakEl.style.borderColor = "var(--accent-break)";
               breakEl.title = "Break cannot exceed total time.";
-              workEl.value = "";
               return;
             }
           }
