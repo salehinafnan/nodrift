@@ -35,6 +35,7 @@
         --z-sticky: 600;
         --z-overlay: 1000;
         --z-modal: 1500;
+        --z-toast: 3500;
         --z-tooltip: 9999;
         --global-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
         /* Shared Color Scheme Accents */
@@ -1256,26 +1257,62 @@
         position: absolute;
         left: 0;
         top: 0;
-        transform: translate(-50%, -100%) translateY(-6px);
+        transform: translate(-50%, -100%) translateY(-2px);
         opacity: 0;
         pointer-events: none;
         background: var(--panel-bg);
         border: 1px solid var(--border-main);
         color: var(--text-main);
-        font-size: 0.72rem;
-        font-weight: 600;
-        padding: 4px 10px;
-        border-radius: 6px;
-        white-space: nowrap;
-        transition: opacity 0.05s linear;
+        font-size: 0.65rem;
+        font-weight: 500;
+        padding: 2px 6px;
+        border-radius: 3px;
+        white-space: normal;
+        max-width: 250px;
+        box-sizing: border-box;
+        transition:
+          opacity 0.1s ease,
+          transform 0.1s ease;
         z-index: var(--z-tooltip);
         font-family: var(--font-sans);
-        box-shadow: var(--global-shadow);
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
         transform-origin: bottom center;
+        contain: layout paint;
+        will-change: transform, opacity;
+      }
+
+      :root[data-theme="sf-light"] .app-tooltip {
+        background: #ffffff;
+        color: #1d1d1f;
+        border-color: rgba(0, 0, 0, 0.1);
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+      }
+
+      :root[data-theme="sf-dark"] .app-tooltip {
+        background: #1c1c1e;
+        color: #ffffff;
+        border-color: rgba(255, 255, 255, 0.12);
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.18);
+      }
+
+      :root[data-theme="vercel-dark"] .app-tooltip {
+        background: #000000;
+        color: #ededed;
+        border-color: #333333;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
+      }
+
+      :root[data-theme="theme-eink"] .app-tooltip {
+        background: #ffffff;
+        color: #111111;
+        border: 1px solid #111111;
+        border-radius: 3px;
+        box-shadow: none;
       }
 
       .app-tooltip.visible {
         opacity: 1;
+        transform: translate(-50%, -100%) translateY(-5px);
       }
 
       /* Premium Goal Container & Presets Styling with Hover Bridging */
@@ -1515,12 +1552,15 @@
       :root[data-theme="sf-dark"] .btn-work::before {
         background: rgba(48, 209, 88, 0.25);
       }
+
       :root[data-theme="sf-dark"] .btn-work:hover:not(:disabled) {
         border-color: rgba(48, 209, 88, 0.4);
       }
+
       :root[data-theme="sf-dark"] .btn-work:active:not(:disabled)::before {
         background: rgba(48, 209, 88, 0.35);
       }
+
       :root[data-theme="sf-dark"] .btn-work:active:not(:disabled) {
         border-color: rgba(48, 209, 88, 0.5);
       }
@@ -1528,12 +1568,15 @@
       :root[data-theme="sf-dark"] .btn-break::before {
         background: rgba(255, 69, 58, 0.25);
       }
+
       :root[data-theme="sf-dark"] .btn-break:hover:not(:disabled) {
         border-color: rgba(255, 69, 58, 0.4);
       }
+
       :root[data-theme="sf-dark"] .btn-break:active:not(:disabled)::before {
         background: rgba(255, 69, 58, 0.35);
       }
+
       :root[data-theme="sf-dark"] .btn-break:active:not(:disabled) {
         border-color: rgba(255, 69, 58, 0.5);
       }
@@ -1541,12 +1584,15 @@
       :root[data-theme="sf-dark"] .btn-log::before {
         background: rgba(10, 132, 255, 0.25);
       }
+
       :root[data-theme="sf-dark"] .btn-log:hover:not(:disabled) {
         border-color: rgba(10, 132, 255, 0.4);
       }
+
       :root[data-theme="sf-dark"] .btn-log:active:not(:disabled)::before {
         background: rgba(10, 132, 255, 0.35);
       }
+
       :root[data-theme="sf-dark"] .btn-log:active:not(:disabled) {
         border-color: rgba(10, 132, 255, 0.5);
       }
@@ -1555,12 +1601,15 @@
       :root[data-theme="sf-light"] .btn-work::before {
         background: rgba(52, 199, 89, 0.28);
       }
+
       :root[data-theme="sf-light"] .btn-work:hover:not(:disabled) {
         border-color: rgba(52, 199, 89, 0.45);
       }
+
       :root[data-theme="sf-light"] .btn-work:active:not(:disabled)::before {
         background: rgba(52, 199, 89, 0.38);
       }
+
       :root[data-theme="sf-light"] .btn-work:active:not(:disabled) {
         border-color: rgba(52, 199, 89, 0.55);
       }
@@ -1568,12 +1617,15 @@
       :root[data-theme="sf-light"] .btn-break::before {
         background: rgba(255, 59, 48, 0.28);
       }
+
       :root[data-theme="sf-light"] .btn-break:hover:not(:disabled) {
         border-color: rgba(255, 59, 48, 0.45);
       }
+
       :root[data-theme="sf-light"] .btn-break:active:not(:disabled)::before {
         background: rgba(255, 59, 48, 0.38);
       }
+
       :root[data-theme="sf-light"] .btn-break:active:not(:disabled) {
         border-color: rgba(255, 59, 48, 0.55);
       }
@@ -1581,12 +1633,15 @@
       :root[data-theme="sf-light"] .btn-log::before {
         background: rgba(0, 122, 255, 0.28);
       }
+
       :root[data-theme="sf-light"] .btn-log:hover:not(:disabled) {
         border-color: rgba(0, 122, 255, 0.45);
       }
+
       :root[data-theme="sf-light"] .btn-log:active:not(:disabled)::before {
         background: rgba(0, 122, 255, 0.38);
       }
+
       :root[data-theme="sf-light"] .btn-log:active:not(:disabled) {
         border-color: rgba(0, 122, 255, 0.55);
       }
@@ -1595,6 +1650,7 @@
       :root[data-theme="vercel-dark"] .btn-work::before {
         background: #b3b3b3;
       }
+
       :root[data-theme="vercel-dark"] .btn-work:active:not(:disabled)::before {
         background: #8c8c8c;
       }
@@ -1602,6 +1658,7 @@
       :root[data-theme="vercel-dark"] .btn-break::before {
         background: #222222;
       }
+
       :root[data-theme="vercel-dark"] .btn-break:active:not(:disabled)::before {
         background: #333333;
       }
@@ -1609,6 +1666,7 @@
       :root[data-theme="vercel-dark"] .btn-log::before {
         background: #222222;
       }
+
       :root[data-theme="vercel-dark"] .btn-log:active:not(:disabled)::before {
         background: #333333;
       }
@@ -1617,9 +1675,11 @@
       :root[data-theme="theme-eink"] .btn-work::before {
         background: #ffffff;
       }
+
       :root[data-theme="theme-eink"] .btn-work:hover:not(:disabled) {
         color: #111111;
       }
+
       :root[data-theme="theme-eink"] .btn-work:active:not(:disabled)::before {
         background: #e8e8e8;
       }
@@ -1627,9 +1687,11 @@
       :root[data-theme="theme-eink"] .btn-break::before {
         background: #111111;
       }
+
       :root[data-theme="theme-eink"] .btn-break:hover:not(:disabled) {
         color: #ffffff;
       }
+
       :root[data-theme="theme-eink"] .btn-break:active:not(:disabled)::before {
         background: #333333;
       }
@@ -1637,9 +1699,11 @@
       :root[data-theme="theme-eink"] .btn-log::before {
         background: #111111;
       }
+
       :root[data-theme="theme-eink"] .btn-log:hover:not(:disabled) {
         color: #ffffff;
       }
+
       :root[data-theme="theme-eink"] .btn-log:active:not(:disabled)::before {
         background: #333333;
       }
@@ -2216,27 +2280,36 @@
        10. LOGBOOK & VIRTUAL LIST ENGINE STYLE
        ========================================================================= */
       .sticky-month-header {
-        position: sticky;
-        top: 50px;
+        position: absolute;
+        top: 100%;
+        left: 50%;
+        transform: translateX(-50%) translateY(8px);
         z-index: var(--z-elevated);
         background: var(--element-hover);
         border: 1px solid var(--border-light);
         color: var(--accent-blue);
-        font-weight: normal;
+        font-weight: 500;
         font-size: var(--text-xs);
-        padding: 6px 14px;
+        padding: 4px 12px;
         border-radius: var(--radius-md);
         pointer-events: none;
-        margin-bottom: var(--space-2);
+        margin: 0;
         width: fit-content;
-        margin-left: auto;
-        margin-right: auto;
         letter-spacing: 0.05em;
         text-align: center;
         box-shadow: var(--global-shadow);
+        opacity: 0;
+        visibility: hidden;
         transition:
           opacity 0.25s ease,
+          visibility 0.25s ease,
           transform 0.25s ease;
+      }
+
+      .sticky-month-header.visible {
+        opacity: 1;
+        visibility: visible;
+        transform: translateX(-50%) translateY(4px);
       }
 
       .log-row {
@@ -2515,7 +2588,7 @@
         text-align: center;
       }
 
-      .icon-stack:has(.danger-icon):hover .sidebar-footer .sq-btn {
+      .sidebar-footer .sq-btn {
         width: clamp(28px, 2.4vw, 38px);
         height: clamp(28px, 2.4vw, 38px);
         background: var(--element-bg);
@@ -3327,185 +3400,176 @@
         font-weight: 600;
       }
 
+      /* =========================================================================
+       DYNAMIC ISLAND TOAST SYSTEM
+       ========================================================================= */
       #undo-toast,
       #sync-toast,
       #goal-toast,
       #app-toast {
-        box-shadow: var(--global-shadow);
-        transition:
-          transform 0.4s cubic-bezier(0.16, 1, 0.3, 1),
-          opacity 0.3s ease;
-        opacity: 0;
-        pointer-events: none;
-        left: 50%;
-      }
-
-      .toast-top {
-        top: 24px;
-        transform: translate(-50%, -150%);
-      }
-
-      .toast-bottom {
-        bottom: 24px;
-        transform: translate(-50%, 150%);
-      }
-
-      .toast-visible {
-        transform: translate(-50%, 0) !important;
-        opacity: 1 !important;
-        pointer-events: auto !important;
-      }
-
-      #undo-toast {
         position: fixed;
-        background: var(--modal-bg);
-        border: 1px solid var(--border-main);
-        color: var(--text-main);
-        padding: 8px 8px 8px 20px;
-        border-radius: var(--radius-md);
+        top: max(16px, env(safe-area-inset-top));
+        left: 50%;
+        height: 44px;
+        background: #000000;
+        color: #ffffff;
+        border: none;
+        padding: 0 16px 0 8px;
+        border-radius: 9999px;
         font-weight: 600;
         font-size: 0.85rem;
         display: flex;
         gap: 12px;
         align-items: center;
         justify-content: center;
-
-        box-shadow: var(--global-shadow);
-        /* removed backdrop-filter for CPU perf */
-        border-color: color-mix(in srgb, var(--accent-blue) 30%, transparent);
+        white-space: nowrap;
+        box-shadow:
+          0 6px 20px rgba(0, 0, 0, 0.25),
+          inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+        transition:
+          transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1),
+          opacity 0.4s ease;
+        opacity: 0;
+        pointer-events: none;
+        transform-origin: top center;
+        transform: translate(-50%, -150%) scale(0.6);
+        z-index: var(--z-toast);
+        contain: layout paint;
+        will-change: transform, opacity;
       }
 
-      #undo-toast .undo-icon {
+      :root[data-theme="sf-light"] #undo-toast,
+      :root[data-theme="sf-light"] #sync-toast,
+      :root[data-theme="sf-light"] #goal-toast,
+      :root[data-theme="sf-light"] #app-toast {
+        background: #ffffff;
+        color: #000000;
+        box-shadow:
+          0 6px 20px rgba(0, 0, 0, 0.12),
+          0 0 0 1px rgba(0, 0, 0, 0.05);
+      }
+
+      :root[data-theme="theme-eink"] #undo-toast,
+      :root[data-theme="theme-eink"] #sync-toast,
+      :root[data-theme="theme-eink"] #goal-toast,
+      :root[data-theme="theme-eink"] #app-toast {
+        background: #ffffff;
+        color: #111111;
+        box-shadow:
+          6px 6px 0 #111111,
+          0 0 0 2px #111111;
+      }
+
+      .toast-visible {
+        transform: translate(-50%, 0) scale(1) !important;
+        opacity: 1 !important;
+        pointer-events: auto !important;
+      }
+
+      .island-icon {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
         display: flex;
         align-items: center;
         justify-content: center;
-        color: var(--accent-blue);
+        flex-shrink: 0;
+        transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+      }
+
+      #undo-toast .island-icon {
+        background: rgba(10, 132, 255, 0.15);
+        color: #0a84ff;
+      }
+
+      #sync-toast .island-icon {
+        background: rgba(255, 159, 10, 0.15);
+        color: #ff9f0a;
+      }
+
+      #goal-toast .island-icon {
+        background: rgba(48, 209, 88, 0.15);
+        color: #30d158;
+      }
+
+      #app-toast .island-icon {
+        background: rgba(10, 132, 255, 0.15);
+        color: #0a84ff;
+      }
+
+      :root[data-theme="vercel-dark"] #goal-toast .island-icon,
+      :root[data-theme="sf-dark"] #goal-toast .island-icon {
+        box-shadow: 0 0 12px rgba(48, 209, 88, 0.4);
+      }
+
+      :root[data-theme="vercel-dark"] #sync-toast .island-icon,
+      :root[data-theme="sf-dark"] #sync-toast .island-icon {
+        box-shadow: 0 0 12px rgba(255, 159, 10, 0.4);
+      }
+
+      :root[data-theme="vercel-dark"] #undo-toast .island-icon,
+      :root[data-theme="sf-dark"] #undo-toast .island-icon,
+      :root[data-theme="vercel-dark"] #app-toast .island-icon,
+      :root[data-theme="sf-dark"] #app-toast .island-icon {
+        box-shadow: 0 0 12px rgba(10, 132, 255, 0.4);
       }
 
       #undo-btn {
-        background: color-mix(in srgb, var(--accent-blue) 10%, transparent);
-        border: 1px solid
-          color-mix(in srgb, var(--accent-blue) 20%, transparent);
+        background: rgba(10, 132, 255, 0.15);
+        border: none;
         cursor: pointer;
-        color: var(--accent-blue);
+        color: #0a84ff;
         padding: 4px 12px;
-        border-radius: var(--radius-md);
+        border-radius: 9999px;
         font-family: var(--number-font);
         font-weight: 700;
         font-size: 0.7rem;
         letter-spacing: 0.02em;
         transition:
           background-color 0.2s ease,
-          border-color 0.2s ease,
           color 0.2s ease,
-          opacity 0.2s ease,
-          transform 0.2s ease;
+          transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
       }
 
       #undo-btn:hover {
-        background: var(--accent-blue);
-        color: var(--page-bg);
-        transform: translateY(-1px);
-        box-shadow: var(--global-shadow);
+        background: #0a84ff;
+        color: #ffffff;
+        transform: scale(0.96);
       }
 
-      #sync-toast {
-        position: fixed;
-        background: var(--modal-bg);
-        border: 1px solid var(--border-main);
-        color: var(--text-main);
-        padding: 8px 20px;
-        border-radius: var(--radius-md);
-        font-weight: 600;
-        font-size: 0.85rem;
-        display: flex;
-        gap: 12px;
-        align-items: center;
-        justify-content: center;
-
-        box-shadow: var(--global-shadow);
-        /* removed backdrop-filter for CPU perf */
-        border-color: color-mix(
-          in srgb,
-          var(--accent-warning) 30%,
-          transparent
-        );
+      :root[data-theme="sf-light"] #undo-btn:hover {
+        color: #ffffff;
       }
 
-      #goal-toast {
-        position: fixed;
-        background: var(--modal-bg);
-        border: 1px solid var(--border-main);
-        color: var(--text-main);
-        padding: 8px 8px 8px 20px;
-        border-radius: var(--radius-md);
-        font-weight: 600;
-        font-size: 0.85rem;
-        display: flex;
-        gap: 12px;
-        align-items: center;
-        justify-content: center;
-
-        box-shadow: var(--global-shadow);
-        /* removed backdrop-filter for CPU perf */
-        border-color: color-mix(in srgb, var(--accent-work) 30%, transparent);
+      :root[data-theme="theme-eink"] #undo-btn {
+        background: #111111;
+        color: #ffffff;
       }
 
-      #goal-toast .goal-icon {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: var(--accent-work);
+      :root[data-theme="theme-eink"] #undo-btn:hover {
+        background: #444444;
       }
 
       #goal-toast .goal-tag {
         font-family: var(--number-font);
         font-size: 0.7rem;
         font-weight: 700;
-        background: color-mix(in srgb, var(--accent-work) 10%, transparent);
-        color: var(--accent-work);
+        background: rgba(48, 209, 88, 0.15);
+        color: #30d158;
         padding: 4px 10px;
-        border-radius: var(--radius-sm);
-        border: 1px solid
-          color-mix(in srgb, var(--accent-work) 20%, transparent);
+        border-radius: 9999px;
         letter-spacing: 0.02em;
       }
 
-      #app-toast {
-        position: fixed;
-        background: var(--modal-bg);
-        border: 1px solid var(--border-main);
-        color: var(--text-main);
-        padding: 8px 20px 8px 16px;
-        border-radius: var(--radius-md);
-        font-weight: 600;
-        font-size: 0.85rem;
-        display: flex;
-        gap: 12px;
-        align-items: center;
-        justify-content: center;
-
-        box-shadow: var(--global-shadow);
-        /* removed backdrop-filter for CPU perf */
-        border-color: color-mix(in srgb, var(--accent-blue) 20%, transparent);
-      }
-
-      #app-toast .app-toast-icon {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: var(--accent-blue);
-      }
-
       .toast-close-btn {
-        background: color-mix(in srgb, var(--text-main) 8%, transparent);
+        background: transparent;
         border: none;
-        color: var(--text-main);
-        opacity: 1;
+        color: inherit;
+        opacity: 0.5;
         cursor: pointer;
         width: 24px;
         height: 24px;
-        margin-left: 10px;
+        margin-left: 4px;
         border-radius: 50%;
         display: flex;
         align-items: center;
@@ -3519,9 +3583,13 @@
       }
 
       .toast-close-btn:hover {
-        background: color-mix(in srgb, var(--text-main) 20%, transparent);
-        color: var(--accent-blue) !important;
+        background: rgba(255, 255, 255, 0.1);
         opacity: 1;
+      }
+
+      :root[data-theme="sf-light"] .toast-close-btn:hover,
+      :root[data-theme="theme-eink"] .toast-close-btn:hover {
+        background: rgba(0, 0, 0, 0.08);
       }
 
       .toast-close-btn:active {
@@ -4226,8 +4294,8 @@
        DYNAMIC APPLICATION NOTIFICATIONS & ALERTS
        ========================================================================= -->
     <!-- Undo EOD Submission Toast Notification -->
-    <div id="undo-toast" class="toast-bottom">
-      <div class="undo-icon">
+    <div id="undo-toast">
+      <div class="island-icon">
         <svg
           xmlns="http://www.w3.org/2000/svg"
           width="16"
@@ -4778,7 +4846,7 @@
     </div>
 
     <!-- Sync Session Toast Notification -->
-    <div id="sync-toast" class="toast-top"></div>
+    <div id="sync-toast"></div>
 
     <!-- Help & User Guide Modal -->
     <div id="help-modal" class="modal-overlay">
@@ -5784,8 +5852,8 @@
     </div>
 
     <!-- Native App Toast Notification Overlay -->
-    <div id="app-toast" class="toast-bottom">
-      <div class="app-toast-icon">
+    <div id="app-toast">
+      <div class="island-icon">
         <svg
           xmlns="http://www.w3.org/2000/svg"
           width="16"
@@ -6382,8 +6450,8 @@
     </div>
 
     <!-- Daily Goal Reached celebratory toast -->
-    <div id="goal-toast" class="toast-top">
-      <div class="goal-icon">
+    <div id="goal-toast">
+      <div class="island-icon">
         <svg
           xmlns="http://www.w3.org/2000/svg"
           width="16"
@@ -7380,7 +7448,7 @@
                   class="header-icon-btn"
                   onclick="openManualModal()"
                   title="Add Manual Entry"
-                  aria-label="Icon Button"
+                  aria-label="Add Manual Entry"
                 >
                   <svg
                     viewBox="0 0 24 24"
@@ -7831,17 +7899,13 @@
                 margin-bottom: 12px;
               "
             ></div>
+
+            <!-- Dynamic Sticky Month Indicator -->
+            <div id="sticky-month-indicator" class="sticky-month-header">
+              <span id="sticky-month-text"></span>
+            </div>
           </div>
           <!-- Close logbook-sticky-toolbar -->
-
-          <!-- Dynamic Sticky Month Indicator -->
-          <div
-            id="sticky-month-indicator"
-            class="sticky-month-header"
-            style="display: none"
-          >
-            <span id="sticky-month-text"></span>
-          </div>
 
           <!-- Virtual list target container -->
           <div id="log-container"></div>
@@ -7966,7 +8030,7 @@
                   align-items: center;
                   justify-content: center;
                 "
-                aria-label="Icon Button"
+                aria-label="Previous Week"
               >
                 <svg
                   viewBox="0 0 24 24"
@@ -8000,7 +8064,7 @@
                   align-items: center;
                   justify-content: center;
                 "
-                aria-label="Icon Button"
+                aria-label="Next Week"
               >
                 <svg
                   viewBox="0 0 24 24"
@@ -8082,10 +8146,10 @@
 
             <div class="icon-stack">
               <button
+                id="restore-btn"
                 title="Restore JSON"
                 aria-label="Restore JSON"
                 class="icon-btn sq-btn"
-                onclick="DOM.importFile.click()"
               >
                 <svg
                   viewBox="0 0 24 24"
@@ -9368,6 +9432,7 @@
         editLogout: document.getElementById("edit-logout"),
         leaveDateInput: document.getElementById("leave-date-input"),
         importFile: document.getElementById("import-file"),
+        restoreBtn: document.getElementById("restore-btn"),
         heatmapModal: document.getElementById("heatmap-modal"),
         appTooltip: document.getElementById("app-tooltip"),
         heatmapContainerAnim: document.getElementById("heatmap-container-anim"),
@@ -10831,7 +10896,7 @@
         if (!state.idleLock) {
           lastActivity = getTrueTime();
           state.lastActivity = lastActivity;
-          state.lastHeartbeat = lastActivity;
+          state.lastHeartbeatWall = lastActivity;
         }
       }
 
@@ -11749,6 +11814,7 @@
           anchorGoalSec >= MINIMUM_TOAST_GOAL_SEC &&
           !state.goalNotified
         ) {
+          dismissOtherToasts("goal-toast");
           const toast = DOM.goalToast;
           const timeEl = DOM.goalToastTime;
           if (timeEl) {
@@ -12132,8 +12198,8 @@
         // Formulates logout using last active heartbeat for auto-submissions
         const logoutTimestamp = pendingLogoutTs
           ? pendingLogoutTs
-          : overrideDate && state.lastHeartbeat
-            ? state.lastHeartbeat
+          : overrideDate && state.lastHeartbeatWall
+            ? state.lastHeartbeatWall
             : Date.now();
         const logoutTime = pstFormatter.format(new Date(logoutTimestamp));
 
@@ -12180,6 +12246,7 @@
         saveLogs(logs);
         resetSession();
 
+        dismissOtherToasts("undo-toast");
         const toast = DOM.undoToast;
         toast.classList.add("toast-visible");
         clearTimeout(undoTimeout);
@@ -12318,6 +12385,16 @@
         } else if (choice === "break") {
           state.breakAccumulated =
             (state.breakAccumulated || 0) + totalIdleSeconds;
+        } else if (choice === "discard") {
+          if (state.loginTimestamp) {
+            const todayStr = getPSTDate();
+            const loginDateStr = pstDateFormatter.format(
+              new Date(state.loginTimestamp),
+            );
+            if (loginDateStr !== todayStr) {
+              state.loginTimestamp = null;
+            }
+          }
         }
 
         // CAPTURE THE MODE BEFORE WIPING IT:
@@ -12541,6 +12618,122 @@
           }
         }
       });
+
+      /* Global Snappy Custom Tooltip Interceptor Engine */
+      let tooltipTimeout = null;
+
+      document.addEventListener(
+        "mouseover",
+        (e) => {
+          const target = e.target.closest("[title], [data-title]");
+          if (!target) {
+            const tooltip = DOM.appTooltip;
+            if (
+              tooltip &&
+              tooltip.classList.contains("visible") &&
+              !e.target.closest(".progress-segment")
+            ) {
+              tooltip.classList.remove("visible");
+            }
+            if (tooltipTimeout) {
+              clearTimeout(tooltipTimeout);
+              tooltipTimeout = null;
+            }
+            return;
+          }
+
+          if (target.hasAttribute("title")) {
+            const rawTitle = target.getAttribute("title");
+            if (rawTitle && rawTitle.trim()) {
+              target.setAttribute("data-title", rawTitle);
+            }
+            target.removeAttribute("title");
+          }
+
+          if (
+            target.getAttribute("data-action") === "view-note" ||
+            target.classList.contains("progress-segment")
+          ) {
+            return;
+          }
+
+          const titleText = target.getAttribute("data-title");
+          if (!titleText || !titleText.trim()) return;
+
+          const tooltip = DOM.appTooltip;
+          const isCurrentlyVisible =
+            tooltip && tooltip.classList.contains("visible");
+
+          if (tooltipTimeout) {
+            clearTimeout(tooltipTimeout);
+            tooltipTimeout = null;
+          }
+
+          const renderTooltip = () => {
+            if (!tooltip) return;
+
+            tooltip.textContent = titleText;
+
+            const rect = target.getBoundingClientRect();
+            let left = rect.left + window.scrollX + rect.width / 2;
+            let top = rect.top + window.scrollY;
+
+            // Apply horizontal boundary clamping within the viewport boundaries
+            const padding = 10;
+            const tooltipWidth = tooltip.offsetWidth || 180;
+            if (left - tooltipWidth / 2 < padding) {
+              left = padding + tooltipWidth / 2;
+            } else if (left + tooltipWidth / 2 > window.innerWidth - padding) {
+              left = window.innerWidth - padding - tooltipWidth / 2;
+            }
+
+            if (rect.top < 60) {
+              tooltip.style.transformOrigin = "top center";
+              tooltip.style.transform = "translate(-50%, 100%) translateY(4px)";
+              top = rect.bottom + window.scrollY;
+            } else {
+              tooltip.style.transformOrigin = "bottom center";
+              tooltip.style.transform =
+                "translate(-50%, -100%) translateY(-5px)";
+              top = rect.top + window.scrollY;
+            }
+
+            tooltip.style.left = `${left}px`;
+            tooltip.style.top = `${top}px`;
+            tooltip.classList.add("visible");
+          };
+
+          if (isCurrentlyVisible) {
+            renderTooltip();
+          } else {
+            tooltipTimeout = setTimeout(renderTooltip, 150);
+          }
+        },
+        { passive: true },
+      );
+
+      document.addEventListener(
+        "mouseout",
+        (e) => {
+          const target = e.target.closest("[data-title]");
+          if (target) {
+            if (e.relatedTarget && target.contains(e.relatedTarget)) return;
+            const tooltip = DOM.appTooltip;
+            if (
+              tooltip &&
+              !e.relatedTarget?.closest(".progress-segment") &&
+              !e.relatedTarget?.closest("[data-title]")
+            ) {
+              tooltip.classList.remove("visible");
+            }
+            if (tooltipTimeout) {
+              clearTimeout(tooltipTimeout);
+              tooltipTimeout = null;
+            }
+          }
+        },
+        { passive: true },
+      );
 
       // Hover tooltips for .progress-segment items
       document.addEventListener("mouseover", (e) => {
@@ -13096,29 +13289,42 @@
         }
 
         // Improvement 2: Fix Ambiguous Date Parsing (Timezone Drift)
+        const parseFilterDate = (val) => {
+          if (!val) return null;
+          let y, m, d;
+          if (val.includes("-")) {
+            [y, m, d] = val.split("-");
+          } else if (val.includes("/")) {
+            const parts = val.split("/");
+            m = parts[0];
+            d = parts[1];
+            y = parts[2] || "";
+            if (y && y.length === 2) y = "20" + y;
+          }
+          if (y && m && d) {
+            return Date.UTC(
+              parseInt(y, 10),
+              parseInt(m, 10) - 1,
+              parseInt(d, 10),
+              12,
+              0,
+              0,
+            );
+          }
+          return null;
+        };
+
         if (criteria.dateStartVal) {
-          const [y, m, d] = criteria.dateStartVal.split("-");
-          const startMs = Date.UTC(
-            parseInt(y, 10),
-            parseInt(m, 10) - 1,
-            parseInt(d, 10),
-            12,
-            0,
-            0,
-          );
-          absoluteStartMs = Math.max(absoluteStartMs, startMs);
+          const startMs = parseFilterDate(criteria.dateStartVal);
+          if (startMs !== null) {
+            absoluteStartMs = Math.max(absoluteStartMs, startMs);
+          }
         }
         if (criteria.dateEndVal) {
-          const [y, m, d] = criteria.dateEndVal.split("-");
-          const endMs = Date.UTC(
-            parseInt(y, 10),
-            parseInt(m, 10) - 1,
-            parseInt(d, 10),
-            12,
-            0,
-            0,
-          );
-          absoluteEndMs = Math.min(absoluteEndMs, endMs);
+          const endMs = parseFilterDate(criteria.dateEndVal);
+          if (endMs !== null) {
+            absoluteEndMs = Math.min(absoluteEndMs, endMs);
+          }
         }
 
         const searchTerms = criteria.searchVal
@@ -13309,14 +13515,18 @@
         passedScrollTop,
         passedViewportHeight,
       ) {
+        const stickyIndicator = document.getElementById(
+          "sticky-month-indicator",
+        );
         if (virtualScrollLogs.length === 0) {
-          const stickyIndicator = document.getElementById(
-            "sticky-month-indicator",
-          );
           if (stickyIndicator) {
             stickyIndicator.style.display = "none";
           }
           return;
+        } else {
+          if (stickyIndicator) {
+            stickyIndicator.style.display = "";
+          }
         }
         const scrollContainer = DOM.tabLogbook;
         const scrollTop =
@@ -13344,13 +13554,10 @@
         );
 
         // --- Option B: Dynamic Sticky Month Header Logic ---
-        const stickyIndicator = document.getElementById(
-          "sticky-month-indicator",
-        );
         const stickyTextEl = DOM.stickyMonthText;
         if (scrollTop < 30) {
           if (stickyIndicator) {
-            stickyIndicator.style.display = "none";
+            stickyIndicator.classList.remove("visible");
           }
         } else {
           const topVisibleIndex = Math.floor(scrollTop / itemHeight);
@@ -13369,13 +13576,13 @@
                   if (stickyTextEl.textContent !== monthText) {
                     stickyTextEl.textContent = monthText;
                   }
-                  stickyIndicator.style.display = "block";
+                  stickyIndicator.classList.add("visible");
                 }
               }
             }
           } else {
             if (stickyIndicator) {
-              stickyIndicator.style.display = "none";
+              stickyIndicator.classList.remove("visible");
             }
           }
         }
@@ -17362,10 +17569,24 @@
               action: () => {
                 const leaves =
                   typeof getLeaveDates === "function" ? getLeaveDates() : [];
+
+                const exists = leaves.some(
+                  (l) => (typeof l === "string" ? l : l.date) === parsedDateStr,
+                );
+                if (exists) {
+                  showAppToast("Date already marked as leave");
+                  return;
+                }
+
                 leaves.push({ date: parsedDateStr, type: type });
                 if (typeof saveLeaveDates === "function")
                   saveLeaveDates(leaves);
-                if (typeof renderLeaveDates === "function") renderLeaveDates();
+                if (typeof renderLeaveDatesList === "function")
+                  renderLeaveDatesList();
+                if (typeof renderInsights === "function") {
+                  insightsCacheKey = null;
+                  renderInsights();
+                }
                 closeHudModal();
                 showAppToast(`${type} Leave booked for ${parsedDateStr}`);
               },
@@ -17435,8 +17656,7 @@
                     log.lastModified = Date.now();
                     if (window.dirtyChunks) window.dirtyChunks.add("ALL");
                     if (typeof saveLogs === "function") saveLogs(allLogs);
-                    if (typeof updateLogbookTable === "function")
-                      updateLogbookTable();
+                    if (typeof renderLogbook === "function") renderLogbook();
                     closeHudModal();
                     showAppToast(`Log notes updated successfully.`);
                   }
@@ -17809,10 +18029,8 @@
 
                     if (window.dirtyChunks) window.dirtyChunks.add("ALL");
                     if (typeof saveLogs === "function") saveLogs(logs);
-                    if (typeof updateLogbookTable === "function")
-                      updateLogbookTable();
-                    if (typeof refreshInsights === "function")
-                      refreshInsights();
+                    if (typeof renderLogbook === "function") renderLogbook();
+                    if (typeof renderInsights === "function") renderInsights();
                     if (typeof closeHudModal === "function") closeHudModal();
                     if (typeof showAppToast === "function")
                       showAppToast(
@@ -19591,6 +19809,7 @@
         if (event.target == DOM.submitModal) closeSubmitModal();
         if (event.target == DOM.noteModal) closeNoteModal();
         if (event.target == DOM.ghostModal) closeGhostModal();
+        if (event.target == DOM.editModal) closeEditModal();
 
         const manualMod = DOM.manualModal;
         if (event.target == manualMod) closeManualModal();
@@ -19609,6 +19828,10 @@
         } else {
           switchMode("work");
         }
+      });
+
+      DOM.restoreBtn.addEventListener("click", () => {
+        DOM.importFile.click();
       });
 
       document
@@ -20043,6 +20266,14 @@
                 }
                 finalDateStr = `${String(m).padStart(2, "0")}/${String(d).padStart(2, "0")}/${y}`;
               }
+            } else if (val.includes("-")) {
+              const parts = val.split("-");
+              if (parts.length === 3 && parts[0].length === 4) {
+                const y = parts[0].slice(-2);
+                const m = parts[1].padStart(2, "0");
+                const d = parts[2].padStart(2, "0");
+                finalDateStr = `${m}/${d}/${y}`;
+              }
             } else if (val.includes("/")) {
               const parts = val.split("/");
               if (parts.length >= 2) {
@@ -20309,28 +20540,6 @@
                 m = String(firstVal).padStart(2, "0");
                 d = String(secondVal).padStart(2, "0");
               }
-              if (
-                firstVal !== secondVal &&
-                typeof showAppToast === "function"
-              ) {
-                const monthNames = [
-                  "Jan",
-                  "Feb",
-                  "Mar",
-                  "Apr",
-                  "May",
-                  "Jun",
-                  "Jul",
-                  "Aug",
-                  "Sep",
-                  "Oct",
-                  "Nov",
-                  "Dec",
-                ];
-                showAppToast(
-                  `Ambiguous date parsed as ${monthNames[parseInt(m, 10) - 1]} ${parseInt(d, 10)}`,
-                );
-              }
             }
             let y = currentYearShort;
             if (parts.length >= 3 && parts[2].trim()) {
@@ -20396,6 +20605,14 @@
           if (formattedDate.match(/^\d{2}\/\d{2}\/\d{2}$/)) {
             input.value = formattedDate;
             input.dispatchEvent(new Event("change", { bubbles: true }));
+            const pickerId = input.id + "-picker";
+            const pickerEl = document.getElementById(pickerId);
+            if (pickerEl) {
+              const isoYear = "20" + shortY;
+              const isoMonth = String(mm).padStart(2, "0");
+              const isoDay = String(dd).padStart(2, "0");
+              pickerEl.value = `${isoYear}-${isoMonth}-${isoDay}`;
+            }
           }
         }
       }
@@ -20999,6 +21216,16 @@
       let syncToastId = 0;
       let appToastId = 0;
 
+      function dismissOtherToasts(exceptId) {
+        const ids = ["undo-toast", "sync-toast", "goal-toast", "app-toast"];
+        ids.forEach((id) => {
+          if (id !== exceptId) {
+            const el = document.getElementById(id);
+            if (el) el.classList.remove("toast-visible");
+          }
+        });
+      }
+
       /**
        * Executes showSyncToast logic.
        */
@@ -21125,6 +21352,7 @@
       };
 
       function showSyncToast(msg, requireAck = false) {
+        dismissOtherToasts("sync-toast");
         const toast = DOM.syncToast;
         if (!toast) return;
 
@@ -21136,11 +21364,11 @@
             `;
 
         toast.innerHTML = `
-                  <div style="display: flex; align-items: center; gap: 12px;">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent-warning); flex-shrink: 0;">${getSprite("sprite-084")}</svg>
-                    <span>${msg}</span>
-                    ${closeBtnHtml}
+                  <div class="island-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${getSprite("sprite-084")}</svg>
                   </div>
+                  <span>${msg}</span>
+                  ${closeBtnHtml}
                 `;
         toast.classList.add("toast-visible");
 
@@ -21162,6 +21390,7 @@
        * Executes showAppToast logic.
        */
       function showAppToast(msg) {
+        dismissOtherToasts("app-toast");
         const toast = DOM.appToast;
         const contentEl = DOM.appToastContent;
         if (contentEl) {
@@ -21795,10 +22024,10 @@
       })();
 
       /* ═══════════════════════════════════════════════════════════════════
-   CUSTOM SELECT CONTROLLER
-   Self-contained. Keeps hidden <select> in DOM so all existing JS
-   logic (.value reads, .value sets, change listeners) works unchanged.
-   ═══════════════════════════════════════════════════════════════════ */
+ CUSTOM SELECT CONTROLLER
+ Self-contained. Keeps hidden <select> in DOM so all existing JS
+ logic (.value reads, .value sets, change listeners) works unchanged.
+ ═══════════════════════════════════════════════════════════════════ */
       (function initCustomSelects() {
         const nativeValueDesc = Object.getOwnPropertyDescriptor(
           HTMLSelectElement.prototype,
@@ -21929,6 +22158,26 @@
         let targetId = null;
         let currentMonth = new Date(); // tracks the viewed month
 
+        function parseDateString(str) {
+          if (!str) return new Date();
+          str = str.trim();
+          let isoMatch = str.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+          if (isoMatch) {
+            return new Date(
+              parseInt(isoMatch[1], 10),
+              parseInt(isoMatch[2], 10) - 1,
+              1,
+            );
+          }
+          let slashMatch = str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
+          if (slashMatch) {
+            let year = parseInt(slashMatch[3], 10);
+            if (year < 100) year += 2000;
+            return new Date(year, parseInt(slashMatch[1], 10) - 1, 1);
+          }
+          return new Date();
+        }
+
         function init() {
           if (popup) return;
           popup = document.createElement("div");
@@ -22023,6 +22272,17 @@
 
           const input = document.getElementById(targetId);
           const selectedStr = input ? input.value : "";
+          let normalizedSelectedStr = selectedStr;
+          if (selectedStr && selectedStr.includes("/")) {
+            const parts = selectedStr.split("/");
+            if (parts.length === 3) {
+              const m = parts[0].padStart(2, "0");
+              const d = parts[1].padStart(2, "0");
+              let y = parts[2];
+              if (y && y.length === 2) y = "20" + y;
+              normalizedSelectedStr = `${y}-${m}-${d}`;
+            }
+          }
 
           for (let i = 0; i < firstDay; i++) {
             html += `<div class="cdp-day cdp-empty"></div>`;
@@ -22032,7 +22292,7 @@
             const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
             let classes = "cdp-day";
             if (dateStr === todayStr) classes += " cdp-today";
-            if (dateStr === selectedStr) classes += " cdp-selected";
+            if (dateStr === normalizedSelectedStr) classes += " cdp-selected";
             html += `<button class="${classes}" data-date="${dateStr}">${d}</button>`;
           }
 
@@ -22073,8 +22333,8 @@
             targetId = id;
             const input = document.getElementById(id);
             if (input && input.value) {
-              const parts = input.value.split("-");
-              currentMonth = new Date(parts[0], parts[1] - 1, 1);
+              currentMonth = parseDateString(input.value);
+              currentMonth.setDate(1);
             } else {
               currentMonth = new Date();
               currentMonth.setDate(1);
