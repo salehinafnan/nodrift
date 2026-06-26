@@ -376,6 +376,52 @@
         box-sizing: border-box;
       }
 
+      .input-standard[data-origin="derived"] {
+        color: var(--text-muted);
+        font-style: italic;
+        background-image: radial-gradient(
+          circle,
+          var(--border-light) 1.5px,
+          transparent 1.5px
+        );
+        background-size: 8px 8px;
+        background-position: right 30px center;
+        background-repeat: no-repeat;
+      }
+
+      .input-standard[data-origin="pinned"] {
+        border-color: var(--accent-blue);
+        background-color: rgba(96, 165, 250, 0.05);
+      }
+
+      .field-pin-btn {
+        position: absolute;
+        right: 6px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: transparent;
+        border: none;
+        color: var(--text-muted);
+        cursor: pointer;
+        opacity: 0.4;
+        padding: 4px;
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.15s ease;
+      }
+
+      .field-pin-btn:hover {
+        opacity: 0.8;
+        background: var(--element-hover);
+      }
+
+      .field-pin-btn.is-pinned {
+        opacity: 1;
+        color: var(--accent-blue);
+      }
+
       /* Custom dropdown style */
       select.input-standard {
         appearance: none;
@@ -1257,7 +1303,6 @@
         position: absolute;
         left: 0;
         top: 0;
-        transform: translate(-50%, -100%) translateY(-2px);
         opacity: 0;
         pointer-events: none;
         background: var(--panel-bg);
@@ -1270,15 +1315,12 @@
         white-space: normal;
         max-width: 250px;
         box-sizing: border-box;
-        transition:
-          opacity 0.1s ease,
-          transform 0.1s ease;
+        transition: opacity 0.1s ease;
         z-index: var(--z-tooltip);
         font-family: var(--font-sans);
         box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
         transform-origin: bottom center;
         contain: layout paint;
-        will-change: transform, opacity;
       }
 
       :root[data-theme="sf-light"] .app-tooltip {
@@ -1312,7 +1354,219 @@
 
       .app-tooltip.visible {
         opacity: 1;
-        transform: translate(-50%, -100%) translateY(-5px);
+      }
+
+      /* Globalized Tooltip Content Styling */
+      .tooltip-title {
+        font-weight: 700;
+        color: var(--text-main);
+        border-bottom: 1px solid var(--border-light);
+        padding-bottom: 6px;
+        margin-bottom: 6px;
+        font-size: 0.75rem;
+      }
+
+      .tooltip-leave {
+        color: var(--text-muted);
+        font-size: 0.7rem;
+      }
+
+      .tooltip-grid {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 4px 12px;
+        align-items: center;
+        font-size: 0.7rem;
+      }
+
+      .tooltip-label {
+        color: var(--text-muted);
+        display: flex;
+        align-items: center;
+      }
+
+      .tooltip-badge {
+        width: 14px;
+        height: 14px;
+        font-size: 0.55rem;
+        margin-right: 6px;
+      }
+
+      .tooltip-value {
+        text-align: right;
+        color: var(--text-main);
+        font-weight: 600;
+      }
+
+      .tooltip-value.muted {
+        color: var(--text-muted);
+      }
+
+      .tooltip-progress-track {
+        margin-top: 10px;
+        margin-bottom: 4px;
+        height: 4px;
+        background: var(--track-bg);
+        border-radius: 2px;
+        overflow: hidden;
+        display: flex;
+      }
+
+      .tooltip-progress-fill {
+        height: 100%;
+      }
+
+      .tooltip-progress-fill.met {
+        background: var(--segment-completed-bg);
+      }
+
+      .tooltip-progress-fill.unmet {
+        background: var(--accent-blue);
+      }
+
+      .tooltip-footer-goal {
+        text-align: right;
+        font-size: 0.6rem;
+        color: var(--text-muted);
+        margin-bottom: 4px;
+      }
+
+      .tooltip-notes {
+        border-top: 1px solid var(--border-light);
+        padding-top: 6px;
+        margin-top: 6px;
+        color: var(--text-muted);
+        font-size: 0.65rem;
+        line-height: 1.4;
+      }
+
+      /* Heatmap Tooltip Classes */
+      .hm-tooltip-header {
+        font-weight: 700;
+        color: var(--accent-blue);
+        border-bottom: 1px solid var(--border-main);
+        padding-bottom: 4px;
+        margin-bottom: 4px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .hm-tooltip-date {
+        font-size: 0.65rem;
+        opacity: 0.6;
+      }
+
+      .hm-tooltip-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 2px;
+      }
+
+      .hm-tooltip-badge-leave {
+        font-family: var(--font-sans);
+        margin-left: 0;
+        padding: 1px 5px;
+        font-size: 0.6rem;
+      }
+
+      .hm-tooltip-sublabel {
+        font-size: 0.62rem;
+        color: var(--text-muted);
+        margin-bottom: 2px;
+      }
+
+      .hm-tooltip-stats {
+        display: flex;
+        gap: var(--space-3);
+        font-size: 0.68rem;
+        margin-bottom: 2px;
+      }
+
+      .hm-tooltip-stat {
+        display: inline-flex;
+        align-items: center;
+      }
+
+      .hm-tooltip-badge {
+        width: 14px;
+        height: 14px;
+        font-size: 0.55rem;
+      }
+
+      .hm-tooltip-stat-val {
+        margin-left: 4px;
+        color: var(--text-main);
+        font-weight: 600;
+      }
+
+      .hm-tooltip-empty {
+        color: var(--text-muted);
+        font-size: 0.72rem;
+        text-align: center;
+        padding: 4px 0;
+      }
+
+      .hm-tooltip-meta {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 0.65rem;
+        color: var(--text-muted);
+        margin-bottom: 4px;
+      }
+
+      .hm-tooltip-mono-row {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        font-size: 0.68rem;
+        margin-bottom: 4px;
+        border-bottom: 1px solid var(--border-main);
+        padding-bottom: 4px;
+      }
+
+      .hm-tooltip-mono-flex {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .hm-tooltip-details {
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+        font-size: 0.65rem;
+        color: var(--text-muted);
+        margin-bottom: 2px;
+      }
+
+      .hm-tooltip-detail-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .hm-tooltip-detail-val {
+        color: var(--text-main);
+        font-weight: 600;
+      }
+
+      .hm-tooltip-flex-center {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+      }
+
+      .hm-tooltip-notes {
+        color: var(--text-muted);
+        font-size: 0.62rem;
+        white-space: normal;
+        word-break: break-word;
+        border-top: 1px solid var(--border-main);
+        padding-top: 4px;
+        margin-top: 2px;
       }
 
       /* Premium Goal Container & Presets Styling with Hover Bridging */
@@ -1725,13 +1979,16 @@
       /* Subtle Scroll-to-Top borderless action above footer, centered */
       .scroll-top-btn {
         position: absolute;
-        bottom: 72px;
+        bottom: 76px;
         left: calc(50% + 12px);
-        transform: translateX(-50%);
-        width: clamp(28px, 2.4vw, 38px);
-        height: clamp(28px, 2.4vw, 38px);
-        background: transparent;
-        border: none;
+        transform: translateX(-50%) scale(0.85);
+        width: 32px;
+        height: 32px;
+        background: color-mix(in srgb, var(--panel-bg) 45%, transparent);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        border: 1px solid color-mix(in srgb, var(--text-muted) 20%, transparent);
+        border-radius: 50%;
         box-shadow: none;
         display: flex;
         align-items: center;
@@ -1742,43 +1999,54 @@
         pointer-events: none;
         box-sizing: border-box;
         transition:
-          opacity 0.15s ease,
-          color 0.15s ease,
-          transform 0.15s ease;
+          opacity 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+          background-color 0.2s ease,
+          border-color 0.2s ease,
+          transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+          box-shadow 0.2s ease;
       }
 
       .scroll-top-btn svg {
-        width: clamp(15px, 1.2vw, 19px);
-        height: clamp(15px, 1.2vw, 19px);
+        width: 16px;
+        height: 16px;
         flex-shrink: 0;
         fill: none;
         stroke: var(--text-muted);
+        stroke-width: 2.2px;
+        stroke-opacity: 0.85;
         stroke-linecap: round;
         stroke-linejoin: round;
         transition:
-          stroke 0.15s ease,
+          stroke 0.2s ease,
+          stroke-opacity 0.2s ease,
           transform 0.2s ease;
       }
 
       .scroll-top-btn.visible {
-        opacity: 0.85;
+        opacity: 0.7;
         pointer-events: auto;
+        transform: translateX(-50%) scale(1);
       }
 
-      .scroll-top-btn:hover {
+      .scroll-top-btn.visible:hover {
         opacity: 1;
+        background: color-mix(in srgb, var(--element-hover) 85%, transparent);
+        border-color: var(--border-main);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
       }
 
-      .scroll-top-btn:hover svg {
+      .scroll-top-btn.visible:hover svg {
         stroke: var(--text-main);
+        stroke-opacity: 1;
+        transform: translateY(-1px);
       }
 
       .scroll-top-btn:active {
-        transform: translateX(-50%);
+        transform: translateX(-50%) scale(0.92);
       }
 
       .scroll-top-btn:active svg {
-        transform: translateY(-2px);
+        transform: translateY(-0.5px);
       }
 
       .tab-nav {
@@ -2285,9 +2553,11 @@
         left: 50%;
         transform: translateX(-50%) translateY(8px);
         z-index: var(--z-elevated);
-        background: var(--element-hover);
-        border: 1px solid var(--border-light);
-        color: var(--accent-blue);
+        background: color-mix(in srgb, var(--panel-bg) 45%, transparent);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        border: 1px solid color-mix(in srgb, var(--text-muted) 20%, transparent);
+        color: var(--text-muted);
         font-weight: 500;
         font-size: var(--text-xs);
         padding: 4px 12px;
@@ -3689,10 +3959,11 @@
         align-items: center;
         justify-content: center;
         border-radius: 4px;
-        font-weight: 600;
+        font-weight: 700;
         vertical-align: middle;
         font-family: var(--font-sans);
         line-height: 1;
+        box-sizing: border-box;
       }
 
       .badge-leave {
@@ -3718,7 +3989,7 @@
       .badge-w {
         width: 16px;
         height: 16px;
-        font-size: 0.6rem;
+        font-size: 0.65rem;
         color: color-mix(in srgb, var(--text-main) 30%, var(--accent-work));
         background: color-mix(in srgb, var(--accent-work) 10%, transparent);
         border: 1px solid
@@ -3734,7 +4005,7 @@
       .badge-b {
         width: 16px;
         height: 16px;
-        font-size: 0.6rem;
+        font-size: 0.65rem;
         color: color-mix(in srgb, var(--text-main) 30%, var(--accent-break));
         background: color-mix(in srgb, var(--accent-break) 10%, transparent);
         border: 1px solid
@@ -3744,7 +4015,7 @@
       .badge-f {
         width: 16px;
         height: 16px;
-        font-size: 0.6rem;
+        font-size: 0.65rem;
         color: color-mix(in srgb, var(--text-main) 30%, var(--accent-blue));
         background: color-mix(in srgb, var(--accent-blue) 15%, transparent);
         border: 1px solid
@@ -3754,7 +4025,7 @@
       .badge-over {
         width: 16px;
         height: 16px;
-        font-size: 0.6rem;
+        font-size: 0.65rem;
         color: color-mix(in srgb, var(--text-main) 30%, var(--accent-work));
         background: color-mix(in srgb, var(--accent-work) 15%, transparent);
         border: 1px solid
@@ -3764,7 +4035,7 @@
       .badge-under {
         width: 16px;
         height: 16px;
-        font-size: 0.6rem;
+        font-size: 0.65rem;
         color: color-mix(in srgb, var(--text-main) 30%, var(--accent-warning));
         background: color-mix(in srgb, var(--accent-warning) 15%, transparent);
         border: 1px solid
@@ -8647,6 +8918,63 @@
        * Contains pure functions separated from DOM for testability.
        */
 
+      function parseAppDate(dateStr) {
+        if (!dateStr || typeof dateStr !== "string") return "";
+        const parts = dateStr.trim().split("/");
+        if (parts.length !== 3) return dateStr;
+        const m = parts[0].padStart(2, "0");
+        const d = parts[1].padStart(2, "0");
+        const y = parts[2].trim();
+        const shortYear = y.length === 4 ? y.slice(-2) : y.padStart(2, "0");
+        return `${m}/${d}/${shortYear}`;
+      }
+
+      function getPSTStartOfDay(dateStr) {
+        if (!dateStr) return 0;
+        const parts = dateStr.split("/");
+        if (parts.length !== 3) return 0;
+        const m = parseInt(parts[0], 10);
+        const d = parseInt(parts[1], 10);
+        const y = parseInt(parts[2], 10);
+        const fullYear = y < 100 ? 2000 + y : y;
+
+        let guessMs = new Date(fullYear, m - 1, d, 0, 0, 0).getTime();
+        try {
+          const formatter = new Intl.DateTimeFormat("en-US", {
+            timeZone: "America/Los_Angeles",
+            year: "numeric",
+            month: "numeric",
+            day: "numeric",
+            hour: "numeric",
+            minute: "numeric",
+            second: "numeric",
+            hour12: false,
+          });
+          for (let i = 0; i < 5; i++) {
+            const partsTz = formatter.formatToParts(guessMs);
+            const p = {};
+            partsTz.forEach((part) => (p[part.type] = part.value));
+            let h = parseInt(p.hour, 10);
+            if (h === 24) h = 0;
+            const guessLocalMs = Date.UTC(
+              parseInt(p.year, 10),
+              parseInt(p.month, 10) - 1,
+              parseInt(p.day, 10),
+              h,
+              parseInt(p.minute, 10),
+              parseInt(p.second, 10),
+            );
+            const targetLocalMs = Date.UTC(fullYear, m - 1, d, 0, 0, 0);
+            const diff = targetLocalMs - guessLocalMs;
+            if (diff === 0) break;
+            guessMs += diff;
+          }
+          return guessMs;
+        } catch (e) {
+          return Date.UTC(fullYear, m - 1, d, 8, 0, 0);
+        }
+      }
+
       function formatDuration(sec) {
         if (isNaN(sec)) return "00:00:00";
         // Add a microscopic 1-nanosecond buffer (1e-9) before flooring.
@@ -8686,22 +9014,25 @@
         return null;
       }
 
-      function formatFriendlyDuration(sec, emptyPlaceholder = "—") {
+      function formatFriendlyDuration(
+        sec,
+        emptyPlaceholder = "—",
+        includeSeconds = false,
+      ) {
         if (sec === undefined || sec === null || sec <= 0)
           return emptyPlaceholder;
-        sec = Math.floor(sec);
+        sec = Math.max(0, Math.floor(sec + 1e-9));
         const h = Math.floor(sec / 3600);
         const m = Math.floor((sec % 3600) / 60);
         const s = sec % 60;
-        if (h > 0) {
-          return m > 0 ? `${h}h ${m}m` : `${h}h`;
-        } else {
-          if (m > 0) {
-            return s > 0 ? `${m}m ${s}s` : `${m}m`;
-          } else {
-            return s > 0 ? `${s}s` : emptyPlaceholder;
-          }
+
+        let parts = [];
+        if (h > 0) parts.push(`${h}h`);
+        if (m > 0) parts.push(`${m}m`);
+        if (includeSeconds || (h === 0 && m === 0)) {
+          if (s > 0 || (h === 0 && m === 0)) parts.push(`${s}s`);
         }
+        return parts.join(" ");
       }
 
       function escapeHTML(str) {
@@ -9206,7 +9537,6 @@
       };
 
       let isDbReloading = false;
-      let _pendingWriteAfterReload = null;
       const myTabId =
         "tab_" +
         Math.random().toString(36).substring(2, 15) +
@@ -9522,6 +9852,27 @@
         adjustTargetBreak: document.getElementById("adjust-target-break"),
         adjustSmartInput: document.getElementById("adjust-smart-input"),
         adjustApplyBtn: document.getElementById("adjust-apply-btn"),
+        get stickyIndicator() {
+          return document.getElementById("sticky-month-indicator");
+        },
+        get todayWorkVal() {
+          return document.getElementById("today-work-val");
+        },
+        get todayBreakVal() {
+          return document.getElementById("today-break-val");
+        },
+        get todayVarianceVal() {
+          return document.getElementById("today-variance-val");
+        },
+        get todayVarianceBadge() {
+          return document.getElementById("today-variance-badge");
+        },
+        get todayFocusVal() {
+          return document.getElementById("today-focus-val");
+        },
+        get todayMetaVal() {
+          return document.getElementById("today-meta-val");
+        },
       };
 
       /*==========================================================================
@@ -9679,92 +10030,94 @@
        */
       let _dbChunkHashes = new Map();
 
-      async function saveLogsToDB(logsData) {
-        if (isDbReloading) {
-          _pendingWriteAfterReload = logsData;
-          return Promise.resolve();
-        }
-
-        const chunksToProcess = window.dirtyChunks
-          ? new Set(window.dirtyChunks)
-          : new Set();
-        if (window.dirtyChunks) window.dirtyChunks.clear();
+      async function saveLogsToDB(
+        logsData,
+        targetChunks = new Set(["ALL"]),
+        passedDataVersion = null,
+      ) {
+        if (targetChunks.size === 0) return Promise.resolve();
 
         try {
           const db = await dbPromise;
+          if (isDbReloading) {
+            showAppToast(
+              "⚠️ Save blocked: Database is syncing with another tab. Please try again.",
+            );
+            return Promise.reject(
+              new Error("Database is currently syncing with another tab."),
+            );
+          }
+          if (passedDataVersion !== null && dataVersion !== passedDataVersion) {
+            return Promise.reject(
+              new Error(
+                "Save aborted: Newer data has already superseded this write.",
+              ),
+            );
+          }
+
           return new Promise((resolve, reject) => {
-            const groupChunks = () => {
-              const chunks = {};
-              const dataLen = logsData.length;
+            const chunks = {};
+            const dataLen = logsData.length;
 
-              // Zero-allocation metadata grouping by extracting components from dates without instantiating Dates
-              for (let i = 0; i < dataLen; i++) {
-                const log = logsData[i];
-                const parts = log.date.split("/");
-                if (parts.length === 3) {
-                  const mm = parts[0].padStart(2, "0");
-                  const yy = parts[2];
-                  const fullYear = yy.length === 2 ? `20${yy}` : yy;
-                  const chunkId = `${fullYear}-${mm}`;
-                  if (!chunks[chunkId]) chunks[chunkId] = [];
-                  chunks[chunkId].push(log);
-                } else {
-                  // Fallback case for legacy/custom entries
-                  const dObj = new Date(log.epochMs);
-                  const chunkId = `${dObj.getUTCFullYear()}-${String(dObj.getUTCMonth() + 1).padStart(2, "0")}`;
-                  if (!chunks[chunkId]) chunks[chunkId] = [];
-                  chunks[chunkId].push(log);
-                }
+            // Zero-allocation metadata grouping by extracting components from dates without instantiating Dates
+            for (let i = 0; i < dataLen; i++) {
+              const log = logsData[i];
+              const parts = log.date.split("/");
+              if (parts.length === 3) {
+                const mm = parts[0].padStart(2, "0");
+                const yy = parts[2];
+                const fullYear = yy.length === 2 ? `20${yy}` : yy;
+                const chunkId = `${fullYear}-${mm}`;
+                if (!chunks[chunkId]) chunks[chunkId] = [];
+                chunks[chunkId].push(log);
+              } else {
+                // Fallback case for legacy/custom entries
+                const dObj = new Date(log.epochMs);
+                const chunkId = `${dObj.getUTCFullYear()}-${String(dObj.getUTCMonth() + 1).padStart(2, "0")}`;
+                if (!chunks[chunkId]) chunks[chunkId] = [];
+                chunks[chunkId].push(log);
               }
+            }
 
-              const tx = db.transaction("logs_chunked", "readwrite");
-              const store = tx.objectStore("logs_chunked");
+            const tx = db.transaction("logs_chunked", "readwrite");
+            const store = tx.objectStore("logs_chunked");
 
-              const reqKeys = store.getAllKeys();
-              reqKeys.onsuccess = () => {
-                const newKeySet = new Set(Object.keys(chunks));
-                reqKeys.result.forEach((k) => {
-                  if (!newKeySet.has(k)) {
-                    store.delete(k);
-                  }
-                });
-                const rebuildAll =
-                  chunksToProcess.has("ALL") || chunksToProcess.size === 0;
-                newKeySet.forEach((chunkId) => {
-                  if (rebuildAll || chunksToProcess.has(chunkId)) {
-                    store.put({ chunkId, data: chunks[chunkId] });
-                  }
-                });
-                tx.oncomplete = () => resolve();
-                tx.onerror = (e) => {
-                  console.error("IDB chunk write failed:", e);
-                  chunksToProcess.forEach((c) => {
-                    if (window.dirtyChunks) window.dirtyChunks.add(c);
-                  });
-                  showAppToast(
-                    "⚠️ Storage write failed — data may not be saved",
-                  );
-                  reject(e);
-                };
-              };
-              reqKeys.onerror = (e) => {
-                console.error("IndexedDB key read failed:", e);
-                chunksToProcess.forEach((c) => {
+            const reqKeys = store.getAllKeys();
+            reqKeys.onsuccess = () => {
+              const newKeySet = new Set(Object.keys(chunks));
+              reqKeys.result.forEach((k) => {
+                if (!newKeySet.has(k)) {
+                  store.delete(k);
+                }
+              });
+              const rebuildAll = targetChunks.has("ALL");
+              newKeySet.forEach((chunkId) => {
+                if (rebuildAll || targetChunks.has(chunkId)) {
+                  store.put({ chunkId, data: chunks[chunkId] });
+                }
+              });
+              tx.oncomplete = () => resolve();
+              tx.onerror = (e) => {
+                console.error("IDB chunk write failed:", e);
+                targetChunks.forEach((c) => {
                   if (window.dirtyChunks) window.dirtyChunks.add(c);
                 });
-                showAppToast("⚠️ Storage read failed — save may be incomplete");
+                showAppToast("⚠️ Storage write failed — data may not be saved");
                 reject(e);
               };
             };
-
-            if ("requestIdleCallback" in window) {
-              requestIdleCallback(groupChunks);
-            } else {
-              setTimeout(groupChunks, 0);
-            }
+            reqKeys.onerror = (e) => {
+              console.error("IndexedDB key read failed:", e);
+              targetChunks.forEach((c) => {
+                if (window.dirtyChunks) window.dirtyChunks.add(c);
+              });
+              showAppToast("⚠️ Storage read failed — save may be incomplete");
+              reject(e);
+            };
           });
         } catch (e) {
           console.warn("Unable to save logs to IndexedDB:", e);
+          throw e;
         }
       }
 
@@ -9790,7 +10143,13 @@
             }
           };
 
-          // Timeout removed to allow slow hardware to complete initialization
+          setTimeout(() => {
+            if (!settled) {
+              showAppToast(
+                "Loading database... your device is taking longer than usual. Please wait.",
+              );
+            }
+          }, 3000);
 
           try {
             const txCheck = db.transaction(
@@ -9802,7 +10161,7 @@
             reqCheck.onsuccess = () => {
               if (reqCheck.result && reqCheck.result.data) {
                 const oldLogs = reqCheck.result.data;
-                saveLogsToDB(oldLogs).then(() => {
+                saveLogsToDB(oldLogs, new Set(["ALL"])).then(() => {
                   const txDel = db.transaction("logs", "readwrite");
                   txDel.objectStore("logs").delete("all_logs");
                 });
@@ -9887,6 +10246,29 @@
         } catch (e) {}
       });
 
+      function toggleSyncLockdown(isLocked) {
+        const buttons = [
+          DOM.submitBtn,
+          document.querySelector("#submit-modal .btn-info-outline"),
+          document.querySelector("#manual-modal .btn-success-outline"),
+          document.querySelector("#edit-modal .btn-info-outline"),
+        ];
+        buttons.forEach((btn) => {
+          if (!btn) return;
+          const target = btn.querySelector("span") || btn;
+          if (isLocked) {
+            if (!target.dataset.originalText)
+              target.dataset.originalText = target.innerHTML;
+            target.innerHTML = "Syncing...";
+            btn.disabled = true;
+          } else {
+            if (target.dataset.originalText)
+              target.innerHTML = target.dataset.originalText;
+            btn.disabled = false;
+          }
+        });
+      }
+
       tabSyncChannel.onmessage = (e) => {
         if (e.data.fromTabId === myTabId) return;
 
@@ -9951,6 +10333,7 @@
           }
         } else if (e.data.type === "database_mutated") {
           isDbReloading = true;
+          toggleSyncLockdown(true);
           loadLogsFromDB()
             .then((logs) => {
               if (logs !== null) {
@@ -9967,19 +10350,13 @@
                 renderInsights();
               }
               isDbReloading = false;
-              if (_pendingWriteAfterReload !== null) {
-                const pendingData = _pendingWriteAfterReload;
-                _pendingWriteAfterReload = null;
-                saveLogsToDB(pendingData);
-              }
+              toggleSyncLockdown(false);
             })
-            .catch(() => {
+            .catch((err) => {
+              console.error("Cross-tab log reload failed:", err);
+              showAppToast("⚠️ Cross-tab sync failed. Data may be stale.");
               isDbReloading = false;
-              if (_pendingWriteAfterReload !== null) {
-                const pendingData = _pendingWriteAfterReload;
-                _pendingWriteAfterReload = null;
-                saveLogsToDB(pendingData);
-              }
+              toggleSyncLockdown(false);
             });
         }
       };
@@ -10487,32 +10864,41 @@
         return cachedLogs;
       }
 
-      let pendingDBSave = null;
+      let _saveLogsQueue = Promise.resolve();
 
       /**
        * Saves runtime logs array both in-memory and database stores.
-       * Pipelines consecutive writes into a single transaction at the end of the thread queue.
+       * Uses a promise queue to serialize DB writes and handles rollbacks on failure.
        * @param {Array} logs - Updated shift list array.
        */
-      function saveLogs(logs) {
-        if (isDbReloading) return;
+      async function saveLogs(logs, options = {}) {
+        if (isDbReloading) {
+          if (!options.silent) {
+            showAppToast(
+              "⚠️ Database syncing. Please wait a moment and try again.",
+            );
+          }
+          return Promise.reject(
+            new Error("Database is currently syncing with another tab."),
+          );
+        }
         if (!isDatabaseHealthy) {
           showAppToast(
             "⚠️ Save blocked: Database read failed on startup. Please reload the page.",
           );
-          return;
+          return Promise.reject(new Error("Database read failed on startup."));
         }
         for (let i = 0; i < logs.length; i++) {
           logs[i]._idx = i;
         }
+
         cachedLogs = logs;
         cachedTodayDate = null;
         filterCache = null; // Invalidate filter cache on data change
         filterCacheKey = null;
         insightsCacheKey = null; // Force invalidate insights cache immediately to prevent race conditions
         dataVersion++; // Bump version for all derivative caches
-        rebuildWeeklyCache();
-        autoPopulateDailyGoal(state.activeDate);
+        await rebuildWeeklyCache();
 
         // Take standard failsafe snapshot on log operations
         if (typeof triggerAutoSnapshot === "function") {
@@ -10523,38 +10909,60 @@
         try {
           localStorage.setItem(
             "production_logs_emergency_backup",
-            JSON.stringify(logs.slice(0, 100)),
+            JSON.stringify(logs),
           );
         } catch (e) {
-          console.warn("Emergency backup write failed", e);
-          window.storageWriteError = true;
-          showAppToast("⚠️ Storage full! Changes cannot be saved locally.");
+          console.warn("Emergency backup full write failed, truncating", e);
+          try {
+            localStorage.setItem(
+              "production_logs_emergency_backup",
+              JSON.stringify(logs.slice(0, 100)),
+            );
+          } catch (e2) {
+            window.storageWriteError = true;
+            showAppToast(
+              "⚠️ Storage full! Changes cannot be saved locally. Please export JSON.",
+            );
+          }
         }
 
-        // Delay database operations until the current thread yields, batching parallel changes
-        if (!pendingDBSave) {
-          pendingDBSave = (async () => {
-            let savedVersion = -1;
-            // Loop ensures subsequent rapid synchronous calls to saveLogs are batch-written
-            while (savedVersion !== dataVersion) {
-              let currentVersionToSave = dataVersion;
-              try {
-                await saveLogsToDB(cachedLogs);
-                savedVersion = currentVersionToSave;
+        const capturedChunks = window.dirtyChunks
+          ? new Set(window.dirtyChunks)
+          : new Set(["ALL"]);
+        if (window.dirtyChunks) window.dirtyChunks.clear();
 
-                // BROADCAST ONLY AFTER INDEXED-DB COMMIT SUCCEEDS
-                tabSyncChannel.postMessage({
-                  type: "database_mutated",
-                  fromTabId: myTabId,
-                });
-              } catch (err) {
-                console.error("Failed to persist logs to DB", err);
-                break; // Break spin-loop on terminal DB failure
+        const taskPromise = _saveLogsQueue.then(async () => {
+          const targetDataVersion = dataVersion;
+          try {
+            await saveLogsToDB(logs, capturedChunks, targetDataVersion);
+            tabSyncChannel.postMessage({
+              type: "database_mutated",
+              fromTabId: myTabId,
+            });
+          } catch (err) {
+            console.error(
+              "DB write failed. Rolling back memory to match database.",
+              err,
+            );
+            try {
+              const recoveredLogs = await loadLogsFromDB();
+              if (recoveredLogs !== null && dataVersion === targetDataVersion) {
+                cachedLogs = recoveredLogs;
+                dataVersion++;
+                rebuildWeeklyCache();
+                if (DOM.tabLogbook && DOM.tabLogbook.style.display !== "none")
+                  renderLogbook();
+                renderInsights();
               }
+            } catch (recoveryErr) {
+              console.error("Rollback failed:", recoveryErr);
             }
-            pendingDBSave = null;
-          })();
-        }
+            throw err;
+          }
+        });
+
+        _saveLogsQueue = taskPromise.catch(() => {});
+        return taskPromise;
       }
 
       // High-performance inline Web Worker compiled in-memory via Virtual Blob
@@ -10571,17 +10979,20 @@
               const log = logs[i]
               if (!log.epochMs || log.epochMs <= 0) continue
 
-              // Calculate the day count and determine the day of the week
-              const daysSinceEpoch = Math.floor(log.epochMs / 86400000)
-              const dayOfWeek = (daysSinceEpoch + 4) % 7
-              const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek
+              const parts = log.date.split("/");
+              const m = parseInt(parts[0], 10);
+              const d = parseInt(parts[1], 10);
+              const y = parseInt(parts[2], 10);
+              const fullYear = y < 100 ? 2000 + y : y;
 
-              // Fixed: We add 43200000ms (12 hours) to the key to match the 12:00:00 UTC anchor
-              // used in the UI and Manual Log upgrades.
-              const key = ((daysSinceEpoch + diffToMonday) * 86400000) + 43200000
+              const dObj = new Date(Date.UTC(fullYear, m - 1, d, 12, 0, 0));
+            const dayOfWeek = dObj.getUTCDay();
+            const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek
 
-              if (!weeklyGroups[key]) weeklyGroups[key] = []
-              weeklyGroups[key].push(log)
+            const key = Date.UTC(fullYear, m - 1, d, 12, 0, 0) + (diffToMonday * 86400000);
+
+            if (!weeklyGroups[key]) weeklyGroups[key] = []
+            weeklyGroups[key].push(log)
 
               const dateKey = log.date
               // Since we process in oldest-first order, the first encountered target holds the oldest goal
@@ -10603,39 +11014,51 @@
       URL.revokeObjectURL(workerUrl); // Release blob URL — Worker holds its own internal reference
 
       let currentWorkerTxId = 0;
+      const workerResolvers = new Map();
 
       /**
        * Delegates weekly database sorting and grouping logic to our background Web Worker thread.
        */
       function rebuildWeeklyCache() {
-        const logs = getLogs();
-        const txId = ++currentWorkerTxId;
-        const len = logs.length;
-        const minimizedData = new Array(len);
+        return new Promise((resolve) => {
+          const logs = getLogs();
+          const txId = ++currentWorkerTxId;
+          const len = logs.length;
+          const minimizedData = new Array(len);
 
-        // Use high-speed indexed arrays to bypass heavy closure mappings
-        for (let i = 0; i < len; i++) {
-          const l = logs[i];
-          minimizedData[i] = {
-            epochMs: l.epochMs,
-            date: l.date,
-            dayGoal: l.dayGoal,
-            id: l.id,
-            loginEpochMs: l.loginEpochMs || l.epochMs,
+          // Use high-speed indexed arrays to bypass heavy closure mappings
+          for (let i = 0; i < len; i++) {
+            const l = logs[i];
+            minimizedData[i] = {
+              epochMs: l.epochMs,
+              date: l.date,
+              dayGoal: l.dayGoal,
+              id: l.id,
+              loginEpochMs: l.loginEpochMs || l.epochMs,
+            };
+          }
+
+          workerResolvers.set(txId, resolve);
+
+          const payload = {
+            txId,
+            data: minimizedData,
           };
-        }
-
-        const payload = {
-          txId,
-          data: minimizedData,
-        };
-        analyticsWorker.postMessage(payload);
+          analyticsWorker.postMessage(payload);
+        });
       }
 
       // Receive processed arrays back from background thread
       analyticsWorker.onmessage = (e) => {
         const { txId, weeklyGroups, dailyAnchors } = e.data;
-        if (txId !== undefined && txId !== currentWorkerTxId) return;
+        if (txId !== undefined && txId !== currentWorkerTxId) {
+          const resolver = workerResolvers.get(txId);
+          if (resolver) {
+            resolver();
+            workerResolvers.delete(txId);
+          }
+          return;
+        }
         const logs = getLogs();
 
         // Create an O(N) lookup map for safe, race-immune log rehydration
@@ -10669,6 +11092,12 @@
             state.activeDate ||
               (typeof getPSTDate === "function" ? getPSTDate() : ""),
           );
+        }
+
+        const resolver = workerResolvers.get(txId);
+        if (resolver) {
+          resolver();
+          workerResolvers.delete(txId);
         }
       };
 
@@ -10796,8 +11225,9 @@
         }
 
         const [m, d, y] = targetDateStr.split("/").map(Number);
-        const fullYear = 2000 + y;
-        const dObj = new Date(Date.UTC(fullYear, m - 1, d, 12, 0, 0));
+        const fullYear = y < 100 ? 2000 + y : y;
+        const epochMs = Date.UTC(fullYear, m - 1, d, 12, 0, 0);
+        const dObj = new Date(epochMs);
         const dayOfWeek = dObj.getUTCDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
 
         let targetH = 8;
@@ -10810,7 +11240,7 @@
         } else {
           // Weekday (Monday-Friday)
           const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
-          const mondayUTC = new Date(dObj.getTime() + diffToMonday * 86400000);
+          const mondayUTC = new Date(epochMs + diffToMonday * 86400000);
           mondayUTC.setUTCHours(12, 0, 0, 0);
 
           const leaves =
@@ -10818,39 +11248,27 @@
           const isVacationDate = (dStr) =>
             leaves.some((l) => (typeof l === "string" ? l : l.date) === dStr);
 
-          // Calculate total worked hours and leave days in this week prior to today
           let totalW_MonFri_Prior = 0;
           let priorLeaveDaysCount = 0;
-
-          const checkDate = new Date(mondayUTC);
+          const tempDate = new Date(mondayUTC);
           for (let i = 0; i < dayOfWeek - 1; i++) {
-            checkDate.setTime(mondayUTC.getTime());
-            checkDate.setUTCDate(mondayUTC.getUTCDate() + i);
-            const checkDateStr = `${String(
-              checkDate.getUTCMonth() + 1,
-            ).padStart(2, "0")}/${String(checkDate.getUTCDate()).padStart(
-              2,
-              "0",
-            )}/${checkDate.getUTCFullYear().toString().slice(-2)}`;
-
-            if (isVacationDate(checkDateStr)) {
+            tempDate.setTime(mondayUTC.getTime() + i * 86400000);
+            const dateStr = `${String(tempDate.getUTCMonth() + 1).padStart(2, "0")}/${String(tempDate.getUTCDate()).padStart(2, "0")}/${tempDate.getUTCFullYear().toString().slice(-2)}`;
+            if (isVacationDate(dateStr)) {
               priorLeaveDaysCount++;
             } else {
-              // Sum work hours logged on prior weekdays
-              const dayLogs = logs.filter((l) => l.date === checkDateStr);
+              const dayLogs = logs.filter((l) => l.date === dateStr);
               dayLogs.forEach((l) => {
                 totalW_MonFri_Prior += l.workSec;
               });
             }
           }
 
-          // If today is a registered vacation/leave date, set the goal to 0
           const todayIsVacation = isVacationDate(targetDateStr);
           if (todayIsVacation) {
             targetH = 0;
             targetM = 0;
           } else {
-            // Cumulative target for weekday index (Monday = 1, Tuesday = 2, etc.)
             const cumulativeTargetSec = dayOfWeek * 8 * 3600;
             const priorCreditsSec =
               totalW_MonFri_Prior + priorLeaveDaysCount * 8 * 3600;
@@ -11048,6 +11466,7 @@
         }
 
         state.currentMode = mode;
+        _syncAdjustPopupContext();
 
         if (mode === "work" || mode === "break") {
           state.sessionAnchorWall = nowWall;
@@ -11524,10 +11943,8 @@
 
               if (activeDaysRemaining > 0) {
                 const paceSec = remainingSec / activeDaysRemaining;
-                const paceMinsTotal = Math.floor(paceSec / 60);
-                const paceH = Math.floor(paceMinsTotal / 60);
-                const paceM = paceMinsTotal % 60;
-                weekMsg.innerHTML = `Pace Required: ${paceH}h ${paceM}m / Day${trendHTML}`;
+                const paceStr = formatFriendlyDuration(paceSec, "0m");
+                weekMsg.innerHTML = `Pace Required: ${paceStr} / Day${trendHTML}`;
               } else {
                 weekMsg.innerHTML = `Pace Required: — / Day${trendHTML}`;
               }
@@ -11546,59 +11963,7 @@
         // Instantly calculates and injects the live timer delta into the targeted
         // breakdown row spans for the current day, bypassing full DOM redraws.
         // =========================================================================
-        const todayStr = getPSTDate();
-        const todayW =
-          (logsByDate[todayStr] ? logsByDate[todayStr].w : 0) +
-          getCurrentWorkSeconds();
-        const todayB =
-          (logsByDate[todayStr] ? logsByDate[todayStr].b : 0) +
-          getCurrentBreakSeconds();
-
-        if (DOM.todayWorkVal) {
-          DOM.todayWorkVal.innerHTML = formatFriendlyDuration(todayW);
-        }
-
-        if (DOM.todayBreakVal) {
-          DOM.todayBreakVal.innerHTML = formatFriendlyDuration(todayB);
-        }
-
-        const liveGoalSec = getGoalSeconds(
-          DOM.goalHours.value,
-          DOM.goalMins.value,
-        );
-        const anchorGoal = dailyAnchorMap.get(todayStr) || liveGoalSec;
-        const diffSec = todayW - anchorGoal;
-        const isOver = diffSec >= 0;
-        const absDiffSec = Math.abs(diffSec);
-        const diffMinsTotal = Math.floor(absDiffSec / 60);
-        const diffH = Math.floor(diffMinsTotal / 60);
-        const diffM = diffMinsTotal % 60;
-        const varianceTime = `${diffH}h ${diffM}m`;
-
-        const todayVarianceValEl =
-          document.getElementById("today-variance-val");
-        const todayVarianceBadgeEl = document.getElementById(
-          "today-variance-badge",
-        );
-
-        if (todayVarianceValEl && todayVarianceBadgeEl) {
-          todayVarianceValEl.innerHTML = varianceTime;
-          todayVarianceValEl.className = "";
-
-          todayVarianceBadgeEl.innerHTML = isOver ? "O" : "U";
-          todayVarianceBadgeEl.className = isOver
-            ? "badge badge-over"
-            : "badge badge-under";
-        }
-
-        const todayFocusValEl = document.getElementById("today-focus-val");
-        if (todayFocusValEl) {
-          const focusVal =
-            todayW + todayB > 0
-              ? Math.min(100, Math.round((todayW / (todayW + todayB)) * 100))
-              : 0;
-          todayFocusValEl.innerHTML = focusVal > 0 ? `${focusVal}%` : `—`;
-        }
+        updateLiveTodayRow();
       }
 
       // Cache variables to prevent redundant DOM style and property write updates on ticks
@@ -12016,81 +12381,106 @@
         loginTs,
         logoutTs,
       ) {
-        if (!workSec || workSec <= 0) return;
-        const goal = getGoalSeconds(DOM.goalHours.value, DOM.goalMins.value);
-        const diff = workSec - goal;
-        const loginTime = loginTs
-          ? loginFormatter.format(new Date(loginTs))
-          : "--";
-        const logoutTime = pstFormatter.format(new Date(logoutTs));
-        const displayDate = dateStr.replace(/\/20(\d{2})$/, "/$1");
+        if (!workSec || workSec <= 0) return Promise.resolve();
 
-        const [m, d, y] = dateStr.split("/");
-        const fullYear = y.length === 2 ? `20${y}` : y;
-        const epochMs = Date.UTC(
-          parseInt(fullYear, 10),
-          parseInt(m, 10) - 1,
-          parseInt(d, 10),
-          12,
-          0,
-          0,
-        );
+        const MAX_RETRIES = 5;
+        const BASE_DELAY = 300;
 
-        const entry = {
-          id:
-            "log_" +
-            Math.random().toString(36).substring(2, 11) +
-            Date.now().toString(36),
-          date: dateStr,
-          displayDate,
-          epochMs,
-          login: loginTime,
-          logout: logoutTime,
-          loginEpochMs: loginTs || logoutTs - (workSec + breakSec) * 1000,
-          logoutEpochMs: logoutTs,
-          workSec: Math.floor(workSec),
-          breakSec: Math.floor(breakSec),
+        function attemptSave(retryCount) {
+          const goal = getGoalSeconds(DOM.goalHours.value, DOM.goalMins.value);
+          const diff = workSec - goal;
+          const loginTime = loginTs
+            ? loginFormatter.format(new Date(loginTs))
+            : "--";
+          const logoutTime = pstFormatter.format(new Date(logoutTs));
+          const displayDate = dateStr.replace(/\/20(\d{2})$/, "/$1");
 
-          diff: formatDuration(Math.abs(diff)),
-          notes: "Auto-submitted (Midnight Reset)",
-          dayGoal: goal,
-          lastModified: Date.now(),
-        };
+          const [m, d, y] = dateStr.split("/");
+          const fullYear = y.length === 2 ? `20${y}` : y;
+          const epochMs = Date.UTC(
+            parseInt(fullYear, 10),
+            parseInt(m, 10) - 1,
+            parseInt(d, 10),
+            12,
+            0,
+            0,
+          );
 
-        entry.searchStr =
-          `${displayDate} ${dateStr} ${loginTime} ${logoutTime} Auto-submitted (Midnight Reset)`.toLowerCase();
+          const entry = {
+            id:
+              "log_" +
+              Math.random().toString(36).substring(2, 11) +
+              Date.now().toString(36),
+            date: dateStr,
+            displayDate,
+            epochMs,
+            login: loginTime,
+            logout: logoutTime,
+            loginEpochMs: loginTs || logoutTs - (workSec + breakSec) * 1000,
+            logoutEpochMs: logoutTs,
+            workSec: Math.floor(workSec),
+            breakSec: Math.floor(breakSec),
 
-        const logs = getLogs();
-        logs.unshift(entry);
-        const _parts = entry.date.split("/");
-        if (_parts.length === 3) {
-          const _yy = _parts[2];
-          const _fullYear = _yy.length === 2 ? `20${_yy}` : _yy;
-          if (window.dirtyChunks)
-            window.dirtyChunks.add(
-              `${_fullYear}-${_parts[0].padStart(2, "0")}`,
-            );
+            diff: formatDuration(Math.abs(diff)),
+            notes: "Auto-submitted (Midnight Reset)",
+            dayGoal: goal,
+            lastModified: Date.now(),
+          };
+
+          entry.searchStr =
+            `${displayDate} ${dateStr} ${loginTime} ${logoutTime} Auto-submitted (Midnight Reset)`.toLowerCase();
+
+          const logs = getLogs();
+          logs.unshift(entry);
+          const _parts = entry.date.split("/");
+          if (_parts.length === 3) {
+            const _yy = _parts[2];
+            const _fullYear = _yy.length === 2 ? `20${_yy}` : _yy;
+            if (window.dirtyChunks)
+              window.dirtyChunks.add(
+                `${_fullYear}-${_parts[0].padStart(2, "0")}`,
+              );
+          }
+          return saveLogs(logs, { silent: retryCount > 0 }).catch((err) => {
+            const idx = logs.findIndex((l) => l.id === entry.id);
+            if (idx > -1) logs.splice(idx, 1);
+            if (isDbReloading && retryCount < MAX_RETRIES) {
+              const delay = BASE_DELAY * Math.pow(2, retryCount);
+              return new Promise((resolve) => setTimeout(resolve, delay)).then(
+                () => attemptSave(retryCount + 1),
+              );
+            }
+            throw err;
+          });
         }
-        saveLogs(logs);
+
+        return attemptSave(0);
       }
 
       /**
        * Executes confirmSubmit logic.
        */
-      function confirmSubmit() {
+      async function confirmSubmit() {
         const notes = DOM.modalShiftNotes.value.trim();
         DOM.submitModal.style.display = "none";
         DOM.modalShiftNotes.value = "";
-        executeSubmit(null, notes);
 
-        // Auto-trigger JSON backup if enabled
-        if (state.autoBackupEnabled) {
-          exportJSON();
-        }
+        try {
+          await executeSubmit(null, notes);
+          // Auto-trigger JSON backup if enabled
+          if (state.autoBackupEnabled) {
+            exportJSON();
+          }
 
-        // Auto-trigger Gmail composer if enabled
-        if (state.autoEmailEnabled) {
-          triggerEodGmailLogCopy();
+          // Auto-trigger Gmail composer if enabled
+          if (state.autoEmailEnabled) {
+            triggerEodGmailLogCopy();
+          }
+        } catch (err) {
+          console.error("EOD Submit failed:", err);
+          showAppToast("⚠️ Shift submission failed. Please try again.");
+          DOM.modalShiftNotes.value = notes;
+          DOM.submitModal.style.display = "flex";
         }
       }
 
@@ -12187,12 +12577,13 @@
        * Serializes session accumulation into storage shift logs.
        */
       async function executeSubmit(e, forceNotes = "", overrideDate = null) {
-        const workSeconds = pendingSubmitData
+        let workSeconds = pendingSubmitData
           ? pendingSubmitData.workSec
           : Math.floor(getCurrentWorkSeconds());
-        const breakSeconds = pendingSubmitData
+        let breakSeconds = pendingSubmitData
           ? pendingSubmitData.breakSec
           : Math.floor(getCurrentBreakSeconds());
+
         const loginTs = pendingSubmitData
           ? pendingSubmitData.loginTs
           : state.loginTimestamp;
@@ -12221,17 +12612,11 @@
         const logoutTime = pstFormatter.format(new Date(logoutTimestamp));
 
         const logs = getLogs();
-        const displayDate = entryDate.replace(/\/20(\d{2})$/, "/$1");
-        const [m, d, y] = entryDate.split("/");
-        const fullYear = y.length === 2 ? `20${y}` : y;
-        const epochMs = Date.UTC(
-          parseInt(fullYear, 10),
-          parseInt(m, 10) - 1,
-          parseInt(d, 10),
-          12,
-          0,
-          0,
-        );
+        const normalizedDate = parseAppDate(entryDate);
+        const displayDate = normalizedDate;
+        const [em, ed, ey] = normalizedDate.split("/").map(Number);
+        const eFullYear = ey < 100 ? 2000 + ey : ey;
+        const epochMs = Date.UTC(eFullYear, em - 1, ed, 12, 0, 0);
 
         const entry = {
           id:
@@ -12259,9 +12644,19 @@
           `${displayDate} ${entryDate} ${loginTime} ${logoutTime} ${forceNotes}`.toLowerCase();
 
         lastStateBackup = JSON.parse(JSON.stringify(state));
+        window.lastSubmittedLogId = entry.id;
         logs.unshift(entry);
-        saveLogs(logs);
-        if (pendingDBSave) await pendingDBSave;
+
+        try {
+          await saveLogs(logs);
+        } catch (err) {
+          const rollbackIdx = logs.findIndex((l) => l.id === entry.id);
+          if (rollbackIdx > -1) logs.splice(rollbackIdx, 1);
+          lastStateBackup = null;
+          window.lastSubmittedLogId = null;
+          throw err;
+        }
+
         resetSession();
 
         dismissOtherToasts("undo-toast");
@@ -12271,30 +12666,44 @@
         undoTimeout = setTimeout(() => {
           toast.classList.remove("toast-visible");
           lastStateBackup = null;
+          window.lastSubmittedLogId = null;
         }, 7000);
       }
 
       // Action listener to revert EOD submissions
-      DOM.undoBtn.addEventListener("click", () => {
-        if (!lastStateBackup) return;
-        state = lastStateBackup;
-        state.activeDate = getPSTDate(); // Prevent checkMidnightReset re-triggering after undo
-        state.lastHeartbeatWall = Date.now(); // prevent spurious idle lock on reload
-        state.lastHeartbeatMonotonic = performance.now();
-        saveState();
+      DOM.undoBtn.addEventListener("click", async () => {
+        const backupState = lastStateBackup;
+        const targetLogId = window.lastSubmittedLogId;
+        lastStateBackup = null;
+        window.lastSubmittedLogId = null;
+        if (!backupState || !targetLogId) return;
 
         const logs = getLogs();
-        logs.shift();
-        if (window.dirtyChunks) window.dirtyChunks.add("ALL");
-        saveLogs(logs);
+        const newLogs = logs.filter((l) => l.id !== targetLogId);
 
-        renderStaticUI();
-        renderTimersOnly();
-        renderLogbook();
-        renderInsights();
+        try {
+          if (window.dirtyChunks) window.dirtyChunks.add("ALL");
+          await saveLogs(newLogs);
 
-        DOM.undoToast.classList.remove("toast-visible");
-        lastStateBackup = null;
+          state = backupState;
+          state.activeDate = getPSTDate(); // Prevent checkMidnightReset re-triggering after undo
+          state.lastHeartbeatWall = Date.now(); // prevent spurious idle lock on reload
+          state.lastHeartbeatMonotonic = performance.now();
+          saveState();
+
+          renderStaticUI();
+          renderTimersOnly();
+          renderLogbook();
+          renderInsights();
+
+          DOM.undoToast.classList.remove("toast-visible");
+        } catch (err) {
+          console.warn("Undo rejected: Database syncing");
+          lastStateBackup = backupState;
+          window.lastSubmittedLogId = targetLogId;
+          // Toast remains visible so user can try again
+          clearTimeout(undoTimeout);
+        }
       });
 
       /*==========================================================================
@@ -12619,8 +13028,16 @@
             if (tooltip) {
               tooltip.textContent = log.notes;
               const rect = btn.getBoundingClientRect();
-              tooltip.style.left = `${rect.left + window.scrollX + rect.width / 2}px`;
-              tooltip.style.top = `${rect.top + window.scrollY}px`;
+              const tooltipWidth = tooltip.offsetWidth || 150;
+              const tooltipHeight = tooltip.offsetHeight || 30;
+              const left = Math.round(
+                rect.left + window.scrollX + rect.width / 2 - tooltipWidth / 2,
+              );
+              const top = Math.round(
+                rect.top + window.scrollY - tooltipHeight - 5,
+              );
+              tooltip.style.left = `${left}px`;
+              tooltip.style.top = `${top}px`;
               tooltip.classList.add("visible");
             }
           }
@@ -12693,31 +13110,30 @@
             tooltip.textContent = titleText;
 
             const rect = target.getBoundingClientRect();
-            let left = rect.left + window.scrollX + rect.width / 2;
-            let top = rect.top + window.scrollY;
+            const tooltipWidth = tooltip.offsetWidth || 180;
+            const tooltipHeight = tooltip.offsetHeight || 30;
+            let left =
+              rect.left + window.scrollX + rect.width / 2 - tooltipWidth / 2;
+            let top;
 
             // Apply horizontal boundary clamping within the viewport boundaries
             const padding = 10;
-            const tooltipWidth = tooltip.offsetWidth || 180;
-            if (left - tooltipWidth / 2 < padding) {
-              left = padding + tooltipWidth / 2;
-            } else if (left + tooltipWidth / 2 > window.innerWidth - padding) {
-              left = window.innerWidth - padding - tooltipWidth / 2;
+            if (left < padding) {
+              left = padding;
+            } else if (left + tooltipWidth > window.innerWidth - padding) {
+              left = window.innerWidth - padding - tooltipWidth;
             }
 
             if (rect.top < 60) {
               tooltip.style.transformOrigin = "top center";
-              tooltip.style.transform = "translate(-50%, 100%) translateY(4px)";
-              top = rect.bottom + window.scrollY;
+              top = rect.bottom + window.scrollY + 5;
             } else {
               tooltip.style.transformOrigin = "bottom center";
-              tooltip.style.transform =
-                "translate(-50%, -100%) translateY(-5px)";
-              top = rect.top + window.scrollY;
+              top = rect.top + window.scrollY - tooltipHeight - 5;
             }
 
-            tooltip.style.left = `${left}px`;
-            tooltip.style.top = `${top}px`;
+            tooltip.style.left = `${Math.round(left)}px`;
+            tooltip.style.top = `${Math.round(top)}px`;
             tooltip.classList.add("visible");
           };
 
@@ -12765,6 +13181,13 @@
           const goalSec = parseFloat(seg.dataset.goal) || 0;
           const notes = seg.dataset.notes || "";
 
+          const todayStr = typeof getPSTDate === "function" ? getPSTDate() : "";
+          const isToday = dateStr === todayStr;
+          const isEmptyDay =
+            workSec === 0 &&
+            breakSec === 0 &&
+            (!isToday || !state.loginTimestamp);
+
           const tooltip = DOM.appTooltip;
           if (tooltip) {
             const [m, d, y] = dateStr.split("/").map(Number);
@@ -12775,29 +13198,89 @@
               day: "numeric",
             });
 
-            let content = `<strong>${formattedDate}</strong>`;
+            let content = `<div class="tooltip-title">${formattedDate}</div>`;
+
             if (isLeave) {
-              content += `<br>Leave / Vacation`;
+              content += `<div class="tooltip-leave">Leave / Vacation</div>`;
+            } else if (isEmptyDay) {
+              content += `
+                <div class="tooltip-grid">
+                  <span class="tooltip-label">
+                    <span class="badge badge-w tooltip-badge">W</span>Work
+                  </span>
+                  <span class="font-mono tooltip-value muted">—</span>
+
+                  <span class="tooltip-label">
+                    <span class="badge badge-b tooltip-badge">B</span>Break
+                  </span>
+                  <span class="font-mono tooltip-value muted">—</span>
+                </div>`;
             } else {
-              content += `<br>Work: ${formatDuration(workSec)} (Goal: ${formatDuration(goalSec)})`;
-              content += `<br>Break: ${formatDuration(breakSec)}`;
+              const progressPercent =
+                goalSec > 0 ? Math.min((workSec / goalSec) * 100, 100) : 0;
+              const isGoalMet = workSec >= goalSec && goalSec > 0;
+              const diffSec = workSec - goalSec;
+              const absDiffSec = Math.abs(diffSec);
+              const varianceStr = formatFriendlyDuration(absDiffSec, "0m");
+              const statusLetter = diffSec >= 0 ? "O" : "U";
+              const badgeClass = diffSec >= 0 ? "badge-over" : "badge-under";
+
+              content += `
+                <div class="tooltip-grid">
+                  <span class="tooltip-label">
+                    <span class="badge badge-w tooltip-badge">W</span>Work
+                  </span>
+                  <span class="font-mono tooltip-value">${formatDuration(workSec)}</span>
+
+                  <span class="tooltip-label">
+                    <span class="badge badge-b tooltip-badge">B</span>Break
+                  </span>
+                  <span class="font-mono tooltip-value">${formatDuration(breakSec)}</span>
+                  
+                  <span class="tooltip-label">
+                    <span class="badge ${badgeClass} tooltip-badge">${statusLetter}</span>Variance
+                  </span>
+                  <span class="font-mono tooltip-value">${diffSec >= 0 ? "+" : "-"}${varianceStr}</span>
+                </div>
+                
+                <div class="tooltip-progress-track">
+                  <div class="tooltip-progress-fill ${isGoalMet ? "met" : "unmet"}" style="width: ${progressPercent}%;"></div>
+                </div>
+                <div class="tooltip-footer-goal">
+                  Goal: <span class="font-mono">${formatDuration(goalSec)}</span>
+                </div>`;
+
               if (notes) {
                 const formattedNotes = escapeHTML(notes)
                   .split(" | ")
                   .map((n) => `• ${n}`)
                   .join("<br>");
-                content += `<br><span style="color:var(--text-muted);font-weight:normal;">Notes:<br>${formattedNotes}</span>`;
+                content += `<div class="tooltip-notes"><strong>Notes:</strong><br>${formattedNotes}</div>`;
               }
             }
 
             tooltip.innerHTML = content;
-            tooltip.style.whiteSpace = "pre-line";
-            tooltip.style.maxWidth = "280px";
+            tooltip.style.whiteSpace = "normal";
+            tooltip.style.maxWidth = "240px";
             tooltip.style.lineHeight = "1.4";
+            tooltip.style.padding = "8px 12px";
 
             const rect = seg.getBoundingClientRect();
-            tooltip.style.left = `${rect.left + window.scrollX + rect.width / 2}px`;
-            tooltip.style.top = `${rect.top + window.scrollY}px`;
+            const tooltipWidth = tooltip.offsetWidth || 240;
+            const tooltipHeight = tooltip.offsetHeight || 120;
+            let left =
+              rect.left + window.scrollX + rect.width / 2 - tooltipWidth / 2;
+            let top = rect.top + window.scrollY - tooltipHeight - 5;
+
+            const padding = 10;
+            if (left < padding) {
+              left = padding;
+            } else if (left + tooltipWidth > window.innerWidth - padding) {
+              left = window.innerWidth - padding - tooltipWidth;
+            }
+
+            tooltip.style.left = `${Math.round(left)}px`;
+            tooltip.style.top = `${Math.round(top)}px`;
             tooltip.classList.add("visible");
           }
         }
@@ -12812,6 +13295,7 @@
             tooltip.style.whiteSpace = "";
             tooltip.style.maxWidth = "";
             tooltip.style.lineHeight = "";
+            tooltip.style.padding = "";
           }
         }
       });
@@ -12954,9 +13438,6 @@
         renderLogbook();
       };
 
-      /**
-       * Resets all filters back to their default values.
-       */
       window.clearFilters = function () {
         DOM.filterTime.value = "ALL";
         DOM.filterStatus.value = "ALL";
@@ -12975,6 +13456,13 @@
         saveActiveFilters();
         renderLogbook();
         showAppToast("All filters cleared");
+
+        const panel = DOM.advancedFilters;
+        const btn = DOM.filterToggleBtn;
+        if (panel && panel.classList.contains("show")) {
+          panel.classList.remove("show");
+          if (btn) btn.classList.remove("active");
+        }
       };
 
       // Binds live inputs typing detection helper (add inside the DOM initialization block)
@@ -13533,9 +14021,7 @@
         passedScrollTop,
         passedViewportHeight,
       ) {
-        const stickyIndicator = document.getElementById(
-          "sticky-month-indicator",
-        );
+        const stickyIndicator = DOM.stickyIndicator;
         if (virtualScrollLogs.length === 0) {
           if (stickyIndicator) {
             stickyIndicator.style.display = "none";
@@ -13633,127 +14119,134 @@
         lastVirtualStart = startIndex;
         lastVirtualEnd = endIndex;
 
-        const requiredCount = endIndex - startIndex + 1;
+        // Fix 2: Dynamic pool sizing ensures all overscanned items are rendered
+        const poolSize = endIndex - startIndex + 1;
 
-        // Ensure the DOM node pool matches the exact viewport footprint
         const currentPoolCount = DOM.logContainer.children.length;
-        if (currentPoolCount < requiredCount) {
-          const fragment = document.createDocumentFragment();
-          const missingCount = requiredCount - currentPoolCount;
-          for (let k = 0; k < missingCount; k++) {
-            fragment.appendChild(createRowNode());
+        if (currentPoolCount !== poolSize) {
+          if (currentPoolCount < poolSize) {
+            const fragment = document.createDocumentFragment();
+            const missingCount = poolSize - currentPoolCount;
+            for (let k = 0; k < missingCount; k++) {
+              fragment.appendChild(createRowNode());
+            }
+            DOM.logContainer.appendChild(fragment);
+          } else {
+            while (DOM.logContainer.children.length > poolSize) {
+              DOM.logContainer.removeChild(DOM.logContainer.lastChild);
+            }
           }
-          DOM.logContainer.appendChild(fragment);
-        }
-        while (DOM.logContainer.children.length > requiredCount) {
-          DOM.logContainer.removeChild(DOM.logContainer.lastChild);
         }
 
-        // Update recycled nodes using the pre-compiled layout caches
         const children = DOM.logContainer.children;
 
-        for (let i = startIndex; i <= endIndex; i++) {
-          const poolIndex = i - startIndex;
-          const log = virtualScrollLogs[i];
-          const top = i * itemHeight;
-          const isSelected = i === selectedLogIdx;
-          const child = children[poolIndex];
+        for (let k = 0; k < poolSize; k++) {
+          const i = startIndex + k;
+          const child = children[k];
 
-          const rowKey = `${log.id}|${isSelected}|${log.workSec}|${log.breakSec}|${isLogOver(log) ? "OVER" : "UNDER"}|${log.notes || ""}`;
-          if (child.dataset.rowKey !== rowKey) {
-            child.dataset.rowKey = rowKey;
-            child.className = isSelected ? "log-row kb-selected" : "log-row";
-            child.dataset.id = log.id;
+          if (i <= endIndex && i < virtualScrollLogs.length) {
+            const log = virtualScrollLogs[i];
+            const top = i * itemHeight;
+            const isSelected = i === selectedLogIdx;
 
-            const dom = child._dom;
-
-            const logDate = new Date(log.epochMs);
-            const dayNum = logDate.getUTCDay();
-            const isWeekend = dayNum === 0 || dayNum === 6;
-
-            const dateParts = log.date.split("/");
-            const displayMonthDay =
-              dateParts.length >= 2
-                ? `${dateParts[0]}/${dateParts[1]}`
-                : log.displayDate;
-            const rawDeltaSec = Math.abs(
-              log.workSec -
-                (log.dayGoal != null && log.dayGoal > 0
-                  ? log.dayGoal
-                  : 8 * 3600),
-            );
-            const hasNote = !!log.notes;
-
-            dom.dayName.textContent = _DAY_NAMES_SHORT[dayNum];
-            dom.dateSub.textContent = `(${displayMonthDay})`;
-            dom.meta.textContent = `${log.login} - ${log.logout}`;
-            dom.statusBadge.textContent = isLogOver(log) ? "O" : "U";
-
-            const logDKey = log.displayDate || log.date;
-            const dt = window._dailyTotalsMap
-              ? window._dailyTotalsMap[logDKey]
-              : null;
-            const isFirstLogOfDay =
-              i === 0 ||
-              (virtualScrollLogs[i - 1].displayDate ||
-                virtualScrollLogs[i - 1].date) !== logDKey;
-
-            let hasTotalText = false;
-            if (dt && dt.count > 1 && isFirstLogOfDay) {
-              hasTotalText = true;
-              dom.summaryBadge.style.display = "";
-              dom.summaryBadge.textContent = `↳ Total: ${formatFriendlyDuration(dt.w)} / ${formatFriendlyDuration(dt.goal)}`;
-            } else {
-              if (dom.summaryBadge) dom.summaryBadge.style.display = "none";
+            if (log.cachedDayNum === undefined) {
+              const logDate = new Date(log.epochMs);
+              log.cachedDayNum = logDate.getUTCDay();
+              log.cachedIsWeekend =
+                log.cachedDayNum === 0 || log.cachedDayNum === 6;
+              const dateParts = log.date.split("/");
+              log.cachedDisplayMonthDay =
+                dateParts.length >= 2
+                  ? `${dateParts[0]}/${dateParts[1]}`
+                  : log.displayDate;
             }
-            dom.diffText.textContent = formatFriendlyDuration(
-              rawDeltaSec,
-              "0m",
-            );
-            dom.workText.textContent = formatFriendlyDuration(log.workSec);
-            dom.breakText.textContent = formatFriendlyDuration(log.breakSec);
 
-            if (isWeekend) {
-              if (hasTotalText) {
-                dom.weekendBadgeLeft.style.display = "";
-                dom.weekendBadgeRight.style.display = "none";
+            const rowKey = `${log.id}|${isSelected}|${log.workSec}|${log.breakSec}|${isLogOver(log) ? "OVER" : "UNDER"}|${log.notes || ""}`;
+            if (child._rowKey !== rowKey) {
+              child._rowKey = rowKey;
+              child.className = isSelected ? "log-row kb-selected" : "log-row";
+              child._id = log.id;
+
+              const dom = child._dom;
+
+              dom.dayName.textContent = _DAY_NAMES_SHORT[log.cachedDayNum];
+              dom.dateSub.textContent = `(${log.cachedDisplayMonthDay})`;
+              dom.meta.textContent = `${log.login} - ${log.logout}`;
+              dom.statusBadge.textContent = isLogOver(log) ? "O" : "U";
+
+              const logDKey = log.displayDate || log.date;
+              const dt = window._dailyTotalsMap
+                ? window._dailyTotalsMap[logDKey]
+                : null;
+              const isFirstLogOfDay =
+                i === 0 ||
+                (virtualScrollLogs[i - 1].displayDate ||
+                  virtualScrollLogs[i - 1].date) !== logDKey;
+
+              let hasTotalText = false;
+              if (dt && dt.count > 1 && isFirstLogOfDay) {
+                hasTotalText = true;
+                dom.summaryBadge.style.display = "";
+                dom.summaryBadge.textContent = `↳ Total: ${formatDuration(dt.w)} / ${formatDuration(dt.goal)}`;
+              } else {
+                dom.summaryBadge.style.display = "none";
+              }
+
+              const rawDeltaSec = Math.abs(
+                log.workSec -
+                  (log.dayGoal != null && log.dayGoal > 0
+                    ? log.dayGoal
+                    : 8 * 3600),
+              );
+              dom.diffText.textContent = formatDuration(rawDeltaSec);
+              dom.workText.textContent = formatDuration(log.workSec);
+              dom.breakText.textContent = formatDuration(log.breakSec);
+
+              if (log.cachedIsWeekend) {
+                if (hasTotalText) {
+                  dom.weekendBadgeLeft.style.display = "";
+                  dom.weekendBadgeRight.style.display = "none";
+                } else {
+                  dom.weekendBadgeLeft.style.display = "none";
+                  dom.weekendBadgeRight.style.display = "";
+                }
               } else {
                 dom.weekendBadgeLeft.style.display = "none";
-                dom.weekendBadgeRight.style.display = "";
+                dom.weekendBadgeRight.style.display = "none";
               }
-            } else {
-              dom.weekendBadgeLeft.style.display = "none";
-              dom.weekendBadgeRight.style.display = "none";
+              dom.statusBadge.className = `log-status-badge badge ${isLogOver(log) ? "badge-over" : "badge-under"}`;
+              dom.diffText.className = "log-diff-text";
+
+              dom.copyBtn.dataset.id = log.id;
+              dom.editBtn.dataset.id = log.id;
+              dom.deleteBtn.dataset.id = log.id;
+
+              const hasNote = !!log.notes;
+              if (hasNote) {
+                dom.noteBtn.className = "log-note-btn icon-btn note-active";
+                dom.noteBtn.dataset.action = "view-note";
+                dom.noteBtn.dataset.id = log.id;
+                dom.noteBtn.removeAttribute("disabled");
+                dom.noteBtn.style.opacity = "1";
+                dom.noteBtn.style.cursor = "pointer";
+              } else {
+                dom.noteBtn.className = "log-note-btn icon-btn";
+                dom.noteBtn.removeAttribute("data-action");
+                dom.noteBtn.removeAttribute("data-id");
+                dom.noteBtn.setAttribute("disabled", "true");
+                dom.noteBtn.style.opacity = "0.3";
+                dom.noteBtn.style.cursor = "not-allowed";
+              }
             }
-            dom.statusBadge.className = `log-status-badge badge ${
-              isLogOver(log) ? "badge-over" : "badge-under"
-            }`;
-            dom.diffText.className = "log-diff-text";
 
-            dom.copyBtn.dataset.id = log.id;
-            dom.editBtn.dataset.id = log.id;
-            dom.deleteBtn.dataset.id = log.id;
-
-            if (hasNote) {
-              dom.noteBtn.className = "log-note-btn icon-btn note-active";
-              dom.noteBtn.dataset.action = "view-note";
-              dom.noteBtn.dataset.id = log.id;
-              dom.noteBtn.removeAttribute("disabled");
-              dom.noteBtn.style.opacity = "1";
-              dom.noteBtn.style.cursor = "pointer";
-            } else {
-              dom.noteBtn.className = "log-note-btn icon-btn";
-              dom.noteBtn.removeAttribute("data-action");
-              dom.noteBtn.removeAttribute("data-id");
-              dom.noteBtn.setAttribute("disabled", "true");
-              dom.noteBtn.style.opacity = "0.3";
-              dom.noteBtn.style.cursor = "not-allowed";
+            if (child.style.transform !== `translate3d(0, ${top}px, 0)`) {
+              child.style.transform = `translate3d(0, ${top}px, 0)`;
+              child.style.top = "0px";
             }
-          }
-
-          if (child.style.transform !== `translate3d(0, ${top}px, 0)`) {
-            child.style.transform = `translate3d(0, ${top}px, 0)`;
-            child.style.top = "0px";
+            child.style.display = "flex";
+          } else {
+            child.style.display = "none";
+            child._rowKey = null;
           }
         }
 
@@ -13985,20 +14478,20 @@
             leaveBadgeClass = "badge-leave-holiday";
 
           html = `
-          <div style="font-weight: 700; color: var(--accent-blue); border-bottom: 1px solid var(--border-main); padding-bottom: 4px; margin-bottom: 4px; display: flex; justify-content: space-between; align-items: center;">
+          <div class="hm-tooltip-header">
             <span>${dayName}</span>
-            <span style="font-size: 0.65rem; opacity: 0.6;">${dateKey}</span>
+            <span class="hm-tooltip-date">${dateKey}</span>
           </div>
-          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 2px;">
-            <span class="badge ${leaveBadgeClass}" style="font-family: var(--font-sans); margin-left: 0; padding: 1px 5px; font-size: 0.6rem;">${leaveType} Leave</span>
+          <div class="hm-tooltip-row">
+            <span class="badge ${leaveBadgeClass} hm-tooltip-badge-leave">${leaveType} Leave</span>
           </div>
           ${
             totalW > 0
               ? `
-          <div style="font-size: 0.62rem; color: var(--text-muted); margin-bottom: 2px;">Worked on Leave Day:</div>
-          <div class="font-mono" style="display: flex; gap: var(--space-3); font-size: 0.68rem; margin-bottom: 2px;">
-            <span style="display: inline-flex; align-items: center;">
-              <span class="badge badge-w" style="width: 14px; height: 14px; font-size: 0.55rem;">W</span> <span style="margin-left: 4px; color: var(--text-main); font-weight: 600;">${formatFriendlyDuration(totalW)}</span>
+          <div class="hm-tooltip-sublabel">Worked on Leave Day:</div>
+          <div class="font-mono hm-tooltip-stats">
+            <span class="hm-tooltip-stat">
+              <span class="badge badge-w hm-tooltip-badge">W</span> <span class="hm-tooltip-stat-val">${formatFriendlyDuration(totalW)}</span>
             </span>
           </div>
           `
@@ -14007,45 +14500,45 @@
         `;
         } else if (totalW === 0 && totalB === 0 && !isActiveToday) {
           html = `
-          <div style="font-weight: 700; color: var(--accent-blue); border-bottom: 1px solid var(--border-main); padding-bottom: 4px; margin-bottom: 4px; display: flex; justify-content: space-between; align-items: center;">
+          <div class="hm-tooltip-header">
             <span>${dayName}</span>
-            <span style="font-size: 0.65rem; opacity: 0.6;">${dateKey}</span>
+            <span class="hm-tooltip-date">${dateKey}</span>
           </div>
-          <div style="color: var(--text-muted); font-size: 0.72rem; text-align: center; padding: 4px 0;">No Activity</div>
+          <div class="hm-tooltip-empty">No Activity</div>
         `;
         } else {
           html = `
-          <div style="font-weight: 700; color: var(--accent-blue); border-bottom: 1px solid var(--border-main); padding-bottom: 4px; margin-bottom: 4px; display: flex; justify-content: space-between; align-items: center;">
+          <div class="hm-tooltip-header">
             <span>${dayName}</span>
-            <span style="font-size: 0.65rem; opacity: 0.6;">${dateKey}</span>
+            <span class="hm-tooltip-date">${dateKey}</span>
           </div>
-          ${hasTimes ? `<div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.65rem; color: var(--text-muted); margin-bottom: 4px;"><span>${displayLogin} - ${displayLogout}</span></div>` : ""}
-          <div class="font-mono" style="display: flex; flex-direction: column; gap: 2px; font-size: 0.68rem; margin-bottom: 4px; border-bottom: 1px solid var(--border-main); padding-bottom: 4px;">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-              <span style="display: inline-flex; align-items: center;">
-                <span class="badge badge-w" style="width: 14px; height: 14px; font-size: 0.55rem;">W</span> <span style="margin-left: 4px; color: var(--text-main); font-weight: 600;">${formatFriendlyDuration(totalW)}</span>
+          ${hasTimes ? `<div class="hm-tooltip-meta"><span>${displayLogin} - ${displayLogout}</span></div>` : ""}
+          <div class="font-mono hm-tooltip-mono-row">
+            <div class="hm-tooltip-mono-flex">
+              <span class="hm-tooltip-stat">
+                <span class="badge badge-w hm-tooltip-badge">W</span> <span class="hm-tooltip-stat-val">${formatFriendlyDuration(totalW)}</span>
               </span>
-              <span style="display: inline-flex; align-items: center;">
-                <span class="badge badge-b" style="width: 14px; height: 14px; font-size: 0.55rem;">B</span> <span style="margin-left: 4px; color: var(--text-main); font-weight: 600;">${formatFriendlyDuration(totalB)}</span>
+              <span class="hm-tooltip-stat">
+                <span class="badge badge-b hm-tooltip-badge">B</span> <span class="hm-tooltip-stat-val">${formatFriendlyDuration(totalB)}</span>
               </span>
             </div>
           </div>
-          <div style="display: flex; flex-direction: column; gap: 3px; font-size: 0.65rem; color: var(--text-muted); margin-bottom: 2px;">
-            <div style="display: flex; justify-content: space-between;">
+          <div class="hm-tooltip-details">
+            <div class="hm-tooltip-detail-row">
               <span>Goal:</span>
-              <span style="color: var(--text-main); font-weight: 600;">${formatFriendlyDuration(goalSec)}</span>
+              <span class="hm-tooltip-detail-val">${formatFriendlyDuration(goalSec)}</span>
             </div>
-            <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div class="hm-tooltip-detail-row">
               <span>Variance:</span>
-              <span class="font-mono" style="display: inline-flex; align-items: center; gap: 4px;">
-                <span class="badge ${badgeClass}" style="width: 14px; height: 14px; font-size: 0.55rem;">${statusLetter}</span>
+              <span class="font-mono hm-tooltip-flex-center">
+                <span class="badge ${badgeClass} hm-tooltip-badge">${statusLetter}</span>
                 <span>${varianceStr}</span>
               </span>
             </div>
-            <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div class="hm-tooltip-detail-row">
               <span>Focus:</span>
-              <span class="font-mono" style="display: inline-flex; align-items: center; gap: 4px;">
-                <span class="badge badge-f" style="width: 14px; height: 14px; font-size: 0.55rem;">F</span>
+              <span class="font-mono hm-tooltip-flex-center">
+                <span class="badge badge-f hm-tooltip-badge">F</span>
                 <span>${focusText}</span>
               </span>
             </div>
@@ -14053,7 +14546,7 @@
           ${
             notesList.length > 0
               ? `
-          <div style="color: var(--text-muted); font-size: 0.62rem; white-space: normal; word-break: break-word; border-top: 1px solid var(--border-main); padding-top: 4px; margin-top: 2px;">
+          <div class="hm-tooltip-notes">
             <strong>Notes:</strong> ${escapeHTML(notesList.join(" | "))}
           </div>
           `
@@ -14094,8 +14587,8 @@
           left = modalRect.width - tooltip.offsetWidth - padding;
         }
 
-        tooltip.style.left = `${left}px`;
-        tooltip.style.top = `${top}px`;
+        tooltip.style.left = `${Math.round(left)}px`;
+        tooltip.style.top = `${Math.round(top)}px`;
 
         if (dateKey === todayStr) {
           window.isHoveringTodayHeatmap = true;
@@ -14823,16 +15316,16 @@
                                     </span>
                                     <div class="font-mono stats-alignment-wrapper" style="font-size: var(--font-size-entry-stats); color: var(--text-main); display: flex; gap: 12px;">
                                       <div class="stat-column work-col flex-center">
-                                        <span class="badge badge-w">W</span><span ${isToday ? 'id="today-work-val"' : ""}>${formatFriendlyDuration(dayW)}</span>
+                                        <span class="badge badge-w">W</span><span ${isToday ? 'id="today-work-val"' : ""}>${formatDuration(dayW)}</span>
                                       </div>
                                       <div class="stat-column break-col flex-center">
-                                        <span class="badge badge-b">B</span><span ${isToday ? 'id="today-break-val"' : ""}>${formatFriendlyDuration(dayB)}</span>
+                                        <span class="badge badge-b">B</span><span ${isToday ? 'id="today-break-val"' : ""}>${formatDuration(dayB)}</span>
                                       </div>
                                     </div>
                                   </div>
                                   <div class="breakdown-row-meta">
                                     <span ${isToday ? 'id="today-meta-val"' : ""}>${loginStr} - ${logoutStr}</span>
-                                    <div class="font-mono stats-alignment-wrapper" style="font-size: var(--font-size-entry-meta); color: var(--text-muted); display: flex; gap: 12px;">
+                                    <div class="font-mono stats-alignment-wrapper" style="font-size: var(--font-size-entry-stats); color: var(--text-main); display: flex; gap: 12px;">
                                       <div class="stat-column work-col flex-center">
                                         <span class="badge badge-leave">Worked Leave</span>
                                       </div>
@@ -14916,7 +15409,7 @@
               const diffSec = dayW - anchorGoal;
               const isOver = diffSec >= 0;
               const absDiffSec = Math.abs(diffSec);
-              const varianceTime = formatFriendlyDuration(absDiffSec, "0m");
+              const varianceTime = formatDuration(absDiffSec);
 
               const ouLetter = isOver ? "O" : "U";
               const badgeClass = isOver ? "badge-over" : "badge-under";
@@ -14936,32 +15429,26 @@
                           <div class="stat-column work-col flex-center">
                             <span class="badge badge-w">W</span><span ${
                               isToday ? 'id="today-work-val"' : ""
-                            }>${formatFriendlyDuration(dayW)}</span>
+                            }>${formatDuration(dayW)}</span>
                           </div>
                           <div class="stat-column break-col flex-center">
                             <span class="badge badge-b">B</span><span ${
                               isToday ? 'id="today-break-val"' : ""
-                            }>${formatFriendlyDuration(dayB)}</span>
+                            }>${formatDuration(dayB)}</span>
                           </div>
                         </div>
                       </div>
                       <div class="breakdown-row-meta">
-                        <span ${isToday ? 'id="today-meta-val"' : ""}>${loginStr} - ${logoutStr}</span>
-                        <div class="font-mono stats-alignment-wrapper" style="font-size: var(--font-size-entry-meta); color: var(--text-muted); display: flex; gap: 12px;">
-                          <div class="stat-column work-col flex-center">
-                            <span ${
-                              isToday ? 'id="today-variance-badge"' : ""
-                            } class="badge ${badgeClass}">${ouLetter}</span><span ${
-                              isToday ? 'id="today-variance-val"' : ""
-                            }>${varianceTime}</span>
-                          </div>
-                          <div class="stat-column break-col flex-center">
-                            <span class="badge badge-f">F</span><span ${
-                              isToday ? 'id="today-focus-val"' : ""
-                            }>${focusText}</span>
-                          </div>
-                        </div>
+                    <span ${isToday ? 'id="today-meta-val"' : ""}>${loginStr} - ${logoutStr}</span>
+                    <div class="font-mono stats-alignment-wrapper" style="font-size: var(--font-size-entry-stats); color: var(--text-main); display: flex; gap: 12px;">
+                      <div class="stat-column work-col flex-center">
+                        <span ${isToday ? 'id="today-variance-badge"' : ""} class="badge ${badgeClass}">${ouLetter}</span><span ${isToday ? 'id="today-variance-val"' : ""}>${varianceTime}</span>
                       </div>
+                      <div class="stat-column break-col flex-center">
+                        <span class="badge badge-f">F</span><span ${isToday ? 'id="today-focus-val"' : ""}>${focusText}</span>
+                      </div>
+                    </div>
+                  </div>
                     </div>`;
             }
           }
@@ -15144,16 +15631,14 @@
         const todayW = loggedWork + getCurrentWorkSeconds();
         const todayB = loggedBreak + getCurrentBreakSeconds();
 
-        const workValEl =
-          DOM.todayWorkVal || document.getElementById("today-work-val");
-        const breakValEl =
-          DOM.todayBreakVal || document.getElementById("today-break-val");
+        const workValEl = DOM.todayWorkVal;
+        const breakValEl = DOM.todayBreakVal;
 
         if (workValEl) {
-          workValEl.innerHTML = formatFriendlyDuration(todayW);
+          workValEl.innerHTML = formatDuration(todayW);
         }
         if (breakValEl) {
-          breakValEl.innerHTML = formatFriendlyDuration(todayB);
+          breakValEl.innerHTML = formatDuration(todayB);
         }
 
         const liveGoalSec =
@@ -15163,16 +15648,10 @@
         const diffSec = todayW - anchorGoal;
         const isOver = diffSec >= 0;
         const absDiffSec = Math.abs(diffSec);
-        const diffMinsTotal = Math.floor(absDiffSec / 60);
-        const diffH = Math.floor(diffMinsTotal / 60);
-        const diffM = diffMinsTotal % 60;
-        const varianceTime = `${diffH}h ${diffM}m`;
+        const varianceTime = formatDuration(absDiffSec);
 
-        const todayVarianceValEl =
-          document.getElementById("today-variance-val");
-        const todayVarianceBadgeEl = document.getElementById(
-          "today-variance-badge",
-        );
+        const todayVarianceValEl = DOM.todayVarianceVal;
+        const todayVarianceBadgeEl = DOM.todayVarianceBadge;
 
         if (todayVarianceValEl && todayVarianceBadgeEl) {
           todayVarianceValEl.innerHTML = varianceTime;
@@ -15184,7 +15663,7 @@
             : "badge badge-under";
         }
 
-        const todayFocusValEl = document.getElementById("today-focus-val");
+        const todayFocusValEl = DOM.todayFocusVal;
         if (todayFocusValEl) {
           const focusVal =
             todayW + todayB > 0
@@ -15193,7 +15672,7 @@
           todayFocusValEl.innerHTML = focusVal > 0 ? `${focusVal}%` : `—`;
         }
 
-        const todayMetaValEl = document.getElementById("today-meta-val");
+        const todayMetaValEl = DOM.todayMetaVal;
         if (todayMetaValEl) {
           let loginStr = "—";
           let logoutStr = "—";
@@ -15296,12 +15775,11 @@
         DOM.editWork.value = formatDuration(log.workSec);
         DOM.editBreak.value = formatDuration(log.breakSec);
 
-        modalStates.edit.last = null;
-        modalStates.edit.prev = null;
+        window.editShiftController.reset();
 
         // Populate goal input fields with the log's existing daily goal
         const currentGoalSec =
-          log.dayGoal ||
+          log.dayGoal ??
           (typeof getGoalSeconds === "function"
             ? getGoalSeconds(DOM.goalHours.value, DOM.goalMins.value)
             : 8 * 3600);
@@ -15332,7 +15810,11 @@
         if (editingLogId === null || isEditSubmitting) return;
         const logs = getLogs();
         const log = logs.find((l) => l.id === editingLogId);
-        if (!log) return;
+        if (!log) {
+          showAppToast("⚠️ This shift was modified or deleted in another tab.");
+          closeEditModal();
+          return;
+        }
         if (log.date) {
           const _parts = log.date.split("/");
           if (_parts.length === 3) {
@@ -15345,34 +15827,16 @@
           }
         }
 
-        if (DOM.editWork) handleTimeInputBlur({ target: DOM.editWork });
-        if (DOM.editBreak) handleTimeInputBlur({ target: DOM.editBreak });
-
         let newDate = DOM.editDate.value.trim();
         const newLogin = DOM.editLogin.value.trim() || "Manual";
         const newLogout = DOM.editLogout.value.trim() || "Entry";
-        const newWork = DOM.editWork.value.trim();
-        const newBreak = DOM.editBreak.value.trim();
         const newNotes = DOM.editNotes.value.trim();
-        const parseDur = (str) => {
-          if (!str) return 0;
-          const match = str.match(/(\d+)\s*[hH]?\s*(\d+)?\s*[mM]?/);
-          if (!match) return 0;
-          return parseInt(match[1] || 0) * 3600 + parseInt(match[2] || 0) * 60;
-        };
-        const totalSec = parseDur(newWork) + parseDur(newBreak);
-        log.totalSeconds = totalSec;
+
         const rawGoal = DOM.editGoal.value.trim();
         const parsedGoal = parseGoalTimeStr(rawGoal);
         const gh = parsedGoal.hh;
         const gm = parsedGoal.mm;
         const goal = gh * 3600 + gm * 60 || 1;
-
-        let wSec = parseTime(newWork);
-        let bSec = parseTime(newBreak);
-
-        if (wSec !== null) wSec = Math.min(wSec, 86400);
-        if (bSec !== null) bSec = Math.min(bSec, 86400);
 
         const editDateInput = DOM.editDate;
         if (newDate.match(/^\d{1,2}\/\d{1,2}\/(\d{2}|\d{4})$/)) {
@@ -15382,46 +15846,28 @@
           if (editDateInput) editDateInput.value = newDate;
         }
 
-        if (
-          wSec !== null &&
-          bSec !== null &&
-          newDate.match(/^\d{1,2}\/\d{1,2}\/(\d{2}|\d{4})$/)
-        ) {
-          const [m, d, y] = newDate.split("/");
-          const fullYear = y.length === 2 ? `20${y}` : y;
-          const epochMs = Date.UTC(
-            parseInt(fullYear),
-            parseInt(m) - 1,
-            parseInt(d),
-            12,
-            0,
-            0,
-          );
+        if (newDate.match(/^\d{1,2}\/\d{1,2}\/(\d{2}|\d{4})$/)) {
+          const normalizedDate = parseAppDate(newDate);
+          newDate = normalizedDate;
+          const epochMs = getPSTStartOfDay(normalizedDate);
 
-          const dateMs = epochMs;
-          const loginMinutes = parseTimeToMinutes(newLogin);
-          const logoutMinutes = parseTimeToMinutes(newLogout);
-
-          let derivedLoginEpochMs = getEpochFromDateTimeString(
-            newDate,
-            newLogin,
-          );
-          let derivedLogoutEpochMs = getEpochFromDateTimeString(
-            newDate,
-            newLogout,
-          );
-
-          if (derivedLoginEpochMs !== null && derivedLogoutEpochMs !== null) {
-            derivedLogoutEpochMs = derivedLoginEpochMs + (wSec + bSec) * 1000;
-          } else if (derivedLoginEpochMs !== null) {
-            derivedLogoutEpochMs = derivedLoginEpochMs + (wSec + bSec) * 1000;
-          } else {
-            derivedLoginEpochMs = epochMs;
-            derivedLogoutEpochMs = derivedLoginEpochMs + (wSec + bSec) * 1000;
+          const finalState =
+            window.editShiftController.getFinalizedState(epochMs);
+          if (finalState.error) {
+            showAppToast("⚠️ " + finalState.error);
+            return;
           }
 
-          derivedLoginEpochMs = Math.floor(derivedLoginEpochMs / 1000) * 1000;
-          derivedLogoutEpochMs = Math.floor(derivedLogoutEpochMs / 1000) * 1000;
+          let derivedLoginEpochMs = finalState.loginEpochMs;
+          let derivedLogoutEpochMs = finalState.logoutEpochMs;
+          var overlapLogoutEpochMs = finalState.overlapLogoutEpochMs;
+          let wSec = finalState.workSec;
+          let bSec = finalState.breakSec;
+
+          if (epochMs > Date.now() + 172800000) {
+            showAppToast("⚠️ Date is too far in the future.");
+            return;
+          }
 
           const activeSessionInProgress = !!state.loginTimestamp;
           let hasOverlap = false;
@@ -15440,7 +15886,7 @@
               ) * 1000;
             if (
               derivedLoginEpochMs < lLogout &&
-              derivedLogoutEpochMs > lLogin
+              overlapLogoutEpochMs > lLogin
             ) {
               hasOverlap = true;
               overlapMsg =
@@ -15457,7 +15903,7 @@
               ) * 1000;
             if (
               derivedLoginEpochMs < liveLogout &&
-              derivedLogoutEpochMs > liveLogin
+              overlapLogoutEpochMs > liveLogin
             ) {
               hasOverlap = true;
               overlapMsg = "This overlaps with your active live session.";
@@ -15466,37 +15912,57 @@
 
           const hasFatigueWarning = wSec > 57600;
 
-          const proceedWithSave = () => {
+          const proceedWithSave = async () => {
             isEditSubmitting = true;
-            log.date = newDate;
-            const _parts = newDate.split("/");
-            if (_parts.length === 3) {
-              const _yy = _parts[2];
-              const _fullYear = _yy.length === 2 ? `20${_yy}` : _yy;
-              if (window.dirtyChunks)
-                window.dirtyChunks.add(
-                  `${_fullYear}-${_parts[0].padStart(2, "0")}`,
-                );
+            const logBackup = Object.assign({}, log);
+            try {
+              log.date = newDate;
+              const _parts = newDate.split("/");
+              if (_parts.length === 3) {
+                const _yy = _parts[2];
+                const _fullYear = _yy.length === 2 ? `20${_yy}` : _yy;
+                if (window.dirtyChunks)
+                  window.dirtyChunks.add(
+                    `${_fullYear}-${_parts[0].padStart(2, "0")}`,
+                  );
+              }
+              log.displayDate = newDate.replace(/\/20(\d{2})$/, "/$1");
+              const tz = DOM.primaryTz
+                ? DOM.primaryTz.value
+                : _cachedResolvedTz;
+              const formatter = getCachedTimeOnlyFormatter(tz);
+              log.login =
+                derivedLoginEpochMs !== null
+                  ? formatter.format(new Date(derivedLoginEpochMs))
+                  : newLogin;
+              log.logout =
+                derivedLogoutEpochMs !== null
+                  ? formatter.format(new Date(derivedLogoutEpochMs))
+                  : newLogout;
+              log.workSec = wSec;
+              log.breakSec = bSec;
+              log.totalSeconds = wSec + bSec;
+              log.dayGoal = goal;
+
+              log.diff = formatDuration(Math.abs(wSec - goal));
+              log.epochMs = epochMs;
+              log.loginEpochMs = derivedLoginEpochMs;
+              log.logoutEpochMs = derivedLogoutEpochMs;
+              log.notes = newNotes;
+              log.lastModified = Date.now();
+              log.searchStr =
+                `${log.displayDate} ${log.date} ${newLogin} ${newLogout} ${log.notes || ""}`.toLowerCase();
+
+              logs.sort((a, b) => b.epochMs - a.epochMs);
+              await saveLogs(logs);
+              closeEditModal();
+              showAppToast("Shift updated successfully");
+            } catch (err) {
+              Object.assign(log, logBackup);
+              isEditSubmitting = false;
+              showAppToast("⚠️ Failed to save shift edit.");
+              console.error("Shift edit save failed:", err);
             }
-            log.displayDate = newDate.replace(/\/20(\d{2})$/, "/$1");
-            log.login = newLogin;
-            log.logout = newLogout;
-            log.workSec = wSec;
-            log.breakSec = bSec;
-            log.dayGoal = goal;
-
-            log.diff = formatDuration(Math.abs(wSec - goal));
-            log.epochMs = epochMs;
-            log.loginEpochMs = derivedLoginEpochMs;
-            log.logoutEpochMs = derivedLogoutEpochMs;
-            log.notes = newNotes;
-            log.lastModified = Date.now();
-            log.searchStr =
-              `${log.displayDate} ${log.date} ${log.notes || ""}`.toLowerCase();
-
-            saveLogs(logs);
-            closeEditModal();
-            showAppToast("Shift updated successfully");
           };
 
           if (hasOverlap) {
@@ -15542,13 +16008,30 @@
         openConfirmModal(
           "Delete Shift",
           "Are you sure you want to delete this shift? This cannot be undone.",
-          () => {
+          async () => {
             const logs = getLogs();
             const pos = logs.findIndex((l) => l.id === logId);
-            if (pos === -1) return;
+            if (pos === -1) {
+              showAppToast("Shift was already deleted.");
+              return;
+            }
+            const delLog = logs[pos];
+            if (delLog.date && window.dirtyChunks) {
+              const _p = delLog.date.split("/");
+              if (_p.length === 3) {
+                const _fy = _p[2].length === 2 ? `20${_p[2]}` : _p[2];
+                window.dirtyChunks.add(`${_fy}-${_p[0].padStart(2, "0")}`);
+              }
+            }
             logs.splice(pos, 1);
-            saveLogs(logs);
-            showAppToast("Shift deleted");
+            try {
+              await saveLogs(logs);
+              showAppToast("Shift deleted");
+            } catch (err) {
+              logs.splice(pos, 0, delLog);
+              showAppToast("⚠️ Failed to delete shift.");
+              console.error("Shift delete failed:", err);
+            }
           },
           true,
         );
@@ -15907,7 +16390,7 @@
         finalizeImport(resolutionType);
       };
 
-      function finalizeImport(resolutionType) {
+      async function finalizeImport(resolutionType) {
         try {
           const data = tempImportData;
           tempImportData = null;
@@ -16033,7 +16516,7 @@
             });
             finalLogs.sort((a, b) => b.epochMs - a.epochMs);
             if (window.dirtyChunks) window.dirtyChunks.add("ALL");
-            saveLogs(finalLogs);
+            await saveLogs(finalLogs);
           }
 
           let toastMsg = "Data verified. No changes detected";
@@ -16119,28 +16602,32 @@
         openConfirmModal(
           "Factory Reset",
           "Are you sure you want to permanently delete ALL logs and settings? This is irreversible.",
-          () => {
+          async () => {
             if (window.dirtyChunks) window.dirtyChunks.add("ALL");
-            saveLogs([]);
-            localStorage.removeItem(STATE_KEY);
-            localStorage.removeItem(GOAL_H_KEY);
-            localStorage.removeItem(GOAL_M_KEY);
-            localStorage.removeItem(PRESET_VALUES_KEY);
-            localStorage.removeItem(LEAVE_DATES_KEY);
-            localStorage.removeItem(VIEWS_KEY); // Clears saved custom filter views
-            localStorage.removeItem(FILTERS_PREF_KEY); // Clears active filters preferences
+            try {
+              await saveLogs([]);
+              localStorage.removeItem(STATE_KEY);
+              localStorage.removeItem(GOAL_H_KEY);
+              localStorage.removeItem(GOAL_M_KEY);
+              localStorage.removeItem(PRESET_VALUES_KEY);
+              localStorage.removeItem(LEAVE_DATES_KEY);
+              localStorage.removeItem(VIEWS_KEY); // Clears saved custom filter views
+              localStorage.removeItem(FILTERS_PREF_KEY); // Clears active filters preferences
 
-            // Factory reset tracking settings so resetSession() inherits clean defaults
-            state.trackingMode = "intelligent";
-            state.idleTrackingEnabled = true;
-            state.idleThresholdMinutes = 60;
-            _cachedIdleThresholdMs = 3600000;
-            state.autoBackupEnabled = false;
-            state.autoEmailEnabled = false;
-            state.goalAutopopulateEnabled = true;
+              // Factory reset tracking settings so resetSession() inherits clean defaults
+              state.trackingMode = "intelligent";
+              state.idleTrackingEnabled = true;
+              state.idleThresholdMinutes = 60;
+              _cachedIdleThresholdMs = 3600000;
+              state.autoBackupEnabled = false;
+              state.autoEmailEnabled = false;
+              state.goalAutopopulateEnabled = true;
 
-            resetSession();
-            showAppToast("All data wiped");
+              resetSession();
+              showAppToast("All data wiped");
+            } catch (err) {
+              console.warn("Wipe rejected: Database syncing");
+            }
           },
           true,
         );
@@ -16156,7 +16643,9 @@
       /**
        * Prevents overnight shift breakups.
        */
-      function checkMidnightReset(now = new Date()) {
+      window.isRollingOver = false;
+      async function checkMidnightReset(now = new Date()) {
+        if (window.isRollingOver) return;
         const currentEpochMin = Math.floor(now.getTime() / 60000);
         if (
           currentEpochMin !== _lastMidnightCheckMin ||
@@ -16181,10 +16670,12 @@
         }
 
         // Parse dates to check for an unexpected chronological clock rollback
-        const [actM, actD, actY] = state.activeDate.split("/").map(Number);
-        const [curM, curD, curY] = currentDatePST.split("/").map(Number);
-        const actEpoch = Date.UTC(2000 + actY, actM - 1, actD);
-        const curEpoch = Date.UTC(2000 + curY, curM - 1, curD);
+        const [actM, actD, actYRaw] = state.activeDate.split("/").map(Number);
+        const [curM, curD, curYRaw] = currentDatePST.split("/").map(Number);
+        const actY = actYRaw < 100 ? 2000 + actYRaw : actYRaw;
+        const curY = curYRaw < 100 ? 2000 + curYRaw : curYRaw;
+        const actEpoch = Date.UTC(actY, actM - 1, actD);
+        const curEpoch = Date.UTC(curY, curM - 1, curD);
 
         // Rollback protection fallback: realign date directly to avoid infinite loop freezes
         if (actEpoch > curEpoch) {
@@ -16261,28 +16752,40 @@
               state.idleLock && state.activeDate !== idleTriggerDateStr;
 
             if (isIntermediateDay) {
-              if (state.workAccumulated > 0 || state.breakAccumulated > 0) {
-                createShiftLogEntry(
-                  state.activeDate,
-                  state.workAccumulated || 0,
-                  state.breakAccumulated || 0,
-                  activeLoginTs,
-                  midnightMs,
+              window.isRollingOver = true;
+              try {
+                if (state.workAccumulated > 0 || state.breakAccumulated > 0) {
+                  await createShiftLogEntry(
+                    state.activeDate,
+                    state.workAccumulated || 0,
+                    state.breakAccumulated || 0,
+                    activeLoginTs,
+                    midnightMs,
+                  );
+                }
+                const nextDayObj = new Date(
+                  Date.UTC(
+                    parseInt(fullYear),
+                    parseInt(m) - 1,
+                    parseInt(d) + 1,
+                    12,
+                    0,
+                    0,
+                  ),
                 );
+                state.workAccumulated = 0;
+                state.breakAccumulated = 0;
+                state.activeDate = pstDateFormatter.format(nextDayObj);
+                saveState(true);
+              } catch (e) {
+                console.error(
+                  "Midnight rollover async save failed, will retry next tick",
+                  e,
+                );
+                break;
+              } finally {
+                window.isRollingOver = false;
               }
-              const nextDayObj = new Date(
-                Date.UTC(
-                  parseInt(fullYear),
-                  parseInt(m) - 1,
-                  parseInt(d) + 1,
-                  12,
-                  0,
-                  0,
-                ),
-              );
-              state.workAccumulated = 0;
-              state.breakAccumulated = 0;
-              state.activeDate = pstDateFormatter.format(nextDayObj);
               continue;
             }
 
@@ -16318,32 +16821,44 @@
             // Create the log entry for the prior day using our safe atomic helper
             const activeWork = state.workAccumulated || 0;
             const activeBreak = state.breakAccumulated || 0;
-            if (activeWork > 0) {
-              createShiftLogEntry(
-                state.activeDate,
-                activeWork,
-                activeBreak,
-                activeLoginTs,
-                midnightMs,
+            window.isRollingOver = true;
+            try {
+              if (activeWork > 0) {
+                await createShiftLogEntry(
+                  state.activeDate,
+                  activeWork,
+                  activeBreak,
+                  activeLoginTs,
+                  midnightMs,
+                );
+              }
+
+              const nextDayObj = new Date(
+                Date.UTC(
+                  parseInt(fullYear),
+                  parseInt(m) - 1,
+                  parseInt(d) + 1,
+                  12,
+                  0,
+                  0,
+                ),
               );
+              const nextDatePST = pstDateFormatter.format(nextDayObj);
+
+              // Reset accumulators atomically
+              state.workAccumulated = 0;
+              state.breakAccumulated = 0;
+              state.activeDate = nextDatePST;
+              saveState(true);
+            } catch (e) {
+              console.error(
+                "Midnight rollover async save failed, will retry next tick",
+                e,
+              );
+              break;
+            } finally {
+              window.isRollingOver = false;
             }
-
-            const nextDayObj = new Date(
-              Date.UTC(
-                parseInt(fullYear),
-                parseInt(m) - 1,
-                parseInt(d) + 1,
-                12,
-                0,
-                0,
-              ),
-            );
-            const nextDatePST = pstDateFormatter.format(nextDayObj);
-
-            // Reset accumulators atomically
-            state.workAccumulated = 0;
-            state.breakAccumulated = 0;
-            state.activeDate = nextDatePST;
 
             // Adjust anchors for the loop's next iteration (or continuation)
             // Preserves all other state properties like trackingMode intact.
@@ -17110,6 +17625,22 @@
             if (notesEl) {
               notesEl.value = state.notes;
             }
+
+            // Zero-overhead update for today's segment tooltip
+            const todayStr =
+              typeof getPSTDate === "function" ? getPSTDate() : "";
+            if (todayStr) {
+              const seg = document.querySelector(
+                `.progress-segment[data-date="${todayStr}"]`,
+              );
+              if (seg) {
+                const oldNotes = seg.dataset.notes || "";
+                seg.dataset.notes = oldNotes
+                  ? oldNotes + " | " + cleanArg
+                  : cleanArg;
+              }
+            }
+
             showAppToast("Note appended to active session!");
           },
         },
@@ -17484,12 +18015,18 @@
               const tokens = expr.match(/(?:\d+\.\d+|\d+|\+|\-|\*|\/|\(|\))/g);
               if (!tokens) throw new Error("Invalid");
               let pos = 0;
+              let depth = 0;
               function parsePrimary() {
                 if (pos >= tokens.length) throw new Error("EOF");
                 if (tokens[pos] === "(") {
                   pos++;
+                  depth++;
+                  if (depth > 20) throw new Error("Expression too deep");
                   const val = parseExpression();
-                  if (tokens[pos] === ")") pos++;
+                  depth--;
+                  if (tokens[pos] !== ")")
+                    throw new Error("Mismatched parenthesis");
+                  pos++;
                   return val;
                 }
                 if (tokens[pos] === "-") {
@@ -17533,7 +18070,7 @@
               return result;
             }
             const mathResult = safeMathEval(query.trim());
-            if (typeof mathResult === "number" && !isNaN(mathResult)) {
+            if (typeof mathResult === "number" && isFinite(mathResult)) {
               scored.push({
                 score: 9999, // Guarantee top spot
                 cmd: {
@@ -17697,15 +18234,25 @@
                     typeof getLogs === "function" ? getLogs() : [];
                   const log = allLogs.find((l) => l.id === logId);
                   if (log) {
+                    const logBackup = Object.assign({}, log);
                     log.notes = newNotes;
                     log.searchStr =
                       `${log.displayDate} ${log.date} ${log.notes}`.toLowerCase();
                     log.lastModified = Date.now();
                     if (window.dirtyChunks) window.dirtyChunks.add("ALL");
-                    if (typeof saveLogs === "function") saveLogs(allLogs);
-                    if (typeof renderLogbook === "function") renderLogbook();
-                    closeHudModal();
-                    showAppToast(`Log notes updated successfully.`);
+                    if (typeof saveLogs === "function") {
+                      saveLogs(allLogs)
+                        .then(() => {
+                          if (typeof renderLogbook === "function")
+                            renderLogbook();
+                          closeHudModal();
+                          showAppToast(`Log notes updated successfully.`);
+                        })
+                        .catch((err) => {
+                          Object.assign(log, logBackup);
+                          showAppToast("⚠️ Failed to update note.");
+                        });
+                    }
                   }
                 },
               },
@@ -18075,14 +18622,32 @@
                     logs.sort((a, b) => b.epochMs - a.epochMs);
 
                     if (window.dirtyChunks) window.dirtyChunks.add("ALL");
-                    if (typeof saveLogs === "function") saveLogs(logs);
-                    if (typeof renderLogbook === "function") renderLogbook();
-                    if (typeof renderInsights === "function") renderInsights();
-                    if (typeof closeHudModal === "function") closeHudModal();
-                    if (typeof showAppToast === "function")
-                      showAppToast(
-                        `Shift dynamically logged: ${formatDuration(workSec)} on ${parsedDateStr}`,
-                      );
+                    if (typeof saveLogs === "function") {
+                      saveLogs(logs)
+                        .then(() => {
+                          if (typeof renderLogbook === "function")
+                            renderLogbook();
+                          if (typeof renderInsights === "function")
+                            renderInsights();
+                          if (typeof closeHudModal === "function")
+                            closeHudModal();
+                          if (typeof showAppToast === "function")
+                            showAppToast(
+                              `Shift dynamically logged: ${formatDuration(workSec)} on ${parsedDateStr}`,
+                            );
+                        })
+                        .catch((err) => {
+                          console.error(err);
+                          entriesToInsert.forEach((entry) => {
+                            const idx = logs.findIndex(
+                              (l) => l.id === entry.id,
+                            );
+                            if (idx > -1) logs.splice(idx, 1);
+                          });
+                          if (typeof showAppToast === "function")
+                            showAppToast("⚠️ Failed to log shift.");
+                        });
+                    }
                   },
                 },
               });
@@ -18705,9 +19270,23 @@
             !["TEXTAREA", "BUTTON", "A"].includes(e.target.tagName) &&
             e.target.type !== "checkbox"
           ) {
+            const modalId = activeModal.id;
+
+            // Prevent Enter from submitting the entire modal when focused on an input field
+            // in the manual or edit modals. Just confirm (blur) the field instead.
+            if (
+              (modalId === "manual-modal" || modalId === "edit-modal") &&
+              e.target.tagName === "INPUT"
+            ) {
+              e.preventDefault();
+              e.stopPropagation();
+              e.target.blur();
+              return;
+            }
+
             e.preventDefault();
             e.stopPropagation();
-            const modalId = activeModal.id;
+
             if (modalId === "submit-modal") {
               confirmSubmit();
             } else if (modalId === "manual-modal") {
@@ -19096,6 +19675,14 @@
           _syncAdjustPopupContext();
           popup.classList.add("show");
 
+          const smartInput = DOM.adjustSmartInput;
+          if (smartInput && !smartInput.disabled) {
+            setTimeout(() => {
+              smartInput.focus();
+              smartInput.select();
+            }, 50);
+          }
+
           if (adjustPopupAbortController) {
             adjustPopupAbortController.abort();
           }
@@ -19188,8 +19775,10 @@
        *  6. Persist — saveState() + renderTimersOnly()
        *  7. UX — reset input, close popup, show toast
        */
+      let _isAdjusting = false;
       window.processTimeAdjustment = function (rawInputStr) {
         // Guard
+        if (_isAdjusting) return;
         if (!state.loginTimestamp || state.idleLock) return;
 
         const rawInput = (rawInputStr || "").trim().toLowerCase();
@@ -19202,11 +19791,7 @@
         if (rawInput.startsWith("-")) {
           isAdd = false;
         } else if (
-          rawInput.includes("sub") ||
-          rawInput.includes("omit") ||
-          rawInput.includes("remove") ||
-          rawInput.includes("deduct") ||
-          rawInput.includes("dec")
+          /\b(sub(tract)?|omit|remove|deduct|dec(rease)?)\b/.test(rawInput)
         ) {
           isAdd = false;
         }
@@ -19220,20 +19805,32 @@
         let mm = mMatch ? parseFloat(mMatch[1]) : 0;
         let ss = sMatch ? parseFloat(sMatch[1]) : 0;
 
+        if (isNaN(hh)) hh = 0;
+        if (isNaN(mm)) mm = 0;
+        if (isNaN(ss)) ss = 0;
+
         // If no explicit units, treat pure numbers as minutes
         if (!hMatch && !mMatch && !sMatch) {
           const numMatch = rawInput.match(/[0-9.]+/);
           if (numMatch) {
             mm = parseFloat(numMatch[0]);
+            if (isNaN(mm)) mm = 0;
           }
         }
 
-        const totalSec = hh * 3600 + mm * 60 + ss;
+        const totalSec = Math.round(hh * 3600 + mm * 60 + ss);
 
-        if (totalSec === 0) {
+        if (isNaN(totalSec) || totalSec === 0) {
           showAppToast("⚠️ Could not parse time. Try: +15m, -1h 30m, 45s.");
           return;
         }
+
+        if (totalSec > 86400) {
+          showAppToast("⚠️ Maximum adjustment is 24 hours.");
+          return;
+        }
+
+        _isAdjusting = true;
 
         // --- Snapshot active elapsed time into accumulated buckets ---
         const nowWall = Date.now();
@@ -19283,21 +19880,24 @@
         }
 
         // --- Persist and re-render ---
-        saveState();
+        saveState(true);
         renderTimersOnly();
 
         // --- Confirmation toast ---
         const verb = isAdd ? "added to" : "subtracted from";
         const timerLabel = targetMode === "work" ? "production" : "break";
-        const hPart = hh > 0 ? `${hh}h ` : "";
-        const mPart = mm > 0 ? `${mm}m ` : "";
-        const sPart = ss > 0 ? `${ss}s` : "";
+        const hPart = hh > 0 ? `${Math.round(hh)}h ` : "";
+        const mPart = mm > 0 ? `${Math.round(mm)}m ` : "";
+        const sPart = ss > 0 ? `${Math.round(ss)}s` : "";
         showAppToast(
           `⚡ ${hPart}${mPart}${sPart} ${verb} ${timerLabel} timer.`,
         );
+
+        _isAdjusting = false;
       };
 
       window.applyTimeAdjustment = function () {
+        if (_isAdjusting) return;
         const val = DOM.adjustSmartInput?.value || "";
         processTimeAdjustment(val);
 
@@ -19506,6 +20106,49 @@
               });
             }
           } catch (e) {}
+
+          // Rebuild custom-select panel options synchronously so the UI stays in sync
+          const wrapper = snapshotSelect.closest(".custom-select");
+          if (wrapper) {
+            const panel = wrapper.querySelector(".custom-select-panel");
+            const trigger = wrapper.querySelector(".custom-select-trigger");
+            const valSpan = wrapper.querySelector(".cs-trigger-val");
+            if (panel && valSpan) {
+              panel.innerHTML = "";
+              Array.from(snapshotSelect.options).forEach((opt, idx) => {
+                if (idx === 0) return; // Skip rendering the placeholder option inside the dropdown panel list
+                const btn = document.createElement("button");
+                btn.type = "button";
+                btn.className = "custom-select-option";
+                btn.dataset.value = opt.value;
+                btn.textContent = opt.textContent;
+                btn.addEventListener("click", (e) => {
+                  e.preventDefault();
+                  snapshotSelect.value = opt.value;
+                  snapshotSelect.dispatchEvent(
+                    new Event("change", { bubbles: true }),
+                  );
+
+                  panel
+                    .querySelectorAll(".custom-select-option")
+                    .forEach((b) => {
+                      b.classList.toggle(
+                        "cs-selected",
+                        b.dataset.value === opt.value,
+                      );
+                    });
+                  valSpan.textContent = opt.textContent.trim();
+                  if (trigger)
+                    trigger.classList.toggle("cs-has-value", !!opt.value);
+                  panel.classList.remove("cs-open");
+                  if (trigger) trigger.classList.remove("cs-open");
+                });
+                panel.appendChild(btn);
+              });
+              valSpan.textContent = "Choose a snapshot...";
+              if (trigger) trigger.classList.remove("cs-has-value");
+            }
+          }
         }
       }
 
@@ -19522,15 +20165,19 @@
           openConfirmModal(
             "Restore Snapshot?",
             `Are you sure you want to restore the snapshot from ${target.date}? This will overwrite your current active logbook logs.`,
-            () => {
+            async () => {
               if (window.dirtyChunks) window.dirtyChunks.add("ALL");
-              saveLogs(target.logs);
-              renderStaticUI();
-              renderTimersOnly();
-              renderLogbook();
-              renderInsights();
-              showAppToast(`Logs reverted to ${target.date} snapshot.`);
-              DOM.snapshotRestoreSelect.value = "";
+              try {
+                await saveLogs(target.logs);
+                renderStaticUI();
+                renderTimersOnly();
+                renderLogbook();
+                renderInsights();
+                showAppToast(`Logs reverted to ${target.date} snapshot.`);
+                DOM.snapshotRestoreSelect.value = "";
+              } catch (err) {
+                console.warn("Snapshot restore rejected: Database syncing");
+              }
             },
             false,
             "Restore",
@@ -19630,8 +20277,7 @@
 
         DOM.manualGoal.value = `${String(DOM.goalHours.value).padStart(2, "0")}:${String(DOM.goalMins.value).padStart(2, "0")}`;
 
-        modalStates.manual.last = null;
-        modalStates.manual.prev = null;
+        window.manualShiftController.reset();
         DOM.manualModal.style.display = "flex";
       }
 
@@ -19656,12 +20302,8 @@
 
         const manualDateInput = DOM.manualDate;
         handleDateInputBlur({ target: manualDateInput });
-        if (DOM.manualWork) handleTimeInputBlur({ target: DOM.manualWork });
-        if (DOM.manualBreak) handleTimeInputBlur({ target: DOM.manualBreak });
 
         let dateStr = manualDateInput.value.trim();
-        const workStr = DOM.manualWork.value.trim();
-        const breakStr = DOM.manualBreak.value.trim();
         const notes = DOM.manualNotes.value.trim();
 
         const loginStr = DOM.manualLogin.value.trim() || "Manual";
@@ -19673,12 +20315,6 @@
         const gm = parsedGoal.mm;
         const goal = gh * 3600 + gm * 60 || 1;
 
-        let wSec = parseTime(workStr);
-        let bSec = parseTime(breakStr);
-
-        if (wSec !== null) wSec = Math.min(wSec, 86400);
-        if (bSec !== null) bSec = Math.min(bSec, 86400);
-
         if (dateStr.match(/^\d{1,2}\/\d{1,2}\/(\d{2}|\d{4})$/)) {
           const parts = dateStr.split("/");
           const y = parts[2].length === 4 ? parts[2].slice(-2) : parts[2];
@@ -19686,53 +20322,22 @@
           manualDateInput.value = dateStr;
         }
 
-        if (
-          wSec !== null &&
-          bSec !== null &&
-          dateStr.match(/^\d{1,2}\/\d{1,2}\/(\d{2}|\d{4})$/)
-        ) {
-          const [m, d, y] = dateStr.split("/");
-          const fullYear = y.length === 2 ? `20${y}` : y;
-          const epochMs = Date.UTC(
-            parseInt(fullYear),
-            parseInt(m) - 1,
-            parseInt(d),
-            12,
-            0,
-            0,
-          );
+        if (dateStr.match(/^\d{1,2}\/\d{1,2}\/(\d{2}|\d{4})$/)) {
+          const normalizedDate = parseAppDate(dateStr);
+          dateStr = normalizedDate;
+          const epochMs = getPSTStartOfDay(normalizedDate);
 
-          const dateMs = epochMs;
-          const loginMinutes = parseTimeToMinutes(loginStr);
-          const logoutMinutes = parseTimeToMinutes(logoutStr);
-
-          let derivedLoginEpochMs = getEpochFromDateTimeString(
-            dateStr,
-            loginStr,
-          );
-          let derivedLogoutEpochMs = getEpochFromDateTimeString(
-            dateStr,
-            logoutStr,
-          );
-
-          if (derivedLoginEpochMs !== null && derivedLogoutEpochMs !== null) {
-            if (derivedLogoutEpochMs < derivedLoginEpochMs)
-              derivedLogoutEpochMs += 86400000;
-            else if (
-              derivedLogoutEpochMs === derivedLoginEpochMs &&
-              loginStr.toLowerCase() === logoutStr.toLowerCase()
-            ) {
-              if (wSec + bSec > 0) derivedLogoutEpochMs += 86400000;
-            }
-          } else if (derivedLoginEpochMs !== null) {
-            derivedLogoutEpochMs = derivedLoginEpochMs + (wSec + bSec) * 1000;
-          } else {
-            derivedLoginEpochMs = epochMs;
-            derivedLogoutEpochMs = derivedLoginEpochMs + (wSec + bSec) * 1000;
+          const finalState =
+            window.manualShiftController.getFinalizedState(epochMs);
+          if (finalState.error) {
+            showAppToast("⚠️ " + finalState.error);
+            return;
           }
 
-          derivedLoginEpochMs = Math.floor(derivedLoginEpochMs / 1000) * 1000;
-          derivedLogoutEpochMs = Math.floor(derivedLogoutEpochMs / 1000) * 1000;
+          let derivedLoginEpochMs = finalState.loginEpochMs;
+          let derivedLogoutEpochMs = finalState.logoutEpochMs;
+          let wSec = finalState.workSec;
+          let bSec = finalState.breakSec;
 
           const activeSessionInProgress = !!state.loginTimestamp;
           let hasOverlap = false;
@@ -19777,9 +20382,19 @@
 
           const hasFatigueWarning = wSec > 57600;
 
-          const proceedWithSave = () => {
+          const proceedWithSave = async () => {
             isManualSubmitting = true;
             const diff = wSec - goal;
+            const tz = DOM.primaryTz ? DOM.primaryTz.value : _cachedResolvedTz;
+            const formatter = getCachedTimeOnlyFormatter(tz);
+            const resolvedLogin =
+              derivedLoginEpochMs !== null
+                ? formatter.format(new Date(derivedLoginEpochMs))
+                : loginStr;
+            const resolvedLogout =
+              derivedLogoutEpochMs !== null
+                ? formatter.format(new Date(derivedLogoutEpochMs))
+                : logoutStr;
             const entry = {
               id:
                 "log_" +
@@ -19788,8 +20403,8 @@
               date: dateStr,
               displayDate: dateStr.replace(/\/20(\d{2})$/, "/$1"),
               epochMs: epochMs,
-              login: loginStr,
-              logout: logoutStr,
+              login: resolvedLogin,
+              logout: resolvedLogout,
               loginEpochMs: derivedLoginEpochMs,
               logoutEpochMs: derivedLogoutEpochMs,
               workSec: wSec,
@@ -19801,15 +20416,23 @@
               lastModified: Date.now(),
             };
             entry.searchStr =
-              `${entry.displayDate} ${entry.date} manual entry ${notes}`.toLowerCase();
+              `${entry.displayDate} ${entry.date} ${resolvedLogin} ${resolvedLogout} manual entry ${notes}`.toLowerCase();
 
             logs.push(entry);
             logs.sort((a, b) => b.epochMs - a.epochMs);
 
             if (window.dirtyChunks) window.dirtyChunks.add("ALL");
-            saveLogs(logs);
-            closeManualModal();
-            showAppToast("Manual shift added successfully");
+            try {
+              await saveLogs(logs);
+              closeManualModal();
+              showAppToast("Manual shift added successfully");
+            } catch (err) {
+              const revertIdx = logs.findIndex((l) => l.id === entry.id);
+              if (revertIdx > -1) logs.splice(revertIdx, 1);
+              isManualSubmitting = false;
+              showAppToast("⚠️ Failed to add manual shift.");
+              console.error("Manual save failed:", err);
+            }
           };
 
           if (hasOverlap) {
@@ -20761,7 +21384,8 @@
           timeStr === "—"
         )
           return null;
-        let parts = dateStr.split("/");
+        const normalizedDate = parseAppDate(dateStr);
+        let parts = normalizedDate.split("/");
         if (parts.length !== 3) {
           parts = dateStr.split("-");
           if (parts.length === 3) {
@@ -20792,7 +21416,7 @@
         try {
           const formatToTz = getCachedTzFormatter(tz);
 
-          for (let i = 0; i < 3; i++) {
+          for (let i = 0; i < 5; i++) {
             const partsTz = formatToTz.formatToParts(guessMs);
             const p = {};
             partsTz.forEach((part) => (p[part.type] = part.value));
@@ -20818,7 +21442,7 @@
             const errorMs = wallMs - guessLocalMs;
 
             if (errorMs === 0) break;
-            if (i === 2 && Math.abs(errorMs) === 3600000) break; // Accept offset during DST skips
+            if (i === 4 && Math.abs(errorMs) === 3600000) break; // Accept offset during DST skips
             guessMs += errorMs;
           }
           return guessMs;
@@ -20827,332 +21451,577 @@
         }
       }
 
-      function calculateLoginFromLogoutAndWork(
-        logoutVal,
-        workVal,
-        breakVal,
-        dateStr = "",
-      ) {
-        const logoutSec = parseClockTimeToSeconds(logoutVal);
-        if (logoutSec === null) return null;
-        const wp = parseGoalTimeStr(workVal);
-        const bp = parseGoalTimeStr(breakVal);
-        const workSec = wp.hh * 3600 + wp.mm * 60 + wp.ss;
-        const breakSec = bp.hh * 3600 + bp.mm * 60 + bp.ss;
+      // Phase 1: Pure math and DOM-free state manipulation
+      const ShiftMath = {
+        calculateLogin: (logoutEpoch, workSec, breakSec) => {
+          if (logoutEpoch === null || workSec === null || breakSec === null)
+            return null;
+          return logoutEpoch - (workSec + breakSec) * 1000;
+        },
+        calculateLogout: (loginEpoch, workSec, breakSec) => {
+          if (loginEpoch === null || workSec === null || breakSec === null)
+            return null;
+          return loginEpoch + (workSec + breakSec) * 1000;
+        },
+        calculateWork: (loginEpoch, logoutEpoch, breakSec) => {
+          if (loginEpoch === null || logoutEpoch === null || breakSec === null)
+            return null;
+          let diff = logoutEpoch - loginEpoch;
+          if (diff < 0) diff += 86400000;
+          return Math.floor(diff / 1000) - breakSec;
+        },
+      };
 
-        if (dateStr) {
-          const logoutEpoch = getEpochFromDateTimeString(dateStr, logoutVal);
-          if (logoutEpoch) {
-            const loginEpoch = logoutEpoch - (workSec + breakSec) * 1000;
-            const tz = DOM.primaryTz ? DOM.primaryTz.value : _cachedResolvedTz;
-            try {
-              const formatTz = getCachedTimeOnlyFormatter(tz);
-              return formatTz.format(new Date(loginEpoch));
-            } catch (e) {}
-          }
+      class ConstraintError extends Error {
+        constructor(message) {
+          super(message);
+          this.name = "ConstraintError";
         }
-        const totalSec = logoutSec - workSec - breakSec;
-        return secondsToAMPM(totalSec);
       }
 
-      function calculateDurationFromTimes(
-        loginVal,
-        logoutVal,
-        breakVal,
-        dateStr = "",
-      ) {
-        const loginSec = parseClockTimeToSeconds(loginVal);
-        const logoutSec = parseClockTimeToSeconds(logoutVal);
-        const bp = parseGoalTimeStr(breakVal);
-        const breakSec = bp.hh * 3600 + bp.mm * 60 + bp.ss;
-        if (loginSec !== null && logoutSec !== null) {
-          let diffSec = 0;
+      class ShiftFieldsController {
+        constructor(prefix) {
+          this.prefix = prefix;
+          this.els = {
+            date: document.getElementById(`${prefix}-date`),
+            login: document.getElementById(`${prefix}-login`),
+            logout: document.getElementById(`${prefix}-logout`),
+            work: document.getElementById(`${prefix}-work`),
+            break: document.getElementById(`${prefix}-break`),
+          };
+          this.state = {
+            dateVal: "",
+            loginSec: null,
+            logoutSec: null,
+            workSec: null,
+            breakSec: 0,
+            loginEpoch: null,
+            logoutEpoch: null,
+          };
+          this.pinned = new Set();
+          this.bindEvents();
+        }
 
-          const rawWork =
-            document.getElementById("edit-work")?.value.trim() ||
-            document.getElementById("manual-work")?.value.trim() ||
-            "";
-          if (dateStr) {
-            const loginEpoch = getEpochFromDateTimeString(dateStr, loginVal);
-            let logoutEpoch = getEpochFromDateTimeString(dateStr, logoutVal);
-            if (loginEpoch !== null && logoutEpoch !== null) {
-              if (logoutEpoch < loginEpoch) {
-                logoutEpoch += 86400000;
-              } else if (
-                logoutEpoch === loginEpoch &&
-                loginVal.toLowerCase() === logoutVal.toLowerCase()
-              ) {
-                logoutEpoch += 86400000;
-              }
-              diffSec = Math.max(
-                0,
-                Math.floor((logoutEpoch - loginEpoch) / 1000) - breakSec,
-              );
-            } else {
-              let outS = logoutSec;
-              if (outS < loginSec) outS += 86400;
-              else if (outS === loginSec && loginVal && logoutVal)
-                outS += 86400;
-              diffSec = Math.max(0, outS - loginSec - breakSec);
-            }
+        togglePin(field) {
+          if (this.pinned.has(field)) {
+            this.pinned.delete(field);
+            this.els[`${field}Pin`].classList.remove("is-pinned");
+            this.els[`${field}Pin`].innerHTML =
+              `<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 9.9-1"></path></svg>`;
+            this.els[field].dataset.origin = "user";
           } else {
-            let outS = logoutSec;
-            if (outS < loginSec) outS += 86400;
-            else if (outS === loginSec && loginVal && logoutVal) outS += 86400;
-            diffSec = Math.max(0, outS - loginSec - breakSec);
+            this.pinned.add(field);
+            this.els[`${field}Pin`].classList.add("is-pinned");
+            this.els[`${field}Pin`].innerHTML =
+              `<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>`;
+            this.els[field].dataset.origin = "pinned";
           }
-          return formatDuration(diffSec);
-        }
-        return null;
-      }
-
-      function calculateLogoutFromLoginAndWork(
-        loginVal,
-        workVal,
-        breakVal,
-        dateStr = "",
-      ) {
-        const loginSec = parseClockTimeToSeconds(loginVal);
-        if (loginSec === null) return null;
-        const wp = parseGoalTimeStr(workVal);
-        const bp = parseGoalTimeStr(breakVal);
-        const workSec = wp.hh * 3600 + wp.mm * 60 + wp.ss;
-        const breakSec = bp.hh * 3600 + bp.mm * 60 + bp.ss;
-        if (dateStr) {
-          const loginEpoch = getEpochFromDateTimeString(dateStr, loginVal);
-          if (loginEpoch) {
-            const logoutEpoch = loginEpoch + (workSec + breakSec) * 1000;
-            const tz = DOM.primaryTz ? DOM.primaryTz.value : _cachedResolvedTz;
-            try {
-              const formatTz = getCachedTimeOnlyFormatter(tz);
-              return formatTz.format(new Date(logoutEpoch));
-            } catch (e) {}
-          }
-        }
-        const totalSec = loginSec + workSec + breakSec;
-        return secondsToAMPM(totalSec);
-      }
-
-      function syncModalFields(prefix, changedField) {
-        const loginEl = document.getElementById(`${prefix}-login`);
-        const logoutEl = document.getElementById(`${prefix}-logout`);
-        const workEl = document.getElementById(`${prefix}-work`);
-        const breakEl = document.getElementById(`${prefix}-break`);
-        const dateEl = document.getElementById(`${prefix}-date`);
-        if (!loginEl || !logoutEl || !workEl || !breakEl) return;
-
-        breakEl.classList.remove("input-error");
-        breakEl.style.borderColor = "";
-        breakEl.title = "";
-
-        let loginVal = loginEl.value.trim();
-        let logoutVal = logoutEl.value.trim();
-        let workVal = workEl.value.trim();
-        let breakVal = breakEl.value.trim() || "00:00";
-        const dateVal = dateEl ? dateEl.value.trim() : "";
-
-        const hasLogin = !!loginVal;
-        const hasLogout = !!logoutVal;
-        const hasWork = !!workVal;
-        const hasBreak = !!breakVal;
-
-        if (!hasLogin && !hasLogout) {
-          workEl.value = "";
-          return;
-        }
-        if (changedField === "logout" && !hasLogout) {
-          if (hasLogin && hasWork) {
-            logoutEl.value = calculateLogoutFromLoginAndWork(
-              loginVal,
-              workVal,
-              breakVal,
-              dateVal,
-            );
-          } else {
-            workEl.value = "";
-          }
-        }
-        if (changedField === "login" && !hasLogin) {
-          if (hasLogout && hasWork) {
-            loginEl.value = calculateLoginFromLogoutAndWork(
-              logoutVal,
-              workVal,
-              breakVal,
-              dateVal,
-            );
-          } else {
-            workEl.value = "";
-          }
-        }
-        if (changedField === "work" && !hasWork) {
-          if (hasLogin && hasLogout) {
-            workEl.value = calculateDurationFromTimes(
-              loginVal,
-              logoutVal,
-              breakVal,
-              dateVal,
-            );
-          }
+          this.solve();
         }
 
-        loginVal = loginEl.value.trim();
-        logoutVal = logoutEl.value.trim();
-        let parsedLogin = parseClockTimePreview(loginVal);
-        let parsedLogout = parseClockTimePreview(logoutVal);
+        readState() {
+          this.state.dateVal = this.els.date ? this.els.date.value.trim() : "";
+          const loginStr = this.els.login.value.trim();
+          const logoutStr = this.els.logout.value.trim();
+          const workStr = this.els.work.value.trim();
+          const breakStr = this.els.break.value.trim() || "00:00";
 
-        const hasLogin2 = !!loginVal;
-        const hasLogout2 = !!logoutVal;
-        const hasWork2 = !!workVal;
+          this.state.loginSec = parseClockTimeToSeconds(loginStr);
+          this.state.logoutSec = parseClockTimeToSeconds(logoutStr);
 
-        if (changedField === "login") {
-          if (hasLogout2)
-            workEl.value = calculateDurationFromTimes(
-              loginVal,
-              logoutVal,
-              breakVal,
-              dateVal,
-            );
-          else if (hasWork2)
-            logoutEl.value = calculateLogoutFromLoginAndWork(
-              loginVal,
-              workVal,
-              breakVal,
-              dateVal,
-            );
-        } else if (changedField === "logout") {
-          if (hasLogin2)
-            workEl.value = calculateDurationFromTimes(
-              loginVal,
-              logoutVal,
-              breakVal,
-              dateVal,
-            );
-          else if (hasWork2)
-            loginEl.value = calculateLoginFromLogoutAndWork(
-              logoutVal,
-              workVal,
-              breakVal,
-              dateVal,
-            );
-        } else if (changedField === "work") {
-          if (hasLogin2)
-            logoutEl.value = calculateLogoutFromLoginAndWork(
-              loginVal,
-              workVal,
-              breakVal,
-              dateVal,
-            );
-          else if (hasLogout2)
-            loginEl.value = calculateLoginFromLogoutAndWork(
-              logoutVal,
-              workVal,
-              breakVal,
-              dateVal,
-            );
-        } else if (changedField === "break") {
-          if (hasLogin2 && hasLogout2) {
-            workEl.value = calculateDurationFromTimes(
-              loginVal,
-              logoutVal,
-              breakVal,
-              dateVal,
-            );
-          } else if (hasLogin2 && hasWork2) {
-            logoutEl.value = calculateLogoutFromLoginAndWork(
-              loginVal,
-              workVal,
-              breakVal,
-              dateVal,
-            );
-          }
-        } else if (!hasLogin2 && hasLogout2 && hasWork2 && hasBreak) {
-          loginEl.value = calculateLoginFromLogoutAndWork(
-            logoutVal,
-            workVal,
-            breakVal,
-            dateVal,
+          const wp = parseGoalTimeStr(workStr);
+          this.state.workSec = workStr
+            ? wp.hh * 3600 + wp.mm * 60 + wp.ss
+            : null;
+
+          const bp = parseGoalTimeStr(breakStr);
+          this.state.breakSec = bp.hh * 3600 + bp.mm * 60 + bp.ss;
+
+          this.state.loginEpoch = getEpochFromDateTimeString(
+            this.state.dateVal,
+            loginStr,
           );
-        }
+          this.state.logoutEpoch = getEpochFromDateTimeString(
+            this.state.dateVal,
+            logoutStr,
+          );
 
-        loginVal = loginEl.value.trim();
-        logoutVal = logoutEl.value.trim();
-        if (loginVal && logoutVal && dateVal) {
-          const epochIn = getEpochFromDateTimeString(dateVal, loginVal);
-          const epochOut = getEpochFromDateTimeString(dateVal, logoutVal);
-          const bParsed = parseGoalTimeStr(breakEl.value.trim() || "00:00");
-          const bMs = (bParsed.hh * 3600 + bParsed.mm * 60 + bParsed.ss) * 1000;
-
-          if (epochIn !== null && epochOut !== null) {
-            let diff = epochOut - epochIn;
-            if (diff < 0) diff += 86400000;
+          if (
+            this.state.loginEpoch !== null &&
+            this.state.logoutEpoch !== null
+          ) {
+            if (this.state.logoutEpoch < this.state.loginEpoch)
+              this.state.logoutEpoch += 86400000;
             else if (
-              diff === 0 &&
-              loginVal.toLowerCase() === logoutVal.toLowerCase()
-            )
-              diff = 86400000;
-            if (bMs > diff) {
-              breakEl.classList.add("input-error");
-              breakEl.style.borderColor = "var(--accent-break)";
-              breakEl.title = "Break cannot exceed total time.";
-              return;
+              this.state.logoutEpoch === this.state.loginEpoch &&
+              loginStr.toLowerCase() === logoutStr.toLowerCase()
+            ) {
+              if (
+                (this.state.workSec !== null && this.state.workSec > 0) ||
+                this.state.breakSec > 0
+              ) {
+                this.state.logoutEpoch += 86400000;
+              }
             }
           }
         }
+
+        writeState() {
+          const tz = DOM.primaryTz ? DOM.primaryTz.value : _cachedResolvedTz;
+          const timeFormatter = getCachedTimeOnlyFormatter(tz);
+
+          if (this.state.loginEpoch !== null) {
+            this.els.login.value = timeFormatter.format(
+              new Date(this.state.loginEpoch),
+            );
+          } else if (this.state.loginSec !== null) {
+            this.els.login.value = secondsToAMPM(this.state.loginSec);
+          }
+
+          if (this.state.logoutEpoch !== null) {
+            this.els.logout.value = timeFormatter.format(
+              new Date(this.state.logoutEpoch),
+            );
+          } else if (this.state.logoutSec !== null) {
+            this.els.logout.value = secondsToAMPM(this.state.logoutSec);
+          }
+
+          if (this.state.workSec !== null) {
+            this.els.work.value = formatDuration(this.state.workSec);
+          }
+
+          if (this.state.breakSec !== null) {
+            this.els.break.value = formatDuration(this.state.breakSec);
+          }
+        }
+
+        solve() {
+          this.readState();
+          this.els.break.classList.remove("input-error");
+          this.els.break.style.borderColor = "";
+          this.els.break.title = "";
+
+          const eqFields = ["login", "logout", "work"];
+          const hasVal = {
+            login:
+              this.state.loginSec !== null || this.state.loginEpoch !== null,
+            logout:
+              this.state.logoutSec !== null || this.state.logoutEpoch !== null,
+            work: this.state.workSec !== null,
+          };
+
+          const history = [
+            modalStates[this.prefix].last,
+            modalStates[this.prefix].prev,
+          ];
+          const anchors = Array.from(this.pinned).filter((f) =>
+            eqFields.includes(f),
+          );
+
+          try {
+            if (anchors.length > 2) {
+              throw new ConstraintError(
+                "Too many fields locked. Unpin a field to allow calculation.",
+              );
+            }
+
+            for (const f of history) {
+              if (anchors.length >= 2) break;
+              if (
+                f &&
+                eqFields.includes(f) &&
+                hasVal[f] &&
+                !anchors.includes(f)
+              ) {
+                anchors.push(f);
+              }
+            }
+
+            for (const f of eqFields) {
+              if (anchors.length >= 2) break;
+              if (hasVal[f] && !anchors.includes(f)) {
+                anchors.push(f);
+              }
+            }
+
+            // Reset origins
+            ["login", "logout", "work", "break"].forEach((f) => {
+              if (this.els[f])
+                this.els[f].dataset.origin = this.pinned.has(f)
+                  ? "pinned"
+                  : "user";
+            });
+
+            if (anchors.length === 2) {
+              const target = eqFields.find((f) => !anchors.includes(f));
+              if (this.els[target]) this.els[target].dataset.origin = "derived";
+
+              if (target === "work") {
+                let rawWork = null;
+                if (
+                  this.state.loginEpoch !== null &&
+                  this.state.logoutEpoch !== null
+                ) {
+                  rawWork = ShiftMath.calculateWork(
+                    this.state.loginEpoch,
+                    this.state.logoutEpoch,
+                    this.state.breakSec,
+                  );
+                } else if (
+                  this.state.loginSec !== null &&
+                  this.state.logoutSec !== null
+                ) {
+                  let diff = this.state.logoutSec - this.state.loginSec;
+                  if (diff < 0) diff += 86400;
+                  rawWork = diff - this.state.breakSec;
+                }
+                if (rawWork !== null) {
+                  if (rawWork < 0)
+                    throw new ConstraintError(
+                      `Work + Break exceeds the window between Login and Logout. Unpin a field or adjust.`,
+                    );
+                  this.state.workSec = rawWork;
+                }
+              } else if (target === "logout") {
+                if (
+                  this.state.loginEpoch !== null &&
+                  this.state.workSec !== null
+                ) {
+                  this.state.logoutEpoch = ShiftMath.calculateLogout(
+                    this.state.loginEpoch,
+                    this.state.workSec,
+                    this.state.breakSec,
+                  );
+                } else if (
+                  this.state.loginSec !== null &&
+                  this.state.workSec !== null
+                ) {
+                  this.state.logoutSec =
+                    (this.state.loginSec +
+                      this.state.workSec +
+                      this.state.breakSec) %
+                    86400;
+                }
+              } else if (target === "login") {
+                if (
+                  this.state.logoutEpoch !== null &&
+                  this.state.workSec !== null
+                ) {
+                  this.state.loginEpoch = ShiftMath.calculateLogin(
+                    this.state.logoutEpoch,
+                    this.state.workSec,
+                    this.state.breakSec,
+                  );
+                } else if (
+                  this.state.logoutSec !== null &&
+                  this.state.workSec !== null
+                ) {
+                  this.state.loginSec =
+                    (this.state.logoutSec -
+                      this.state.workSec -
+                      this.state.breakSec +
+                      86400) %
+                    86400;
+                }
+              }
+            } else if (anchors.length < 2) {
+              if (!hasVal.login && !hasVal.logout) {
+                this.state.workSec = null;
+                this.els.work.value = "";
+              }
+            }
+
+            this.writeState();
+            this.readState();
+
+            if (
+              this.state.loginEpoch !== null &&
+              this.state.logoutEpoch !== null
+            ) {
+              let diff = this.state.logoutEpoch - this.state.loginEpoch;
+              if (diff < 0) diff += 86400000;
+              if (this.state.breakSec * 1000 > diff) {
+                throw new ConstraintError(
+                  `Break duration (${formatDuration(this.state.breakSec)}) cannot exceed total elapsed time.`,
+                );
+              }
+            }
+          } catch (e) {
+            if (e.name === "ConstraintError") {
+              showAppToast("⚠️ " + e.message);
+              this.els.break.classList.add("input-error");
+              this.els.break.style.borderColor = "var(--accent-break)";
+            } else {
+              throw e;
+            }
+          }
+        }
+
+        reset() {
+          this.pinned.clear();
+          ["login", "logout", "work", "break"].forEach((f) => {
+            if (this.els[f]) this.els[f].dataset.origin = "user";
+            if (this.els[`${f}Pin`]) {
+              this.els[`${f}Pin`].classList.remove("is-pinned");
+              this.els[`${f}Pin`].innerHTML =
+                `<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 9.9-1"></path></svg>`;
+            }
+          });
+          modalStates[this.prefix].last = null;
+          modalStates[this.prefix].prev = null;
+          modalStates[this.prefix].lastValue = null;
+        }
+
+        getFinalizedState(baseEpochMs) {
+          this.solve();
+          this.readState();
+
+          let wSec = this.state.workSec !== null ? this.state.workSec : 0;
+          let bSec = this.state.breakSec !== null ? this.state.breakSec : 0;
+
+          wSec = Math.min(wSec, 86400);
+          bSec = Math.min(bSec, 86400);
+
+          if (wSec + bSec > 86400) {
+            return { error: "Total shift duration cannot exceed 24 hours." };
+          }
+
+          let loginEp = this.state.loginEpoch;
+          let logoutEp = this.state.logoutEpoch;
+
+          if (loginEp !== null && logoutEp !== null) {
+            const maxElapsedSec = (logoutEp - loginEp) / 1000;
+            if (wSec + bSec > maxElapsedSec) {
+              return {
+                error:
+                  "Total work and break durations exceed the login/logout window.",
+              };
+            }
+          } else if (loginEp !== null) {
+            logoutEp = loginEp + (wSec + bSec) * 1000;
+          } else if (logoutEp !== null) {
+            loginEp = logoutEp - (wSec + bSec) * 1000;
+          } else {
+            loginEp = baseEpochMs;
+            logoutEp = loginEp + (wSec + bSec) * 1000;
+          }
+
+          return {
+            valid: true,
+            workSec: wSec,
+            breakSec: bSec,
+            loginEpochMs: Math.floor(loginEp / 1000) * 1000,
+            logoutEpochMs: Math.floor(logoutEp / 1000) * 1000,
+            overlapLogoutEpochMs: Math.floor(logoutEp / 1000) * 1000,
+          };
+        }
+
+        simulate() {
+          this.readState();
+          const eqFields = ["login", "logout", "work"];
+          const hasVal = {
+            login:
+              this.state.loginSec !== null || this.state.loginEpoch !== null,
+            logout:
+              this.state.logoutSec !== null || this.state.logoutEpoch !== null,
+            work: this.state.workSec !== null,
+          };
+          const history = [
+            modalStates[this.prefix].last,
+            modalStates[this.prefix].prev,
+          ];
+          const anchors = Array.from(this.pinned).filter((f) =>
+            eqFields.includes(f),
+          );
+
+          if (anchors.length > 2) return { target: null, resultVal: null };
+
+          for (const f of history) {
+            if (anchors.length >= 2) break;
+            if (f && eqFields.includes(f) && hasVal[f] && !anchors.includes(f))
+              anchors.push(f);
+          }
+          for (const f of eqFields) {
+            if (anchors.length >= 2) break;
+            if (hasVal[f] && !anchors.includes(f)) anchors.push(f);
+          }
+
+          let target = null;
+          let resultVal = null;
+
+          if (anchors.length === 2) {
+            target = eqFields.find((f) => !anchors.includes(f));
+            if (target === "work") {
+              let rawWork = null;
+              if (
+                this.state.loginEpoch !== null &&
+                this.state.logoutEpoch !== null
+              )
+                rawWork = ShiftMath.calculateWork(
+                  this.state.loginEpoch,
+                  this.state.logoutEpoch,
+                  this.state.breakSec,
+                );
+              else if (
+                this.state.loginSec !== null &&
+                this.state.logoutSec !== null
+              ) {
+                let diff = this.state.logoutSec - this.state.loginSec;
+                if (diff < 0) diff += 86400;
+                rawWork = diff - this.state.breakSec;
+              }
+              if (rawWork !== null)
+                resultVal = rawWork < 0 ? "Invalid" : formatDuration(rawWork);
+            } else if (target === "logout") {
+              const tz = DOM.primaryTz
+                ? DOM.primaryTz.value
+                : _cachedResolvedTz;
+              const tf = getCachedTimeOnlyFormatter(tz);
+              if (this.state.loginEpoch !== null && this.state.workSec !== null)
+                resultVal = tf.format(
+                  new Date(
+                    ShiftMath.calculateLogout(
+                      this.state.loginEpoch,
+                      this.state.workSec,
+                      this.state.breakSec,
+                    ),
+                  ),
+                );
+              else if (
+                this.state.loginSec !== null &&
+                this.state.workSec !== null
+              )
+                resultVal = secondsToAMPM(
+                  (this.state.loginSec +
+                    this.state.workSec +
+                    this.state.breakSec) %
+                    86400,
+                );
+            } else if (target === "login") {
+              const tz = DOM.primaryTz
+                ? DOM.primaryTz.value
+                : _cachedResolvedTz;
+              const tf = getCachedTimeOnlyFormatter(tz);
+              if (
+                this.state.logoutEpoch !== null &&
+                this.state.workSec !== null
+              )
+                resultVal = tf.format(
+                  new Date(
+                    ShiftMath.calculateLogin(
+                      this.state.logoutEpoch,
+                      this.state.workSec,
+                      this.state.breakSec,
+                    ),
+                  ),
+                );
+              else if (
+                this.state.logoutSec !== null &&
+                this.state.workSec !== null
+              )
+                resultVal = secondsToAMPM(
+                  (this.state.logoutSec -
+                    this.state.workSec -
+                    this.state.breakSec +
+                    86400) %
+                    86400,
+                );
+            }
+          }
+
+          return { target, resultVal };
+        }
+
+        bindEvents() {
+          ["login", "logout", "work", "break"].forEach((field) => {
+            const el = this.els[field];
+            if (!el) return;
+
+            const wrapper = document.createElement("div");
+            wrapper.style.position = "relative";
+            wrapper.style.display = "flex";
+            wrapper.style.alignItems = "center";
+            el.parentNode.insertBefore(wrapper, el);
+            wrapper.appendChild(el);
+            el.style.paddingRight = "30px";
+
+            const pinBtn = document.createElement("button");
+            pinBtn.type = "button";
+            pinBtn.className = "field-pin-btn";
+            pinBtn.innerHTML = `<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 9.9-1"></path></svg>`;
+            pinBtn.title = "Pin this field";
+            pinBtn.tabIndex = -1;
+            pinBtn.onclick = (e) => {
+              e.preventDefault();
+              this.togglePin(field);
+            };
+            wrapper.appendChild(pinBtn);
+            this.els[`${field}Pin`] = pinBtn;
+
+            el.addEventListener("blur", () => {
+              const tooltip = DOM.appTooltip;
+              if (tooltip) tooltip.classList.remove("visible");
+
+              const rawVal = el.value.trim();
+              const wp = parseGoalTimeStr(rawVal);
+              const parsedTime =
+                field === "login" || field === "logout"
+                  ? parseClockTimeToSeconds(rawVal)
+                  : wp.hh * 3600 + wp.mm * 60 + wp.ss;
+              if (
+                modalStates[this.prefix].lastValue === parsedTime &&
+                parsedTime !== null
+              )
+                return;
+              this.solve();
+            });
+            el.addEventListener("focus", () => {
+              if (modalStates[this.prefix].last !== field) {
+                modalStates[this.prefix].prev = modalStates[this.prefix].last;
+                modalStates[this.prefix].last = field;
+              }
+              const rawVal = el.value.trim();
+              const wp = parseGoalTimeStr(rawVal);
+              modalStates[this.prefix].lastValue =
+                field === "login" || field === "logout"
+                  ? parseClockTimeToSeconds(rawVal)
+                  : wp.hh * 3600 + wp.mm * 60 + wp.ss;
+
+              if (!this.pinned.has(field)) {
+                this.els[field].dataset.origin = "user";
+              }
+            });
+            el.addEventListener("input", () => {
+              if (modalStates[this.prefix].last !== field) {
+                modalStates[this.prefix].prev = modalStates[this.prefix].last;
+                modalStates[this.prefix].last = field;
+              }
+              const sim = this.simulate();
+              const tooltip = DOM.appTooltip;
+              if (sim.target && sim.resultVal && tooltip) {
+                const targetEl = this.els[sim.target];
+                if (targetEl) {
+                  tooltip.innerHTML = `<div style="font-size: 0.65rem; color: var(--text-muted); margin-bottom: 2px;">Will auto-calculate to:</div><div class="font-mono" style="font-size: 0.85rem; font-weight: bold; color: var(--accent-blue);">${sim.resultVal}</div>`;
+                  const rect = targetEl.getBoundingClientRect();
+                  const tooltipWidth = 140;
+                  tooltip.style.left = `${Math.max(10, rect.left + window.scrollX + rect.width / 2 - tooltipWidth / 2)}px`;
+                  tooltip.style.top = `${rect.top + window.scrollY - 45}px`;
+                  tooltip.style.transformOrigin = "bottom center";
+                  tooltip.style.whiteSpace = "nowrap";
+                  tooltip.style.maxWidth = "none";
+                  tooltip.classList.add("visible");
+                }
+              } else if (tooltip) {
+                tooltip.classList.remove("visible");
+              }
+            });
+          });
+        }
       }
 
-      function getParsedTimeForField(field, rawVal) {
-        if (!rawVal) return null;
-        if (field === "login" || field === "logout") {
-          return parseClockTimeToSeconds(rawVal);
-        } else {
-          const wp = parseGoalTimeStr(rawVal);
-          return wp.hh * 3600 + wp.mm * 60 + wp.ss;
-        }
-      }
-
-      ["login", "logout", "work", "break"].forEach((field) => {
-        const manualEl = document.getElementById(`manual-${field}`);
-        const editEl = document.getElementById(`edit-${field}`);
-
-        if (manualEl) {
-          manualEl.addEventListener("blur", () => {
-            const rawVal = manualEl.value.trim();
-            const newVal = getParsedTimeForField(field, rawVal);
-            if (modalStates["manual"].lastValue === newVal && newVal !== null)
-              return;
-            syncModalFields("manual", field);
-          });
-          manualEl.addEventListener("focus", () => {
-            if (modalStates["manual"].last !== field) {
-              modalStates["manual"].prev = modalStates["manual"].last;
-              modalStates["manual"].last = field;
-            }
-            modalStates["manual"].lastValue = getParsedTimeForField(
-              field,
-              manualEl.value.trim(),
-            );
-          });
-        }
-        if (editEl) {
-          editEl.addEventListener("blur", () => {
-            const rawVal = editEl.value.trim();
-            const newVal = getParsedTimeForField(field, rawVal);
-            if (modalStates["edit"].lastValue === newVal && newVal !== null)
-              return;
-            syncModalFields("edit", field);
-          });
-          editEl.addEventListener("focus", () => {
-            if (modalStates["edit"].last !== field) {
-              modalStates["edit"].prev = modalStates["edit"].last;
-              modalStates["edit"].last = field;
-            }
-            modalStates["edit"].lastValue = getParsedTimeForField(
-              field,
-              editEl.value.trim(),
-            );
-          });
-        }
-      });
+      // Initialize globally
+      window.manualShiftController = new ShiftFieldsController("manual");
+      window.editShiftController = new ShiftFieldsController("edit");
 
       // Event listener for Manual Date Picker
       const manualDatePicker = DOM.manualDatePicker;
@@ -21263,6 +22132,7 @@
           clearTimeout(undoTimeout);
           // Defensive reference release to prevent stale restorations on manual dismissals
           lastStateBackup = null;
+          window.lastSubmittedLogId = null;
         }
       };
 
@@ -21746,7 +22616,10 @@
                 null,
                 "Auto-submitted (Page Load)",
                 state.activeDate,
-              );
+              ).catch((err) => {
+                console.error("initApp auto-submit failed:", err);
+                resetSession();
+              });
             } else {
               resetSession();
             }
@@ -21904,148 +22777,128 @@
           );
         }
 
-        // Fix missing IDs and hydrate legacy search strings on initial startup for imported/saved logs
-        let keysMutated = false;
-        cachedLogs.forEach((l) => {
-          if (!l.id) {
-            l.id =
-              "log_" +
-              Math.random().toString(36).substring(2, 11) +
-              Date.now().toString(36);
-            keysMutated = true;
-          }
-          if (!l.searchStr) {
-            l.searchStr =
-              `${l.displayDate || ""} ${l.date || ""} ${l.login || ""} ${l.logout || ""} ${l.notes || ""}`.toLowerCase();
-            keysMutated = true;
-          }
-          if (!l.status) {
-            const goal =
-              l.dayGoal != null && l.dayGoal > 0 ? l.dayGoal : 8 * 3600;
-            l.dayGoal = goal;
-            l.status = l.workSec >= goal ? "OVER" : "UNDER";
-            keysMutated = true;
-          }
-        });
-        if (keysMutated && isDatabaseHealthy) {
-          saveLogsToDB(cachedLogs);
-        }
+        async function completeStartup() {
+          cachedTodayDate = null;
+          updatePrimaryFormatter();
+          displayBaseDate = getPSTDateObj();
+          loadState();
+          await rebuildWeeklyCache();
 
-        // FIX 3 RECOVERY: Check if the emergency backup has a shift that IndexedDB missed due to rapid exit
-        if (isDatabaseHealthy) {
-          try {
-            const emergencyData = safeGetLocalStorage(
-              "production_logs_emergency_backup",
-            );
-            if (emergencyData) {
-              const emergencyLogs = JSON.parse(emergencyData);
-              if (emergencyLogs.length > 0) {
-                // Check if the most recent emergency log is missing from the main database
-                const latestEmergency = emergencyLogs[0];
-                const isMissing = !cachedLogs.find(
-                  (l) =>
-                    l.epochMs === latestEmergency.epochMs &&
-                    l.login === latestEmergency.login,
-                );
+          const logbookTab = DOM.tabLogbook;
+          if (logbookTab) {
+            cachedViewportHeight = logbookTab.clientHeight;
+          }
 
-                if (isMissing) {
-                  console.log("Recovered lost shift(s) from emergency backup!");
-                  // Combine them, filter duplicates using a Map, and restore
-                  const combined = [...emergencyLogs, ...cachedLogs];
-                  const uniqueMap = new Map();
-                  combined.forEach((l) => {
-                    const uniqueKey =
-                      l.id ||
-                      `${l.epochMs}_${l.login}_${l.logout}_${l.workSec}`;
-                    uniqueMap.set(uniqueKey, l);
-                  });
-                  cachedLogs = Array.from(uniqueMap.values());
+          acquireLease().then(() => {
+            if (
+              state.trackingMode === "intelligent" &&
+              state.currentMode !== null &&
+              !state.idleLock
+            ) {
+              const now = Date.now();
 
-                  // Sort chronologically and resave to the main database properly
-                  cachedLogs.sort((a, b) => b.epochMs - a.epochMs);
-                  saveLogsToDB(cachedLogs);
+              if (state.tabHiddenAt) {
+                if (now - state.tabHiddenAt > _cachedIdleThresholdMs) {
+                  triggerIdleLock(state.tabHiddenAt, "system");
+                }
+                delete state.tabHiddenAt;
+              }
+
+              if (!state.idleLock && state.lastHeartbeatWall) {
+                if (now - state.lastHeartbeatWall > _cachedIdleThresholdMs) {
+                  triggerIdleLock(state.lastHeartbeatWall, "system");
+                }
+              }
+
+              if (!state.idleLock && lastActivity) {
+                if (now - lastActivity > _cachedIdleThresholdMs) {
+                  triggerIdleLock(lastActivity, "inactivity");
                 }
               }
             }
-          } catch (e) {
-            console.warn("Emergency backup recovery failed", e);
-          }
-        }
 
-        cachedTodayDate = null;
-        rebuildWeeklyCache();
-        updatePrimaryFormatter();
-        displayBaseDate = getPSTDateObj();
-        loadState();
-
-        const logbookTab = DOM.tabLogbook;
-        if (logbookTab) {
-          cachedViewportHeight = logbookTab.clientHeight;
-        }
-
-        // Deterministically acquire our active lease before starting checks
-        await acquireLease();
-
-        // Persistent Heartbeat Check (Phase 1)
-        if (
-          state.trackingMode === "intelligent" &&
-          state.currentMode !== null &&
-          !state.idleLock
-        ) {
-          const now = Date.now();
-
-          if (state.tabHiddenAt) {
-            if (now - state.tabHiddenAt > _cachedIdleThresholdMs) {
-              triggerIdleLock(state.tabHiddenAt, "system");
+            if (state.idleLock) {
+              updateIdleModalLabels();
             }
-            delete state.tabHiddenAt;
-          }
 
-          if (!state.idleLock && state.lastHeartbeatWall) {
-            if (now - state.lastHeartbeatWall > _cachedIdleThresholdMs) {
-              triggerIdleLock(state.lastHeartbeatWall, "system");
+            loadSavedFilterViews();
+            loadActiveFilters();
+
+            initializeTickers();
+            renderStaticUI();
+            renderTimersOnly();
+            renderThemeToggle();
+            renderPresets();
+            syncSettingsUI();
+            initSettingsHoverHelp();
+
+            if (typeof triggerAutoSnapshot === "function") {
+              triggerAutoSnapshot();
+            }
+
+            autoPopulateDailyGoal(state.activeDate || getPSTDate());
+            startUITimer();
+          });
+        }
+
+        // Fix missing IDs and hydrate legacy search strings asynchronously to avoid blocking startup (Fix 1.3)
+        function hydrateLogsInChunks(logs, startIndex = 0) {
+          const chunkSize = 2000;
+          const endIndex = Math.min(logs.length, startIndex + chunkSize);
+          let mutated = false;
+
+          for (let i = startIndex; i < endIndex; i++) {
+            const l = logs[i];
+            if (!l.id) {
+              l.id =
+                "log_" +
+                Math.random().toString(36).substring(2, 11) +
+                Date.now().toString(36);
+              mutated = true;
+            }
+            if (!l.searchStr) {
+              l.searchStr =
+                `${l.displayDate || ""} ${l.date || ""} ${l.login || ""} ${l.logout || ""} ${l.notes || ""}`.toLowerCase();
+              mutated = true;
+            }
+            if (!l.status) {
+              const goal =
+                l.dayGoal != null && l.dayGoal > 0 ? l.dayGoal : 28800;
+              l.dayGoal = goal;
+              l.status = l.workSec >= goal ? "OVER" : "UNDER";
+              mutated = true;
             }
           }
 
-          if (!state.idleLock && lastActivity) {
-            if (now - lastActivity > _cachedIdleThresholdMs) {
-              triggerIdleLock(lastActivity, "inactivity");
+          if (endIndex < logs.length) {
+            if (window.requestIdleCallback) {
+              requestIdleCallback(() => hydrateLogsInChunks(logs, endIndex));
+            } else {
+              setTimeout(() => hydrateLogsInChunks(logs, endIndex), 0);
+            }
+          } else {
+            if (mutated && isDatabaseHealthy) {
+              saveLogsToDB(logs).then(() => {
+                completeStartup();
+              });
+            } else {
+              completeStartup();
             }
           }
         }
 
-        if (state.idleLock) {
-          updateIdleModalLabels();
+        if (cachedLogs.length > 0) {
+          hydrateLogsInChunks(cachedLogs);
+        } else {
+          completeStartup();
         }
-
-        loadSavedFilterViews();
-        loadActiveFilters();
-
-        initializeTickers();
-        renderStaticUI();
-        renderTimersOnly();
-        renderThemeToggle();
-        renderPresets();
-        syncSettingsUI();
-        initSettingsHoverHelp();
-
-        // Initialize failsafe database snapshot on startup
-        if (typeof triggerAutoSnapshot === "function") {
-          triggerAutoSnapshot();
-        }
-
-        autoPopulateDailyGoal(state.activeDate || getPSTDate());
-
-        // Synchronize delta tracking anchor on app launch
-        // Start the background Web Worker timer thread
-        startUITimer();
       })();
 
       /* ═══════════════════════════════════════════════════════════════════
- CUSTOM SELECT CONTROLLER
- Self-contained. Keeps hidden <select> in DOM so all existing JS
- logic (.value reads, .value sets, change listeners) works unchanged.
- ═══════════════════════════════════════════════════════════════════ */
+CUSTOM SELECT CONTROLLER
+Self-contained. Keeps hidden <select> in DOM so all existing JS
+logic (.value reads, .value sets, change listeners) works unchanged.
+═══════════════════════════════════════════════════════════════════ */
       (function initCustomSelects() {
         const nativeValueDesc = Object.getOwnPropertyDescriptor(
           HTMLSelectElement.prototype,
