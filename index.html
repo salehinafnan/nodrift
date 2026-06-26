@@ -10230,6 +10230,32 @@
           checkLeaseState();
         } else if (e.key === STATE_KEY) {
           loadState();
+        } else if (e.key === LEAVE_DATES_KEY) {
+          if (typeof renderLeaveDatesList === "function")
+            renderLeaveDatesList();
+          insightsCacheKey = null;
+          if (typeof renderInsights === "function") renderInsights();
+          if (typeof autoPopulateDailyGoal === "function")
+            autoPopulateDailyGoal(state.activeDate || getPSTDate());
+        } else if (e.key === GOAL_H_KEY || e.key === GOAL_M_KEY) {
+          const savedH = safeGetLocalStorage(GOAL_H_KEY, "8");
+          const savedM = safeGetLocalStorage(GOAL_M_KEY, "0");
+          if (DOM.goalHours)
+            DOM.goalHours.value = String(parseInt(savedH, 10) || 0).padStart(
+              2,
+              "0",
+            );
+          if (DOM.goalMins)
+            DOM.goalMins.value = String(parseInt(savedM, 10) || 0).padStart(
+              2,
+              "0",
+            );
+          if (typeof syncGoalTimeInput === "function") syncGoalTimeInput();
+          if (typeof updatePresetHighlights === "function")
+            updatePresetHighlights();
+          if (typeof renderTimersOnly === "function") renderTimersOnly();
+          insightsCacheKey = null;
+          if (typeof renderInsights === "function") renderInsights();
         }
       });
 
@@ -10905,34 +10931,15 @@
           triggerAutoSnapshot();
         }
 
-        // FIX 3: INSTANT SYNCHRONOUS EMERGENCY BACKUP
-        try {
-          localStorage.setItem(
-            "production_logs_emergency_backup",
-            JSON.stringify(logs),
-          );
-        } catch (e) {
-          console.warn("Emergency backup full write failed, truncating", e);
-          try {
-            localStorage.setItem(
-              "production_logs_emergency_backup",
-              JSON.stringify(logs.slice(0, 100)),
-            );
-          } catch (e2) {
-            window.storageWriteError = true;
-            showAppToast(
-              "⚠️ Storage full! Changes cannot be saved locally. Please export JSON.",
-            );
-          }
+        let capturedChunks = new Set(["ALL"]);
+        if (window.dirtyChunks && window.dirtyChunks.size > 0) {
+          capturedChunks = new Set(window.dirtyChunks);
         }
-
-        const capturedChunks = window.dirtyChunks
-          ? new Set(window.dirtyChunks)
-          : new Set(["ALL"]);
         if (window.dirtyChunks) window.dirtyChunks.clear();
 
+        const targetDataVersion = dataVersion;
+
         const taskPromise = _saveLogsQueue.then(async () => {
-          const targetDataVersion = dataVersion;
           try {
             await saveLogsToDB(logs, capturedChunks, targetDataVersion);
             tabSyncChannel.postMessage({
