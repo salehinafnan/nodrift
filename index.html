@@ -10103,40 +10103,51 @@
             };
 
             reqCheck.onsuccess = () => {
-              if (reqCheck.result && reqCheck.result.data) {
-                const oldLogs = reqCheck.result.data;
-                saveLogsToDB(oldLogs).then(() => {
-                  const txDel = db.transaction("logs", "readwrite");
-                  txDel.objectStore("logs").delete("all_logs");
-                });
-                done(oldLogs);
-              } else {
-                const txChunk = db.transaction("logs_chunked", "readonly");
-                const reqChunk = txChunk.objectStore("logs_chunked").getAll();
-                reqChunk.onsuccess = () => {
-                  if (reqChunk.result) {
-                    reqChunk.result.sort((a, b) =>
-                      b.chunkId.localeCompare(a.chunkId),
-                    );
-                    let allLogs = [];
-                    reqChunk.result.forEach((chunk) => {
-                      allLogs = allLogs.concat(chunk.data);
-                      _dbChunkHashes.set(
-                        chunk.chunkId,
-                        JSON.stringify(chunk.data),
-                      );
-                    });
-                    for (let i = 0; i < allLogs.length; i++)
-                      allLogs[i]._idx = i;
-                    done(allLogs);
-                  } else {
-                    done([]);
-                  }
-                };
-                reqChunk.onerror = () => {
-                  console.warn("Chunk read failed");
-                  done(null);
-                };
+              try {
+                if (reqCheck.result && reqCheck.result.data) {
+                  const oldLogs = reqCheck.result.data;
+                  saveLogsToDB(oldLogs).then(() => {
+                    const txDel = db.transaction("logs", "readwrite");
+                    txDel.objectStore("logs").delete("all_logs");
+                  });
+                  done(oldLogs);
+                } else {
+                  // Reuse txCheck — it was opened on ["logs", "logs_chunked"]
+                  // so logs_chunked is already accessible without a second transaction.
+                  const reqChunk = txCheck.objectStore("logs_chunked").getAll();
+                  reqChunk.onsuccess = () => {
+                    try {
+                      if (reqChunk.result) {
+                        reqChunk.result.sort((a, b) =>
+                          b.chunkId.localeCompare(a.chunkId),
+                        );
+                        let allLogs = [];
+                        reqChunk.result.forEach((chunk) => {
+                          allLogs = allLogs.concat(chunk.data);
+                          _dbChunkHashes.set(
+                            chunk.chunkId,
+                            JSON.stringify(chunk.data),
+                          );
+                        });
+                        for (let i = 0; i < allLogs.length; i++)
+                          allLogs[i]._idx = i;
+                        done(allLogs);
+                      } else {
+                        done([]);
+                      }
+                    } catch (innerErr) {
+                      console.warn("Chunk processing error:", innerErr);
+                      done(null);
+                    }
+                  };
+                  reqChunk.onerror = () => {
+                    console.warn("Chunk read failed");
+                    done(null);
+                  };
+                }
+              } catch (cbErr) {
+                console.warn("Load callback error:", cbErr);
+                done(null);
               }
             };
             reqCheck.onerror = () => {
