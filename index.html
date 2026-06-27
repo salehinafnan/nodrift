@@ -9962,6 +9962,7 @@
           reject(err);
         }
       });
+      dbPromise.catch(() => {});
 
       /**
        * Persists historical logs grouped into chronological chunk blocks.
@@ -9975,6 +9976,7 @@
         passedDataVersion = null,
       ) {
         if (targetChunks.size === 0) return Promise.resolve();
+        if (window.location.protocol === "file:") return Promise.resolve();
 
         try {
           const db = await dbPromise;
@@ -11605,6 +11607,7 @@
        * @param {Date} [nowDate=new Date(getTrueTime())] - Current target date instance.
        */
       function renderTimersOnly(nowDate = new Date(getTrueTime())) {
+        if (!primaryFormatter) return;
         const nowMs = nowDate.getTime();
         const workSeconds = pendingSubmitData
           ? pendingSubmitData.workSec
@@ -11781,6 +11784,8 @@
           document.hidden
         )
           return;
+
+        if (!displayBaseDate) return;
 
         const currentMinute = new Date(Date.now()).getMinutes();
         if (!force && currentMinute === lastWeeklyUpdateMinute) return;
