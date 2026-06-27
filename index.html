@@ -11607,7 +11607,6 @@
        * @param {Date} [nowDate=new Date(getTrueTime())] - Current target date instance.
        */
       function renderTimersOnly(nowDate = new Date(getTrueTime())) {
-        if (!primaryFormatter) return;
         const nowMs = nowDate.getTime();
         const workSeconds = pendingSubmitData
           ? pendingSubmitData.workSec
@@ -11733,6 +11732,7 @@
           }
           const tickSec = Math.floor(nowMs / 1000);
           if (tickSec !== _lastClockTickSec) {
+            if (!primaryFormatter) return;
             _lastClockTickSec = tickSec;
 
             const currentMin = nowDate.getMinutes();
@@ -22622,10 +22622,30 @@
               setTimeout(() => hydrateLogsInChunks(logs, endIndex), 0);
             }
           } else {
-            if (mutated && isDatabaseHealthy) {
-              saveLogsToDB(logs).then(() => {
+            if (mutated) {
+              if (isDatabaseHealthy && window.location.protocol !== "file:") {
+                saveLogsToDB(logs)
+                  .then(() => {
+                    completeStartup();
+                  })
+                  .catch((err) => {
+                    console.warn(
+                      "Hydration save failed, proceeding to boot:",
+                      err,
+                    );
+                    completeStartup();
+                  });
+              } else {
+                try {
+                  localStorage.setItem(
+                    "production_logs_emergency_backup",
+                    JSON.stringify(logs),
+                  );
+                } catch (e) {
+                  console.warn("Local fallback hydration save failed", e);
+                }
                 completeStartup();
-              });
+              }
             } else {
               completeStartup();
             }
