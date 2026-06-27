@@ -9954,6 +9954,10 @@
           };
           request.onsuccess = () => resolve(request.result);
           request.onerror = () => reject(request.error);
+          request.onblocked = () => {
+            console.warn("IndexedDB open blocked by another tab.");
+            reject(new Error("IndexedDB blocked by another connection."));
+          };
         } catch (err) {
           reject(err);
         }
@@ -10093,6 +10097,10 @@
               "readonly",
             );
             const reqCheck = txCheck.objectStore("logs").get("all_logs");
+            txCheck.onabort = () => {
+              console.warn("Load transaction aborted:", txCheck.error);
+              done(null);
+            };
 
             reqCheck.onsuccess = () => {
               if (reqCheck.result && reqCheck.result.data) {
