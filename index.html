@@ -15843,11 +15843,15 @@
         }
 
         let currentStreak = 0;
-        const streakDate = new Date(today);
+        const streakDate =
+          typeof getPSTDateObj === "function" ? getPSTDateObj() : new Date();
+        streakDate.setUTCHours(12, 0, 0, 0);
         for (let i = 0; i <= 364; i++) {
-          streakDate.setTime(today.getTime() - i * 86400000);
-          const dateKey = `${String(streakDate.getMonth() + 1).padStart(2, "0")}/${String(streakDate.getDate()).padStart(2, "0")}/${String(streakDate.getFullYear()).slice(-2)}`;
+          const dateKey = `${String(streakDate.getUTCMonth() + 1).padStart(2, "0")}/${String(streakDate.getUTCDate()).padStart(2, "0")}/${String(streakDate.getUTCFullYear()).slice(-2)}`;
           const data = heatmapMap[dateKey];
+          const dayOfWeek = streakDate.getUTCDay();
+          const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+
           if (
             data &&
             (data.isLeave || (data.w > 0 && data.w >= data.goal * 0.8))
@@ -15855,9 +15859,12 @@
             currentStreak++;
           } else if (i === 0 && (!data || data.w === 0)) {
             // Skip today if empty
+          } else if (isWeekend) {
+            // Skip weekends if goal not met, keeping streak alive
           } else {
             break;
           }
+          streakDate.setUTCDate(streakDate.getUTCDate() - 1);
         }
         if (streakEl) streakEl.innerText = `${currentStreak} Day Streak`;
 
