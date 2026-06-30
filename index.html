@@ -20011,6 +20011,14 @@
                       const day1WorkSec = 86400 - startSecVal;
                       const day2WorkSec = endSecVal - 86400;
 
+                      let actualLogin1 =
+                        typeof getEpochFromDateTimeString === "function"
+                          ? getEpochFromDateTimeString(parsedDateStr, loginStr)
+                          : null;
+                      if (!actualLogin1)
+                        actualLogin1 = midnightEpochMs + startSecVal * 1000;
+                      const actualLogout1 = actualLogin1 + day1WorkSec * 1000;
+
                       const diff1 = day1WorkSec - goal;
                       entriesToInsert.push({
                         id:
@@ -20022,8 +20030,8 @@
                         epochMs: epochMs,
                         login: loginStr,
                         logout: "11:59:59 PM",
-                        loginEpochMs: midnightEpochMs + startSecVal * 1000,
-                        logoutEpochMs: midnightEpochMs + 86399000,
+                        loginEpochMs: actualLogin1,
+                        logoutEpochMs: actualLogout1,
                         workSec: day1WorkSec,
                         breakSec: 0,
                         notes: cleanNotes + " (Part 1)",
@@ -20046,6 +20054,9 @@
                       const nextDateStr = `${String(nextDate.getUTCMonth() + 1).padStart(2, "0")}/${String(nextDate.getUTCDate()).padStart(2, "0")}/${String(nextDate.getUTCFullYear()).slice(-2)}`;
                       const nextEpochMs = epochMs + 86400000;
 
+                      const actualLogin2 = actualLogout1 + 1000;
+                      const actualLogout2 = actualLogin2 + day2WorkSec * 1000;
+
                       const diff2 = day2WorkSec - goal;
                       entriesToInsert.push({
                         id:
@@ -20057,8 +20068,8 @@
                         epochMs: nextEpochMs,
                         login: "12:00:00 AM",
                         logout: logoutStr,
-                        loginEpochMs: midnightEpochMs + 86400000,
-                        logoutEpochMs: midnightEpochMs + endSecVal * 1000,
+                        loginEpochMs: actualLogin2,
+                        logoutEpochMs: actualLogout2,
                         workSec: day2WorkSec,
                         breakSec: 0,
                         notes: cleanNotes + " (Part 2)",
@@ -20080,8 +20091,17 @@
                       let actualLoginEpoch = epochMs;
                       let actualLogoutEpoch = epochMs + workSec * 1000;
                       if (startSecVal !== null) {
-                        actualLoginEpoch = midnightEpochMs + startSecVal * 1000;
-                        actualLogoutEpoch = midnightEpochMs + endSecVal * 1000;
+                        let parsedLogin =
+                          typeof getEpochFromDateTimeString === "function"
+                            ? getEpochFromDateTimeString(
+                                parsedDateStr,
+                                loginStr,
+                              )
+                            : null;
+                        if (!parsedLogin)
+                          parsedLogin = midnightEpochMs + startSecVal * 1000;
+                        actualLoginEpoch = parsedLogin;
+                        actualLogoutEpoch = actualLoginEpoch + workSec * 1000;
                       }
 
                       const diff = workSec - goal;
@@ -24597,7 +24617,10 @@
             .getElementById("cdp-today")
             .addEventListener("click", (e) => {
               e.stopPropagation();
-              const d = new Date();
+              const d =
+                typeof getPSTDateObj === "function"
+                  ? getPSTDateObj()
+                  : new Date();
               selectDate(
                 `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`,
               );
