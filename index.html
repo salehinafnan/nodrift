@@ -15524,7 +15524,8 @@
         window.todayBaseWorkSec = todayBaseData ? todayBaseData.w : 0;
         window.todayBaseBreakSec = todayBaseData ? todayBaseData.b : 0;
 
-        const today = new Date();
+        const today =
+          typeof getPSTDateObj === "function" ? getPSTDateObj() : new Date();
         const systemYear = today.getFullYear();
 
         if (typeof window.heatmapSelectedYearVal === "undefined") {
@@ -24632,10 +24633,14 @@
       const CustomDatePicker = (function () {
         let popup = null;
         let targetId = null;
-        let currentMonth = new Date(); // tracks the viewed month
+        let currentMonth =
+          typeof getPSTDateObj === "function" ? getPSTDateObj() : new Date(); // tracks the viewed month
 
         function parseDateString(str) {
-          if (!str) return new Date();
+          if (!str)
+            return typeof getPSTDateObj === "function"
+              ? getPSTDateObj()
+              : new Date();
           str = str.trim();
           let isoMatch = str.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
           if (isoMatch) {
@@ -24651,7 +24656,9 @@
             if (year < 100) year += 2000;
             return new Date(year, parseInt(slashMatch[1], 10) - 1, 1);
           }
-          return new Date();
+          return typeof getPSTDateObj === "function"
+            ? getPSTDateObj()
+            : new Date();
         }
 
         function init() {
@@ -24746,7 +24753,8 @@
           const firstDay = new Date(year, month, 1).getDay();
           const daysInMonth = new Date(year, month + 1, 0).getDate();
 
-          const today = new Date();
+          const today =
+            typeof getPSTDateObj === "function" ? getPSTDateObj() : new Date();
           const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
 
           const input = document.getElementById(targetId);
@@ -24815,7 +24823,10 @@
               currentMonth = parseDateString(input.value);
               currentMonth.setDate(1);
             } else {
-              currentMonth = new Date();
+              currentMonth =
+                typeof getPSTDateObj === "function"
+                  ? getPSTDateObj()
+                  : new Date();
               currentMonth.setDate(1);
             }
             render();
