@@ -1264,7 +1264,7 @@
         background: var(--panel-bg);
         border: 1px solid var(--border-main);
         color: var(--text-main);
-        font-size: 0.65rem;
+        font-size: 0.55rem;
         font-weight: 500;
         padding: 2px 6px;
         border-radius: var(--radius-sm);
@@ -1313,59 +1313,86 @@
       }
 
       /* Globalized Tooltip Content Styling */
+      .tooltip-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        border-bottom: 1px solid var(--border-light);
+        padding-bottom: 4px;
+        margin-bottom: 6px;
+      }
+
       .tooltip-title {
         font-weight: 700;
         color: var(--text-main);
-        border-bottom: 1px solid var(--border-light);
-        padding-bottom: 6px;
-        margin-bottom: 6px;
-        font-size: 0.75rem;
+        font-size: 0.65rem;
+        white-space: nowrap;
+      }
+
+      .tooltip-time {
+        font-size: 0.55rem;
+        color: var(--text-muted);
+        opacity: 0.85;
+        white-space: nowrap;
       }
 
       .tooltip-leave {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding-bottom: 2px;
+      }
+
+      .tooltip-leave-text {
+        font-size: 0.55rem;
         color: var(--text-muted);
-        font-size: 0.7rem;
+      }
+
+      .tooltip-empty {
+        font-size: 0.55rem;
+        color: var(--text-muted);
+        text-align: center;
+        padding: 4px 0;
       }
 
       .tooltip-grid {
-        display: grid;
-        grid-template-columns: auto 1fr;
-        gap: 4px 12px;
-        align-items: center;
-        font-size: 0.7rem;
-      }
-
-      .tooltip-label {
-        color: var(--text-muted);
         display: flex;
+        flex-direction: column;
+        gap: 6px;
+        margin-bottom: 6px;
+        font-size: 0.55rem;
+        font-family: var(--font-sans);
+        font-variant-numeric: tabular-nums;
+        font-feature-settings: "tnum" 1;
+        white-space: nowrap;
+      }
+
+      .tooltip-row {
+        display: flex;
+        justify-content: space-between;
         align-items: center;
       }
 
-      .tooltip-badge {
-        width: 14px;
-        height: 14px;
-        font-size: 0.55rem;
-        margin-right: 6px;
+      .tooltip-metric {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
       }
 
-      .tooltip-value {
-        text-align: right;
+      .tooltip-metric-val {
         color: var(--text-main);
         font-weight: 600;
       }
 
-      .tooltip-value.muted {
-        color: var(--text-muted);
-      }
-
       .tooltip-progress-track {
-        margin-top: 10px;
-        margin-bottom: 4px;
+        width: 100%;
         height: 4px;
         background: var(--track-bg);
         border-radius: 2px;
         overflow: hidden;
         display: flex;
+        margin-bottom: 6px;
       }
 
       .tooltip-progress-fill {
@@ -1380,20 +1407,17 @@
         background: var(--accent-blue);
       }
 
-      .tooltip-footer-goal {
-        text-align: right;
-        font-size: 0.6rem;
-        color: var(--text-muted);
-        margin-bottom: 4px;
-      }
-
       .tooltip-notes {
-        border-top: 1px solid var(--border-light);
-        padding-top: 6px;
-        margin-top: 6px;
+        font-size: 0.55rem;
         color: var(--text-muted);
-        font-size: 0.65rem;
-        line-height: 1.4;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        border-top: 1px solid var(--border-light);
+        padding-top: 4px;
+        display: flex;
+        align-items: center;
+        gap: 4px;
       }
 
       /* Heatmap Tooltip Classes */
@@ -1409,7 +1433,7 @@
       }
 
       .hm-tooltip-date {
-        font-size: 0.65rem;
+        font-size: 0.55rem;
         opacity: 0.6;
       }
 
@@ -1424,11 +1448,11 @@
         font-family: var(--font-sans);
         margin-left: 0;
         padding: 1px 5px;
-        font-size: 0.6rem;
+        font-size: 0.52rem;
       }
 
       .hm-tooltip-sublabel {
-        font-size: 0.62rem;
+        font-size: 0.52rem;
         color: var(--text-muted);
         margin-bottom: 2px;
       }
@@ -1436,7 +1460,7 @@
       .hm-tooltip-stats {
         display: flex;
         gap: var(--space-3);
-        font-size: 0.68rem;
+        font-size: 0.58rem;
         margin-bottom: 2px;
       }
 
@@ -1448,7 +1472,7 @@
       .hm-tooltip-badge {
         width: 14px;
         height: 14px;
-        font-size: 0.55rem;
+        font-size: 0.45rem;
       }
 
       .hm-tooltip-stat-val {
@@ -1459,7 +1483,7 @@
 
       .hm-tooltip-empty {
         color: var(--text-muted);
-        font-size: 0.72rem;
+        font-size: 0.62rem;
         text-align: center;
         padding: 4px 0;
       }
@@ -1468,7 +1492,7 @@
         display: flex;
         justify-content: space-between;
         align-items: center;
-        font-size: 0.65rem;
+        font-size: 0.55rem;
         color: var(--text-muted);
         margin-bottom: 4px;
       }
@@ -1477,7 +1501,7 @@
         display: flex;
         flex-direction: column;
         gap: 2px;
-        font-size: 0.68rem;
+        font-size: 0.58rem;
         margin-bottom: 4px;
         border-bottom: 1px solid var(--border-main);
         padding-bottom: 4px;
@@ -1493,7 +1517,7 @@
         display: flex;
         flex-direction: column;
         gap: 3px;
-        font-size: 0.65rem;
+        font-size: 0.55rem;
         color: var(--text-muted);
         margin-bottom: 2px;
       }
@@ -1517,7 +1541,7 @@
 
       .hm-tooltip-notes {
         color: var(--text-muted);
-        font-size: 0.62rem;
+        font-size: 0.52rem;
         white-space: normal;
         word-break: break-word;
         border-top: 1px solid var(--border-main);
@@ -7032,7 +7056,7 @@
             border-radius: 8px;
             padding: 8px 12px;
             color: var(--text-main);
-            font-size: 0.72rem;
+            font-size: 0.62rem;
             box-shadow: var(--global-shadow);
             z-index: var(--z-overlay);
             pointer-events: none;
@@ -9510,27 +9534,13 @@
 
         let dynamicGoalSec = 0;
         let leaveDays = 0;
-        const liveGoalSec =
-          typeof getGoalSeconds === "function" && DOM.goalHours
-            ? getGoalSeconds(DOM.goalHours.value, DOM.goalMins.value)
-            : 28800;
-        const baselineDailyGoalSec =
-          state.goalAutopopulateEnabled !== false ? 28800 : liveGoalSec;
 
         for (let i = 0; i < weekdayDateStrs.length; i++) {
           const dateStr = weekdayDateStrs[i];
           if (isVacationDate(dateStr)) {
             leaveDays++;
           } else {
-            if (
-              state.goalAutopopulateEnabled === false &&
-              dailyAnchorMap &&
-              dailyAnchorMap.has(dateStr)
-            ) {
-              dynamicGoalSec += dailyAnchorMap.get(dateStr);
-            } else {
-              dynamicGoalSec += baselineDailyGoalSec;
-            }
+            dynamicGoalSec += resolveGoalSecForDate(dateStr);
           }
         }
 
@@ -10188,6 +10198,31 @@
       let monthlyCache = new Map();
       let yearlyCache = new Map();
       let dailyAnchorMap = new Map(); // DateString -> GoalSeconds
+
+      function resolveGoalSecForDate(dateStr) {
+        const todayStr = typeof getPSTDate === "function" ? getPSTDate() : "";
+        const isToday = dateStr === todayStr;
+        const liveGoalSec =
+          typeof getGoalSeconds === "function" && DOM.goalHours
+            ? getGoalSeconds(DOM.goalHours.value, DOM.goalMins.value)
+            : 28800;
+
+        let fallbackGoal;
+        if (isToday) {
+          fallbackGoal =
+            state.loginTimestamp && state.shiftStartGoalSec
+              ? state.shiftStartGoalSec
+              : liveGoalSec;
+        } else {
+          fallbackGoal =
+            state.goalAutopopulateEnabled !== false ? 28800 : liveGoalSec;
+        }
+
+        return typeof dailyAnchorMap !== "undefined" &&
+          dailyAnchorMap.has(dateStr)
+          ? dailyAnchorMap.get(dateStr)
+          : fallbackGoal;
+      }
       let filterCache = null; // Memoized result of getFilteredLogs()
       let filterCacheKey = null; // Serialized filter state for cache invalidation
       let insightsCacheKey = null; // Force invalidate insights cache immediately to prevent race conditions
@@ -12008,16 +12043,7 @@
         if (state.goalAutopopulateEnabled === false) return;
 
         // If a shift is actively running and has a snapshotted goal, lock the UI to that goal
-        // to prevent background recalculations from overwriting the active session target.
-        if (state.loginTimestamp && state.shiftStartGoalSec) {
-          const h = Math.floor(state.shiftStartGoalSec / 3600);
-          const m = Math.floor((state.shiftStartGoalSec % 3600) / 60);
-          DOM.goalHours.value = String(h).padStart(2, "0");
-          DOM.goalMins.value = String(m).padStart(2, "0");
-          syncGoalTimeInput();
-          updatePresetHighlights();
-          return;
-        }
+        // (Removed in V12: manual edits handle this natively via goalAutopopulateEnabled = false)
 
         const logs = getLogs();
         // If there is already a logged shift for this date, calculate the intra-day remaining deficit
@@ -12131,6 +12157,11 @@
         syncGoalTimeInput();
         updatePresetHighlights();
         renderTimersOnly();
+
+        // System-level sync for midnight rollovers
+        if (state.loginTimestamp) {
+          state.shiftStartGoalSec = targetH * 3600 + targetM * 60;
+        }
       }
 
       // Inactivity tracker helper
@@ -12528,10 +12559,37 @@
             (window.todayBaseBreakSec || 0) + getCurrentBreakSeconds();
           const tWorkEl = document.getElementById("tooltip-work-val");
           const tBreakEl = document.getElementById("tooltip-break-val");
-          if (tWorkEl)
-            tWorkEl.textContent = formatFriendlyDuration(liveTodayWork);
-          if (tBreakEl)
-            tBreakEl.textContent = formatFriendlyDuration(liveTodayBreak);
+          if (tWorkEl) tWorkEl.textContent = formatDuration(liveTodayWork);
+          if (tBreakEl) tBreakEl.textContent = formatDuration(liveTodayBreak);
+
+          const tVarVal = document.getElementById("tooltip-variance-val");
+          const tVarBadge = document.getElementById("tooltip-variance-badge");
+          const tProgFill = document.getElementById("tooltip-progress-fill");
+
+          if (tVarVal && tVarBadge && tProgFill) {
+            const goalSec = window.tooltipCurrentGoalSec || 28800;
+            const diffSec = liveTodayWork - goalSec;
+            const isOver = diffSec >= 0;
+            const progressPercent =
+              goalSec > 0 ? Math.min((liveTodayWork / goalSec) * 100, 100) : 0;
+            const isGoalMet = liveTodayWork >= goalSec && goalSec > 0;
+
+            tVarVal.textContent = formatDuration(Math.abs(diffSec));
+            const newStatus = isOver ? "O" : "U";
+            if (tVarBadge.textContent !== newStatus) {
+              tVarBadge.textContent = newStatus;
+              tVarBadge.className = isOver
+                ? "badge badge-over"
+                : "badge badge-under";
+            }
+            tProgFill.style.width = progressPercent + "%";
+            const newClass = isGoalMet
+              ? "tooltip-progress-fill met"
+              : "tooltip-progress-fill unmet";
+            if (tProgFill.className !== newClass) {
+              tProgFill.className = newClass;
+            }
+          }
         }
 
         if (!document.hidden) {
@@ -12762,14 +12820,7 @@
               reusableDate.setUTCDate(mondayUTC.getUTCDate() + i);
               const dateStr = `${String(reusableDate.getUTCMonth() + 1).padStart(2, "0")}/${String(reusableDate.getUTCDate()).padStart(2, "0")}/${reusableDate.getUTCFullYear().toString().slice(-2)}`;
               if (!isVacationDate(dateStr)) {
-                if (
-                  state.goalAutopopulateEnabled === false &&
-                  dailyAnchorMap.has(dateStr)
-                ) {
-                  expectedSecSoFar += dailyAnchorMap.get(dateStr);
-                } else {
-                  expectedSecSoFar += baselineDailyGoalSec;
-                }
+                expectedSecSoFar += resolveGoalSecForDate(dateStr);
               }
             }
           }
@@ -13888,66 +13939,107 @@
           });
         }
 
-        let content = `<div class="tooltip-title">${formattedDate}</div>`;
-
-        if (isLeave) {
-          content += `<div class="tooltip-leave">Leave / Vacation</div>`;
-        } else {
-          const todayStr = typeof getPSTDate === "function" ? getPSTDate() : "";
-          const isToday = dateStr === todayStr;
-          const isEmptyDay =
-            workSec === 0 &&
-            breakSec === 0 &&
-            (!isToday || !state.loginTimestamp);
-
-          if (isEmptyDay) {
-            content += `
-            <div class="tooltip-grid">
-              <span class="tooltip-label">
-                <span class="badge badge-w tooltip-badge">W</span>Work
-              </span>
-              <span class="font-mono tooltip-value muted">—</span>
-
-              <span class="tooltip-label">
-                <span class="badge badge-b tooltip-badge">B</span>Break
-              </span>
-              <span class="font-mono tooltip-value muted">—</span>
-            </div>`;
-          } else {
-            const progressPercent =
-              goalSec > 0 ? Math.min((workSec / goalSec) * 100, 100) : 0;
-            const isGoalMet = workSec >= goalSec && goalSec > 0;
-            const diffSec = workSec - goalSec;
-            const absDiffSec = Math.abs(diffSec);
-            const varianceStr = formatFriendlyDuration(absDiffSec, "0m");
-            const statusLetter = diffSec >= 0 ? "O" : "U";
-            const badgeClass = diffSec >= 0 ? "badge-over" : "badge-under";
-
-            content += `
-            <div class="tooltip-grid">
-              <span class="tooltip-label">
-                <span class="badge badge-w tooltip-badge">W</span>Work
-              </span>
-              <span class="font-mono tooltip-value">${formatDuration(workSec)}</span>
-
-              <span class="tooltip-label">
-                <span class="badge badge-b tooltip-badge">B</span>Break
-              </span>
-              <span class="font-mono tooltip-value">${formatDuration(breakSec)}</span>
-              
-              <span class="tooltip-label">
-                <span class="badge ${badgeClass} tooltip-badge">${statusLetter}</span>Variance
-              </span>
-              <span class="font-mono tooltip-value">${diffSec >= 0 ? "+" : "-"}${varianceStr}</span>
-            </div>
-            
-            <div class="tooltip-progress-track">
-              <div class="tooltip-progress-fill ${isGoalMet ? "met" : "unmet"}" style="width: ${progressPercent}%;"></div>
-            </div>
-            <div class="tooltip-footer-goal">
-              Goal: <span class="font-mono">${formatDuration(goalSec)}</span>
-            </div>`;
+        const allLogs = typeof getLogs === "function" ? getLogs() : [];
+        const dayLogs = allLogs.filter((l) => l.date === dateStr);
+        let loginStr = "—";
+        let logoutStr = "—";
+        let loginMin = null;
+        let logoutMin = null;
+        dayLogs.forEach((l) => {
+          const lMin = parseTimeToMinutes(l.login);
+          const oMin = parseTimeToMinutes(l.logout);
+          if (lMin !== null && (loginMin === null || lMin < loginMin)) {
+            loginMin = lMin;
+            loginStr = l.login;
           }
+          if (oMin !== null && (logoutMin === null || oMin > logoutMin)) {
+            logoutMin = oMin;
+            logoutStr = l.logout;
+          }
+        });
+        const todayStr = typeof getPSTDate === "function" ? getPSTDate() : "";
+        if (dateStr === todayStr && state.loginTimestamp) {
+          const todayLoginStr = loginFormatter.format(
+            new Date(state.loginTimestamp),
+          );
+          if (loginStr === "—") loginStr = todayLoginStr;
+          if (state.currentMode === "work") logoutStr = "Active";
+          else if (state.currentMode === "break") logoutStr = "Break";
+          else logoutStr = "Paused";
+        }
+
+        const leaves =
+          typeof getLeaveDates === "function" ? getLeaveDates() : [];
+        const leaveRecord = leaves.find(
+          (l) => (typeof l === "string" ? l : l.date) === dateStr,
+        );
+        const isLeaveDay = !!leaveRecord;
+        let leaveType = "Leave";
+        let leaveBadgeClass = "badge-leave";
+        if (leaveRecord && typeof leaveRecord !== "string") {
+          leaveType = leaveRecord.type || "Leave";
+          if (leaveType === "Sick") leaveBadgeClass = "badge-leave-sick";
+          if (leaveType === "Casual") leaveBadgeClass = "badge-leave-casual";
+          if (leaveType === "Public Holiday")
+            leaveBadgeClass = "badge-leave-holiday";
+        }
+
+        const progressPercent =
+          goalSec > 0 ? Math.min((workSec / goalSec) * 100, 100) : 0;
+        const isGoalMet = workSec >= goalSec && goalSec > 0;
+        const diffSec = workSec - goalSec;
+        const varianceStr = formatDuration(Math.abs(diffSec));
+        const statusLetter = diffSec >= 0 ? "O" : "U";
+        const badgeClass = diffSec >= 0 ? "badge-over" : "badge-under";
+        const cleanTime = (str) =>
+          !str || str === "—" ? "—" : str.replace(/:(\d{2}):\d{2}/, ":$1");
+        const timeSpan =
+          loginStr !== "—" || logoutStr !== "—"
+            ? `<span class="tooltip-time">${cleanTime(loginStr)} - ${cleanTime(logoutStr)}</span>`
+            : "";
+
+        let content = `
+        <div class="tooltip-header">
+          <span class="tooltip-title">${formattedDate}</span>
+          ${timeSpan}
+        </div>
+      `;
+
+        if (isLeaveDay) {
+          content += `
+        <div class="tooltip-leave">
+          <span class="badge ${leaveBadgeClass}" style="margin: 0;">${leaveType}</span>
+          ${workSec > 0 ? `<span class="tooltip-leave-text">Worked: ${formatDuration(workSec)}</span>` : ""}
+        </div>`;
+        } else if (
+          workSec === 0 &&
+          breakSec === 0 &&
+          (!state.loginTimestamp || dateStr !== todayStr)
+        ) {
+          content += `<div class="tooltip-empty">No Activity</div>`;
+        } else {
+          content += `
+        <div class="tooltip-grid">
+          <div class="tooltip-row">
+            <span class="tooltip-metric"><span class="badge badge-w">W</span> <span class="tooltip-metric-val" id="tooltip-work-val">${formatDuration(workSec)}</span></span>
+            <span class="tooltip-metric"><span class="badge badge-b">B</span> <span class="tooltip-metric-val" id="tooltip-break-val">${formatDuration(breakSec)}</span></span>
+          </div>
+          <div class="tooltip-row">
+            <span class="tooltip-metric"><span class="badge ${badgeClass}" id="tooltip-variance-badge">${statusLetter}</span> <span class="tooltip-metric-val" id="tooltip-variance-val">${varianceStr}</span></span>
+            <span class="tooltip-metric"><span class="badge badge-f">G</span> <span class="tooltip-metric-val">${formatDuration(goalSec)}</span></span>
+          </div>
+        </div>
+        <div class="tooltip-progress-track">
+          <div id="tooltip-progress-fill" class="tooltip-progress-fill ${isGoalMet ? "met" : "unmet"}" style="width: ${progressPercent}%;"></div>
+        </div>`;
+        }
+
+        if (notes && notes.trim() && notes !== "No notes logged") {
+          content += `
+        <div class="tooltip-notes">
+          <svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;">${getSprite("sprite-043")}</svg>
+          <span style="overflow: hidden; text-overflow: ellipsis;">${escapeHTML(notes)}</span>
+        </div>`;
         }
         return content;
       }
@@ -14020,6 +14112,16 @@
           const goalSec = parseFloat(progressTarget.dataset.goal) || 0;
           const notes = progressTarget.dataset.notes || "";
 
+          const todayStr = typeof getPSTDate === "function" ? getPSTDate() : "";
+          if (dateStr === todayStr) {
+            window.isHoveringTodayHeatmap = true;
+            window.todayBaseWorkSec = workSec - getCurrentWorkSeconds();
+            window.todayBaseBreakSec = breakSec - getCurrentBreakSeconds();
+            window.tooltipCurrentGoalSec = goalSec;
+          } else {
+            window.isHoveringTodayHeatmap = false;
+          }
+
           tooltip.innerHTML = buildProgressTooltipHTML(
             dateStr,
             workSec,
@@ -14087,6 +14189,7 @@
             '[data-title], .progress-segment, button[data-action="view-note"]',
           );
           if (!nextOwner) {
+            window.isHoveringTodayHeatmap = false;
             tooltip.classList.remove("visible");
             resetTooltipStyles(tooltip);
             if (globalTooltipTimeout) {
@@ -15194,10 +15297,6 @@
           totalB += l.breakSec || 0;
           if (l.notes) notesList.push(l.notes);
 
-          if (l.dayGoal && firstGoalSec === null) {
-            firstGoalSec = l.dayGoal;
-          }
-
           const logLoginMin = parseTimeToMinutes(l.login);
           const logLogoutMin = parseTimeToMinutes(l.logout);
           if (logLoginMin !== null) {
@@ -15248,121 +15347,16 @@
         ];
         const dayName = dayNames[dObj.getUTCDay()];
 
-        const liveGoalSec = getGoalSeconds(
-          DOM.goalHours.value,
-          DOM.goalMins.value,
+        const goalSec = resolveGoalSecForDate(dateKey);
+
+        tooltip.innerHTML = buildProgressTooltipHTML(
+          dateKey,
+          totalW,
+          totalB,
+          !!leaveRecord,
+          goalSec,
+          notesList.join(" | "),
         );
-        const goalSec = firstGoalSec !== null ? firstGoalSec : liveGoalSec;
-
-        const diffSec = totalW - goalSec;
-        const isOver = diffSec >= 0;
-        const absDiffSec = Math.abs(diffSec);
-        const diffH = Math.floor(absDiffSec / 3600);
-        const diffM = Math.floor((absDiffSec % 3600) / 60);
-        const varianceStr = `${diffH}h ${diffM}m`;
-
-        const statusLetter = isOver ? "O" : "U";
-        const badgeClass = isOver ? "badge-over" : "badge-under";
-        const textClass = isOver ? "text-work" : "text-warning";
-
-        const focusVal =
-          totalW + totalB > 0
-            ? Math.min(100, Math.round((totalW / (totalW + totalB)) * 100))
-            : 0;
-        const focusText = focusVal > 0 ? `${focusVal}%` : "—";
-
-        let html = "";
-        const cleanTimeDisplay = (str) => {
-          if (!str) return "—";
-          return str.replace(/:(\d{2}):\d{2}/, ":$1"); // Removes seconds
-        };
-
-        const displayLogin = escapeHTML(cleanTimeDisplay(loginStr));
-        const displayLogout = escapeHTML(cleanTimeDisplay(logoutStr));
-        const hasTimes =
-          (loginStr && loginStr !== "—") || (logoutStr && logoutStr !== "—");
-
-        if (leaveRecord) {
-          const leaveType = escapeHTML(leaveRecord.type || "Leave");
-          let leaveBadgeClass = "badge-leave";
-          if (leaveType === "Sick") leaveBadgeClass = "badge-leave-sick";
-          if (leaveType === "Casual") leaveBadgeClass = "badge-leave-casual";
-          if (leaveType === "Public Holiday")
-            leaveBadgeClass = "badge-leave-holiday";
-
-          html = `
-          <div class="hm-tooltip-header">
-            <span>${dayName}</span>
-            <span class="hm-tooltip-date">${dateKey}</span>
-          </div>
-          <div class="hm-tooltip-row">
-            <span class="badge ${leaveBadgeClass} hm-tooltip-badge-leave">${leaveType} Leave</span>
-          </div>
-          ${
-            totalW > 0
-              ? `
-          <div class="hm-tooltip-sublabel">Worked on Leave Day:</div>
-          <div class="font-mono hm-tooltip-stats">
-            <span class="hm-tooltip-stat">
-              <span class="badge badge-w hm-tooltip-badge">W</span> <span class="hm-tooltip-stat-val">${formatFriendlyDuration(totalW)}</span>
-            </span>
-          </div>
-          `
-              : ""
-          }
-        `;
-        } else if (totalW === 0 && totalB === 0 && !isActiveToday) {
-          html = `
-          <div class="hm-tooltip-header">
-            <span>${dayName}</span>
-            <span class="hm-tooltip-date">${dateKey}</span>
-          </div>
-          <div class="hm-tooltip-empty">No Activity</div>
-        `;
-        } else {
-          html = `
-          <div class="hm-tooltip-header">
-            <span>${dayName}</span>
-            <span class="hm-tooltip-date">${dateKey}</span>
-          </div>
-          ${hasTimes ? `<div class="hm-tooltip-meta"><span>${displayLogin} - ${displayLogout}</span></div>` : ""}
-          <div class="font-mono hm-tooltip-mono-row">
-            <div class="hm-tooltip-mono-flex">
-              <span class="hm-tooltip-stat">
-                <span class="badge badge-w hm-tooltip-badge">W</span> <span class="hm-tooltip-stat-val" id="tooltip-work-val">${formatFriendlyDuration(totalW)}</span>
-              </span>
-              <span class="hm-tooltip-stat">
-                <span class="badge badge-b hm-tooltip-badge">B</span> <span class="hm-tooltip-stat-val" id="tooltip-break-val">${formatFriendlyDuration(totalB)}</span>
-              </span>
-            </div>
-          </div>
-          <div class="hm-tooltip-details">
-            <div class="hm-tooltip-detail-row">
-              <span class="badge badge-f hm-tooltip-badge">G</span>
-              <span class="hm-tooltip-detail-val">${formatFriendlyDuration(goalSec)}</span>
-            </div>
-            <div class="hm-tooltip-detail-row">
-              <span class="badge ${badgeClass} hm-tooltip-badge">${statusLetter}</span>
-              <span class="hm-tooltip-detail-val">${isOver ? "+" : "-"}${varianceStr}</span>
-            </div>
-            <div class="hm-tooltip-detail-row">
-              <span class="badge badge-f hm-tooltip-badge">F</span>
-              <span class="hm-tooltip-detail-val">${focusText}</span>
-            </div>
-          </div>
-          ${
-            notesList.length > 0
-              ? `
-          <div class="hm-tooltip-notes">
-            <strong>Notes:</strong> ${escapeHTML(notesList.join(" | "))}
-          </div>
-          `
-              : ""
-          }
-        `;
-        }
-
-        tooltip.innerHTML = html;
         tooltip.style.display = "block";
 
         const rect = e.target.getBoundingClientRect();
@@ -15400,6 +15394,7 @@
 
         if (dateKey === todayStr) {
           window.isHoveringTodayHeatmap = true;
+          window.tooltipCurrentGoalSec = goalSec;
           if (typeof renderTimersOnly === "function") renderTimersOnly();
         } else {
           window.isHoveringTodayHeatmap = false;
@@ -15497,7 +15492,7 @@
             heatmapMap[l.date] = {
               w: 0,
               b: 0,
-              goal: l.dayGoal || 28800,
+              goal: resolveGoalSecForDate(l.date),
               notes: l.notes || "",
             };
           heatmapMap[l.date].w += l.workSec || 0;
@@ -16284,11 +16279,7 @@
               //    active UI daily goal (liveGoalSec).
               // =========================================================================
 
-              const fallbackGoal =
-                isToday && state.loginTimestamp && state.shiftStartGoalSec
-                  ? state.shiftStartGoalSec
-                  : liveGoalSec;
-              const anchorGoal = dailyAnchorMap.get(dateStr) || fallbackGoal;
+              const anchorGoal = resolveGoalSecForDate(dateStr);
               const diffSec = dayW - anchorGoal;
               const isOver = diffSec >= 0;
               const absDiffSec = Math.abs(diffSec);
@@ -16380,6 +16371,8 @@
             seg.style.borderColor = "";
             if (DOM.progressSegmentFills[index]) {
               DOM.progressSegmentFills[index].style.width = "0%";
+              DOM.progressSegmentFills[index].className =
+                "progress-segment-fill";
             }
           }
         });
@@ -16407,16 +16400,7 @@
           const segment = DOM.progressSegments[i];
 
           if (segment) {
-            const baselineDailyGoalSec =
-              state.goalAutopopulateEnabled !== false ? 28800 : liveGoalSec;
-            const fallbackGoal =
-              isToday && state.loginTimestamp && state.shiftStartGoalSec
-                ? state.shiftStartGoalSec
-                : liveGoalSec;
-            const anchorGoal =
-              state.goalAutopopulateEnabled !== false
-                ? baselineDailyGoalSec
-                : dailyAnchorMap.get(dateStr) || fallbackGoal;
+            const anchorGoal = resolveGoalSecForDate(dateStr);
 
             segment.dataset.date = dateStr;
             segment.dataset.work = dayWorkSeconds;
@@ -16447,6 +16431,7 @@
               const fill = DOM.progressSegmentFills[i];
               if (fill) {
                 fill.style.width = "0%";
+                fill.className = "progress-segment-fill";
               }
             } else {
               const fill = DOM.progressSegmentFills[i];
@@ -16517,14 +16502,7 @@
             reusableDate.setUTCDate(mondayUTC.getUTCDate() + i);
             const dateStr = `${String(reusableDate.getUTCMonth() + 1).padStart(2, "0")}/${String(reusableDate.getUTCDate()).padStart(2, "0")}/${reusableDate.getUTCFullYear().toString().slice(-2)}`;
             if (!isVacationDate(dateStr)) {
-              if (
-                state.goalAutopopulateEnabled === false &&
-                dailyAnchorMap.has(dateStr)
-              ) {
-                expectedSecSoFar += dailyAnchorMap.get(dateStr);
-              } else {
-                expectedSecSoFar += trendBaselineDailyGoalSec;
-              }
+              expectedSecSoFar += resolveGoalSecForDate(dateStr);
             }
           }
         }
@@ -16909,14 +16887,7 @@
               const ds = `${String(loopDate.getUTCMonth() + 1).padStart(2, "0")}/${String(loopDate.getUTCDate()).padStart(2, "0")}/${String(loopDate.getUTCFullYear()).slice(-2)}`;
               if (!isVacationDate(ds)) {
                 activeDaysRemaining++;
-                if (
-                  state.goalAutopopulateEnabled === false &&
-                  dailyAnchorMap.has(ds)
-                ) {
-                  futureAndTodayGoalSec += dailyAnchorMap.get(ds);
-                } else {
-                  futureAndTodayGoalSec += baselineDailyGoalSec;
-                }
+                futureAndTodayGoalSec += resolveGoalSecForDate(ds);
               }
             }
             loopDate.setUTCDate(loopDate.getUTCDate() + 1);
@@ -17023,6 +16994,7 @@
               const fill = DOM.progressSegmentFills[index];
               if (fill) {
                 fill.style.width = "0%";
+                fill.className = "progress-segment-fill";
               }
             } else {
               const fill = DOM.progressSegmentFills[index];
@@ -17115,10 +17087,7 @@
           breakValEl.innerHTML = formatFriendlyDuration(todayB);
         }
 
-        const liveGoalSec =
-          domWriteCache._goalSecCached ||
-          getGoalSeconds(DOM.goalHours.value, DOM.goalMins.value);
-        const anchorGoal = dailyAnchorMap.get(todayStr) || liveGoalSec;
+        const anchorGoal = resolveGoalSecForDate(todayStr);
         const diffSec = todayW - anchorGoal;
         const isOver = diffSec >= 0;
         const absDiffSec = Math.abs(diffSec);
@@ -17576,11 +17545,7 @@
               w: 0,
               b: 0,
               count: 0,
-              goal:
-                l.dayGoal ||
-                (typeof getGoalSeconds === "function"
-                  ? getGoalSeconds(DOM.goalHours.value, DOM.goalMins.value)
-                  : 8 * 3600),
+              goal: resolveGoalSecForDate(l.date),
             };
           grp[l.date].w += l.workSec;
           grp[l.date].b += l.breakSec;
@@ -17593,11 +17558,7 @@
           const nextLog = isLast ? null : logs[i + 1];
           const workDec = (l.workSec / 3600).toFixed(4);
           const breakDec = (l.breakSec / 3600).toFixed(4);
-          const goalSec =
-            l.dayGoal ||
-            (typeof getGoalSeconds === "function"
-              ? getGoalSeconds(DOM.goalHours.value, DOM.goalMins.value)
-              : 8 * 3600);
+          const goalSec = resolveGoalSecForDate(l.date);
           const deltaDec = ((l.workSec - goalSec) / 3600).toFixed(4);
           const notes = l.notes
             ? l.notes.replace(/"/g, '""').replace(/\n/g, " ")
@@ -18052,7 +18013,7 @@
         const log = logs.find((l) => l.id === logId);
         if (!log) return;
 
-        const goal = log.dayGoal || 28800;
+        const goal = resolveGoalSecForDate(log.date);
         const diffSec = log.workSec - goal;
         const focus = calculateFocusPercentage(log.workSec, log.breakSec);
 
@@ -18084,7 +18045,12 @@
         const grp = {};
         filteredLogs.forEach((l) => {
           if (!grp[l.date])
-            grp[l.date] = { shifts: [], w: 0, b: 0, goal: l.dayGoal || 28800 };
+            grp[l.date] = {
+              shifts: [],
+              w: 0,
+              b: 0,
+              goal: resolveGoalSecForDate(l.date),
+            };
           grp[l.date].shifts.push(l);
           grp[l.date].w += l.workSec;
           grp[l.date].b += l.breakSec;
@@ -18849,22 +18815,54 @@
                 return;
               }
 
-              DOM.goalHours.value = h;
-              DOM.goalMins.value = m;
-              localStorage.setItem(GOAL_H_KEY, h);
-              localStorage.setItem(GOAL_M_KEY, m);
+              const applyGoal = () => {
+                DOM.goalHours.value = h;
+                DOM.goalMins.value = m;
+                localStorage.setItem(GOAL_H_KEY, h);
+                localStorage.setItem(GOAL_M_KEY, m);
 
-              const goalTimeEl = DOM.goalTime;
-              if (goalTimeEl) goalTimeEl.value = `${h}h ${m}m`;
+                const goalTimeEl = DOM.goalTime;
+                if (goalTimeEl) goalTimeEl.value = `${h}h ${m}m`;
 
-              if (typeof updatePresetHighlights === "function")
-                updatePresetHighlights();
-              if (typeof renderTimersOnly === "function") renderTimersOnly();
-              if (typeof insightsCacheKey !== "undefined")
-                insightsCacheKey = null;
-              if (typeof renderInsights === "function") renderInsights();
+                state.goalAutopopulateEnabled = false;
+                saveState();
+                if (typeof syncSettingsUI === "function") syncSettingsUI();
 
-              showAppToast(`Daily Goal set to ${h}h ${m}m`);
+                if (typeof updatePresetHighlights === "function")
+                  updatePresetHighlights();
+                if (typeof renderTimersOnly === "function") renderTimersOnly();
+                if (typeof insightsCacheKey !== "undefined")
+                  insightsCacheKey = null;
+                if (typeof renderInsights === "function") renderInsights();
+
+                showAppToast(`Daily Goal set to ${h}h ${m}m`);
+              };
+
+              if (state.loginTimestamp && state.shiftStartGoalSec) {
+                const revertH = Math.floor(state.shiftStartGoalSec / 3600);
+                const revertM = Math.floor(
+                  (state.shiftStartGoalSec % 3600) / 60,
+                );
+                DOM.goalHours.value = String(revertH).padStart(2, "0");
+                DOM.goalMins.value = String(revertM).padStart(2, "0");
+                if (DOM.goalTime)
+                  DOM.goalTime.value = `${revertH}h ${revertM}m`;
+                if (typeof updatePresetHighlights === "function")
+                  updatePresetHighlights();
+
+                openConfirmModal(
+                  "Update Session Goal?",
+                  `You have an active shift. Change the goal for this session to ${h}h ${m}m?`,
+                  () => {
+                    state.shiftStartGoalSec = h * 3600 + m * 60;
+                    applyGoal();
+                  },
+                  false,
+                  "Update Goal",
+                );
+              } else {
+                applyGoal();
+              }
             } else {
               showAppToast(
                 "Invalid time format. Try '1h 30m', '90m', or '1.5'",
@@ -19981,14 +19979,7 @@
                   category: "Write Engine",
                   icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-blue)" stroke-width="1.8">${getSprite("sprite-082")}</svg>`,
                   action: () => {
-                    const rawGoalEl = DOM.manualGoal;
-                    const rawGoal = rawGoalEl ? rawGoalEl.value.trim() : "8h";
-                    const parsedGoal =
-                      typeof parseGoalTimeStr === "function"
-                        ? parseGoalTimeStr(rawGoal)
-                        : { hh: 8, mm: 0 };
-                    const goal =
-                      parsedGoal.hh * 3600 + parsedGoal.mm * 60 || 28800;
+                    const goal = resolveGoalSecForDate(parsedDateStr);
 
                     const [m, d, y] = parsedDateStr.split("/");
                     const fullYear = y.length === 2 ? "20" + y : y;
@@ -20747,11 +20738,13 @@
               updateHudThemePreview();
             } else if (e.key === "Enter") {
               e.preventDefault();
+              e.stopPropagation();
               if (hudFiltered[hudActiveIndex]) {
                 executeHudIndex(hudActiveIndex);
               }
             } else if (e.key === "Escape") {
               e.preventDefault();
+              e.stopPropagation();
               closeHudModal();
             }
           });
@@ -21574,6 +21567,15 @@
       };
 
       window.onGoalAutopopulateToggleChange = function () {
+        if (state.loginTimestamp) {
+          showAppToast(
+            "Cannot toggle auto-populate during an active shift.",
+            "warning",
+          );
+          DOM.goalAutopopulateToggle.checked = state.goalAutopopulateEnabled;
+          return;
+        }
+
         const checkbox = DOM.goalAutopopulateToggle;
         state.goalAutopopulateEnabled = checkbox.checked;
         saveState();
@@ -22123,21 +22125,45 @@
         const hh = parsed.hh;
         const mm = parsed.mm;
 
-        DOM.goalHours.value = hh;
-        DOM.goalMins.value = mm;
-        localStorage.setItem(GOAL_H_KEY, hh);
-        localStorage.setItem(GOAL_M_KEY, mm);
+        const applyGoal = () => {
+          DOM.goalHours.value = hh;
+          DOM.goalMins.value = mm;
+          localStorage.setItem(GOAL_H_KEY, hh);
+          localStorage.setItem(GOAL_M_KEY, mm);
 
-        goalTimeEl.value = `${hh}h ${mm}m`;
+          goalTimeEl.value = `${hh}h ${mm}m`;
 
-        state.goalAutopopulateEnabled = false;
-        saveState();
-        syncSettingsUI();
+          state.goalAutopopulateEnabled = false;
+          saveState();
+          syncSettingsUI();
 
-        renderTimersOnly();
-        insightsCacheKey = null; // Forces recalculation on insights tab with new goals
-        renderInsights();
-        updatePresetHighlights();
+          renderTimersOnly();
+          insightsCacheKey = null; // Forces recalculation on insights tab with new goals
+          renderInsights();
+          updatePresetHighlights();
+        };
+
+        if (state.loginTimestamp && state.shiftStartGoalSec) {
+          const revertH = Math.floor(state.shiftStartGoalSec / 3600);
+          const revertM = Math.floor((state.shiftStartGoalSec % 3600) / 60);
+          DOM.goalHours.value = String(revertH).padStart(2, "0");
+          DOM.goalMins.value = String(revertM).padStart(2, "0");
+          goalTimeEl.value = `${revertH}h ${revertM}m`;
+          updatePresetHighlights();
+
+          openConfirmModal(
+            "Update Session Goal?",
+            `You have an active shift. Change the goal for this session to ${hh}h ${mm}m?`,
+            () => {
+              state.shiftStartGoalSec = hh * 3600 + mm * 60;
+              applyGoal();
+            },
+            false,
+            "Update Goal",
+          );
+        } else {
+          applyGoal();
+        }
       };
 
       /**
@@ -22385,21 +22411,45 @@
       };
 
       window.setGoalPreset = function (hours) {
-        DOM.goalHours.value = hours;
-        DOM.goalMins.value = 0;
-        localStorage.setItem(GOAL_H_KEY, hours);
-        localStorage.setItem(GOAL_M_KEY, 0);
-        const goalTimeEl = DOM.goalTime;
-        if (goalTimeEl) goalTimeEl.value = `${hours}h 0m`;
+        const applyGoal = () => {
+          DOM.goalHours.value = hours;
+          DOM.goalMins.value = 0;
+          localStorage.setItem(GOAL_H_KEY, hours);
+          localStorage.setItem(GOAL_M_KEY, 0);
+          const goalTimeEl = DOM.goalTime;
+          if (goalTimeEl) goalTimeEl.value = `${hours}h 0m`;
 
-        state.goalAutopopulateEnabled = false;
-        saveState();
-        syncSettingsUI();
+          state.goalAutopopulateEnabled = false;
+          saveState();
+          syncSettingsUI();
 
-        updatePresetHighlights();
-        renderTimersOnly();
-        insightsCacheKey = null; // Forces recalculation with new goal preset
-        renderInsights();
+          updatePresetHighlights();
+          renderTimersOnly();
+          insightsCacheKey = null; // Forces recalculation with new goal preset
+          renderInsights();
+        };
+
+        if (state.loginTimestamp && state.shiftStartGoalSec) {
+          const revertH = Math.floor(state.shiftStartGoalSec / 3600);
+          const revertM = Math.floor((state.shiftStartGoalSec % 3600) / 60);
+          DOM.goalHours.value = String(revertH).padStart(2, "0");
+          DOM.goalMins.value = String(revertM).padStart(2, "0");
+          if (DOM.goalTime) DOM.goalTime.value = `${revertH}h ${revertM}m`;
+          updatePresetHighlights();
+
+          openConfirmModal(
+            "Update Session Goal?",
+            `You have an active shift. Change the goal for this session to ${hours}h 0m?`,
+            () => {
+              state.shiftStartGoalSec = hours * 3600;
+              applyGoal();
+            },
+            false,
+            "Update Goal",
+          );
+        } else {
+          applyGoal();
+        }
       };
 
       window.adjustGoal = function (minutes) {
@@ -22411,22 +22461,46 @@
         const newH = Math.floor(totalMins / 60);
         const newM = totalMins % 60;
 
-        DOM.goalHours.value = newH;
-        DOM.goalMins.value = newM;
-        localStorage.setItem(GOAL_H_KEY, newH);
-        localStorage.setItem(GOAL_M_KEY, newM);
+        const applyGoal = () => {
+          DOM.goalHours.value = newH;
+          DOM.goalMins.value = newM;
+          localStorage.setItem(GOAL_H_KEY, newH);
+          localStorage.setItem(GOAL_M_KEY, newM);
 
-        const goalTimeEl = DOM.goalTime;
-        if (goalTimeEl) goalTimeEl.value = `${newH}h ${newM}m`;
+          const goalTimeEl = DOM.goalTime;
+          if (goalTimeEl) goalTimeEl.value = `${newH}h ${newM}m`;
 
-        state.goalAutopopulateEnabled = false;
-        saveState();
-        syncSettingsUI();
+          state.goalAutopopulateEnabled = false;
+          saveState();
+          syncSettingsUI();
 
-        updatePresetHighlights();
-        renderTimersOnly();
-        insightsCacheKey = null; // Forces recalculation on goal adjustments
-        renderInsights();
+          updatePresetHighlights();
+          renderTimersOnly();
+          insightsCacheKey = null; // Forces recalculation on goal adjustments
+          renderInsights();
+        };
+
+        if (state.loginTimestamp && state.shiftStartGoalSec) {
+          const revertH = Math.floor(state.shiftStartGoalSec / 3600);
+          const revertM = Math.floor((state.shiftStartGoalSec % 3600) / 60);
+          DOM.goalHours.value = String(revertH).padStart(2, "0");
+          DOM.goalMins.value = String(revertM).padStart(2, "0");
+          if (DOM.goalTime) DOM.goalTime.value = `${revertH}h ${revertM}m`;
+          updatePresetHighlights();
+
+          openConfirmModal(
+            "Update Session Goal?",
+            `You have an active shift. Change the goal for this session to ${newH}h ${newM}m?`,
+            () => {
+              state.shiftStartGoalSec = newH * 3600 + newM * 60;
+              applyGoal();
+            },
+            false,
+            "Update Goal",
+          );
+        } else {
+          applyGoal();
+        }
       };
 
       function updatePresetHighlights() {
@@ -22451,6 +22525,8 @@
         goalTimeEl.addEventListener("keydown", blockInvalidKeys);
         goalTimeEl.addEventListener("keydown", (e) => {
           if (e.key === "Enter") {
+            e.preventDefault();
+            e.stopPropagation();
             goalTimeEl.blur();
           }
         });
@@ -24287,10 +24363,10 @@
       })();
 
       /* ═══════════════════════════════════════════════════════════════════
-    CUSTOM SELECT CONTROLLER
-    Self-contained. Keeps hidden <select> in DOM so all existing JS
-    logic (.value reads, .value sets, change listeners) works unchanged.
-    ═══════════════════════════════════════════════════════════════════ */
+  CUSTOM SELECT CONTROLLER
+  Self-contained. Keeps hidden <select> in DOM so all existing JS
+  logic (.value reads, .value sets, change listeners) works unchanged.
+  ═══════════════════════════════════════════════════════════════════ */
       (function initCustomSelects() {
         const nativeValueDesc = Object.getOwnPropertyDescriptor(
           HTMLSelectElement.prototype,
