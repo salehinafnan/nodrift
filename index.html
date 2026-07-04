@@ -98,7 +98,7 @@
 
         /* Dynamic Grid System & Segment Fallbacks */
         --panel-columns: 1.1fr 1fr;
-        --panel-gap: 2.5rem;
+        --panel-gap: 2rem;
         --segment-height: 20px;
         --segment-gap: 6px;
         --segment-radius: 6px;
@@ -739,7 +739,7 @@
       .status-bar {
         position: relative;
         display: flex;
-        justify-content: center;
+        justify-content: space-between;
         align-items: center;
         margin-bottom: 1.5rem;
         gap: 1rem;
@@ -795,7 +795,8 @@
         background: var(--element-bg);
         border: 1px solid var(--border-main);
         height: var(--header-el-height);
-        padding: 0 0.8rem;
+        width: var(--header-el-height);
+        padding: 0;
         border-radius: var(--header-el-radius);
         color: var(--text-muted);
         cursor: pointer;
@@ -1959,7 +1960,7 @@
        ========================================================================= */
       .sidebar {
         border-left: 1px solid var(--border-main);
-        padding-left: 30px;
+        padding-left: 2rem;
         display: flex;
         flex-direction: column;
         height: 100%;
@@ -4441,12 +4442,6 @@
       .theme-container:focus-within .theme-presets {
         opacity: 1;
         pointer-events: auto;
-      }
-
-      .theme-container:hover .goal-chevron,
-      .theme-container:focus-within .goal-chevron {
-        transform: rotate(180deg);
-        color: var(--text-main);
       }
 
       /* =========================================================================
@@ -7389,28 +7384,11 @@
               </div>
             </div>
             <div class="theme-container" onmouseleave="revertThemePreview()">
-              <button
-                class="theme-toggle-btn"
-                aria-label="Toggle Theme"
-                style="gap: 6px"
-              >
+              <button class="theme-toggle-btn" aria-label="Toggle Theme">
                 <span
                   id="theme-toggle-icon"
                   style="display: flex; align-items: center"
                 ></span>
-                <svg
-                  class="goal-chevron"
-                  width="12"
-                  height="12"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="1.8"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                >
-                  <g data-sprite="sprite-013"></g>
-                </svg>
               </button>
               <div class="theme-presets">
                 <button
@@ -19833,7 +19811,7 @@
         const hh = String(parseInt(h, 10) || 0).padStart(2, "0");
         const mm = String(parseInt(m, 10) || 0).padStart(2, "0");
         const ss = String(parseInt(s, 10) || 0).padStart(2, "0");
-        return parseInt(ss, 10) > 0 ? `${hh}:${mm}:${ss}` : `${hh}:${mm}`;
+        return `${hh}:${mm}:${ss}`;
       }
 
       const handleGoalTimeBlur = () => {
