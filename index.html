@@ -9283,9 +9283,10 @@
           const rawH = parseFloat(hMatch ? hMatch[1] : 0);
           const rawM = parseFloat(mMatch ? mMatch[1] : 0);
           const rawS = parseFloat(sMatch ? sMatch[1] : 0);
-          hh = Math.floor(rawH);
-          mm = Math.round((rawH - hh) * 60) + Math.floor(rawM);
-          ss = Math.round((rawM - Math.floor(rawM)) * 60) + Math.round(rawS);
+          const totalSeconds = Math.round(rawH * 3600 + rawM * 60 + rawS);
+          hh = Math.floor(totalSeconds / 3600);
+          mm = Math.floor((totalSeconds % 3600) / 60);
+          ss = totalSeconds % 60;
         } else {
           const digits = cleanVal.replace(/\D/g, "");
           if (digits) {
@@ -9768,7 +9769,8 @@
               ? state.shiftStartGoalSec
               : liveGoalSec;
         } else {
-          fallbackGoal = liveGoalSec;
+          fallbackGoal =
+            state.goalAutopopulateEnabled !== false ? 28800 : liveGoalSec;
         }
 
         return typeof dailyAnchorMap !== "undefined" &&
@@ -16057,12 +16059,12 @@
               }
             } else {
               const fill = DOM.progressSegmentFills[i];
-              const anchorGoalWithFallback =
-                anchorGoal > 0 ? anchorGoal : 28800;
-              const fillScale = Math.min(
-                dayWorkSeconds / anchorGoalWithFallback,
-                1,
-              );
+              let fillScale = 0;
+              if (anchorGoal > 0) {
+                fillScale = Math.min(dayWorkSeconds / anchorGoal, 1);
+              } else if (dayWorkSeconds > 0) {
+                fillScale = 1;
+              }
               const parsedScale = isNaN(fillScale) ? 0 : fillScale;
               fill.style.width = `${parsedScale * 100}%`;
               fill.className =
@@ -16859,13 +16861,11 @@
         DOM.editWork.value = formatDuration(log.workSec);
         DOM.editBreak.value = formatDuration(log.breakSec);
 
-        modalEngine.edit.stack = ["login", "logout", "work", "break"].filter(
-          (f) => {
-            const val = document.getElementById(`edit-${f}`).value.trim();
-            if (val) modalEngine.edit.values[f] = val;
-            return !!val;
-          },
-        );
+        modalEngine.edit.stack = [];
+        ["login", "logout", "work", "break"].forEach((f) => {
+          const val = document.getElementById(`edit-${f}`).value.trim();
+          if (val) modalEngine.edit.values[f] = val;
+        });
 
         // Populate goal input fields with the log's existing daily goal
         const currentGoalSec =
@@ -17807,19 +17807,20 @@
           "Are you sure you want to permanently delete ALL logs and settings? This is irreversible.",
           () => {
             if (window.dirtyChunks) window.dirtyChunks.add("ALL");
-            saveLogs([]);
-            localStorage.removeItem(STATE_KEY);
-            localStorage.removeItem(GOAL_H_KEY);
-            localStorage.removeItem(GOAL_M_KEY);
-            localStorage.removeItem(GOAL_S_KEY);
-            localStorage.removeItem(PRESET_VALUES_KEY);
-            localStorage.removeItem(LEAVE_DATES_KEY);
-            localStorage.removeItem(VIEWS_KEY); // Clears saved custom filter views
-            localStorage.removeItem(FILTERS_PREF_KEY); // Clears active filters preferences
+            saveLogs([]).then(() => {
+              localStorage.removeItem(STATE_KEY);
+              localStorage.removeItem(GOAL_H_KEY);
+              localStorage.removeItem(GOAL_M_KEY);
+              localStorage.removeItem(GOAL_S_KEY);
+              localStorage.removeItem(PRESET_VALUES_KEY);
+              localStorage.removeItem(LEAVE_DATES_KEY);
+              localStorage.removeItem(VIEWS_KEY); // Clears saved custom filter views
+              localStorage.removeItem(FILTERS_PREF_KEY); // Clears active filters preferences
 
-            _cachedIdleThresholdMs = 3600000;
-            resetSession(true);
-            showAppToast("All data wiped");
+              _cachedIdleThresholdMs = 3600000;
+              resetSession(true);
+              showAppToast("All data wiped");
+            });
           },
           true,
         );
@@ -19100,8 +19101,6 @@
               );
               state.breakAccumulated =
                 (state.breakAccumulated || 0) - actualSubtractedBreakVal;
-              state.workAccumulated =
-                (state.workAccumulated || 0) + actualSubtractedBreakVal;
             }
           } else {
             // Mode is null (should not happen given the guard above, but be safe)
@@ -19132,14 +19131,14 @@
 
           if (targetMode === "break" && !isAdd) {
             if (actualSubtractedBreakVal === 0) {
-              toastMsg = "Break is already 0. No reallocation needed.";
+              toastMsg = "Break is already 0.";
             } else if (totalSec > actualSubtractedBreakVal) {
               const formattedActual = formatFriendlyDuration(
                 actualSubtractedBreakVal,
               );
-              toastMsg = `Break capped at 0. Reallocated ${formattedActual} to Work.`;
+              toastMsg = `${formattedActual} subtracted (Break capped at 0).`;
             } else {
-              toastMsg = `Reallocated ${timeFormattedStr} of break time to Work.`;
+              toastMsg = `${timeFormattedStr} subtracted from break timer.`;
             }
           } else {
             const verb = isAdd ? "added to" : "subtracted from";
@@ -21045,12 +21044,24 @@
             elapsedSec = 86400;
         }
 
-        if (stack.length < 3) return;
+        if (prefix === "manual" && stack.length < 3) return;
+        if (prefix === "edit" && stack.length === 0) return;
 
-        const missing =
-          ["login", "logout", "work", "break"].find(
-            (f) => !stack.includes(f),
-          ) || stack[0];
+        let missing;
+        if (prefix === "manual") {
+          missing =
+            ["login", "logout", "work", "break"].find(
+              (f) => !stack.includes(f),
+            ) || stack[0];
+        } else {
+          if (stack.includes("work") || stack.includes("break")) {
+            missing = stack.includes("logout") ? "login" : "logout";
+          } else if (stack.includes("login")) {
+            missing = "logout";
+          } else if (stack.includes("logout")) {
+            missing = "work";
+          }
+        }
 
         const setCalculated = (f, valStr) => {
           if (els[f] && els[f].value !== valStr) {
