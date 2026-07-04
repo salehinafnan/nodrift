@@ -8921,10 +8921,13 @@
         const isAdd =
           !rawInput.startsWith("-") &&
           !/\b(sub(tract)?|omit|remove|deduct|dec(rease)?)\b/.test(rawInput);
-        const parsed = parseGoalTimeStr(
-          rawInput.replace(/^[-+]/, "").trim(),
-          "m",
-        );
+        const cleanedInput = rawInput
+          .replace(
+            /^[-+]|\b(sub(tract)?|omit|remove|deduct|dec(rease)?|adjust|add|increase)\b/g,
+            "",
+          )
+          .trim();
+        const parsed = parseGoalTimeStr(cleanedInput, "m");
         const totalSec = Math.round(
           parsed.hh * 3600 + parsed.mm * 60 + parsed.ss,
         );
@@ -9282,9 +9285,15 @@
         ss = ss % 60;
         hh += Math.floor(mm / 60);
         mm = mm % 60;
-        hh = Math.min(24, Math.max(0, hh));
-        mm = Math.min(59, Math.max(0, mm));
-        ss = Math.min(59, Math.max(0, ss));
+        if (hh >= 24) {
+          hh = 24;
+          mm = 0;
+          ss = 0;
+        } else {
+          hh = Math.max(0, hh);
+          mm = Math.min(59, Math.max(0, mm));
+          ss = Math.min(59, Math.max(0, ss));
+        }
         return { hh, mm, ss };
       }
 
@@ -12081,7 +12090,10 @@
             (window.todayBaseWorkSec || 0) + getCurrentWorkSeconds();
           const liveTodayBreak =
             (window.todayBaseBreakSec || 0) + getCurrentBreakSeconds();
-          const ht = DOM.heatmapTooltip;
+          const ht =
+            DOM.heatmapTooltip.style.display === "block"
+              ? DOM.heatmapTooltip
+              : DOM.appTooltip;
           const tWorkEl = ht.querySelector("#tooltip-work-val");
           const tBreakEl = ht.querySelector("#tooltip-break-val");
           if (tWorkEl) tWorkEl.textContent = formatDuration(liveTodayWork);
@@ -14655,7 +14667,7 @@
                   : log.displayDate;
             }
 
-            const rowKey = `${log.id}|${isSelected}|${log.workSec}|${log.breakSec}|${isLogOver(log) ? "OVER" : "UNDER"}|${log.notes || ""}`;
+            const rowKey = `${log.id}|${isSelected}|${log.date}|${log.login}|${log.logout}|${log.dayGoal}|${log.workSec}|${log.breakSec}|${isLogOver(log) ? "OVER" : "UNDER"}|${log.notes || ""}`;
             if (child._rowKey !== rowKey) {
               child._rowKey = rowKey;
               child.className = isSelected ? "log-row kb-selected" : "log-row";
@@ -20254,7 +20266,8 @@
           _dynamicPresetBtns || document.querySelectorAll(".dynamic-preset")
         ).forEach((btn) => {
           const btnHours = parseFloat(btn.getAttribute("data-hours"));
-          if (btnHours === currentH && currentM === 0) {
+          const totalPresetHours = currentH + currentM / 60;
+          if (btnHours === totalPresetHours) {
             btn.classList.add("active");
           } else {
             btn.classList.remove("active");
@@ -20960,13 +20973,39 @@
 
         let elapsedSec = null;
         if (lSec !== null && oSec !== null) {
-          elapsedSec = oSec - lSec;
-          if (elapsedSec < 0) elapsedSec += 86400;
-          if (
-            elapsedSec === 0 &&
-            vals.login.toLowerCase() === vals.logout.toLowerCase()
-          )
-            elapsedSec = 86400;
+          const dateVal = document
+            .getElementById(`${prefix}-date`)
+            ?.value.trim();
+
+          // Try to calculate using true epoch time (respects DST)
+          if (dateVal) {
+            const epochIn = getEpochFromDateTimeString(dateVal, vals.login);
+            let epochOut = getEpochFromDateTimeString(dateVal, vals.logout);
+
+            if (epochIn !== null && epochOut !== null) {
+              if (epochOut < epochIn) {
+                epochOut += 86400000; // Add 24 hours
+              } else if (
+                epochOut === epochIn &&
+                vals.login.toLowerCase() === vals.logout.toLowerCase()
+              ) {
+                epochOut += 86400000; // Add 24 hours for exact same time
+              }
+              elapsedSec = Math.floor((epochOut - epochIn) / 1000);
+            }
+          }
+
+          // Fallback to pure math if date is missing or invalid
+          if (elapsedSec === null) {
+            elapsedSec = oSec - lSec;
+            if (elapsedSec < 0) elapsedSec += 86400;
+            if (
+              elapsedSec === 0 &&
+              vals.login.toLowerCase() === vals.logout.toLowerCase()
+            ) {
+              elapsedSec = 86400;
+            }
+          }
         }
 
         if (prefix === "manual" && stack.length < 3) return;
