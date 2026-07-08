@@ -12359,9 +12359,9 @@
         if (summaryText) {
           setText(
             summaryText,
-            `${formatFriendlyDuration(totalW_MonFri, "0h")} / ${(
-              dynamicWeeklyGoalSec / 3600
-            ).toFixed(1)}h`,
+            `${formatFriendlyDuration(totalW_MonFri, "0h")} / ${Math.round(
+              dynamicWeeklyGoalSec / 3600,
+            )}h`,
           );
         }
         if (percentText) setText(percentText, `(${totalPercent.toFixed(0)}%)`);
@@ -16079,9 +16079,9 @@
 
         setText(
           summaryText,
-          `${formatFriendlyDuration(totalW_MonFri, "0h")} / ${(
-            dynamicWeeklyGoalSec / 3600
-          ).toFixed(1)}h`,
+          `${formatFriendlyDuration(totalW_MonFri, "0h")} / ${Math.round(
+            dynamicWeeklyGoalSec / 3600,
+          )}h`,
         );
         setText(percentText, `(${totalPercent.toFixed(0)}%)`);
 
@@ -16457,7 +16457,7 @@
               : 0;
         setText(
           DOM.weeklySummaryText,
-          `${formatFriendlyDuration(grandTotalW, "0h")} / ${(grandGoal / 3600).toFixed(1)}h`,
+          `${formatFriendlyDuration(grandTotalW, "0h")} / ${Math.round(grandGoal / 3600)}h`,
         );
         setText(DOM.weeklyProgressPercent, `(${totalPercent.toFixed(0)}%)`);
         setText(DOM.weeklyBreak, formatFriendlyDuration(grandTotalB, "0m"));
