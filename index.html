@@ -12036,8 +12036,8 @@
       }
 
       let lastWeeklySummaryCheckMin = -1;
-      let lastLiveWorkMin = -1;
-      let lastLiveBreakMin = -1;
+      let lastLiveWorkSec = -1;
+      let lastLiveBreakSec = -1;
 
       /**
        * Updates the main timer and status clock displays once per second.
@@ -12116,15 +12116,15 @@
 
         updateProgress(workSeconds, nowMs);
 
-        // Sync today's Insights card the exact second today's active work or break minutes increment
-        const currentWorkMin = Math.floor(workSeconds / 60);
-        const currentBreakMin = Math.floor(breakSeconds / 60);
+        // Sync today's Insights card the exact second today's active work or break seconds increment
+        const currentWorkSecInt = Math.floor(workSeconds);
+        const currentBreakSecInt = Math.floor(breakSeconds);
         if (
-          currentWorkMin !== lastLiveWorkMin ||
-          currentBreakMin !== lastLiveBreakMin
+          currentWorkSecInt !== lastLiveWorkSec ||
+          currentBreakSecInt !== lastLiveBreakSec
         ) {
-          lastLiveWorkMin = currentWorkMin;
-          lastLiveBreakMin = currentBreakMin;
+          lastLiveWorkSec = currentWorkSecInt;
+          lastLiveBreakSec = currentBreakSecInt;
           updateLiveTodayRow();
         }
 
@@ -13751,8 +13751,8 @@
           const dateStr = progressTarget.dataset.date;
           if (!dateStr) return;
 
-          const workSec = parseFloat(progressTarget.dataset.work) || 0;
-          const breakSec = parseFloat(progressTarget.dataset.break) || 0;
+          let workSec = parseFloat(progressTarget.dataset.work) || 0;
+          let breakSec = parseFloat(progressTarget.dataset.break) || 0;
           const isLeave = progressTarget.dataset.isLeave === "true";
           const goalSec = parseFloat(progressTarget.dataset.goal) || 0;
           const notes = progressTarget.dataset.notes || "";
@@ -13760,9 +13760,18 @@
           const todayStr = typeof getPSTDate === "function" ? getPSTDate() : "";
           if (dateStr === todayStr) {
             window.isHoveringTodayHeatmap = true;
-            window.todayBaseWorkSec = workSec - getCurrentWorkSeconds();
-            window.todayBaseBreakSec = breakSec - getCurrentBreakSeconds();
+            if (
+              _todayRowCache.date !== todayStr ||
+              _todayRowCache.version !== dataVersion
+            ) {
+              updateLiveTodayRow();
+            }
+            window.todayBaseWorkSec = _todayRowCache.w;
+            window.todayBaseBreakSec = _todayRowCache.b;
             window.tooltipCurrentGoalSec = goalSec;
+
+            workSec = window.todayBaseWorkSec + getCurrentWorkSeconds();
+            breakSec = window.todayBaseBreakSec + getCurrentBreakSeconds();
           } else {
             window.isHoveringTodayHeatmap = false;
           }
@@ -16661,6 +16670,15 @@
         renderInsights();
       };
 
+      let _todayRowCache = {
+        date: null,
+        version: -1,
+        w: 0,
+        b: 0,
+        loginStr: "—",
+        logoutStr: "—",
+      };
+
       function updateLiveTodayRow() {
         const insightsTab = DOM.tabInsights;
         if (
@@ -16677,19 +16695,53 @@
           return;
 
         const todayStr = getPSTDate();
-        const logs = getLogs();
 
-        let loggedWork = 0;
-        let loggedBreak = 0;
-        for (let i = 0; i < logs.length; i++) {
-          if (logs[i].date === todayStr || logs[i].displayDate === todayStr) {
-            loggedWork += logs[i].workSec || 0;
-            loggedBreak += logs[i].breakSec || 0;
+        if (
+          _todayRowCache.date !== todayStr ||
+          _todayRowCache.version !== dataVersion
+        ) {
+          const logs = getLogs();
+          let loggedWork = 0;
+          let loggedBreak = 0;
+          let earliestLoginMin = null;
+          let latestLogoutMin = null;
+          let loginStr = "—";
+          let logoutStr = "—";
+
+          for (let i = 0; i < logs.length; i++) {
+            const l = logs[i];
+            if (l.date === todayStr || l.displayDate === todayStr) {
+              loggedWork += l.workSec || 0;
+              loggedBreak += l.breakSec || 0;
+
+              const loginMin = parseTimeToMinutes(l.login);
+              const logoutMin = parseTimeToMinutes(l.logout);
+              if (loginMin !== null) {
+                if (earliestLoginMin === null || loginMin < earliestLoginMin) {
+                  earliestLoginMin = loginMin;
+                  loginStr = l.login;
+                }
+              }
+              if (logoutMin !== null) {
+                if (latestLogoutMin === null || logoutMin > latestLogoutMin) {
+                  latestLogoutMin = logoutMin;
+                  logoutStr = l.logout;
+                }
+              }
+            }
           }
+          _todayRowCache = {
+            date: todayStr,
+            version: dataVersion,
+            w: loggedWork,
+            b: loggedBreak,
+            loginStr,
+            logoutStr,
+          };
         }
 
-        const todayW = loggedWork + getCurrentWorkSeconds();
-        const todayB = loggedBreak + getCurrentBreakSeconds();
+        const todayW = _todayRowCache.w + getCurrentWorkSeconds();
+        const todayB = _todayRowCache.b + getCurrentBreakSeconds();
 
         const workValEl = document.getElementById("today-work-val");
         const breakValEl = document.getElementById("today-break-val");
@@ -16705,10 +16757,7 @@
         const diffSec = todayW - anchorGoal;
         const isOver = diffSec >= 0;
         const absDiffSec = Math.abs(diffSec);
-        const diffMinsTotal = Math.floor(absDiffSec / 60);
-        const diffH = Math.floor(diffMinsTotal / 60);
-        const diffM = diffMinsTotal % 60;
-        const varianceTime = `${diffH}h ${diffM}m`;
+        const varianceTime = formatFriendlyDuration(absDiffSec, "0m");
 
         const todayVarianceValEl =
           document.getElementById("today-variance-val");
@@ -16728,31 +16777,8 @@
 
         const todayMetaValEl = document.getElementById("today-meta-val");
         if (todayMetaValEl) {
-          let loginStr = "—";
-          let logoutStr = "—";
-
-          let earliestLoginMin = null;
-          let latestLogoutMin = null;
-
-          for (let i = 0; i < logs.length; i++) {
-            const l = logs[i];
-            if (l.date === todayStr || l.displayDate === todayStr) {
-              const loginMin = parseTimeToMinutes(l.login);
-              const logoutMin = parseTimeToMinutes(l.logout);
-              if (loginMin !== null) {
-                if (earliestLoginMin === null || loginMin < earliestLoginMin) {
-                  earliestLoginMin = loginMin;
-                  loginStr = l.login;
-                }
-              }
-              if (logoutMin !== null) {
-                if (latestLogoutMin === null || logoutMin > latestLogoutMin) {
-                  latestLogoutMin = logoutMin;
-                  logoutStr = l.logout;
-                }
-              }
-            }
-          }
+          let loginStr = _todayRowCache.loginStr;
+          let logoutStr = _todayRowCache.logoutStr;
 
           if (state.loginTimestamp) {
             const todayLoginStr = loginFormatter.format(
@@ -21535,8 +21561,8 @@
           targetContent.style.flexDirection = "column";
           // Reset tracker to force an immediate update on tab selection
           lastWeeklySummaryCheckMin = -1;
-          lastLiveWorkMin = -1;
-          lastLiveBreakMin = -1;
+          lastLiveWorkSec = -1;
+          lastLiveBreakSec = -1;
           updateLiveWeeklySummary(true);
         } else {
           targetContent.style.display = "block";
@@ -21958,9 +21984,9 @@
         async function completeStartup() {
           cachedTodayDate = null;
           displayBaseDate = getPSTDateObj();
-          await rebuildWeeklyCache();
           updatePrimaryFormatter();
           loadState();
+          await rebuildWeeklyCache();
 
           const logbookTab = DOM.tabLogbook;
           if (logbookTab) {
