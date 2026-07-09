@@ -13024,91 +13024,95 @@
        * and opens a Gmail compose tab (or default mail client) to paste them.
        */
       function triggerEodGmailLogCopy(mailTab = null) {
-        if (!navigator.onLine) {
-          showAppToast(
-            "You're offline. Connect to internet to send the EOD email.",
-          );
-          if (mailTab && !mailTab.closed) mailTab.close();
-          return;
-        }
         const allLogs = getLogs();
-        const filteredLogs = getFilteredLogs();
+        const lastLog = allLogs.find((l) => l.id === window.lastSubmittedLogId);
+        const targetDate = lastLog
+          ? lastLog.date
+          : state.activeDate || getPSTDate();
 
-        if (!filteredLogs.length) {
+        const dayLogs = allLogs.filter((l) => l.date === targetDate);
+
+        if (!dayLogs.length) {
           if (mailTab && !mailTab.closed) mailTab.close();
           return;
         }
 
-        const grp = {};
-        filteredLogs.forEach((l) => {
-          if (!grp[l.date]) grp[l.date] = { shifts: [], w: 0, b: 0 };
-          grp[l.date].shifts.push(l);
-          grp[l.date].w += l.workSec;
-          grp[l.date].b += l.breakSec;
+        let w = 0;
+        let b = 0;
+        let out = `[ ${targetDate} ]\n`;
+
+        const sortedDayLogs = [...dayLogs].sort(
+          (a, b) => (a.loginEpochMs || 0) - (b.loginEpochMs || 0),
+        );
+
+        sortedDayLogs.forEach((s, i) => {
+          out += `  • Shift ${i + 1}: ${s.login} - ${s.logout} (W: ${formatDuration(s.workSec)} | B: ${formatDuration(s.breakSec)})${s.notes ? " | Note: " + s.notes : ""}\n`;
+          w += s.workSec;
+          b += s.breakSec;
         });
 
-        const txt = Object.keys(grp)
-          .map((d) => {
-            let out = `[ ${d} ]\n`;
-            grp[d].shifts.forEach((s, i) => {
-              out += `  • Shift ${i + 1}: ${s.login} - ${s.logout} (W: ${formatDuration(s.workSec)} | B: ${formatDuration(s.breakSec)})${s.notes ? " | Note: " + s.notes : ""}\n`;
-            });
-            const warning = grp[d].w < 7 * 3600 ? " [!] (Under 7h)" : "";
-            out += `  ---\n  Total Work: ${formatDuration(grp[d].w)}${warning}\n  Total Break: ${formatDuration(grp[d].b)}\n  Total Logged: ${formatDuration(grp[d].w + grp[d].b)}`;
-            return out;
-          })
-          .join("\n\n");
+        const goalSec = resolveGoalSecForDate(targetDate);
+        const diffSec = w - goalSec;
+        const warning = w < 7 * 3600 ? " [!] (Under 7h)" : "";
+        out += `  ---\n  Total Work: ${formatDuration(w)} (Goal: ${formatDuration(goalSec)} | Variance: ${diffSec >= 0 ? "+" : "-"}${formatDuration(Math.abs(diffSec))})${warning}\n  Total Break: ${formatDuration(b)}\n  Total Logged: ${formatDuration(w + b)}`;
 
-        navigator.clipboard
-          .writeText(txt)
-          .then(() => {
-            showAppToast("EOD complete: Log summary copied to clipboard!");
+        const emailBody = out;
 
-            // Dynamically compute the current shift's Day and Date for the subject line
-            const dateStr = state.activeDate || getPSTDate();
-            const [m, d, y] = dateStr.split("/");
-            const fullYear = y.length === 2 ? `20${y}` : y;
-            const dateObj = new Date(
-              Date.UTC(
-                parseInt(fullYear, 10),
-                parseInt(m, 10) - 1,
-                parseInt(d, 10),
-                12,
-                0,
-                0,
-              ),
-            );
-            const dayNames = [
-              "Sunday",
-              "Monday",
-              "Tuesday",
-              "Wednesday",
-              "Thursday",
-              "Friday",
-              "Saturday",
-            ];
-            const dayName = dayNames[dateObj.getUTCDay()];
-            const emailSubject = `nodrift Summary - ${dayName} - ${dateStr}`;
+        const finalizeEmail = () => {
+          const [m, d, y] = targetDate.split("/");
+          const fullYear = y.length === 2 ? `20${y}` : y;
+          const dateObj = new Date(
+            Date.UTC(
+              parseInt(fullYear, 10),
+              parseInt(m, 10) - 1,
+              parseInt(d, 10),
+              12,
+              0,
+              0,
+            ),
+          );
+          const dayNames = [
+            "Sunday",
+            "Monday",
+            "Tuesday",
+            "Wednesday",
+            "Thursday",
+            "Friday",
+            "Saturday",
+          ];
+          const dayName = dayNames[dateObj.getUTCDay()];
+          const emailSubject = `nodrift Summary - ${dayName} - ${targetDate}`;
 
-            const emailBody = "";
+          const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&su=${encodeURIComponent(
+            emailSubject,
+          )}&body=${encodeURIComponent(emailBody)}`;
+          const mailtoUrl = `mailto:?subject=${encodeURIComponent(
+            emailSubject,
+          )}&body=${encodeURIComponent(emailBody)}`;
 
-            const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&su=${encodeURIComponent(
-              emailSubject,
-            )}&body=${encodeURIComponent(emailBody)}`;
-            const mailtoUrl = `mailto:?subject=${encodeURIComponent(
-              emailSubject,
-            )}&body=${encodeURIComponent(emailBody)}`;
-
-            if (mailTab && !mailTab.closed) {
-              mailTab.location.href = gmailUrl;
-            } else {
-              window.location.href = mailtoUrl;
-            }
-          })
-          .catch((err) => {
+          if (navigator.onLine && mailTab && !mailTab.closed) {
+            mailTab.location.href = gmailUrl;
+          } else {
             if (mailTab && !mailTab.closed) mailTab.close();
-            console.warn("Clipboard access denied on EOD submit:", err);
-          });
+            window.location.href = mailtoUrl;
+          }
+          showAppToast("EOD complete: Summary prepared for email!");
+        };
+
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard
+            .writeText(emailBody)
+            .then(finalizeEmail)
+            .catch((err) => {
+              console.warn(
+                "Clipboard access denied on EOD submit, proceeding with email body:",
+                err,
+              );
+              finalizeEmail();
+            });
+        } else {
+          finalizeEmail();
+        }
       }
 
       /**
