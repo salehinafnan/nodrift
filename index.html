@@ -9731,7 +9731,6 @@
       let lastStateBackup = null;
       let lastAdjustmentStateBackup = null;
       let displayBaseDate = null;
-      let pendingSubmitData = null;
       let lastActivity = Date.now();
       let lastPointerResetTime = 0;
       let activityThrottle = false;
@@ -12051,12 +12050,8 @@
        */
       function renderTimersOnly(nowDate = new Date(getTrueTime())) {
         const nowMs = nowDate.getTime();
-        const workSeconds = pendingSubmitData
-          ? pendingSubmitData.workSec
-          : getCurrentWorkSeconds();
-        const breakSeconds = pendingSubmitData
-          ? pendingSubmitData.breakSec
-          : getCurrentBreakSeconds();
+        const workSeconds = getCurrentWorkSeconds();
+        const breakSeconds = getCurrentBreakSeconds();
 
         let activeTitle = "nodrift";
         let iconColor = "#f59e0b";
@@ -12808,7 +12803,7 @@
         if (wSec <= 0) return;
 
         // Prevent mid-submit undo regressions without stopping the active timer
-        if (lastStateBackup) {
+        if (state.currentMode !== null && lastStateBackup) {
           lastStateBackup = null;
           if (DOM.undoToast) DOM.undoToast.classList.remove("toast-visible");
         }
@@ -12825,7 +12820,6 @@
        */
       function closeGhostModal() {
         DOM.ghostModal.style.display = "none";
-        pendingSubmitData = null;
         _lastWorkSecInt = -1;
         _lastBreakSecInt = -1;
         renderTimersOnly();
@@ -12873,7 +12867,6 @@
       function closeSubmitModal() {
         DOM.submitModal.style.display = "none";
         DOM.modalShiftNotes.value = "";
-        pendingSubmitData = null;
         _lastWorkSecInt = -1;
         _lastBreakSecInt = -1;
         renderTimersOnly();
@@ -13119,21 +13112,36 @@
        * Serializes session accumulation into storage shift logs.
        */
       async function executeSubmit(e, forceNotes = "", overrideDate = null) {
-        const workSeconds = pendingSubmitData
-          ? pendingSubmitData.workSec
-          : Math.floor(getCurrentWorkSeconds());
-        const breakSeconds = pendingSubmitData
-          ? pendingSubmitData.breakSec
-          : Math.floor(getCurrentBreakSeconds());
-        const loginTs = pendingSubmitData
-          ? pendingSubmitData.loginTs
-          : state.loginTimestamp;
-        const pendingLogoutTs = pendingSubmitData
-          ? pendingSubmitData.logoutTs
-          : null;
+        const workSeconds = Math.floor(getCurrentWorkSeconds());
+        const breakSeconds = Math.floor(getCurrentBreakSeconds());
+        const loginTs = state.loginTimestamp;
 
-        pendingSubmitData = null;
         if (workSeconds <= 0) return;
+
+        // Capture backup state BEFORE halting the timer, so Undo resumes seamlessly
+        lastStateBackup = JSON.parse(JSON.stringify(state));
+
+        // Synchronously halt time accumulation to prevent race conditions during async saves
+        const nowWall = Date.now();
+        if (
+          state.currentMode !== null &&
+          !state.idleLock &&
+          state.sessionAnchorWall !== null
+        ) {
+          const elapsedSeconds = Math.max(
+            0,
+            (nowWall - state.sessionAnchorWall) / 1000,
+          );
+          if (state.currentMode === "work") {
+            state.workAccumulated =
+              (state.workAccumulated || 0) + elapsedSeconds;
+          } else if (state.currentMode === "break") {
+            state.breakAccumulated =
+              (state.breakAccumulated || 0) + elapsedSeconds;
+          }
+          state.sessionAnchorWall = null;
+          state.currentMode = null;
+        }
 
         const goal =
           state.shiftStartGoalSec ??
@@ -13149,9 +13157,8 @@
           : "--";
 
         // Formulates logout using last active heartbeat for auto-submissions
-        const logoutTimestamp = pendingLogoutTs
-          ? pendingLogoutTs
-          : overrideDate && state.lastHeartbeatWall
+        const logoutTimestamp =
+          overrideDate && state.lastHeartbeatWall
             ? state.lastHeartbeatWall
             : Date.now();
         const logoutTime = pstFormatter.format(new Date(logoutTimestamp));
@@ -13194,7 +13201,6 @@
         entry.searchStr =
           `${displayDate} ${entryDate} ${loginTime} ${logoutTime} ${forceNotes}`.toLowerCase();
 
-        lastStateBackup = JSON.parse(JSON.stringify(state));
         window.lastSubmittedLogId = entry.id;
         logs.unshift(entry);
         await saveLogs(logs);
