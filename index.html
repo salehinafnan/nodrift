@@ -12804,18 +12804,15 @@
        * Initializes log validation filters.
        */
       function openSubmitModal() {
-        if (state.currentMode === "work" || state.currentMode === "break") {
-          switchMode(null);
-        }
         const wSec = Math.floor(getCurrentWorkSeconds());
-        const bSec = Math.floor(getCurrentBreakSeconds());
         if (wSec <= 0) return;
-        pendingSubmitData = {
-          workSec: wSec,
-          breakSec: bSec,
-          loginTs: state.loginTimestamp,
-          logoutTs: Date.now(),
-        };
+
+        // Prevent mid-submit undo regressions without stopping the active timer
+        if (lastStateBackup) {
+          lastStateBackup = null;
+          if (DOM.undoToast) DOM.undoToast.classList.remove("toast-visible");
+        }
+
         if (wSec < 60) {
           DOM.ghostModal.style.display = "flex";
         } else {
