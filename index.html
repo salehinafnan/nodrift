@@ -13032,28 +13032,84 @@
 
         let w = 0;
         let b = 0;
-        let out = `[ ${targetDate} ]\n`;
 
         const sortedDayLogs = [...dayLogs].sort(
           (a, b) => (a.loginEpochMs || 0) - (b.loginEpochMs || 0),
         );
 
-        sortedDayLogs.forEach((s, i) => {
-          out += `  • Shift ${i + 1}: ${s.login} - ${s.logout} (W: ${formatDuration(s.workSec)} | B: ${formatDuration(s.breakSec)})${s.notes ? " | Note: " + s.notes : ""}\n`;
+        sortedDayLogs.forEach((s) => {
           w += s.workSec;
           b += s.breakSec;
         });
 
         const goalSec = resolveGoalSecForDate(targetDate);
         const diffSec = w - goalSec;
-        const warning = w < 7 * 3600 ? " [!] (Under 7h)" : "";
-        out += `  ---\n  Total Work: ${formatDuration(w)} (Goal: ${formatDuration(goalSec)} | Variance: ${diffSec >= 0 ? "+" : "-"}${formatDuration(Math.abs(diffSec))})${warning}\n  Total Break: ${formatDuration(b)}\n  Total Logged: ${formatDuration(w + b)}`;
 
-        const emailBody = out;
+        let m, d, y, fullYear;
+        if (targetDate.includes("-")) {
+          const parts = targetDate.split("-");
+          fullYear = parts[0];
+          m = parts[1];
+          d = parts[2];
+        } else {
+          const parts = targetDate.split("/");
+          m = parts[0] || "1";
+          d = parts[1] || "1";
+          y = parts[2] || String(new Date().getFullYear());
+          fullYear = y.length === 2 ? `20${y}` : y;
+        }
+        const dateObj = new Date(
+          parseInt(fullYear, 10),
+          parseInt(m, 10) - 1,
+          parseInt(d, 10),
+        );
+        const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+        const dayNameShort = dayNames[dateObj.getDay()];
+
+        const bW = `<span style="display:inline-block;width:16px;height:16px;line-height:16px;text-align:center;border-radius:4px;font-size:10px;font-weight:bold;font-family:sans-serif;margin-right:4px;color:#248a3d;background-color:#eaf9ee;border:1px solid #bce9c9;">W</span>`;
+        const bB = `<span style="display:inline-block;width:16px;height:16px;line-height:16px;text-align:center;border-radius:4px;font-size:10px;font-weight:bold;font-family:sans-serif;margin-right:4px;color:#d70000;background-color:#ffeceb;border:1px solid #ffc4c0;">B</span>`;
+        const bG = `<span style="display:inline-block;width:16px;height:16px;line-height:16px;text-align:center;border-radius:4px;font-size:10px;font-weight:bold;font-family:sans-serif;margin-right:4px;color:#0056b3;background-color:#e5f1ff;border:1px solid #b3d7ff;">G</span>`;
+        const bO = `<span style="display:inline-block;width:16px;height:16px;line-height:16px;text-align:center;border-radius:4px;font-size:10px;font-weight:bold;font-family:sans-serif;margin-right:4px;color:#248a3d;background-color:#eaf9ee;border:1px solid #bce9c9;">O</span>`;
+        const bU = `<span style="display:inline-block;width:16px;height:16px;line-height:16px;text-align:center;border-radius:4px;font-size:10px;font-weight:bold;font-family:sans-serif;margin-right:4px;color:#b36800;background-color:#fff4e5;border:1px solid #ffd699;">U</span>`;
+
+        let out = "";
+        let htmlOut = `<table style="border-collapse: collapse; font-family: sans-serif; font-size: 14px;">`;
+
+        const diffAbs = formatDuration(Math.abs(diffSec));
+        const isOver = diffSec >= 0;
+        const plainDiff = isOver ? `O: ${diffAbs}` : `U: ${diffAbs}`;
+        const htmlDiff = isOver ? `${bO}${diffAbs}` : `${bU}${diffAbs}`;
+
+        if (sortedDayLogs.length === 1) {
+          const s = sortedDayLogs[0];
+          out = `[${targetDate} - ${dayNameShort}] W: ${formatDuration(s.workSec)} | B: ${formatDuration(s.breakSec)} | G: ${formatDuration(goalSec)} | ${plainDiff}\n`;
+          htmlOut += `<tr><td style="padding-right: 16px; white-space: nowrap; font-weight: 600;">[${targetDate} - ${dayNameShort}]</td><td style="padding-right: 16px; white-space: nowrap;">${bW}${formatDuration(s.workSec)}</td><td style="padding-right: 16px; white-space: nowrap;">${bB}${formatDuration(s.breakSec)}</td><td style="padding-right: 16px; white-space: nowrap;">${bG}${formatDuration(goalSec)}</td><td style="white-space: nowrap;">${htmlDiff}</td></tr>`;
+        } else {
+          out = `[${targetDate} - ${dayNameShort}] ∑W: ${formatDuration(w)} | ∑B: ${formatDuration(b)} | G: ${formatDuration(goalSec)} | ${plainDiff}\n`;
+          htmlOut += `<tr><td style="padding-right: 16px; white-space: nowrap; font-weight: 600;">[${targetDate} - ${dayNameShort}]</td><td style="padding-right: 16px; white-space: nowrap;">∑ ${bW}${formatDuration(w)}</td><td style="padding-right: 16px; white-space: nowrap;">∑ ${bB}${formatDuration(b)}</td><td style="padding-right: 16px; white-space: nowrap;">${bG}${formatDuration(goalSec)}</td><td style="white-space: nowrap;">${htmlDiff}</td></tr>`;
+          sortedDayLogs.forEach((s) => {
+            out += `  ↳ W: ${formatDuration(s.workSec)} | B: ${formatDuration(s.breakSec)}\n`;
+            htmlOut += `<tr><td style="padding-right: 16px; white-space: nowrap; color: #888;">&nbsp;&nbsp;↳</td><td style="padding-right: 16px; white-space: nowrap;">${bW}${formatDuration(s.workSec)}</td><td style="padding-right: 16px; white-space: nowrap;">${bB}${formatDuration(s.breakSec)}</td><td colspan="2"></td></tr>`;
+          });
+        }
+        htmlOut += `</table>`;
+
+        const emailBody = out.trimEnd();
 
         const finalizeEmail = () => {
-          const [m, d, y] = targetDate.split("/");
-          const fullYear = y.length === 2 ? `20${y}` : y;
+          let m, d, fullYear;
+          if (targetDate.includes("-")) {
+            const parts = targetDate.split("-");
+            fullYear = parts[0];
+            m = parts[1];
+            d = parts[2];
+          } else {
+            const parts = targetDate.split("/");
+            m = parts[0] || "1";
+            d = parts[1] || "1";
+            const y = parts[2] || String(new Date().getFullYear());
+            fullYear = y.length === 2 ? `20${y}` : y;
+          }
           const dateObj = new Date(
             Date.UTC(
               parseInt(fullYear, 10),
@@ -13092,7 +13148,35 @@
           showAppToast("EOD complete: Summary prepared for email!");
         };
 
-        if (navigator.clipboard && navigator.clipboard.writeText) {
+        if (navigator.clipboard && window.ClipboardItem) {
+          try {
+            const typeText = new Blob([emailBody], { type: "text/plain" });
+            const typeHtml = new Blob([htmlOut], { type: "text/html" });
+            navigator.clipboard
+              .write([
+                new ClipboardItem({
+                  "text/plain": typeText,
+                  "text/html": typeHtml,
+                }),
+              ])
+              .then(finalizeEmail)
+              .catch((err) => {
+                navigator.clipboard
+                  .writeText(emailBody)
+                  .then(finalizeEmail)
+                  .catch(() => finalizeEmail());
+              });
+          } catch (err) {
+            if (navigator.clipboard.writeText) {
+              navigator.clipboard
+                .writeText(emailBody)
+                .then(finalizeEmail)
+                .catch(() => finalizeEmail());
+            } else {
+              finalizeEmail();
+            }
+          }
+        } else if (navigator.clipboard && navigator.clipboard.writeText) {
           navigator.clipboard
             .writeText(emailBody)
             .then(finalizeEmail)
@@ -17193,24 +17277,8 @@
         let csv =
           "Date,Login,Logout,Work Time,Work (Hrs),Break Time,Break (Hrs),Net Delta (Hrs),Notes\n";
 
-        const grp = {};
-        logs.forEach((l) => {
-          if (!grp[l.date])
-            grp[l.date] = {
-              w: 0,
-              b: 0,
-              count: 0,
-              goal: resolveGoalSecForDate(l.date),
-            };
-          grp[l.date].w += l.workSec;
-          grp[l.date].b += l.breakSec;
-          grp[l.date].count++;
-        });
-
         let csvRows = [];
-        logs.forEach((l, i) => {
-          const isLast = i === logs.length - 1;
-          const nextLog = isLast ? null : logs[i + 1];
+        logs.forEach((l) => {
           const workDec = (l.workSec / 3600).toFixed(4);
           const breakDec = (l.breakSec / 3600).toFixed(4);
           const goalSec = resolveGoalSecForDate(l.date);
@@ -17222,18 +17290,6 @@
           csvRows.push(
             `"${l.date}","${l.login}","${l.logout}","${formatDuration(l.workSec)}","${workDec}","${formatDuration(l.breakSec)}","${breakDec}","${deltaDec}","${notes}"`,
           );
-
-          if (!nextLog || nextLog.date !== l.date) {
-            const dt = grp[l.date];
-            if (dt.count > 1) {
-              const totWorkDec = (dt.w / 3600).toFixed(4);
-              const totBreakDec = (dt.b / 3600).toFixed(4);
-              const totDelta = ((dt.w - dt.goal) / 3600).toFixed(4);
-              csvRows.push(
-                `"> ${l.date} TOTALS","","","${formatDuration(dt.w)}","${totWorkDec}","${formatDuration(dt.b)}","${totBreakDec}","${totDelta}","Anchor Goal: ${formatFriendlyDuration(dt.goal)}"`,
-              );
-            }
-          }
         });
         csv += csvRows.join("\n");
 
@@ -17733,17 +17789,59 @@
 
         const goal = resolveGoalSecForDate(log.date);
         const diffSec = log.workSec - goal;
-        let txt = `Shift Log: ${log.date}\n`;
-        txt += `Time: ${log.login} - ${log.logout}\n`;
-        txt += `Work Time: ${formatDuration(log.workSec)} (Goal: ${formatDuration(goal)} | Variance: ${diffSec >= 0 ? "+" : "-"}${formatDuration(Math.abs(diffSec))})\n`;
-        txt += `Break Time: ${formatDuration(log.breakSec)}\n`;
 
-        if (log.notes) txt += `Notes: ${log.notes}`;
+        const [m, d, y] = log.date.split("/");
+        const fullYear = y.length === 2 ? `20${y}` : y;
+        const dateObj = new Date(
+          parseInt(fullYear, 10),
+          parseInt(m, 10) - 1,
+          parseInt(d, 10),
+        );
+        const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+        const dayNameShort = dayNames[dateObj.getDay()];
 
-        navigator.clipboard.writeText(txt).then(() => {
+        const bW = `<span style="display:inline-block;width:16px;height:16px;line-height:16px;text-align:center;border-radius:4px;font-size:10px;font-weight:bold;font-family:sans-serif;margin-right:4px;color:#248a3d;background-color:#eaf9ee;border:1px solid #bce9c9;">W</span>`;
+        const bB = `<span style="display:inline-block;width:16px;height:16px;line-height:16px;text-align:center;border-radius:4px;font-size:10px;font-weight:bold;font-family:sans-serif;margin-right:4px;color:#d70000;background-color:#ffeceb;border:1px solid #ffc4c0;">B</span>`;
+        const bG = `<span style="display:inline-block;width:16px;height:16px;line-height:16px;text-align:center;border-radius:4px;font-size:10px;font-weight:bold;font-family:sans-serif;margin-right:4px;color:#0056b3;background-color:#e5f1ff;border:1px solid #b3d7ff;">G</span>`;
+        const bO = `<span style="display:inline-block;width:16px;height:16px;line-height:16px;text-align:center;border-radius:4px;font-size:10px;font-weight:bold;font-family:sans-serif;margin-right:4px;color:#248a3d;background-color:#eaf9ee;border:1px solid #bce9c9;">O</span>`;
+        const bU = `<span style="display:inline-block;width:16px;height:16px;line-height:16px;text-align:center;border-radius:4px;font-size:10px;font-weight:bold;font-family:sans-serif;margin-right:4px;color:#b36800;background-color:#fff4e5;border:1px solid #ffd699;">U</span>`;
+
+        const diffAbs = formatDuration(Math.abs(diffSec));
+        const isOver = diffSec >= 0;
+        const plainDiff = isOver ? `O: ${diffAbs}` : `U: ${diffAbs}`;
+        const htmlDiff = isOver ? `${bO}${diffAbs}` : `${bU}${diffAbs}`;
+
+        let txt = `[${log.date} - ${dayNameShort}] W: ${formatDuration(log.workSec)} | B: ${formatDuration(log.breakSec)} | G: ${formatDuration(goal)} | ${plainDiff}`;
+        let htmlOut = `<table style="border-collapse: collapse; font-family: sans-serif; font-size: 14px;"><tr><td style="padding-right: 16px; white-space: nowrap; font-weight: 600;">[${log.date} - ${dayNameShort}]</td><td style="padding-right: 16px; white-space: nowrap;">${bW}${formatDuration(log.workSec)}</td><td style="padding-right: 16px; white-space: nowrap;">${bB}${formatDuration(log.breakSec)}</td><td style="padding-right: 16px; white-space: nowrap;">${bG}${formatDuration(goal)}</td><td style="white-space: nowrap;">${htmlDiff}</td></tr></table>`;
+
+        const writeSuccess = () => {
           btnElement.innerHTML = `<span style="font-size:0.45rem; font-weight:bold;">DONE</span>`;
           setTimeout(() => (btnElement.innerHTML = SVGs.copy), 1500);
-        });
+        };
+
+        if (navigator.clipboard && window.ClipboardItem) {
+          try {
+            const typeText = new Blob([txt], { type: "text/plain" });
+            const typeHtml = new Blob([htmlOut], { type: "text/html" });
+            navigator.clipboard
+              .write([
+                new ClipboardItem({
+                  "text/plain": typeText,
+                  "text/html": typeHtml,
+                }),
+              ])
+              .then(writeSuccess)
+              .catch(() => {
+                navigator.clipboard.writeText(txt).then(writeSuccess);
+              });
+          } catch (err) {
+            if (navigator.clipboard.writeText) {
+              navigator.clipboard.writeText(txt).then(writeSuccess);
+            }
+          }
+        } else if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(txt).then(writeSuccess);
+        }
       }
 
       /**
@@ -17772,28 +17870,84 @@
           grp[l.date].b += l.breakSec;
         });
 
+        const bW = `<span style="display:inline-block;width:16px;height:16px;line-height:16px;text-align:center;border-radius:4px;font-size:10px;font-weight:bold;font-family:sans-serif;margin-right:4px;color:#248a3d;background-color:#eaf9ee;border:1px solid #bce9c9;">W</span>`;
+        const bB = `<span style="display:inline-block;width:16px;height:16px;line-height:16px;text-align:center;border-radius:4px;font-size:10px;font-weight:bold;font-family:sans-serif;margin-right:4px;color:#d70000;background-color:#ffeceb;border:1px solid #ffc4c0;">B</span>`;
+        const bG = `<span style="display:inline-block;width:16px;height:16px;line-height:16px;text-align:center;border-radius:4px;font-size:10px;font-weight:bold;font-family:sans-serif;margin-right:4px;color:#0056b3;background-color:#e5f1ff;border:1px solid #b3d7ff;">G</span>`;
+        const bO = `<span style="display:inline-block;width:16px;height:16px;line-height:16px;text-align:center;border-radius:4px;font-size:10px;font-weight:bold;font-family:sans-serif;margin-right:4px;color:#248a3d;background-color:#eaf9ee;border:1px solid #bce9c9;">O</span>`;
+        const bU = `<span style="display:inline-block;width:16px;height:16px;line-height:16px;text-align:center;border-radius:4px;font-size:10px;font-weight:bold;font-family:sans-serif;margin-right:4px;color:#b36800;background-color:#fff4e5;border:1px solid #ffd699;">U</span>`;
+
+        const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+        let htmlOut = `<table style="border-collapse: collapse; font-family: sans-serif; font-size: 14px;">`;
         const txt = Object.keys(grp)
           .map((d) => {
             const dt = grp[d];
             const goalSec = dt.goal;
             const diffSec = dt.w - goalSec;
-            let out = `[ ${d} ]\n`;
-            dt.shifts.forEach((s, i) => {
-              out += `  • Shift ${i + 1}: ${s.login} - ${s.logout} (W: ${formatDuration(s.workSec)} | B: ${formatDuration(s.breakSec)})${s.notes ? " | Note: " + s.notes : ""}\n`;
-            });
-            const warning = dt.w < 7 * 3600 ? " [!] (Under 7h)" : "";
-            out += `  ---\n  Total Work: ${formatDuration(dt.w)} (Goal: ${formatDuration(goalSec)} | Variance: ${diffSec >= 0 ? "+" : "-"}${formatDuration(Math.abs(diffSec))})${warning}\n  Total Break: ${formatDuration(dt.b)}\n  Total Logged: ${formatDuration(dt.w + dt.b)}`;
+
+            const [m, day, y] = d.split("/");
+            const fullYear = y.length === 2 ? `20${y}` : y;
+            const dateObj = new Date(
+              parseInt(fullYear, 10),
+              parseInt(m, 10) - 1,
+              parseInt(day, 10),
+            );
+            const dayNameShort = dayNames[dateObj.getDay()];
+
+            const diffAbs = formatDuration(Math.abs(diffSec));
+            const isOver = diffSec >= 0;
+            const plainDiff = isOver ? `O: ${diffAbs}` : `U: ${diffAbs}`;
+            const htmlDiff = isOver ? `${bO}${diffAbs}` : `${bU}${diffAbs}`;
+
+            let out = "";
+            if (dt.shifts.length === 1) {
+              const s = dt.shifts[0];
+              out = `[${d} - ${dayNameShort}] W: ${formatDuration(s.workSec)} | B: ${formatDuration(s.breakSec)} | G: ${formatDuration(goalSec)} | ${plainDiff}`;
+              htmlOut += `<tr><td style="padding-right: 16px; white-space: nowrap; font-weight: 600;">[${d} - ${dayNameShort}]</td><td style="padding-right: 16px; white-space: nowrap;">${bW}${formatDuration(s.workSec)}</td><td style="padding-right: 16px; white-space: nowrap;">${bB}${formatDuration(s.breakSec)}</td><td style="padding-right: 16px; white-space: nowrap;">${bG}${formatDuration(goalSec)}</td><td style="white-space: nowrap;">${htmlDiff}</td></tr>`;
+            } else {
+              out = `[${d} - ${dayNameShort}] ∑W: ${formatDuration(dt.w)} | ∑B: ${formatDuration(dt.b)} | G: ${formatDuration(goalSec)} | ${plainDiff}\n`;
+              htmlOut += `<tr><td style="padding-right: 16px; white-space: nowrap; font-weight: 600;">[${d} - ${dayNameShort}]</td><td style="padding-right: 16px; white-space: nowrap;">∑ ${bW}${formatDuration(dt.w)}</td><td style="padding-right: 16px; white-space: nowrap;">∑ ${bB}${formatDuration(dt.b)}</td><td style="padding-right: 16px; white-space: nowrap;">${bG}${formatDuration(goalSec)}</td><td style="white-space: nowrap;">${htmlDiff}</td></tr>`;
+              dt.shifts.forEach((s) => {
+                out += `  ↳ W: ${formatDuration(s.workSec)} | B: ${formatDuration(s.breakSec)}\n`;
+                htmlOut += `<tr><td style="padding-right: 16px; white-space: nowrap; color: #888;">&nbsp;&nbsp;↳</td><td style="padding-right: 16px; white-space: nowrap;">${bW}${formatDuration(s.workSec)}</td><td style="padding-right: 16px; white-space: nowrap;">${bB}${formatDuration(s.breakSec)}</td><td colspan="2"></td></tr>`;
+              });
+              out = out.trimEnd();
+            }
             return out;
           })
-          .join("\n\n");
+          .join("\n");
+        htmlOut += `</table>`;
 
-        navigator.clipboard.writeText(txt).then(() => {
+        const writeToClipboard = () => {
           if (filteredLogs.length === allLogs.length) {
             showAppToast(`Copied all ${filteredLogs.length} logs to clipboard`);
           } else {
             showAppToast(`Copied ${filteredLogs.length} filtered logs`);
           }
-        });
+        };
+
+        if (navigator.clipboard && window.ClipboardItem) {
+          try {
+            const typeText = new Blob([txt], { type: "text/plain" });
+            const typeHtml = new Blob([htmlOut], { type: "text/html" });
+            navigator.clipboard
+              .write([
+                new ClipboardItem({
+                  "text/plain": typeText,
+                  "text/html": typeHtml,
+                }),
+              ])
+              .then(writeToClipboard)
+              .catch(() => {
+                navigator.clipboard.writeText(txt).then(writeToClipboard);
+              });
+          } catch (err) {
+            if (navigator.clipboard.writeText) {
+              navigator.clipboard.writeText(txt).then(writeToClipboard);
+            }
+          }
+        } else if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(txt).then(writeToClipboard);
+        }
       }
 
       /**
@@ -18687,13 +18841,70 @@
             const log = virtualScrollLogs[selectedLogIdx];
             if (log) {
               e.preventDefault();
-              let txt = `Shift Log: ${log.date}\nTime: ${log.login} - ${log.logout}\nWork Time: ${formatDuration(log.workSec)}\nBreak Time: ${formatDuration(log.breakSec)}\n`;
-              if (log.notes) txt += `Notes: ${log.notes}`;
-              navigator.clipboard.writeText(txt).then(() => {
+              const goal = resolveGoalSecForDate(log.date);
+              const diffSec = log.workSec - goal;
+
+              const [m, d, y] = log.date.split("/");
+              const fullYear = y.length === 2 ? `20${y}` : y;
+              const dateObj = new Date(
+                parseInt(fullYear, 10),
+                parseInt(m, 10) - 1,
+                parseInt(d, 10),
+              );
+              const dayNames = [
+                "Sun",
+                "Mon",
+                "Tue",
+                "Wed",
+                "Thu",
+                "Fri",
+                "Sat",
+              ];
+              const dayNameShort = dayNames[dateObj.getDay()];
+
+              const bW = `<span style="display:inline-block;width:16px;height:16px;line-height:16px;text-align:center;border-radius:4px;font-size:10px;font-weight:bold;font-family:sans-serif;margin-right:4px;color:#248a3d;background-color:#eaf9ee;border:1px solid #bce9c9;">W</span>`;
+              const bB = `<span style="display:inline-block;width:16px;height:16px;line-height:16px;text-align:center;border-radius:4px;font-size:10px;font-weight:bold;font-family:sans-serif;margin-right:4px;color:#d70000;background-color:#ffeceb;border:1px solid #ffc4c0;">B</span>`;
+              const bG = `<span style="display:inline-block;width:16px;height:16px;line-height:16px;text-align:center;border-radius:4px;font-size:10px;font-weight:bold;font-family:sans-serif;margin-right:4px;color:#0056b3;background-color:#e5f1ff;border:1px solid #b3d7ff;">G</span>`;
+              const bO = `<span style="display:inline-block;width:16px;height:16px;line-height:16px;text-align:center;border-radius:4px;font-size:10px;font-weight:bold;font-family:sans-serif;margin-right:4px;color:#248a3d;background-color:#eaf9ee;border:1px solid #bce9c9;">O</span>`;
+              const bU = `<span style="display:inline-block;width:16px;height:16px;line-height:16px;text-align:center;border-radius:4px;font-size:10px;font-weight:bold;font-family:sans-serif;margin-right:4px;color:#b36800;background-color:#fff4e5;border:1px solid #ffd699;">U</span>`;
+
+              const diffAbs = formatDuration(Math.abs(diffSec));
+              const isOver = diffSec >= 0;
+              const plainDiff = isOver ? `O: ${diffAbs}` : `U: ${diffAbs}`;
+              const htmlDiff = isOver ? `${bO}${diffAbs}` : `${bU}${diffAbs}`;
+
+              let txt = `[${log.date} - ${dayNameShort}] W: ${formatDuration(log.workSec)} | B: ${formatDuration(log.breakSec)} | G: ${formatDuration(goal)} | ${plainDiff}`;
+              let htmlOut = `<table style="border-collapse: collapse; font-family: sans-serif; font-size: 14px;"><tr><td style="padding-right: 16px; white-space: nowrap; font-weight: 600;">[${log.date} - ${dayNameShort}]</td><td style="padding-right: 16px; white-space: nowrap;">${bW}${formatDuration(log.workSec)}</td><td style="padding-right: 16px; white-space: nowrap;">${bB}${formatDuration(log.breakSec)}</td><td style="padding-right: 16px; white-space: nowrap;">${bG}${formatDuration(goal)}</td><td style="white-space: nowrap;">${htmlDiff}</td></tr></table>`;
+
+              const writeSuccess = () => {
                 showAppToast(
                   `Shift summary for ${log.date} copied to clipboard`,
                 );
-              });
+              };
+
+              if (navigator.clipboard && window.ClipboardItem) {
+                try {
+                  const typeText = new Blob([txt], { type: "text/plain" });
+                  const typeHtml = new Blob([htmlOut], { type: "text/html" });
+                  navigator.clipboard
+                    .write([
+                      new ClipboardItem({
+                        "text/plain": typeText,
+                        "text/html": typeHtml,
+                      }),
+                    ])
+                    .then(writeSuccess)
+                    .catch(() => {
+                      navigator.clipboard.writeText(txt).then(writeSuccess);
+                    });
+                } catch (err) {
+                  if (navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(txt).then(writeSuccess);
+                  }
+                }
+              } else if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(txt).then(writeSuccess);
+              }
             }
           }
         }
