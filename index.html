@@ -404,10 +404,12 @@
         0% {
           background-color: rgba(10, 132, 255, 0.15);
         }
+
         100% {
           background-color: transparent;
         }
       }
+
       .is-calculated {
         animation: calc-flash 0.8s ease-out;
       }
@@ -706,9 +708,8 @@
       }
 
       .filter-row:not(:last-child) {
-        border-bottom: 1px solid var(--border-main);
-        padding-bottom: 12px;
-        margin-bottom: 12px;
+        padding-bottom: 0;
+        margin-bottom: 4px;
       }
 
       /* =========================================================================
@@ -1622,12 +1623,15 @@
       .theme-icon-eink {
         color: var(--text-main);
       }
+
       .theme-icon-vercel {
         color: var(--text-main);
       }
+
       .theme-icon-sf-dark {
         color: #818cf8;
       }
+
       .theme-icon-sf-light {
         color: #ff9500;
       }
@@ -2154,15 +2158,18 @@
         background: var(--element-bg);
         border: 1px solid var(--border-main);
         color: var(--text-muted);
-        padding: 4px 10px;
-        border-radius: var(--radius-sm);
+        padding: 0 10px;
+        height: 27px;
+        box-sizing: border-box;
+        border-radius: 6px;
         cursor: pointer;
         display: inline-flex;
         align-items: center;
+        justify-content: center;
         gap: 6px;
         font-family: var(--font-sans);
-        font-size: 0.8rem;
-        font-weight: 500;
+        font-size: 0.72rem;
+        font-weight: 600;
         transition:
           color 0.15s ease,
           background-color 0.15s ease,
@@ -5348,6 +5355,12 @@
           </button>
           <button
             class="help-tab-btn"
+            onclick="switchHelpTab('help-tasks', this)"
+          >
+            Tasks
+          </button>
+          <button
+            class="help-tab-btn"
             onclick="switchHelpTab('help-data', this)"
           >
             Data & Settings
@@ -5443,8 +5456,9 @@
               file and opens an email draft template.
             </li>
             <li>
-              <strong>Alt + 1 / Alt + 2:</strong> Swaps directly between the
-              <strong>Insights</strong> and <strong>Logbook</strong> tabs.
+              <strong>Alt + 1 / Alt + 2 / Alt + 3:</strong> Swaps directly
+              between the <strong>Insights</strong>, <strong>Logbook</strong>,
+              and <strong>Tasks</strong> tabs.
             </li>
             <li>
               <strong>Question Mark (?):</strong> Opens this Help Guide overlay.
@@ -5997,7 +6011,65 @@
           </p>
         </div>
 
-        <!-- Tab 5: Data & Settings -->
+        <!-- Tab 5: Micro-Tasks -->
+        <div id="help-tasks" class="help-tab-content">
+          <h4>Micro-Tasks & Stopwatch</h4>
+          <p>
+            The <strong>Tasks</strong> tab (right panel) provides an isolated,
+            lightweight stopwatch for tracking small, individual activities
+            (such as pre-charting a note, reviewing lab results, or
+            micro-billing) without interrupting your primary shift timer.
+          </p>
+          <hr />
+          <h4>Tracking a Task</h4>
+          <ul>
+            <li>
+              <strong>Enter Task Note:</strong> Type the context or patient note
+              into the input box at the top of the tab.
+            </li>
+            <li>
+              <strong>Start Task:</strong> Click <strong>Start Task</strong> to
+              begin the stopwatch. The timer counts up cleanly without goal
+              limits or break tracking.
+            </li>
+            <li>
+              <strong>Stop & Save:</strong> Click
+              <strong>Stop & Save</strong> when finished. The exact start time,
+              end time, total duration, and note are recorded to your Task
+              History.
+            </li>
+            <li>
+              <strong>Cancel:</strong> Click <strong>Cancel</strong> while a
+              task is running to discard the timer without saving.
+            </li>
+          </ul>
+          <hr />
+          <h4>Task History & Exports</h4>
+          <ul>
+            <li>
+              <strong>High-Performance History:</strong> Completed tasks are
+              grouped by date. To maintain 0ms UI performance, the history
+              renders in lightweight chunks with a
+              <strong>Load More</strong> button for older records.
+            </li>
+            <li>
+              <strong>Copy Task:</strong> Click the clipboard icon on any task
+              card to copy its details, or click <strong>Copy</strong> at the
+              top of the list to copy all task records.
+            </li>
+            <li>
+              <strong>Export CSV:</strong> Click <strong>CSV</strong> in the
+              Tasks header to download a spreadsheet report of all logged tasks.
+            </li>
+            <li>
+              <strong>Backup Integration:</strong> Task history is automatically
+              included in your JSON backups and restored when importing backup
+              files.
+            </li>
+          </ul>
+        </div>
+
+        <!-- Tab 6: Data & Settings -->
         <div id="help-data" class="help-tab-content">
           <h4>Export & Sharing</h4>
           <ul>
@@ -6235,6 +6307,228 @@
             class="btn-warning-outline idle-action-btn"
           >
             Confirm
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Task Edit Form Popup -->
+    <div id="edit-task-modal" class="modal-overlay">
+      <div
+        class="modal-container modal-width-sm accent-info"
+        role="dialog"
+        aria-modal="true"
+      >
+        <h3 class="modal-header">Edit Task</h3>
+        <div class="form-group">
+          <label class="form-label" for="edit-task-date">Date (MM/DD/YY)</label>
+          <div class="date-picker-group">
+            <input
+              type="text"
+              id="edit-task-date"
+              class="input-standard"
+              onfocus="this.select()"
+              onkeydown="if (event.key === 'Enter') this.blur();"
+            />
+            <input
+              type="text"
+              readonly
+              id="edit-task-date-picker"
+              style="
+                position: absolute;
+                opacity: 0.01;
+                width: 1px;
+                height: 1px;
+                pointer-events: none;
+              "
+            />
+            <button
+              type="button"
+              class="preset-pill"
+              onclick="safeShowPicker('edit-task-date-picker')"
+              title="Open Calendar"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                fill="none"
+                style="
+                  width: 14px;
+                  height: 14px;
+                  stroke-width: 2;
+                  flex-shrink: 0;
+                "
+              >
+                <g data-sprite="sprite-008"></g>
+              </svg>
+            </button>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="edit-task-start">Start Time</label>
+            <input
+              type="text"
+              id="edit-task-start"
+              class="input-standard"
+              placeholder="09:00 AM"
+              onfocus="this.select()"
+              onkeydown="if (event.key === 'Enter') this.blur();"
+            />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="edit-task-end">End Time</label>
+            <input
+              type="text"
+              id="edit-task-end"
+              class="input-standard"
+              placeholder="09:15 AM"
+              onfocus="this.select()"
+              onkeydown="if (event.key === 'Enter') this.blur();"
+            />
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="edit-task-dur"
+            >Duration (HH:MM:SS)</label
+          >
+          <input
+            type="text"
+            id="edit-task-dur"
+            class="input-standard"
+            placeholder="00:15:00"
+            onfocus="this.select()"
+            onkeydown="if (event.key === 'Enter') this.blur();"
+          />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="edit-task-notes">Notes</label>
+          <textarea
+            id="edit-task-notes"
+            class="input-standard"
+            maxlength="2000"
+          ></textarea>
+        </div>
+        <div class="action-row">
+          <button class="btn-secondary" onclick="closeEditTaskModal()">
+            Cancel
+          </button>
+          <button class="btn-info-outline" onclick="saveEditTaskModal()">
+            Save
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Manual Task Form Popup -->
+    <div id="manual-task-modal" class="modal-overlay">
+      <div
+        class="modal-container modal-width-sm accent-success"
+        role="dialog"
+        aria-modal="true"
+      >
+        <h3 class="modal-header">Add Manual Task</h3>
+        <div class="form-group">
+          <label class="form-label" for="manual-task-date"
+            >Date (MM/DD/YY)</label
+          >
+          <div class="date-picker-group">
+            <input
+              type="text"
+              id="manual-task-date"
+              class="input-standard"
+              placeholder="05/16/26"
+              onfocus="this.select()"
+              onkeydown="if (event.key === 'Enter') this.blur();"
+            />
+            <input
+              type="text"
+              readonly
+              id="manual-task-date-picker"
+              style="
+                position: absolute;
+                opacity: 0.01;
+                width: 1px;
+                height: 1px;
+                pointer-events: none;
+              "
+            />
+            <button
+              type="button"
+              class="preset-pill"
+              onclick="safeShowPicker('manual-task-date-picker')"
+              title="Open Calendar"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                fill="none"
+                style="
+                  width: 14px;
+                  height: 14px;
+                  stroke-width: 2;
+                  flex-shrink: 0;
+                "
+              >
+                <g data-sprite="sprite-008"></g>
+              </svg>
+            </button>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="manual-task-start">Start Time</label>
+            <input
+              type="text"
+              id="manual-task-start"
+              class="input-standard"
+              placeholder="09:00 AM"
+              onfocus="this.select()"
+              onkeydown="if (event.key === 'Enter') this.blur();"
+            />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="manual-task-end">End Time</label>
+            <input
+              type="text"
+              id="manual-task-end"
+              class="input-standard"
+              placeholder="09:15 AM"
+              onfocus="this.select()"
+              onkeydown="if (event.key === 'Enter') this.blur();"
+            />
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="manual-task-dur"
+            >Duration (HH:MM:SS)</label
+          >
+          <input
+            type="text"
+            id="manual-task-dur"
+            class="input-standard"
+            placeholder="00:15:00"
+            onfocus="this.select()"
+            onkeydown="if (event.key === 'Enter') this.blur();"
+          />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="manual-task-notes">Notes</label>
+          <textarea
+            id="manual-task-notes"
+            class="input-standard"
+            maxlength="2000"
+          ></textarea>
+        </div>
+        <div class="action-row">
+          <button class="btn-secondary" onclick="closeManualTaskModal()">
+            Cancel
+          </button>
+          <button
+            class="btn-success-outline idle-action-btn"
+            onclick="saveManualTaskModal()"
+          >
+            Add Task
           </button>
         </div>
       </div>
@@ -7639,6 +7933,13 @@
           >
             Logbook
           </button>
+          <button
+            class="tab-btn"
+            data-target="tasks"
+            onclick="switchTab('tasks')"
+          >
+            Tasks
+          </button>
         </div>
 
         <!-- Tab Content Area: Historical Shift Logbook -->
@@ -8349,6 +8650,712 @@
             id="weekly-breakdown"
             style="flex: 1; overflow-y: auto; min-height: 0; padding-right: 4px"
           ></div>
+        </div>
+
+        <!-- Tab Content Area: Micro-Tasks -->
+        <style>
+          /* Task Tab Refinements */
+          .task-card-active {
+            background: var(--element-bg);
+            border: 1px solid var(--border-main);
+            border-radius: var(--radius-xl);
+            padding: var(--space-3) var(--space-4);
+            margin-bottom: var(--space-3);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+          }
+
+          .task-input-running {
+            border-color: transparent !important;
+            background: transparent !important;
+            text-align: center;
+            font-weight: 700;
+            font-size: 1.1rem;
+            pointer-events: none;
+            padding: 0 !important;
+          }
+
+          .badge-t {
+            width: 16px;
+            height: 16px;
+            font-size: 0.6rem;
+            color: color-mix(in srgb, var(--text-main) 30%, var(--accent-blue));
+            background: color-mix(in srgb, var(--accent-blue) 10%, transparent);
+            border: 1px solid
+              color-mix(in srgb, var(--accent-blue) 30%, transparent);
+          }
+
+          .task-group-card {
+            background: var(--element-bg);
+            border: 1px solid var(--border-main);
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            margin-bottom: 12px;
+          }
+
+          .task-row {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            padding: 12px 14px;
+            border-bottom: 1px solid var(--border-main);
+          }
+
+          .task-row:last-child {
+            border-bottom: none;
+          }
+
+          .task-row .icon-actions {
+            opacity: 0;
+            transition: opacity 0.2s;
+          }
+
+          .task-row:hover .icon-actions {
+            opacity: 1;
+          }
+
+          .task-export-icon {
+            background: transparent !important;
+            border: none !important;
+            padding: 4px;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: color 0.2s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+          }
+
+          .task-export-icon:hover {
+            color: var(--text-main);
+          }
+
+          .ios-section-header {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            margin-top: 16px;
+            margin-bottom: 6px;
+            padding-left: 4px;
+            letter-spacing: 0.05em;
+          }
+
+          .btn-cancel-subtle {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          }
+
+          .btn-cancel-subtle:hover {
+            background: var(--bg-hover);
+            color: var(--text-main);
+          }
+        </style>
+        <div
+          id="tab-tasks"
+          class="tab-content"
+          style="
+            display: none;
+            flex-direction: column;
+            height: 100%;
+            overflow-y: hidden;
+          "
+        >
+          <div class="task-card-active">
+            <button
+              id="task-cancel-btn"
+              class="btn-cancel-subtle"
+              style="display: none"
+              title="Cancel Task"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                width="16"
+                height="16"
+              >
+                <path d="M18 6L6 18M6 6l12 12"></path>
+              </svg>
+            </button>
+
+            <input
+              type="text"
+              id="task-note-input"
+              class="input-standard"
+              placeholder="What are you working on?"
+              style="
+                margin-bottom: var(--space-3);
+                width: 100%;
+                transition: all 0.3s;
+                height: 30px;
+                padding: 4px 12px;
+                font-size: 0.8rem;
+                box-sizing: border-box;
+              "
+              autocomplete="off"
+            />
+
+            <div
+              style="
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                width: 100%;
+                margin-bottom: 0;
+              "
+            >
+              <div
+                id="task-timer-display"
+                class="timer-val timer-inactive"
+                style="font-size: 2.5rem; margin: 0"
+              >
+                <span class="timer-digit">00</span
+                ><span class="timer-colon">:</span
+                ><span class="timer-digit">00</span
+                ><span class="timer-colon">:</span
+                ><span class="timer-digit">00</span>
+              </div>
+
+              <div id="task-actions-group" style="display: flex; gap: 8px">
+                <button
+                  id="task-start-btn"
+                  class="btn-work"
+                  style="
+                    display: inline-flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 6px;
+                    height: 36px;
+                    padding: 0 24px;
+                    font-size: 0.85rem;
+                    font-weight: 600;
+                    border-radius: var(--radius-lg);
+                  "
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    width="18"
+                    height="18"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.8"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    style="flex-shrink: 0"
+                  >
+                    <g data-sprite="sprite-021"></g>
+                  </svg>
+                  <span>Start</span>
+                </button>
+                <button
+                  id="task-pause-btn"
+                  class="btn-break"
+                  style="
+                    display: none;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 6px;
+                    height: 36px;
+                    padding: 0 24px;
+                    font-size: 0.85rem;
+                    font-weight: 600;
+                    border-radius: var(--radius-lg);
+                  "
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    width="18"
+                    height="18"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.8"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    style="flex-shrink: 0"
+                  >
+                    <g data-sprite="sprite-022"></g>
+                  </svg>
+                  <span>Pause</span>
+                </button>
+                <button
+                  id="task-save-btn"
+                  class="btn-log"
+                  style="
+                    display: none;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 6px;
+                    height: 36px;
+                    padding: 0 16px;
+                    font-size: 0.85rem;
+                    font-weight: 600;
+                    border-radius: var(--radius-lg);
+                  "
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    width="18"
+                    height="18"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.8"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    style="flex-shrink: 0"
+                  >
+                    <g data-sprite="sprite-023"></g>
+                  </svg>
+                  <span>Done</span>
+                </button>
+              </div>
+            </div>
+          </div>
+          <div
+            class="logbook-sticky-toolbar"
+            style="
+              position: relative;
+              z-index: 10;
+              padding-top: 0;
+              margin-bottom: 8px;
+            "
+          >
+            <div class="logbook-controls-header">
+              <div style="display: flex; gap: 8px; align-items: center">
+                <button
+                  class="header-icon-btn"
+                  id="task-filter-toggle-btn"
+                  onclick="toggleTaskFilters()"
+                  title="Advanced Filters"
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.8"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    width="14"
+                    height="14"
+                  >
+                    <g data-sprite="sprite-024"></g>
+                  </svg>
+                  Filters
+                </button>
+                <button
+                  class="header-icon-btn"
+                  onclick="openManualTaskModal()"
+                  title="Add Manual Task"
+                  aria-label="Add Manual Task"
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    fill="none"
+                    stroke-width="1.8"
+                    width="14"
+                    height="14"
+                  >
+                    <g data-sprite="sprite-025"></g>
+                  </svg>
+                  Add Task
+                </button>
+              </div>
+              <div style="display: flex; align-items: center; gap: 8px">
+                <span
+                  id="task-count-display"
+                  style="
+                    font-size: 0.75rem;
+                    color: var(--text-main);
+                    font-weight: 500;
+                    font-variant-numeric: tabular-nums;
+                  "
+                ></span>
+                <div
+                  style="
+                    display: flex;
+                    gap: 4px;
+                    border-left: 1px solid var(--border-main);
+                    padding-left: 8px;
+                    margin-left: 4px;
+                  "
+                >
+                  <button
+                    id="task-copy-all-btn"
+                    class="task-export-icon"
+                    title="Copy All Tasks"
+                  >
+                    <svg
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      fill="none"
+                      stroke-width="1.8"
+                      width="16"
+                      height="16"
+                    >
+                      <g data-sprite="sprite-040"></g>
+                    </svg>
+                  </button>
+                  <button
+                    id="task-export-csv-btn"
+                    class="task-export-icon"
+                    title="Export Tasks CSV"
+                  >
+                    <svg
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      fill="none"
+                      stroke-width="1.8"
+                      width="16"
+                      height="16"
+                    >
+                      <g data-sprite="sprite-030"></g>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div id="task-advanced-filters" class="advanced-filters">
+              <div class="filter-row">
+                <div class="filter-input-wrapper" style="flex: 1; min-width: 0">
+                  <svg
+                    class="field-icon"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.8"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <g data-sprite="sprite-026"></g>
+                  </svg>
+                  <input
+                    type="text"
+                    id="task-filter-search"
+                    class="filter-input"
+                    placeholder="Search notes or times..."
+                  />
+                </div>
+              </div>
+              <div class="filter-row">
+                <div
+                  style="
+                    flex: 1.5;
+                    min-width: 0;
+                    display: flex;
+                    align-items: center;
+                    background: rgba(255, 255, 255, 0.015);
+                    border: 1px solid var(--border-main);
+                    border-radius: 6px;
+                    padding: 0 6px;
+                    gap: 6px;
+                    height: 27px;
+                    box-sizing: border-box;
+                  "
+                >
+                  <div
+                    style="
+                      display: flex;
+                      align-items: center;
+                      gap: 3px;
+                      flex: 1;
+                      min-width: 0;
+                    "
+                  >
+                    <span
+                      class="form-label-xs"
+                      style="text-transform: none !important"
+                      >From</span
+                    >
+                    <input
+                      type="text"
+                      id="task-filter-date-start"
+                      class="filter-input"
+                      style="
+                        border: none !important;
+                        background: transparent !important;
+                        padding: 0 !important;
+                        height: 100% !important;
+                        flex: 1;
+                        min-width: 0;
+                        font-size: 0.7rem;
+                        color: var(--text-main);
+                      "
+                    />
+                    <input
+                      type="text"
+                      readonly
+                      id="task-filter-date-start-picker"
+                      style="
+                        position: absolute;
+                        opacity: 0.01;
+                        width: 1px;
+                        height: 1px;
+                        pointer-events: none;
+                      "
+                    />
+                    <button
+                      type="button"
+                      onclick="safeShowPicker('task-filter-date-start-picker')"
+                      style="
+                        background: transparent;
+                        border: none;
+                        padding: 0;
+                        cursor: pointer;
+                        color: var(--text-muted);
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        flex-shrink: 0;
+                      "
+                      title="Open Calendar"
+                    >
+                      <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.8"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        style="width: 12px; height: 12px"
+                      >
+                        <g data-sprite="sprite-027"></g>
+                      </svg>
+                    </button>
+                  </div>
+                  <div
+                    style="
+                      width: 1px;
+                      height: 12px;
+                      background: var(--border-main);
+                    "
+                  ></div>
+                  <div
+                    style="
+                      display: flex;
+                      align-items: center;
+                      gap: 3px;
+                      flex: 1;
+                      min-width: 0;
+                    "
+                  >
+                    <span
+                      class="form-label-xs"
+                      style="text-transform: none !important"
+                      >To</span
+                    >
+                    <input
+                      type="text"
+                      id="task-filter-date-end"
+                      class="filter-input"
+                      style="
+                        border: none !important;
+                        background: transparent !important;
+                        padding: 0 !important;
+                        height: 100% !important;
+                        flex: 1;
+                        min-width: 0;
+                        font-size: 0.7rem;
+                        color: var(--text-main);
+                      "
+                    />
+                    <input
+                      type="text"
+                      readonly
+                      id="task-filter-date-end-picker"
+                      style="
+                        position: absolute;
+                        opacity: 0.01;
+                        width: 1px;
+                        height: 1px;
+                        pointer-events: none;
+                      "
+                    />
+                    <button
+                      type="button"
+                      onclick="safeShowPicker('task-filter-date-end-picker')"
+                      style="
+                        background: transparent;
+                        border: none;
+                        padding: 0;
+                        cursor: pointer;
+                        color: var(--text-muted);
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        flex-shrink: 0;
+                      "
+                      title="Open Calendar"
+                    >
+                      <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.8"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        style="width: 12px; height: 12px"
+                      >
+                        <g data-sprite="sprite-027"></g>
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+                <div
+                  class="filter-hours-group"
+                  style="
+                    flex: 1.2;
+                    min-width: 0;
+                    display: flex;
+                    gap: 4px;
+                    align-items: center;
+                  "
+                >
+                  <div
+                    class="filter-select-wrapper"
+                    style="flex: 1.2; min-width: 0"
+                  >
+                    <div class="custom-select">
+                      <select id="task-filter-hours-op" style="display: none">
+                        <option value="ALL">Mins...</option>
+                        <option value="MORE">More than</option>
+                        <option value="LESS">Less than</option>
+                      </select>
+                      <button
+                        type="button"
+                        class="custom-select-trigger cs-sm"
+                        data-for="task-filter-hours-op"
+                        aria-haspopup="listbox"
+                      >
+                        <span class="cs-trigger-val">Mins...</span>
+                        <svg
+                          class="cs-chevron"
+                          viewBox="0 0 24 24"
+                          width="11"
+                          height="11"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="1.8"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                        >
+                          <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                      </button>
+                      <div
+                        class="custom-select-panel cs-compact"
+                        role="listbox"
+                      >
+                        <button
+                          type="button"
+                          class="custom-select-option cs-selected"
+                          data-value="ALL"
+                        >
+                          Mins...
+                        </button>
+                        <button
+                          type="button"
+                          class="custom-select-option"
+                          data-value="MORE"
+                        >
+                          More than
+                        </button>
+                        <button
+                          type="button"
+                          class="custom-select-option"
+                          data-value="LESS"
+                        >
+                          Less than
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                  <div
+                    class="filter-group-card"
+                    style="flex: 0.8; min-width: 0; padding: 0 6px"
+                  >
+                    <input
+                      type="number"
+                      id="task-filter-hours-val"
+                      class="filter-input"
+                      placeholder="0"
+                      min="0"
+                      disabled
+                      style="width: 100%; text-align: center"
+                    />
+                    <span
+                      class="filter-suffix"
+                      style="margin-left: 2px; min-width: auto"
+                      >m</span
+                    >
+                  </div>
+                </div>
+              </div>
+              <div class="filter-row">
+                <button
+                  class="clear-filter-btn"
+                  onclick="clearTaskFilters()"
+                  style="
+                    flex: 1;
+                    height: 27px;
+                    padding: 0 8px;
+                    border-radius: 6px;
+                    font-size: 0.72rem;
+                    margin: 0;
+                    justify-content: center;
+                    width: 100%;
+                  "
+                >
+                  Clear Filters
+                </button>
+              </div>
+            </div>
+            <div
+              id="task-filter-chips-container"
+              style="
+                display: flex;
+                flex-wrap: wrap;
+                gap: 6px;
+                margin-bottom: 12px;
+              "
+            ></div>
+          </div>
+          <div
+            id="task-log-scroll-viewport"
+            style="
+              flex: 1;
+              overflow-y: auto;
+              overflow-x: hidden;
+              min-height: 0;
+              padding-right: 4px;
+            "
+          >
+            <div id="task-log-container" style="position: relative">
+              <div
+                style="
+                  text-align: center;
+                  color: var(--text-muted);
+                  font-size: 0.85rem;
+                  margin-top: 20px;
+                "
+              >
+                No tasks logged today.
+              </div>
+            </div>
+          </div>
         </div>
 
         <!-- Data Export / Restore / Wipe Panel -->
@@ -9695,6 +10702,17 @@
 
       // Live session core tracking state structure
       window.dirtyChunks = new Set();
+      let taskState = {
+        isRunning: false,
+        isPaused: false,
+        startTimeMs: null,
+        accumulatedSec: 0,
+        note: "",
+      };
+      let cachedTaskLogs = [];
+      const TASK_STATE_KEY = "production_task_state_v1";
+      const TASK_LOGS_KEY = "production_task_logs_v1";
+
       let state = {
         workAccumulated: 0,
         breakAccumulated: 0,
@@ -9727,6 +10745,8 @@
       const modalEngine = {
         manual: { stack: [], values: {} },
         edit: { stack: [], values: {} },
+        "manual-task": { stack: [], values: {} },
+        "edit-task": { stack: [], values: {} },
       };
       let lastStateBackup = null;
       let lastAdjustmentStateBackup = null;
@@ -9962,6 +10982,22 @@
         },
         tabLogbook: document.getElementById("tab-logbook"),
         tabInsights: document.getElementById("tab-insights"),
+        tabTasks: document.getElementById("tab-tasks"),
+        taskNoteInput: document.getElementById("task-note-input"),
+        taskTimerDisplay: document.getElementById("task-timer-display"),
+        taskTimerDigits: Array.from(
+          document.querySelectorAll("#task-timer-display .timer-digit"),
+        ),
+        taskStartBtn: document.getElementById("task-start-btn"),
+        taskPauseBtn: document.getElementById("task-pause-btn"),
+        taskSaveBtn: document.getElementById("task-save-btn"),
+        taskCancelBtn: document.getElementById("task-cancel-btn"),
+        taskLogScrollViewport: document.getElementById(
+          "task-log-scroll-viewport",
+        ),
+        taskLogContainer: document.getElementById("task-log-container"),
+        taskCopyAllBtn: document.getElementById("task-copy-all-btn"),
+        taskExportCsvBtn: document.getElementById("task-export-csv-btn"),
         idleModal: document.getElementById("idle-modal"),
         goalInputs: document.querySelector(".goal-inputs"),
         workTimerLabel: document.getElementById("work-timer")
@@ -10503,6 +11539,9 @@
           checkLeaseState();
         } else if (e.key === STATE_KEY) {
           loadState();
+        } else if (e.key === TASK_STATE_KEY || e.key === TASK_LOGS_KEY) {
+          loadTaskState();
+          if (typeof renderTaskLogbook === "function") renderTaskLogbook();
         }
       });
 
@@ -13045,19 +14084,8 @@
         const goalSec = resolveGoalSecForDate(targetDate);
         const diffSec = w - goalSec;
 
-        let m, d, y, fullYear;
-        if (targetDate.includes("-")) {
-          const parts = targetDate.split("-");
-          fullYear = parts[0];
-          m = parts[1];
-          d = parts[2];
-        } else {
-          const parts = targetDate.split("/");
-          m = parts[0] || "1";
-          d = parts[1] || "1";
-          y = parts[2] || String(new Date().getFullYear());
-          fullYear = y.length === 2 ? `20${y}` : y;
-        }
+        const [m, d, y] = targetDate.split("/");
+        const fullYear = y.length === 2 ? `20${y}` : y;
         const dateObj = new Date(
           parseInt(fullYear, 10),
           parseInt(m, 10) - 1,
@@ -13097,19 +14125,8 @@
         const emailBody = out.trimEnd();
 
         const finalizeEmail = () => {
-          let m, d, fullYear;
-          if (targetDate.includes("-")) {
-            const parts = targetDate.split("-");
-            fullYear = parts[0];
-            m = parts[1];
-            d = parts[2];
-          } else {
-            const parts = targetDate.split("/");
-            m = parts[0] || "1";
-            d = parts[1] || "1";
-            const y = parts[2] || String(new Date().getFullYear());
-            fullYear = y.length === 2 ? `20${y}` : y;
-          }
+          const [m, d, y] = targetDate.split("/");
+          const fullYear = y.length === 2 ? `20${y}` : y;
           const dateObj = new Date(
             Date.UTC(
               parseInt(fullYear, 10),
@@ -13149,33 +14166,22 @@
         };
 
         if (navigator.clipboard && window.ClipboardItem) {
-          try {
-            const typeText = new Blob([emailBody], { type: "text/plain" });
-            const typeHtml = new Blob([htmlOut], { type: "text/html" });
-            navigator.clipboard
-              .write([
-                new ClipboardItem({
-                  "text/plain": typeText,
-                  "text/html": typeHtml,
-                }),
-              ])
-              .then(finalizeEmail)
-              .catch((err) => {
-                navigator.clipboard
-                  .writeText(emailBody)
-                  .then(finalizeEmail)
-                  .catch(() => finalizeEmail());
-              });
-          } catch (err) {
-            if (navigator.clipboard.writeText) {
+          const typeText = new Blob([emailBody], { type: "text/plain" });
+          const typeHtml = new Blob([htmlOut], { type: "text/html" });
+          navigator.clipboard
+            .write([
+              new ClipboardItem({
+                "text/plain": typeText,
+                "text/html": typeHtml,
+              }),
+            ])
+            .then(finalizeEmail)
+            .catch((err) => {
               navigator.clipboard
                 .writeText(emailBody)
                 .then(finalizeEmail)
                 .catch(() => finalizeEmail());
-            } else {
-              finalizeEmail();
-            }
-          }
+            });
         } else if (navigator.clipboard && navigator.clipboard.writeText) {
           navigator.clipboard
             .writeText(emailBody)
@@ -14538,6 +15544,211 @@
         return result;
       }
 
+      function getFilteredTasks() {
+        const tasks = cachedTaskLogs || [];
+        const searchInput = document.getElementById("task-filter-search");
+        const dateStartInput = document.getElementById(
+          "task-filter-date-start",
+        );
+        const dateEndInput = document.getElementById("task-filter-date-end");
+        const hoursOpInput = document.getElementById("task-filter-hours-op");
+        const hoursValInput = document.getElementById("task-filter-hours-val");
+
+        const criteria = {
+          dateStartVal: dateStartInput ? dateStartInput.value : "",
+          dateEndVal: dateEndInput ? dateEndInput.value : "",
+          hoursOp: hoursOpInput ? hoursOpInput.value : "ALL",
+          hoursVal: hoursValInput ? parseFloat(hoursValInput.value) || 0 : 0,
+          searchVal: searchInput ? searchInput.value.trim().toLowerCase() : "",
+        };
+
+        if (
+          !criteria.dateStartVal &&
+          !criteria.dateEndVal &&
+          criteria.hoursOp === "ALL" &&
+          !criteria.searchVal
+        ) {
+          return tasks;
+        }
+
+        let absoluteStartMs = 0;
+        let absoluteEndMs = Infinity;
+
+        const parseFilterDate = (val) => {
+          if (!val) return null;
+          let y, m, d;
+          if (val.includes("-")) {
+            [y, m, d] = val.split("-");
+          } else if (val.includes("/")) {
+            const parts = val.split("/");
+            m = parts[0];
+            d = parts[1];
+            y = parts[2] || "";
+            if (y && y.length === 2) y = "20" + y;
+          }
+          if (y && m && d) {
+            return Date.UTC(
+              parseInt(y, 10),
+              parseInt(m, 10) - 1,
+              parseInt(d, 10),
+              12,
+              0,
+              0,
+            );
+          }
+          return null;
+        };
+
+        if (criteria.dateStartVal) {
+          const startMs = parseFilterDate(criteria.dateStartVal);
+          if (startMs !== null)
+            absoluteStartMs = Math.max(absoluteStartMs, startMs);
+        }
+        if (criteria.dateEndVal) {
+          const endMs = parseFilterDate(criteria.dateEndVal);
+          if (endMs !== null) absoluteEndMs = Math.min(absoluteEndMs, endMs);
+        }
+
+        const searchTerms = criteria.searchVal
+          ? criteria.searchVal.split(/\s+/)
+          : [];
+        const termLen = searchTerms.length;
+
+        return tasks.filter((t) => {
+          let tEpoch = 0;
+          if (t.date) {
+            const [tm, td, ty] = t.date.split("/");
+            const fullTy =
+              ty.length === 2 ? 2000 + parseInt(ty, 10) : parseInt(ty, 10);
+            tEpoch = Date.UTC(
+              fullTy,
+              parseInt(tm, 10) - 1,
+              parseInt(td, 10),
+              12,
+              0,
+              0,
+            );
+          }
+          if (tEpoch < absoluteStartMs || tEpoch > absoluteEndMs) return false;
+
+          if (criteria.hoursOp !== "ALL") {
+            const durMins = (t.durationSec || 0) / 60;
+            if (criteria.hoursOp === "MORE" && durMins < criteria.hoursVal)
+              return false;
+            if (criteria.hoursOp === "LESS" && durMins > criteria.hoursVal)
+              return false;
+          }
+
+          if (termLen > 0) {
+            const sStr = `${t.date || ""} ${t.note || ""}`.toLowerCase();
+            for (let i = 0; i < termLen; i++) {
+              if (sStr.indexOf(searchTerms[i]) === -1) return false;
+            }
+          }
+          return true;
+        });
+      }
+
+      function renderTaskFilterChips() {
+        const container = document.getElementById(
+          "task-filter-chips-container",
+        );
+        if (!container) return;
+
+        container.innerHTML = "";
+        const chips = [];
+
+        const dateStart = document.getElementById(
+          "task-filter-date-start",
+        )?.value;
+        if (dateStart)
+          chips.push({ id: "task-date-start", label: `From: ${dateStart}` });
+
+        const dateEnd = document.getElementById("task-filter-date-end")?.value;
+        if (dateEnd)
+          chips.push({ id: "task-date-end", label: `To: ${dateEnd}` });
+
+        const hoursOp = document.getElementById("task-filter-hours-op");
+        if (hoursOp && hoursOp.value !== "ALL") {
+          const hoursOpLabel = hoursOp.options[hoursOp.selectedIndex].text;
+          const hoursVal =
+            document.getElementById("task-filter-hours-val")?.value || "0";
+          chips.push({
+            id: "task-hours",
+            label: `Mins: ${hoursOpLabel} ${hoursVal}m`,
+          });
+        }
+
+        const searchVal = document
+          .getElementById("task-filter-search")
+          ?.value.trim();
+        if (searchVal)
+          chips.push({ id: "task-search", label: `Search: "${searchVal}"` });
+
+        if (chips.length === 0) {
+          container.style.display = "none";
+          return;
+        }
+
+        container.style.display = "flex";
+        container.innerHTML = chips
+          .map(
+            (c) => `
+          <span class="filter-chip">
+            ${escapeHTML(c.label)}
+            <span class="filter-chip-remove" onclick="clearSingleTaskFilter('${c.id}')">
+              <svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${getSprite("sprite-004")}</svg>
+            </span>
+          </span>
+        `,
+          )
+          .join("");
+      }
+
+      window.clearSingleTaskFilter = function (filterId) {
+        if (filterId === "task-date-start")
+          document.getElementById("task-filter-date-start").value = "";
+        else if (filterId === "task-date-end")
+          document.getElementById("task-filter-date-end").value = "";
+        else if (filterId === "task-hours") {
+          document.getElementById("task-filter-hours-op").value = "ALL";
+          document.getElementById("task-filter-hours-val").value = "";
+          document.getElementById("task-filter-hours-val").disabled = true;
+        } else if (filterId === "task-search")
+          document.getElementById("task-filter-search").value = "";
+        renderTaskLogbook();
+      };
+
+      window.clearTaskFilters = function () {
+        document.getElementById("task-filter-date-start").value = "";
+        document.getElementById("task-filter-date-end").value = "";
+        document.getElementById("task-filter-hours-op").value = "ALL";
+        document.getElementById("task-filter-hours-val").value = "";
+        document.getElementById("task-filter-hours-val").disabled = true;
+        document.getElementById("task-filter-search").value = "";
+        renderTaskLogbook();
+        showAppToast("Task filters cleared");
+
+        const panel = document.getElementById("task-advanced-filters");
+        const btn = document.getElementById("task-filter-toggle-btn");
+        if (panel && panel.classList.contains("show")) {
+          panel.classList.remove("show");
+          if (btn) btn.classList.remove("active");
+        }
+      };
+
+      window.toggleTaskFilters = function () {
+        const panel = document.getElementById("task-advanced-filters");
+        const btn = document.getElementById("task-filter-toggle-btn");
+        if (panel.classList.contains("show")) {
+          panel.classList.remove("show");
+          btn.classList.remove("active");
+        } else {
+          panel.classList.add("show");
+          btn.classList.add("active");
+        }
+      };
+
       /**
        * Accurately calculates height based on current computed styles
        * to prevent misalignment during browser zoom.
@@ -14567,6 +15778,21 @@
             }px`;
             lastVirtualStart = -1;
             renderVirtualVisibleItems();
+          }
+
+          const taskItemHeight =
+            typeof getTaskItemHeight === "function" ? getTaskItemHeight() : 0;
+          if (
+            taskItemHeight > 0 &&
+            typeof virtualScrollTasks !== "undefined" &&
+            virtualScrollTasks.length > 0 &&
+            DOM.taskLogContainer
+          ) {
+            DOM.taskLogContainer.style.height = `${virtualScrollTasks.length * taskItemHeight}px`;
+            if (typeof lastTaskVirtualStart !== "undefined")
+              lastTaskVirtualStart = -1;
+            if (typeof renderVirtualTaskItems === "function")
+              renderVirtualTaskItems();
           }
         }, 150),
         { passive: true },
@@ -16932,6 +18158,29 @@
         debouncedRenderLogbook();
       });
 
+      const debouncedRenderTaskLogbook = debounce(() => {
+        if (typeof renderTaskLogbook === "function") renderTaskLogbook();
+      }, 300);
+
+      [
+        "task-filter-search",
+        "task-filter-date-start",
+        "task-filter-date-end",
+        "task-filter-hours-val",
+      ].forEach((id) => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener("input", debouncedRenderTaskLogbook);
+        if (el) el.addEventListener("change", debouncedRenderTaskLogbook);
+      });
+      const taskHoursOp = document.getElementById("task-filter-hours-op");
+      if (taskHoursOp) {
+        taskHoursOp.addEventListener("change", () => {
+          const valInput = document.getElementById("task-filter-hours-val");
+          if (valInput) valInput.disabled = taskHoursOp.value === "ALL";
+          debouncedRenderTaskLogbook();
+        });
+      }
+
       /**
        * populates log editor values.
        */
@@ -16980,6 +18229,218 @@
         editingLogId = null;
         isEditSubmitting = false;
       }
+
+      let editingTaskId = null;
+
+      window.openEditTaskModal = function (taskId) {
+        const task = cachedTaskLogs.find((t) => t.id === taskId);
+        if (!task) return;
+        editingTaskId = taskId;
+
+        const dateEl = document.getElementById("edit-task-date");
+        const startEl = document.getElementById("edit-task-start");
+        const endEl = document.getElementById("edit-task-end");
+        const durEl = document.getElementById("edit-task-dur");
+        const noteEl = document.getElementById("edit-task-notes");
+
+        if (dateEl) dateEl.value = task.date || "";
+        if (startEl)
+          startEl.value = task.startMs
+            ? loginFormatter.format(new Date(task.startMs))
+            : "";
+        if (endEl)
+          endEl.value = task.endMs
+            ? loginFormatter.format(new Date(task.endMs))
+            : "";
+        if (durEl) durEl.value = formatDuration(task.durationSec || 0);
+        if (noteEl) noteEl.value = task.note || "";
+
+        modalEngine["edit-task"].stack = [];
+        ["start", "end", "dur"].forEach((f) => {
+          const val = document.getElementById(`edit-task-${f}`)?.value.trim();
+          if (val) modalEngine["edit-task"].values[f] = val;
+        });
+
+        const modal = document.getElementById("edit-task-modal");
+        if (modal) {
+          modal.style.display = "flex";
+          setTimeout(() => durEl && durEl.focus(), 100);
+        }
+      };
+
+      window.closeEditTaskModal = function () {
+        const modal = document.getElementById("edit-task-modal");
+        if (modal) modal.style.display = "none";
+        editingTaskId = null;
+      };
+
+      window.saveEditTaskModal = function () {
+        if (!editingTaskId) return;
+        const task = cachedTaskLogs.find((t) => t.id === editingTaskId);
+        if (!task) return;
+
+        const dateInput = document.getElementById("edit-task-date");
+        const startInput = document.getElementById("edit-task-start");
+        const endInput = document.getElementById("edit-task-end");
+        const durInput = document.getElementById("edit-task-dur");
+        const noteInput = document.getElementById("edit-task-notes");
+
+        if (startInput) handleLoginLogoutBlur({ target: startInput });
+        if (endInput) handleLoginLogoutBlur({ target: endInput });
+        if (durInput) handleTimeInputBlur({ target: durInput });
+        if (dateInput) handleDateInputBlur({ target: dateInput });
+
+        let dateStr = dateInput ? dateInput.value.trim() : task.date;
+        const startStr = startInput ? startInput.value.trim() : "";
+        const endStr = endInput ? endInput.value.trim() : "";
+        const durStr = durInput ? durInput.value.trim() : "";
+        const noteStr = noteInput ? noteInput.value.trim() : "";
+
+        let durSec = parseTime(durStr);
+        if (durSec !== null) durSec = Math.min(durSec, 86400);
+
+        if (dateStr.match(/^\d{1,2}\/\d{1,2}\/(\d{2}|\d{4})$/)) {
+          const parts = dateStr.split("/");
+          const y = parts[2].length === 4 ? parts[2].slice(-2) : parts[2];
+          dateStr = `${parts[0].padStart(2, "0")}/${parts[1].padStart(2, "0")}/${y}`;
+          if (dateInput) dateInput.value = dateStr;
+        }
+
+        let startMs = getEpochFromDateTimeString(dateStr, startStr);
+        let endMs = getEpochFromDateTimeString(dateStr, endStr);
+
+        if (startMs !== null && endMs !== null) {
+          if (endMs < startMs) endMs += 86400000;
+        } else if (startMs !== null && durSec !== null) {
+          endMs = startMs + durSec * 1000;
+        } else if (endMs !== null && durSec !== null) {
+          startMs = endMs - durSec * 1000;
+        } else {
+          const [m, d, y] = dateStr.split("/");
+          const fullYear = y.length === 2 ? `20${y}` : y;
+          startMs = Date.UTC(
+            parseInt(fullYear),
+            parseInt(m) - 1,
+            parseInt(d),
+            12,
+            0,
+            0,
+          );
+          endMs = startMs + (durSec || 0) * 1000;
+        }
+
+        task.date = dateStr;
+        task.startMs = startMs;
+        task.endMs = endMs;
+        task.durationSec = durSec !== null ? durSec : 0;
+        task.note = noteStr;
+
+        cachedTaskLogs.sort(
+          (a, b) => (Number(b.startMs) || 0) - (Number(a.startMs) || 0),
+        );
+        saveTaskLogs();
+        if (typeof renderTaskLogbook === "function") renderTaskLogbook();
+        showAppToast("Task updated successfully", "success");
+        closeEditTaskModal();
+      };
+
+      window.openManualTaskModal = function () {
+        const dateEl = document.getElementById("manual-task-date");
+        const startEl = document.getElementById("manual-task-start");
+        const endEl = document.getElementById("manual-task-end");
+        const durEl = document.getElementById("manual-task-dur");
+        const noteEl = document.getElementById("manual-task-notes");
+
+        if (dateEl) dateEl.value = getPSTDate();
+        if (startEl) startEl.value = "";
+        if (endEl) endEl.value = "";
+        if (durEl) durEl.value = "00:00:00";
+        if (noteEl) noteEl.value = "";
+
+        modalEngine["manual-task"].stack = [];
+        modalEngine["manual-task"].values = {};
+
+        const modal = document.getElementById("manual-task-modal");
+        if (modal) modal.style.display = "flex";
+      };
+
+      window.closeManualTaskModal = function () {
+        const modal = document.getElementById("manual-task-modal");
+        if (modal) modal.style.display = "none";
+      };
+
+      window.saveManualTaskModal = function () {
+        const dateInput = document.getElementById("manual-task-date");
+        const startInput = document.getElementById("manual-task-start");
+        const endInput = document.getElementById("manual-task-end");
+        const durInput = document.getElementById("manual-task-dur");
+        const noteInput = document.getElementById("manual-task-notes");
+
+        if (startInput) handleLoginLogoutBlur({ target: startInput });
+        if (endInput) handleLoginLogoutBlur({ target: endInput });
+        if (durInput) handleTimeInputBlur({ target: durInput });
+        if (dateInput) handleDateInputBlur({ target: dateInput });
+
+        let dateStr = dateInput ? dateInput.value.trim() : getPSTDate();
+        const startStr = startInput ? startInput.value.trim() : "";
+        const endStr = endInput ? endInput.value.trim() : "";
+        const durStr = durInput ? durInput.value.trim() : "";
+        const noteStr = noteInput ? noteInput.value.trim() : "";
+
+        let durSec = parseTime(durStr);
+        if (durSec !== null) durSec = Math.min(durSec, 86400);
+
+        if (dateStr.match(/^\d{1,2}\/\d{1,2}\/(\d{2}|\d{4})$/)) {
+          const parts = dateStr.split("/");
+          const y = parts[2].length === 4 ? parts[2].slice(-2) : parts[2];
+          dateStr = `${parts[0].padStart(2, "0")}/${parts[1].padStart(2, "0")}/${y}`;
+          if (dateInput) dateInput.value = dateStr;
+        }
+
+        let startMs = getEpochFromDateTimeString(dateStr, startStr);
+        let endMs = getEpochFromDateTimeString(dateStr, endStr);
+
+        if (startMs !== null && endMs !== null) {
+          if (endMs < startMs) endMs += 86400000;
+        } else if (startMs !== null && durSec !== null) {
+          endMs = startMs + durSec * 1000;
+        } else if (endMs !== null && durSec !== null) {
+          startMs = endMs - durSec * 1000;
+        } else {
+          const [m, d, y] = dateStr.split("/");
+          const fullYear = y.length === 2 ? `20${y}` : y;
+          startMs = Date.UTC(
+            parseInt(fullYear),
+            parseInt(m) - 1,
+            parseInt(d),
+            12,
+            0,
+            0,
+          );
+          endMs = startMs + (durSec || 0) * 1000;
+        }
+
+        const newTask = {
+          id:
+            "task_" +
+            Math.random().toString(36).substring(2, 11) +
+            Date.now().toString(36),
+          date: dateStr,
+          startMs: startMs,
+          endMs: endMs,
+          durationSec: durSec || 0,
+          note: noteStr,
+        };
+
+        cachedTaskLogs.unshift(newTask);
+        cachedTaskLogs.sort(
+          (a, b) => (Number(b.startMs) || 0) - (Number(a.startMs) || 0),
+        );
+        saveTaskLogs();
+        if (typeof renderTaskLogbook === "function") renderTaskLogbook();
+        showAppToast("Manual task added successfully", "success");
+        closeManualTaskModal();
+      };
 
       let isEditSubmitting = false;
 
@@ -17274,8 +18735,7 @@
           return;
         }
 
-        let csv =
-          "Date,Login,Logout,Work Time,Work (Hrs),Break Time,Break (Hrs),Net Delta (Hrs),Notes\n";
+        let csv = "Date,In,Out,W_Time,W_Hrs,B_Time,B_Hrs,Delta_Hrs,Notes\n";
 
         let csvRows = [];
         logs.forEach((l) => {
@@ -17307,6 +18767,8 @@
       function exportJSON() {
         const data = {
           state,
+          taskState,
+          taskLogs: cachedTaskLogs,
           logs: getLogs(),
           goalH: parseInt(safeGetLocalStorage(GOAL_H_KEY), 10) || 8,
           goalM: parseInt(safeGetLocalStorage(GOAL_M_KEY), 10) || 0,
@@ -17422,6 +18884,37 @@
             ) {
               return `Log entry at index ${i} has loginEpochMs after logoutEpochMs.`;
             }
+          }
+        }
+
+        if (data.taskLogs !== undefined) {
+          if (!Array.isArray(data.taskLogs)) {
+            return "'taskLogs' field must be an array.";
+          }
+          for (let i = 0; i < data.taskLogs.length; i++) {
+            const t = data.taskLogs[i];
+            if (!t || typeof t !== "object") {
+              return `Task log entry at index ${i} is not a valid object.`;
+            }
+            if (typeof t.id !== "string") {
+              return `Task log entry at index ${i} has an invalid id.`;
+            }
+            if (typeof t.date !== "string") {
+              return `Task log entry at index ${i} has an invalid date.`;
+            }
+            if (
+              !Number.isFinite(t.startMs) ||
+              !Number.isFinite(t.endMs) ||
+              !Number.isFinite(t.durationSec)
+            ) {
+              return `Task log entry at index ${i} has invalid startMs, endMs, or durationSec timestamps.`;
+            }
+          }
+        }
+
+        if (data.taskState !== undefined) {
+          if (typeof data.taskState !== "object" || data.taskState === null) {
+            return "'taskState' field must be an object.";
           }
         }
 
@@ -17681,6 +19174,43 @@
             );
           }
 
+          if (data.taskState) {
+            taskState = data.taskState;
+            saveTaskState();
+            syncTaskUI();
+          }
+          if (data.taskLogs) {
+            if (resolutionType === "overwrite") {
+              cachedTaskLogs = [...data.taskLogs].sort(
+                (a, b) => (Number(b.startMs) || 0) - (Number(a.startMs) || 0),
+              );
+            } else if (resolutionType === "keep-local") {
+              const localTaskIds = new Set(cachedTaskLogs.map((t) => t.id));
+              const newNonConflictingTasks = data.taskLogs.filter(
+                (t) => !localTaskIds.has(t.id),
+              );
+              cachedTaskLogs = [
+                ...newNonConflictingTasks,
+                ...cachedTaskLogs,
+              ].sort(
+                (a, b) => (Number(b.startMs) || 0) - (Number(a.startMs) || 0),
+              );
+            } else {
+              const incomingTasks = data.taskLogs.map((t) => ({
+                ...t,
+                id:
+                  "task_" +
+                  Math.random().toString(36).substring(2, 11) +
+                  Date.now().toString(36),
+              }));
+              cachedTaskLogs = [...incomingTasks, ...cachedTaskLogs].sort(
+                (a, b) => (Number(b.startMs) || 0) - (Number(a.startMs) || 0),
+              );
+            }
+            saveTaskLogs();
+            if (typeof renderTaskLogbook === "function") renderTaskLogbook();
+          }
+
           let logsAddedCount = 0;
           let logsModifiedCount = 0;
           let logsOverwrittenCount = 0;
@@ -17820,25 +19350,19 @@
         };
 
         if (navigator.clipboard && window.ClipboardItem) {
-          try {
-            const typeText = new Blob([txt], { type: "text/plain" });
-            const typeHtml = new Blob([htmlOut], { type: "text/html" });
-            navigator.clipboard
-              .write([
-                new ClipboardItem({
-                  "text/plain": typeText,
-                  "text/html": typeHtml,
-                }),
-              ])
-              .then(writeSuccess)
-              .catch(() => {
-                navigator.clipboard.writeText(txt).then(writeSuccess);
-              });
-          } catch (err) {
-            if (navigator.clipboard.writeText) {
+          const typeText = new Blob([txt], { type: "text/plain" });
+          const typeHtml = new Blob([htmlOut], { type: "text/html" });
+          navigator.clipboard
+            .write([
+              new ClipboardItem({
+                "text/plain": typeText,
+                "text/html": typeHtml,
+              }),
+            ])
+            .then(writeSuccess)
+            .catch(() => {
               navigator.clipboard.writeText(txt).then(writeSuccess);
-            }
-          }
+            });
         } else if (navigator.clipboard && navigator.clipboard.writeText) {
           navigator.clipboard.writeText(txt).then(writeSuccess);
         }
@@ -17926,25 +19450,19 @@
         };
 
         if (navigator.clipboard && window.ClipboardItem) {
-          try {
-            const typeText = new Blob([txt], { type: "text/plain" });
-            const typeHtml = new Blob([htmlOut], { type: "text/html" });
-            navigator.clipboard
-              .write([
-                new ClipboardItem({
-                  "text/plain": typeText,
-                  "text/html": typeHtml,
-                }),
-              ])
-              .then(writeToClipboard)
-              .catch(() => {
-                navigator.clipboard.writeText(txt).then(writeToClipboard);
-              });
-          } catch (err) {
-            if (navigator.clipboard.writeText) {
+          const typeText = new Blob([txt], { type: "text/plain" });
+          const typeHtml = new Blob([htmlOut], { type: "text/html" });
+          navigator.clipboard
+            .write([
+              new ClipboardItem({
+                "text/plain": typeText,
+                "text/html": typeHtml,
+              }),
+            ])
+            .then(writeToClipboard)
+            .catch(() => {
               navigator.clipboard.writeText(txt).then(writeToClipboard);
-            }
-          }
+            });
         } else if (navigator.clipboard && navigator.clipboard.writeText) {
           navigator.clipboard.writeText(txt).then(writeToClipboard);
         }
@@ -17968,6 +19486,14 @@
               localStorage.removeItem(LEAVE_DATES_KEY);
               localStorage.removeItem(VIEWS_KEY); // Clears saved custom filter views
               localStorage.removeItem(FILTERS_PREF_KEY); // Clears active filters preferences
+
+              cachedTaskLogs = [];
+              resetTaskUI();
+
+              localStorage.removeItem(TASK_STATE_KEY);
+              localStorage.removeItem(TASK_LOGS_KEY);
+
+              if (typeof renderTaskLogbook === "function") renderTaskLogbook();
 
               _cachedIdleThresholdMs = 3600000;
               resetSession(true);
@@ -18361,6 +19887,34 @@
 
           renderTimersOnly(liveNowDate);
 
+          if (
+            (taskState.isRunning || taskState.isPaused) &&
+            DOM.taskTimerDisplay
+          ) {
+            let totalSec = Number.isFinite(taskState.accumulatedSec)
+              ? taskState.accumulatedSec
+              : 0;
+            if (
+              taskState.isRunning &&
+              !taskState.isPaused &&
+              taskState.startTimeMs
+            ) {
+              totalSec += Math.max(
+                0,
+                Math.floor((liveNowMs - taskState.startTimeMs) / 1000),
+              );
+            }
+            if (DOM.taskTimerDigits && DOM.taskTimerDigits.length === 3) {
+              const parts = formatDuration(totalSec).split(":");
+              if (DOM.taskTimerDigits[0].textContent !== parts[0])
+                DOM.taskTimerDigits[0].textContent = parts[0];
+              if (DOM.taskTimerDigits[1].textContent !== parts[1])
+                DOM.taskTimerDigits[1].textContent = parts[1];
+              if (DOM.taskTimerDigits[2].textContent !== parts[2])
+                DOM.taskTimerDigits[2].textContent = parts[2];
+            }
+          }
+
           if (state.idleLock) {
             if (DOM.idleModal) DOM.idleModal.style.display = "flex";
 
@@ -18513,6 +20067,8 @@
           "note-modal",
           "preset-modal",
           "leave-modal",
+          "manual-task-modal",
+          "edit-task-modal",
         ];
         for (const id of modalIds) {
           const el = document.getElementById(id);
@@ -18536,6 +20092,8 @@
         closeLeaveModal();
         closeConfirmModal();
         closeEditModal();
+        if (typeof closeManualTaskModal === "function") closeManualTaskModal();
+        if (typeof closeEditTaskModal === "function") closeEditTaskModal();
         if (typeof closeHeatmapModal === "function") closeHeatmapModal();
         if (typeof closePresetModal === "function") closePresetModal();
 
@@ -18561,6 +20119,13 @@
         if (panel && panel.classList.contains("show")) {
           panel.classList.remove("show");
           if (btn) btn.classList.remove("active");
+        }
+
+        const taskPanel = document.getElementById("task-advanced-filters");
+        const taskBtn = document.getElementById("task-filter-toggle-btn");
+        if (taskPanel && taskPanel.classList.contains("show")) {
+          taskPanel.classList.remove("show");
+          if (taskBtn) taskBtn.classList.remove("active");
         }
       }
 
@@ -18608,6 +20173,10 @@
               saveManualModal();
             } else if (modalId === "edit-modal") {
               saveEditModal();
+            } else if (modalId === "manual-task-modal") {
+              saveManualTaskModal();
+            } else if (modalId === "edit-task-modal") {
+              saveEditTaskModal();
             } else if (modalId === "confirm-modal") {
               const btn = DOM.confirmActionBtn;
               if (btn) btn.click();
@@ -18708,6 +20277,11 @@
         if (e.altKey && e.key === "2") {
           e.preventDefault();
           switchTab("logbook");
+        }
+
+        if (e.altKey && e.key === "3") {
+          e.preventDefault();
+          switchTab("tasks");
         }
 
         // Alt+K opens Logbook Search
@@ -18883,25 +20457,19 @@
               };
 
               if (navigator.clipboard && window.ClipboardItem) {
-                try {
-                  const typeText = new Blob([txt], { type: "text/plain" });
-                  const typeHtml = new Blob([htmlOut], { type: "text/html" });
-                  navigator.clipboard
-                    .write([
-                      new ClipboardItem({
-                        "text/plain": typeText,
-                        "text/html": typeHtml,
-                      }),
-                    ])
-                    .then(writeSuccess)
-                    .catch(() => {
-                      navigator.clipboard.writeText(txt).then(writeSuccess);
-                    });
-                } catch (err) {
-                  if (navigator.clipboard.writeText) {
+                const typeText = new Blob([txt], { type: "text/plain" });
+                const typeHtml = new Blob([htmlOut], { type: "text/html" });
+                navigator.clipboard
+                  .write([
+                    new ClipboardItem({
+                      "text/plain": typeText,
+                      "text/html": typeHtml,
+                    }),
+                  ])
+                  .then(writeSuccess)
+                  .catch(() => {
                     navigator.clipboard.writeText(txt).then(writeSuccess);
-                  }
-                }
+                  });
               } else if (navigator.clipboard && navigator.clipboard.writeText) {
                 navigator.clipboard.writeText(txt).then(writeSuccess);
               }
@@ -19978,9 +21546,624 @@
         const manualMod = DOM.manualModal;
         if (event.target == manualMod) closeManualModal();
 
+        const manualTaskMod = document.getElementById("manual-task-modal");
+        if (event.target == manualTaskMod) closeManualTaskModal();
+
+        const editTaskMod = document.getElementById("edit-task-modal");
+        if (event.target == editTaskMod) closeEditTaskModal();
+
         const helpMod = DOM.helpModal;
         if (event.target == helpMod) closeHelpModal();
       };
+
+      // --- MICRO-TASK TIMER LOGIC ---
+      function loadTaskState() {
+        try {
+          const savedState = safeGetLocalStorage(TASK_STATE_KEY);
+          if (savedState) {
+            taskState = JSON.parse(savedState);
+            syncTaskUI();
+          }
+          const savedLogs = safeGetLocalStorage(TASK_LOGS_KEY);
+          if (savedLogs) {
+            cachedTaskLogs = JSON.parse(savedLogs);
+          }
+        } catch (e) {
+          console.warn("Failed to load task state", e);
+        }
+      }
+
+      function saveTaskState() {
+        try {
+          localStorage.setItem(TASK_STATE_KEY, JSON.stringify(taskState));
+        } catch (e) {
+          window.storageWriteError = true;
+          console.warn("Task state storage write failed", e);
+        }
+      }
+
+      function saveTaskLogs() {
+        try {
+          localStorage.setItem(TASK_LOGS_KEY, JSON.stringify(cachedTaskLogs));
+        } catch (e) {
+          window.storageWriteError = true;
+          console.warn("Task logs storage write failed", e);
+          showAppToast(
+            "Storage full! Task log could not be saved locally.",
+            "error",
+          );
+        }
+      }
+
+      function syncTaskUI() {
+        const isRunning = taskState.isRunning;
+        const isPaused = taskState.isPaused;
+        const hasStarted = isRunning || isPaused;
+
+        if (taskState.note) {
+          DOM.taskNoteInput.value = taskState.note;
+        }
+
+        let currentSec = Number.isFinite(taskState.accumulatedSec)
+          ? taskState.accumulatedSec
+          : 0;
+        if (isRunning && !isPaused && taskState.startTimeMs) {
+          currentSec += Math.max(
+            0,
+            Math.floor((Date.now() - taskState.startTimeMs) / 1000),
+          );
+        }
+        if (
+          DOM.taskTimerDisplay &&
+          DOM.taskTimerDigits &&
+          DOM.taskTimerDigits.length === 3
+        ) {
+          const parts = formatDuration(currentSec).split(":");
+          if (DOM.taskTimerDigits[0].textContent !== parts[0])
+            DOM.taskTimerDigits[0].textContent = parts[0];
+          if (DOM.taskTimerDigits[1].textContent !== parts[1])
+            DOM.taskTimerDigits[1].textContent = parts[1];
+          if (DOM.taskTimerDigits[2].textContent !== parts[2])
+            DOM.taskTimerDigits[2].textContent = parts[2];
+        }
+
+        if (!taskState.isRunning && !taskState.isPaused) {
+          DOM.taskNoteInput.classList.remove("task-input-running");
+          if (DOM.taskTimerDisplay)
+            DOM.taskTimerDisplay.className = "timer-val timer-inactive";
+          DOM.taskStartBtn.style.display = "inline-flex";
+          if (DOM.taskPauseBtn) DOM.taskPauseBtn.style.display = "none";
+          if (DOM.taskSaveBtn) DOM.taskSaveBtn.style.display = "none";
+          if (DOM.taskCancelBtn) DOM.taskCancelBtn.style.display = "none";
+          DOM.taskNoteInput.disabled = false;
+        } else if (taskState.isRunning && !taskState.isPaused) {
+          DOM.taskNoteInput.classList.add("task-input-running");
+          if (DOM.taskTimerDisplay)
+            DOM.taskTimerDisplay.className = "timer-val timer-work-active";
+          DOM.taskStartBtn.style.display = "none";
+          if (DOM.taskPauseBtn) {
+            DOM.taskPauseBtn.style.display = "inline-flex";
+            DOM.taskPauseBtn.innerHTML = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0">${getSprite("sprite-022")}</svg><span>Pause</span>`;
+            DOM.taskPauseBtn.className = "btn-break";
+          }
+          if (DOM.taskSaveBtn) DOM.taskSaveBtn.style.display = "inline-flex";
+          if (DOM.taskCancelBtn) DOM.taskCancelBtn.style.display = "flex";
+          DOM.taskNoteInput.disabled = true;
+        } else if (taskState.isPaused) {
+          DOM.taskNoteInput.classList.add("task-input-running");
+          if (DOM.taskTimerDisplay)
+            DOM.taskTimerDisplay.className = "timer-val timer-active";
+          DOM.taskStartBtn.style.display = "none";
+          if (DOM.taskPauseBtn) {
+            DOM.taskPauseBtn.style.display = "inline-flex";
+            DOM.taskPauseBtn.innerHTML = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0">${getSprite("sprite-021")}</svg><span>Resume</span>`;
+            DOM.taskPauseBtn.className = "btn-work";
+          }
+          if (DOM.taskSaveBtn) DOM.taskSaveBtn.style.display = "inline-flex";
+          if (DOM.taskCancelBtn)
+            DOM.taskCancelBtn.style.display = "inline-flex";
+          DOM.taskNoteInput.disabled = false;
+        }
+      }
+
+      DOM.taskStartBtn.addEventListener("click", () => {
+        if (!taskState.isRunning && !taskState.isPaused) {
+          taskState.isRunning = true;
+          taskState.isPaused = false;
+          taskState.accumulatedSec = 0;
+          taskState.startTimeMs = Date.now();
+          taskState.note = DOM.taskNoteInput.value.trim() || "Untitled Task";
+          saveTaskState();
+          syncTaskUI();
+        }
+      });
+
+      if (DOM.taskPauseBtn) {
+        DOM.taskPauseBtn.addEventListener("click", () => {
+          if (taskState.isRunning && !taskState.isPaused) {
+            // PAUSE
+            taskState.accumulatedSec += Math.floor(
+              (Date.now() - taskState.startTimeMs) / 1000,
+            );
+            taskState.isRunning = false;
+            taskState.isPaused = true;
+            taskState.startTimeMs = null;
+            saveTaskState();
+            syncTaskUI();
+          } else if (taskState.isPaused) {
+            // RESUME
+            taskState.isRunning = true;
+            taskState.isPaused = false;
+            taskState.startTimeMs = Date.now();
+            taskState.note =
+              DOM.taskNoteInput.value.trim() ||
+              taskState.note ||
+              "Untitled Task";
+            saveTaskState();
+            syncTaskUI();
+          }
+        });
+      }
+
+      if (DOM.taskSaveBtn) {
+        DOM.taskSaveBtn.addEventListener("click", () => {
+          let totalSec = taskState.accumulatedSec || 0;
+          if (
+            taskState.isRunning &&
+            !taskState.isPaused &&
+            taskState.startTimeMs
+          ) {
+            totalSec += Math.floor((Date.now() - taskState.startTimeMs) / 1000);
+          }
+
+          if (totalSec > 0) {
+            const finalNote =
+              DOM.taskNoteInput.value.trim() ||
+              taskState.note ||
+              "Untitled Task";
+            const endMs = Date.now();
+            const startMs = endMs - totalSec * 1000;
+
+            const newTask = {
+              id:
+                "task_" +
+                Math.random().toString(36).substring(2, 11) +
+                Date.now().toString(36),
+              date: getPSTDate(),
+              startMs: startMs,
+              endMs: endMs,
+              durationSec: totalSec,
+              note: finalNote,
+            };
+
+            cachedTaskLogs.unshift(newTask);
+            saveTaskLogs();
+            if (typeof renderTaskLogbook === "function") renderTaskLogbook();
+            showAppToast("Task saved successfully", "success");
+          }
+
+          resetTaskUI();
+        });
+      }
+
+      DOM.taskCancelBtn.addEventListener("click", () => {
+        resetTaskUI();
+        showAppToast("Task cancelled");
+      });
+
+      function resetTaskUI() {
+        taskState.isRunning = false;
+        taskState.isPaused = false;
+        taskState.startTimeMs = null;
+        taskState.accumulatedSec = 0;
+        taskState.note = "";
+        saveTaskState();
+
+        DOM.taskNoteInput.disabled = false;
+        DOM.taskNoteInput.value = "";
+        syncTaskUI();
+      }
+
+      let taskRowNodesPool = [];
+      let lastTaskVirtualStart = -1;
+      let lastTaskVirtualEnd = -1;
+      let _renderTaskLogbookPending = false;
+      let taskRowTemplate = null;
+
+      function getTaskItemHeight() {
+        return getDynamicItemHeight();
+      }
+
+      function getTaskRowTemplate() {
+        if (taskRowTemplate) return taskRowTemplate;
+        taskRowTemplate = document.createElement("template");
+        taskRowTemplate.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <div style="display: flex; align-items: center; gap: 8px; min-width: 0;">
+                <span style="font-weight: 600; font-size: var(--font-size-entry-title); color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" class="task-note-text"></span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 4px; flex-shrink: 0;">
+                <span class="task-meta-text" style="font-size: var(--font-size-entry-meta); color: var(--text-muted);"></span>
+              </div>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: var(--space-1);">
+              <div class="font-mono" style="display: flex; gap: var(--space-3); font-size: var(--font-size-entry-stats); align-items: center;">
+                <span style="display: inline-flex; align-items: center; gap: 6px; width: 14ch; flex-shrink: 0;">
+                  <span class="badge badge-t">T</span><span class="task-dur-text"></span>
+                </span>
+              </div>
+              <div class="icon-actions">
+                <button class="task-edit-btn icon-btn" data-action="edit-task" aria-label="Edit Note" title="Edit Note">${SVGs.edit}</button>
+                <button class="task-copy-btn icon-btn" data-action="copy-task" aria-label="Copy Task" title="Copy Task">${SVGs.copy}</button>
+                <button class="task-delete-btn icon-btn danger-text" data-action="delete-task" aria-label="Delete Task" title="Delete Task">${SVGs.trash}</button>
+              </div>
+            </div>
+        `;
+        return taskRowTemplate;
+      }
+
+      function createTaskRowNode() {
+        const div = document.createElement("div");
+        div.className = "log-row";
+        div.appendChild(getTaskRowTemplate().content.cloneNode(true));
+
+        div._dom = {
+          noteText: div.querySelector(".task-note-text"),
+          durText: div.querySelector(".task-dur-text"),
+          metaText: div.querySelector(".task-meta-text"),
+          editBtn: div.querySelector(".task-edit-btn"),
+          copyBtn: div.querySelector(".task-copy-btn"),
+          deleteBtn: div.querySelector(".task-delete-btn"),
+        };
+        return div;
+      }
+
+      function renderVirtualTaskItems(passedScrollTop, passedViewportHeight) {
+        if (cachedTaskLogs.length === 0) return;
+
+        const scrollContainer =
+          DOM.taskLogScrollViewport || DOM.taskLogContainer;
+        const scrollTop =
+          passedScrollTop !== undefined
+            ? passedScrollTop
+            : scrollContainer.scrollTop;
+        const viewportHeight =
+          passedViewportHeight !== undefined
+            ? passedViewportHeight
+            : scrollContainer.clientHeight || 400;
+        const itemHeight = getTaskItemHeight();
+
+        const overscan = 5;
+        const maxVisible = Math.ceil(viewportHeight / itemHeight);
+        const targetPoolSize = Math.min(
+          virtualScrollTasks.length,
+          maxVisible + overscan * 2,
+        );
+
+        let startIndex =
+          Math.floor(Math.max(0, scrollTop) / itemHeight) - overscan;
+        startIndex = Math.max(
+          0,
+          Math.min(startIndex, virtualScrollTasks.length - targetPoolSize),
+        );
+        let endIndex = startIndex + targetPoolSize - 1;
+
+        if (
+          startIndex === lastTaskVirtualStart &&
+          endIndex === lastTaskVirtualEnd
+        )
+          return;
+        lastTaskVirtualStart = startIndex;
+        lastTaskVirtualEnd = endIndex;
+
+        const container = DOM.taskLogContainer;
+        const currentPoolCount = taskRowNodesPool.length;
+        if (currentPoolCount !== targetPoolSize) {
+          if (currentPoolCount < targetPoolSize) {
+            const fragment = document.createDocumentFragment();
+            const missingCount = targetPoolSize - currentPoolCount;
+            for (let k = 0; k < missingCount; k++) {
+              const newNode = createTaskRowNode();
+              taskRowNodesPool.push(newNode);
+              fragment.appendChild(newNode);
+            }
+            container.appendChild(fragment);
+          } else {
+            while (taskRowNodesPool.length > targetPoolSize) {
+              const removedNode = taskRowNodesPool.pop();
+              if (removedNode.parentNode)
+                removedNode.parentNode.removeChild(removedNode);
+            }
+          }
+        }
+
+        const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+        const timeFormatter = loginFormatter;
+
+        for (let k = 0; k < targetPoolSize; k++) {
+          const i = startIndex + k;
+          const child = taskRowNodesPool[k];
+
+          if (i <= endIndex && i < virtualScrollTasks.length) {
+            const task = virtualScrollTasks[i];
+            const top = i * itemHeight;
+
+            const rowKey = `${task.id}|${task.note}|${task.durationSec}|${task.startMs}|${task.endMs}`;
+            if (child._rowKey !== rowKey) {
+              child._rowKey = rowKey;
+              const dom = child._dom;
+
+              let logbookStyleDate = task.date;
+              try {
+                const parts = task.date.split("/");
+                if (parts.length === 3) {
+                  const m = parts[0];
+                  const day = parts[1];
+                  const y = parts[2];
+                  const fullYear =
+                    y.length === 2 ? parseInt(y, 10) + 2000 : parseInt(y, 10);
+                  const dateObj = new Date(
+                    fullYear,
+                    parseInt(m, 10) - 1,
+                    parseInt(day, 10),
+                  );
+                  logbookStyleDate = `${dayNames[dateObj.getDay()]} (${m.padStart(2, "0")}/${day.padStart(2, "0")})`;
+                }
+              } catch (e) {}
+
+              let startStr = "—",
+                endStr = "—";
+              try {
+                if (Number.isFinite(task.startMs))
+                  startStr = timeFormatter.format(new Date(task.startMs));
+                if (Number.isFinite(task.endMs))
+                  endStr = timeFormatter.format(new Date(task.endMs));
+              } catch (e) {}
+
+              dom.noteText.textContent = task.note || "";
+              dom.durText.textContent = formatDuration(task.durationSec || 0);
+              dom.metaText.textContent = `${logbookStyleDate} ${startStr} - ${endStr}`;
+
+              dom.editBtn.dataset.id = task.id;
+              dom.copyBtn.dataset.id = task.id;
+              dom.deleteBtn.dataset.id = task.id;
+            }
+
+            if (
+              child.style.transform !== `translate3d(0px, ${top}px, 0px)` &&
+              child.style.transform !== `translate3d(0, ${top}px, 0)`
+            ) {
+              child.style.transform = `translate3d(0, ${top}px, 0)`;
+            }
+            child.style.display = "flex";
+          }
+        }
+      }
+
+      let virtualScrollTasks = [];
+
+      function renderTaskLogbook() {
+        if (_renderTaskLogbookPending) return;
+        _renderTaskLogbookPending = true;
+
+        const container = DOM.taskLogContainer;
+        if (!container) {
+          _renderTaskLogbookPending = false;
+          return;
+        }
+
+        if (typeof renderTaskFilterChips === "function")
+          renderTaskFilterChips();
+        virtualScrollTasks =
+          typeof getFilteredTasks === "function"
+            ? getFilteredTasks()
+            : cachedTaskLogs;
+
+        const countDisplay = document.getElementById("task-count-display");
+        if (countDisplay) {
+          const totalCount = cachedTaskLogs.length;
+          const filteredCount = virtualScrollTasks.length;
+          if (filteredCount < totalCount) {
+            countDisplay.textContent = `Showing ${filteredCount.toLocaleString()} of ${totalCount.toLocaleString()} task${totalCount !== 1 ? "s" : ""}`;
+          } else {
+            countDisplay.textContent = `${totalCount.toLocaleString()} Task${totalCount !== 1 ? "s" : ""}`;
+          }
+        }
+
+        lastTaskVirtualStart = -1;
+        lastTaskVirtualEnd = -1;
+        const itemHeight = getTaskItemHeight();
+
+        if (virtualScrollTasks.length > 0) {
+          container.style.height = `${virtualScrollTasks.length * itemHeight}px`;
+          container.style.contain = "strict";
+          if (container.firstChild && !container.firstChild._dom) {
+            container.innerHTML = "";
+            taskRowNodesPool.length = 0;
+          }
+        } else {
+          container.style.height = "auto";
+          container.style.contain = "none";
+          taskRowNodesPool.length = 0;
+          container.innerHTML =
+            '<div style="text-align: center; color: var(--text-muted); font-size: 0.85rem; margin-top: 20px;">No tasks logged yet.</div>';
+        }
+
+        renderVirtualTaskItems();
+        _renderTaskLogbookPending = false;
+      }
+
+      let taskScrollAnimationFrameActive = false;
+      if (DOM.taskLogScrollViewport) {
+        DOM.taskLogScrollViewport.addEventListener(
+          "scroll",
+          () => {
+            if (!taskScrollAnimationFrameActive) {
+              taskScrollAnimationFrameActive = true;
+              const currentScrollTop = DOM.taskLogScrollViewport.scrollTop;
+              const viewportHeight =
+                DOM.taskLogScrollViewport.clientHeight || 400;
+
+              window.requestAnimationFrame(() => {
+                renderVirtualTaskItems(currentScrollTop, viewportHeight);
+                taskScrollAnimationFrameActive = false;
+              });
+            }
+          },
+          { passive: true },
+        );
+
+        DOM.taskLogScrollViewport.addEventListener("click", (e) => {
+          const btn = e.target.closest("button");
+          if (btn) {
+            const action = btn.dataset.action;
+            const taskId = btn.dataset.id;
+            if (!taskId) return;
+
+            if (action === "edit-task") {
+              openEditTaskModal(taskId);
+            } else if (action === "copy-task") {
+              copyTask(taskId);
+            } else if (action === "delete-task") {
+              deleteTask(taskId);
+            }
+            return;
+          }
+
+          const row = e.target.closest(".log-row");
+          if (row) {
+            const taskId = row.querySelector(".task-edit-btn")?.dataset.id;
+            if (taskId) {
+              openEditTaskModal(taskId);
+            }
+          }
+        });
+      }
+
+      window.deleteTask = function (taskId) {
+        openConfirmModal(
+          "Delete Task",
+          "Are you sure you want to delete this task?",
+          () => {
+            cachedTaskLogs = cachedTaskLogs.filter((t) => t.id !== taskId);
+            saveTaskLogs();
+            renderTaskLogbook();
+            showAppToast("Task deleted");
+          },
+        );
+      };
+
+      window.copyTask = function (taskId) {
+        const task = cachedTaskLogs.find((t) => t.id === taskId);
+        if (!task) return;
+
+        const timeFormatter = loginFormatter;
+        let startStr = "—";
+        let endStr = "—";
+        try {
+          if (Number.isFinite(task.startMs))
+            startStr = timeFormatter.format(new Date(task.startMs));
+          if (Number.isFinite(task.endMs))
+            endStr = timeFormatter.format(new Date(task.endMs));
+        } catch (e) {}
+        const durStr = formatDuration(task.durationSec || 0);
+
+        const txt = `[${task.date}] ${startStr} - ${endStr} | Duration: ${durStr} | Note: ${task.note}`;
+
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard
+            .writeText(txt)
+            .then(() => showAppToast("Task copied to clipboard"))
+            .catch((err) =>
+              showAppToast("Clipboard write permission denied", "warning"),
+            );
+        } else {
+          showAppToast("Clipboard API unavailable in this context", "warning");
+        }
+      };
+
+      DOM.taskCopyAllBtn.addEventListener("click", () => {
+        const tasksToCopy =
+          typeof getFilteredTasks === "function"
+            ? getFilteredTasks()
+            : cachedTaskLogs;
+        if (tasksToCopy.length === 0) {
+          showAppToast("No tasks to copy", "warning");
+          return;
+        }
+        const timeFormatter = loginFormatter;
+
+        const txt = tasksToCopy
+          .map((task) => {
+            let startStr = "—";
+            let endStr = "—";
+            try {
+              if (Number.isFinite(task.startMs))
+                startStr = timeFormatter.format(new Date(task.startMs));
+              if (Number.isFinite(task.endMs))
+                endStr = timeFormatter.format(new Date(task.endMs));
+            } catch (e) {}
+            const durStr = formatDuration(task.durationSec || 0);
+            return `[${task.date}] ${startStr} - ${endStr} | Duration: ${durStr} | Note: ${task.note || ""}`;
+          })
+          .join("\n");
+
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard
+            .writeText(txt)
+            .then(() =>
+              showAppToast(`Copied ${tasksToCopy.length} tasks to clipboard`),
+            )
+            .catch((err) =>
+              showAppToast("Clipboard write permission denied", "warning"),
+            );
+        } else {
+          showAppToast("Clipboard API unavailable in this context", "warning");
+        }
+      });
+
+      DOM.taskExportCsvBtn.addEventListener("click", () => {
+        const tasksToExport =
+          typeof getFilteredTasks === "function"
+            ? getFilteredTasks()
+            : cachedTaskLogs;
+        if (tasksToExport.length === 0) {
+          showAppToast("No tasks to export", "warning");
+          return;
+        }
+        const tz = DOM.primaryTz.value || "America/Los_Angeles";
+        const timeFormatter = new Intl.DateTimeFormat("en-US", {
+          timeZone: tz,
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+          hour12: true,
+        });
+
+        let csv = "Date,Start,End,Duration,Notes\n";
+        tasksToExport.forEach((task) => {
+          let startStr = "—";
+          let endStr = "—";
+          try {
+            if (Number.isFinite(task.startMs))
+              startStr = timeFormatter.format(new Date(task.startMs));
+            if (Number.isFinite(task.endMs))
+              endStr = timeFormatter.format(new Date(task.endMs));
+          } catch (e) {}
+          const durStr = formatDuration(task.durationSec);
+          const safeNote = task.note
+            ? task.note.replace(/"/g, '""').replace(/\n/g, " ")
+            : "";
+          csv += `"${task.date}","${startStr}","${endStr}","${durStr}","${safeNote}"\n`;
+        });
+
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
+        a.download = `Tasks_Report_${getPSTDate().replace(/\//g, "-")}.csv`;
+        a.click();
+        requestAnimationFrame(() => URL.revokeObjectURL(a.href));
+        showAppToast("Exported tasks as CSV");
+      });
 
       DOM.startBtn.addEventListener("click", () => {
         switchMode("work");
@@ -20783,6 +22966,10 @@
           bindInput("leave-date-input", parseDatePreview);
           bindInput("filter-date-start", parseDatePreview);
           bindInput("filter-date-end", parseDatePreview);
+          bindInput("manual-task-date", parseDatePreview);
+          bindInput("edit-task-date", parseDatePreview);
+          bindInput("task-filter-date-start", parseDatePreview);
+          bindInput("task-filter-date-end", parseDatePreview);
           bindInput("manual-goal", parseGoalPreview);
           bindInput("edit-goal", parseGoalPreview);
 
@@ -20795,6 +22982,12 @@
           bindInput("manual-logout", parseLogoutPreview);
           bindInput("edit-login", parseLoginPreview);
           bindInput("edit-logout", parseLogoutPreview);
+          bindInput("manual-task-start", parseLoginPreview);
+          bindInput("manual-task-end", parseLogoutPreview);
+          bindInput("edit-task-start", parseLoginPreview);
+          bindInput("edit-task-end", parseLogoutPreview);
+          bindInput("manual-task-dur", parseTimePreview);
+          bindInput("edit-task-dur", parseTimePreview);
         };
 
         setupDynamicPreview();
@@ -21033,6 +23226,10 @@
         "leave-date-input",
         "filter-date-start",
         "filter-date-end",
+        "manual-task-date",
+        "edit-task-date",
+        "task-filter-date-start",
+        "task-filter-date-end",
       ].forEach((id) => {
         const el = document.getElementById(id);
         if (el) el.addEventListener("blur", handleDateInputBlur);
@@ -21206,15 +23403,26 @@
       function resolveTimeConstraints(prefix) {
         const engine = modalEngine[prefix];
         const stack = engine.stack;
+        const isTask = prefix.includes("task");
         const els = {
-          login: document.getElementById(`${prefix}-login`),
-          logout: document.getElementById(`${prefix}-logout`),
-          work: document.getElementById(`${prefix}-work`),
-          break: document.getElementById(`${prefix}-break`),
+          login: document.getElementById(
+            `${prefix}-${isTask ? "start" : "login"}`,
+          ),
+          logout: document.getElementById(
+            `${prefix}-${isTask ? "end" : "logout"}`,
+          ),
+          work: document.getElementById(`${prefix}-${isTask ? "dur" : "work"}`),
+          break: isTask ? null : document.getElementById(`${prefix}-break`),
         };
 
+        const camelPrefix = prefix
+          .split("-")
+          .map((part, i) =>
+            i === 0 ? part : part.charAt(0).toUpperCase() + part.slice(1),
+          )
+          .join("");
         const saveBtn = document.querySelector(
-          `button[onclick="save${prefix.charAt(0).toUpperCase() + prefix.slice(1)}Modal()"]`,
+          `button[onclick="save${camelPrefix.charAt(0).toUpperCase() + camelPrefix.slice(1)}Modal()"]`,
         );
         if (saveBtn) saveBtn.disabled = false;
         if (els.work) els.work.classList.remove("input-error");
@@ -21281,14 +23489,16 @@
         }
 
         if (prefix === "manual" && stack.length < 3) return;
-        if (prefix === "edit" && stack.length === 0) return;
+        if (prefix === "manual-task" && stack.length < 2) return;
+        if ((prefix === "edit" || prefix === "edit-task") && stack.length === 0)
+          return;
 
         let missing;
-        if (prefix === "manual") {
-          missing =
-            ["login", "logout", "work", "break"].find(
-              (f) => !stack.includes(f),
-            ) || stack[0];
+        if (prefix === "manual" || prefix === "manual-task") {
+          const reqFields = isTask
+            ? ["login", "logout", "work"]
+            : ["login", "logout", "work", "break"];
+          missing = reqFields.find((f) => !stack.includes(f)) || stack[0];
         } else {
           if (stack.includes("work") || stack.includes("break")) {
             missing = stack.includes("logout") ? "login" : "logout";
@@ -21309,7 +23519,12 @@
           }
         };
 
-        if (missing === "break" && elapsedSec !== null && wSec !== null) {
+        if (
+          missing === "break" &&
+          elapsedSec !== null &&
+          wSec !== null &&
+          !isTask
+        ) {
           let calcB = elapsedSec - wSec;
           if (calcB < 0) {
             if (els.work) els.work.classList.add("input-error");
@@ -21318,8 +23533,12 @@
           } else {
             setCalculated("break", formatDuration(calcB));
           }
-        } else if (missing === "work" && elapsedSec !== null && bSec !== null) {
-          let calcW = elapsedSec - bSec;
+        } else if (
+          missing === "work" &&
+          elapsedSec !== null &&
+          (bSec !== null || isTask)
+        ) {
+          let calcW = elapsedSec - (bSec || 0);
           if (calcW < 0) {
             if (els.work) els.work.classList.add("input-error");
             if (els.break) els.break.classList.add("input-error");
@@ -21331,22 +23550,32 @@
           missing === "logout" &&
           lSec !== null &&
           wSec !== null &&
-          bSec !== null
+          (bSec !== null || isTask)
         ) {
-          setCalculated("logout", secondsToAMPM(lSec + wSec + bSec));
+          setCalculated("logout", secondsToAMPM(lSec + wSec + (bSec || 0)));
         } else if (
           missing === "login" &&
           oSec !== null &&
           wSec !== null &&
-          bSec !== null
+          (bSec !== null || isTask)
         ) {
-          setCalculated("login", secondsToAMPM(oSec - wSec - bSec));
+          setCalculated("login", secondsToAMPM(oSec - wSec - (bSec || 0)));
         }
       }
 
       ["login", "logout", "work", "break"].forEach((field) => {
+        const isTaskField = field !== "break";
+        const taskField =
+          field === "login" ? "start" : field === "logout" ? "end" : "dur";
+
         const manualEl = document.getElementById(`manual-${field}`);
         const editEl = document.getElementById(`edit-${field}`);
+        const manualTaskEl = isTaskField
+          ? document.getElementById(`manual-task-${taskField}`)
+          : null;
+        const editTaskEl = isTaskField
+          ? document.getElementById(`edit-task-${taskField}`)
+          : null;
 
         const bindEngine = (el, prefix) => {
           if (!el) return;
@@ -21373,6 +23602,8 @@
 
         bindEngine(manualEl, "manual");
         bindEngine(editEl, "edit");
+        if (manualTaskEl) bindEngine(manualTaskEl, "manual-task");
+        if (editTaskEl) bindEngine(editTaskEl, "edit-task");
       });
 
       // Event listener for Manual Date Picker
@@ -21446,6 +23677,34 @@
           }
         });
       }
+
+      // Event listeners for Task Date Pickers
+      [
+        "manual-task",
+        "edit-task",
+        "task-filter-date-start",
+        "task-filter-date-end",
+      ].forEach((prefix) => {
+        const picker =
+          document.getElementById(`${prefix}-picker`) ||
+          document.getElementById(`${prefix}-date-picker`);
+        const input =
+          document.getElementById(prefix) ||
+          document.getElementById(`${prefix}-date`);
+        if (picker && input) {
+          picker.addEventListener("change", (e) => {
+            const val = e.target.value;
+            if (val) {
+              const [y, m, d] = val.split("-");
+              input.value = `${m}/${d}/${y.slice(-2)}`;
+              input.dispatchEvent(new Event("blur"));
+            } else {
+              input.value = "";
+              input.dispatchEvent(new Event("change", { bubbles: true }));
+            }
+          });
+        }
+      });
 
       DOM.primaryTz.value = safeGetLocalStorage(TZ_KEY, "America/Los_Angeles");
       updateTZLabel();
@@ -21782,6 +24041,10 @@
           lastLiveWorkSec = -1;
           lastLiveBreakSec = -1;
           updateLiveWeeklySummary(true);
+        } else if (target === "tasks") {
+          targetContent.style.display = "flex";
+          targetContent.style.flexDirection = "column";
+          if (typeof renderTaskLogbook === "function") renderTaskLogbook();
         } else {
           targetContent.style.display = "block";
           // Render the logbook on-demand whenever the tab is selected to ensure data is always fresh
@@ -22246,6 +24509,9 @@
 
             loadSavedFilterViews();
             loadActiveFilters();
+
+            loadTaskState();
+            if (typeof renderTaskLogbook === "function") renderTaskLogbook();
 
             initializeTickers();
             renderStaticUI();
