@@ -2119,7 +2119,8 @@
         transform: scale(0.98);
       }
 
-      .tab-content {
+      .tab-content,
+      #task-log-scroll-viewport {
         flex: 1;
         overflow-y: auto;
         overflow-x: hidden;
@@ -2127,6 +2128,7 @@
         scrollbar-width: none;
         content-visibility: auto;
         contain-intrinsic-size: 0 500px;
+        overflow-anchor: none;
       }
 
       .tab-content::-webkit-scrollbar {
@@ -2639,7 +2641,26 @@
         outline: none;
       }
 
-      #log-container {
+      .log-row.is-leave-row {
+        background: repeating-linear-gradient(
+          -45deg,
+          color-mix(in srgb, var(--text-muted) 5%, transparent),
+          color-mix(in srgb, var(--text-muted) 5%, transparent) 8px,
+          color-mix(in srgb, var(--text-muted) 15%, transparent) 8px,
+          color-mix(in srgb, var(--text-muted) 15%, transparent) 16px
+        );
+        border: 1px dashed var(--border-main);
+        opacity: 0.85;
+      }
+
+      .log-row.is-leave-row:hover,
+      .log-row.is-leave-row.kb-selected {
+        border-color: var(--accent-warning);
+        opacity: 1;
+      }
+
+      #log-container,
+      #task-log-container {
         position: relative;
         width: 100%;
         contain: strict;
@@ -14576,6 +14597,7 @@
                 </span>
                 <span class="log-meta" style="font-size: var(--font-size-entry-meta); color: var(--text-muted);"></span>
                 <span class="log-weekend-badge-left badge badge-weekend" style="display: none;">Weekend</span>
+                <span class="log-worked-leave-badge badge badge-leave" style="display: none;">Worked Leave</span>
               </div>
               <div style="display: flex; align-items: center; gap: 4px;">
                 <span class="log-weekend-badge-right badge badge-weekend" style="display: none;">Weekend</span>
@@ -14599,6 +14621,9 @@
                 <button class="log-copy-btn icon-btn" data-action="copy" aria-label="Copy Log">${SVGs.copy}</button>
                 <button class="log-edit-btn icon-btn" data-action="edit" aria-label="Edit Times">${SVGs.edit}</button>
                 <button class="log-delete-btn icon-btn danger-text" data-action="delete" aria-label="Delete Shift">${SVGs.trash}</button>
+                <button class="leave-manage-btn icon-btn" data-action="manage-leave" aria-label="Manage Leave" style="display: none;">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                </button>
               </div>
             </div>
           `;
@@ -14616,6 +14641,7 @@
           meta: div.querySelector(".log-meta"),
           weekendBadgeLeft: div.querySelector(".log-weekend-badge-left"),
           weekendBadgeRight: div.querySelector(".log-weekend-badge-right"),
+          workedLeaveBadge: div.querySelector(".log-worked-leave-badge"),
           statusBadge: div.querySelector(".log-status-badge"),
           diffText: div.querySelector(".log-diff-text"),
           workText: div.querySelector(".log-work-text"),
@@ -14625,6 +14651,7 @@
           copyBtn: div.querySelector(".log-copy-btn"),
           editBtn: div.querySelector(".log-edit-btn"),
           deleteBtn: div.querySelector(".log-delete-btn"),
+          manageLeaveBtn: div.querySelector(".leave-manage-btn"),
         };
 
         return div;
@@ -14636,6 +14663,12 @@
         if (btn) {
           const action = btn.dataset.action;
           if (!action) return;
+
+          if (action === "manage-leave") {
+            openLeaveModal();
+            return;
+          }
+
           const logId = btn.dataset.id;
           if (!logId) return;
 
@@ -14657,7 +14690,11 @@
         if (row) {
           const logId = row.dataset.id;
           if (logId) {
-            editSingleShift(logId);
+            if (logId.startsWith("leave_")) {
+              openLeaveModal();
+            } else {
+              editSingleShift(logId);
+            }
           }
         }
       });
@@ -15380,18 +15417,8 @@
         const logs = getLogs();
         const criteria = getCurrentFilterCriteria();
 
-        // Quick exit for un-filtered state
-        if (
-          criteria.timeFilter === "ALL" &&
-          criteria.status === "ALL" &&
-          !criteria.hasNotes &&
-          !criteria.dateStartVal &&
-          !criteria.dateEndVal &&
-          criteria.hoursOp === "ALL" &&
-          !criteria.searchVal
-        ) {
-          return logs;
-        }
+        // Quick exit removed: We must process the array to inject Leave Days dynamically
+        // even when no filters are applied, returning a new array to avoid mutating the DB.
 
         // Improvement 5: Safer Cache Invalidation using dataVersion (captures edits perfectly)
         const cacheKey = `${criteria.timeFilter}|${criteria.status}|${criteria.hasNotes}|${criteria.dateStartVal}|${criteria.dateEndVal}|${criteria.hoursOp}|${criteria.hoursVal}|${criteria.searchVal}|${dataVersion}`;
@@ -15538,6 +15565,73 @@
 
           return true;
         });
+
+        if (
+          criteria.status === "ALL" &&
+          !criteria.hasNotes &&
+          criteria.hoursOp === "ALL"
+        ) {
+          const leaves =
+            typeof getLeaveDates === "function" ? getLeaveDates() : [];
+          if (leaves.length > 0) {
+            const existingDates = new Set(result.map((l) => l.date));
+            leaves.forEach((leave) => {
+              const dateStr = typeof leave === "string" ? leave : leave.date;
+              if (existingDates.has(dateStr)) return;
+
+              let epochMs = 0;
+              if (dateStr.match(/^\d{1,2}\/\d{1,2}\/(\d{2}|\d{4})$/)) {
+                const [m, d, y] = dateStr.split("/");
+                const fullYear = y.length === 2 ? `20${y}` : y;
+                epochMs = Date.UTC(
+                  parseInt(fullYear, 10),
+                  parseInt(m, 10) - 1,
+                  parseInt(d, 10),
+                  12,
+                  0,
+                  0,
+                );
+              }
+
+              if (
+                epochMs === 0 ||
+                epochMs < absoluteStartMs ||
+                epochMs > absoluteEndMs
+              )
+                return;
+
+              const type = typeof leave === "string" ? "Leave" : leave.type;
+              const searchStr = `${dateStr} ${type} leave`.toLowerCase();
+
+              if (termLen > 0) {
+                let match = true;
+                for (let i = 0; i < termLen; i++) {
+                  if (searchStr.indexOf(searchTerms[i]) === -1) {
+                    match = false;
+                    break;
+                  }
+                }
+                if (!match) return;
+              }
+
+              result.push({
+                id: "leave_" + dateStr,
+                isLeaveRecord: true,
+                date: dateStr,
+                displayDate: dateStr.replace(/\/20(\d{2})$/, "/$1"),
+                epochMs: epochMs,
+                loginEpochMs: epochMs,
+                leaveType: type,
+                searchStr: searchStr,
+              });
+            });
+            result.sort(
+              (a, b) =>
+                b.epochMs - a.epochMs ||
+                (b.loginEpochMs || 0) - (a.loginEpochMs || 0),
+            );
+          }
+        }
 
         filterCache = result;
         filterCacheKey = cacheKey;
@@ -15764,6 +15858,9 @@
           if (logbookTab) {
             cachedViewportHeight = logbookTab.clientHeight;
           }
+          if (DOM.taskLogScrollViewport) {
+            cachedTaskViewportHeight = DOM.taskLogScrollViewport.clientHeight;
+          }
 
           // Refresh cached base font size on resize to support zoom events cleanly
           cachedBaseFontSize = parseFloat(
@@ -15773,9 +15870,7 @@
           // Recalculate total container height and clear render key to force update
           const itemHeight = getDynamicItemHeight();
           if (virtualScrollLogs.length > 0) {
-            DOM.logContainer.style.height = `${
-              virtualScrollLogs.length * itemHeight
-            }px`;
+            DOM.logContainer.style.height = `${Math.ceil(virtualScrollLogs.length * itemHeight)}px`;
             lastVirtualStart = -1;
             renderVirtualVisibleItems();
           }
@@ -15788,7 +15883,7 @@
             virtualScrollTasks.length > 0 &&
             DOM.taskLogContainer
           ) {
-            DOM.taskLogContainer.style.height = `${virtualScrollTasks.length * taskItemHeight}px`;
+            DOM.taskLogContainer.style.height = `${Math.ceil(virtualScrollTasks.length * taskItemHeight)}px`;
             if (typeof lastTaskVirtualStart !== "undefined")
               lastTaskVirtualStart = -1;
             if (typeof renderVirtualTaskItems === "function")
@@ -15808,8 +15903,12 @@
             scrollAnimationFrameActive = true;
 
             const currentScrollTop = DOM.tabLogbook.scrollTop;
-            if (!cachedViewportHeight)
-              cachedViewportHeight = DOM.tabLogbook.clientHeight || 400;
+            const currentClientHeight = DOM.tabLogbook.clientHeight;
+            if (currentClientHeight > 0) {
+              cachedViewportHeight = currentClientHeight;
+            } else if (!cachedViewportHeight) {
+              cachedViewportHeight = 400;
+            }
             const viewportHeight = cachedViewportHeight;
             const scrollHeight = DOM.tabLogbook.scrollHeight;
 
@@ -15910,8 +16009,11 @@
             ? passedScrollTop
             : scrollContainer.scrollTop;
         // Uses the layout-cached clientHeight value to prevent CPU-based style recalculations
-        if (!cachedViewportHeight) {
-          cachedViewportHeight = scrollContainer.clientHeight || 400;
+        const currentClientHeight = scrollContainer.clientHeight;
+        if (currentClientHeight > 0) {
+          cachedViewportHeight = currentClientHeight;
+        } else if (!cachedViewportHeight) {
+          cachedViewportHeight = 400;
         }
         const viewportHeight =
           passedViewportHeight !== undefined
@@ -16003,6 +16105,9 @@
           }
         }
 
+        const cachedLeaveDates =
+          typeof getLeaveDates === "function" ? getLeaveDates() : [];
+
         for (let k = 0; k < targetPoolSize; k++) {
           const i = startIndex + k;
           const child = rowNodesPool[k];
@@ -16027,87 +16132,137 @@
               : null;
             const dtString = dt ? `${dt.w}-${dt.count}-${dt.goal}` : "";
 
-            const rowKey = `${log.id}|${isSelected}|${log.date}|${log.login}|${log.logout}|${log.dayGoal}|${log.workSec}|${log.breakSec}|${isLogOver(log) ? "OVER" : "UNDER"}|${log.notes || ""}|${dtString}`;
+            const rowKey = `${log.id}|${isSelected}|${log.date}|${log.login}|${log.logout}|${log.dayGoal}|${log.workSec}|${log.breakSec}|${isLogOver(log) ? "OVER" : "UNDER"}|${log.notes || ""}|${dtString}|${log.isLeaveRecord ? "LEAVE" : "WORK"}`;
             if (child._rowKey !== rowKey) {
               child._rowKey = rowKey;
               child._logId = log.id;
               child._isSelected = isSelected;
-              child.className = isSelected ? "log-row kb-selected" : "log-row";
+
+              let rowClass = isSelected ? "log-row kb-selected" : "log-row";
+              if (log.isLeaveRecord) rowClass += " is-leave-row";
+              child.className = rowClass;
+
               child.dataset.id = log.id;
 
               const dom = child._dom;
-              const isOver = isLogOver(log);
 
               dom.dayName.textContent = _DAY_NAMES_SHORT[dayNum];
               dom.dateSub.textContent = `(${displayMonthDay})`;
-              dom.meta.textContent = `${log.login} - ${log.logout}`;
-              dom.statusBadge.textContent = isOver ? "O" : "U";
 
-              const isFirstLogOfDay =
-                i === 0 ||
-                (virtualScrollLogs[i - 1].displayDate ||
-                  virtualScrollLogs[i - 1].date) !== logDKey;
+              if (log.isLeaveRecord) {
+                dom.meta.textContent = "Scheduled Leave";
+                dom.statusBadge.textContent = "";
+                dom.statusBadge.className =
+                  "log-status-badge badge badge-leave";
+                dom.statusBadge.textContent = log.leaveType || "Leave";
 
-              let hasTotalText = false;
-              if (dt && dt.count > 1 && isFirstLogOfDay) {
-                hasTotalText = true;
-                dom.summaryBadge.style.display = "";
-                dom.summaryBadge.textContent = `↳ Total: ${formatFriendlyDuration(dt.w)} / ${formatFriendlyDuration(dt.goal)}`;
-              } else {
+                dom.diffText.textContent = "—";
+                dom.workText.textContent = "—";
+                dom.breakText.textContent = "—";
+
                 dom.summaryBadge.style.display = "none";
-              }
-
-              const rawDeltaSec = Math.abs(
-                log.workSec -
-                  (log.dayGoal != null && log.dayGoal > 0
-                    ? log.dayGoal
-                    : 8 * 3600),
-              );
-              dom.diffText.textContent = formatFriendlyDuration(
-                rawDeltaSec,
-                "0m",
-              );
-              dom.workText.textContent = formatFriendlyDuration(log.workSec);
-              dom.breakText.textContent = formatFriendlyDuration(log.breakSec);
-
-              if (isWeekend) {
-                if (hasTotalText) {
-                  dom.weekendBadgeLeft.style.display = "";
-                  dom.weekendBadgeRight.style.display = "none";
-                } else {
-                  dom.weekendBadgeLeft.style.display = "none";
-                  dom.weekendBadgeRight.style.display = "";
-                }
-              } else {
                 dom.weekendBadgeLeft.style.display = "none";
                 dom.weekendBadgeRight.style.display = "none";
-              }
-              dom.statusBadge.className = `log-status-badge badge ${isOver ? "badge-over" : "badge-under"}`;
-              dom.diffText.className = "log-diff-text";
+                dom.workedLeaveBadge.style.display = "none";
 
-              dom.copyBtn.dataset.id = log.id;
-              dom.editBtn.dataset.id = log.id;
-              dom.deleteBtn.dataset.id = log.id;
-
-              const hasNote = !!log.notes;
-              if (hasNote) {
-                dom.noteBtn.className = "log-note-btn icon-btn note-active";
-                dom.noteBtn.dataset.action = "view-note";
-                dom.noteBtn.dataset.id = log.id;
-                dom.noteBtn.removeAttribute("disabled");
-                dom.noteBtn.style.opacity = "1";
-                dom.noteBtn.style.cursor = "pointer";
+                dom.noteBtn.style.display = "none";
+                dom.copyBtn.style.display = "none";
+                dom.editBtn.style.display = "none";
+                dom.deleteBtn.style.display = "none";
+                dom.manageLeaveBtn.style.display = "flex";
               } else {
-                dom.noteBtn.className = "log-note-btn icon-btn";
-                dom.noteBtn.removeAttribute("data-action");
-                dom.noteBtn.removeAttribute("data-id");
-                dom.noteBtn.setAttribute("disabled", "true");
-                dom.noteBtn.style.opacity = "0.3";
-                dom.noteBtn.style.cursor = "not-allowed";
+                const isOver = isLogOver(log);
+                dom.meta.textContent = `${log.login} - ${log.logout}`;
+                dom.statusBadge.textContent = isOver ? "O" : "U";
+
+                const isFirstLogOfDay =
+                  i === 0 ||
+                  (virtualScrollLogs[i - 1].displayDate ||
+                    virtualScrollLogs[i - 1].date) !== logDKey;
+
+                let hasTotalText = false;
+                if (dt && dt.count > 1 && isFirstLogOfDay) {
+                  hasTotalText = true;
+                  dom.summaryBadge.style.display = "";
+                  dom.summaryBadge.textContent = `↳ Total: ${formatFriendlyDuration(dt.w)} / ${formatFriendlyDuration(dt.goal)}`;
+                } else {
+                  dom.summaryBadge.style.display = "none";
+                }
+
+                const rawDeltaSec = Math.abs(
+                  log.workSec -
+                    (log.dayGoal != null && log.dayGoal > 0
+                      ? log.dayGoal
+                      : 8 * 3600),
+                );
+                dom.diffText.textContent = formatFriendlyDuration(
+                  rawDeltaSec,
+                  "0m",
+                );
+                dom.workText.textContent = formatFriendlyDuration(log.workSec);
+                dom.breakText.textContent = formatFriendlyDuration(
+                  log.breakSec,
+                );
+
+                if (isWeekend) {
+                  if (hasTotalText) {
+                    dom.weekendBadgeLeft.style.display = "";
+                    dom.weekendBadgeRight.style.display = "none";
+                  } else {
+                    dom.weekendBadgeLeft.style.display = "none";
+                    dom.weekendBadgeRight.style.display = "";
+                  }
+                } else {
+                  dom.weekendBadgeLeft.style.display = "none";
+                  dom.weekendBadgeRight.style.display = "none";
+                }
+
+                const leaves = cachedLeaveDates;
+                const isWorkedLeave = leaves.some(
+                  (l) => (typeof l === "string" ? l : l.date) === log.date,
+                );
+                if (isWorkedLeave) {
+                  dom.workedLeaveBadge.style.display = "";
+                  dom.weekendBadgeLeft.style.display = "none";
+                  dom.weekendBadgeRight.style.display = "none";
+                } else {
+                  dom.workedLeaveBadge.style.display = "none";
+                }
+
+                dom.statusBadge.className = `log-status-badge badge ${isOver ? "badge-over" : "badge-under"}`;
+                dom.diffText.className = "log-diff-text";
+
+                dom.noteBtn.style.display = "flex";
+                dom.copyBtn.style.display = "flex";
+                dom.editBtn.style.display = "flex";
+                dom.deleteBtn.style.display = "flex";
+                dom.manageLeaveBtn.style.display = "none";
+
+                dom.copyBtn.dataset.id = log.id;
+                dom.editBtn.dataset.id = log.id;
+                dom.deleteBtn.dataset.id = log.id;
+
+                const hasNote = !!log.notes;
+                if (hasNote) {
+                  dom.noteBtn.className = "log-note-btn icon-btn note-active";
+                  dom.noteBtn.dataset.action = "view-note";
+                  dom.noteBtn.dataset.id = log.id;
+                  dom.noteBtn.removeAttribute("disabled");
+                  dom.noteBtn.style.opacity = "1";
+                  dom.noteBtn.style.cursor = "pointer";
+                } else {
+                  dom.noteBtn.className = "log-note-btn icon-btn";
+                  dom.noteBtn.removeAttribute("data-action");
+                  dom.noteBtn.removeAttribute("data-id");
+                  dom.noteBtn.setAttribute("disabled", "true");
+                  dom.noteBtn.style.opacity = "0.3";
+                  dom.noteBtn.style.cursor = "not-allowed";
+                }
               }
             }
 
-            if (child.style.transform !== `translate3d(0, ${top}px, 0)`) {
+            if (child._currentTop !== top) {
+              child._currentTop = top;
               child.style.transform = `translate3d(0, ${top}px, 0)`;
             }
             child.style.display = "flex";
@@ -16127,6 +16282,7 @@
         window._dailyTotalsMap = {};
         for (let i = 0; i < virtualScrollLogs.length; i++) {
           const l = virtualScrollLogs[i];
+          if (l.isLeaveRecord) continue;
           const dKey = l.displayDate || l.date;
           if (!window._dailyTotalsMap[dKey]) {
             window._dailyTotalsMap[dKey] = {
@@ -16143,7 +16299,7 @@
                   : 28800),
             };
           }
-          window._dailyTotalsMap[dKey].w += l.workSec;
+          window._dailyTotalsMap[dKey].w += l.workSec || 0;
           window._dailyTotalsMap[dKey].count++;
         }
 
@@ -16160,7 +16316,9 @@
         const countDisplay = DOM.logCountDisplay;
         if (countDisplay) {
           const totalLogsCount = getLogs().length;
-          const filteredCount = virtualScrollLogs.length;
+          const filteredCount = virtualScrollLogs.filter(
+            (l) => !l.isLeaveRecord,
+          ).length;
 
           const timeFilter = DOM.filterTime.value !== "ALL";
           const statusFilter = DOM.filterStatus.value !== "ALL";
@@ -16187,7 +16345,7 @@
         }
 
         if (virtualScrollLogs.length > 0) {
-          DOM.logContainer.style.height = `${virtualScrollLogs.length * itemHeight}px`;
+          DOM.logContainer.style.height = `${Math.ceil(virtualScrollLogs.length * itemHeight)}px`;
           DOM.logContainer.style.contain = "strict";
           if (
             DOM.logContainer.firstChild &&
@@ -18729,7 +18887,7 @@
        * Serializes history log records into flat CSV report documents.
        */
       function exportCSV() {
-        const logs = getFilteredLogs();
+        const logs = getFilteredLogs().filter((l) => !l.isLeaveRecord);
         if (!logs.length) {
           showAppToast("No logs to export");
           return;
@@ -19373,7 +19531,7 @@
        */
       function copyLog() {
         const allLogs = getLogs();
-        const filteredLogs = getFilteredLogs();
+        const filteredLogs = getFilteredLogs().filter((l) => !l.isLeaveRecord);
 
         if (!filteredLogs.length) {
           showAppToast("No logs found to copy");
@@ -20390,9 +20548,14 @@
             selectedLogIdx >= 0
           ) {
             const log = virtualScrollLogs[selectedLogIdx];
-            if (log && log.notes) {
-              e.preventDefault();
-              openNoteModal(log.notes, log.id);
+            if (log) {
+              if (log.isLeaveRecord) {
+                e.preventDefault();
+                openLeaveModal();
+              } else if (log.notes) {
+                e.preventDefault();
+                openNoteModal(log.notes, log.id);
+              }
             }
           } else if (
             (e.key === "Delete" ||
@@ -20401,7 +20564,7 @@
             selectedLogIdx >= 0
           ) {
             const log = virtualScrollLogs[selectedLogIdx];
-            if (log) {
+            if (log && !log.isLeaveRecord) {
               e.preventDefault();
               deleteSingleShift(log.id);
             }
@@ -20409,12 +20572,17 @@
             const log = virtualScrollLogs[selectedLogIdx];
             if (log) {
               e.preventDefault();
-              editSingleShift(log.id);
+              if (log.isLeaveRecord) {
+                openLeaveModal();
+              } else {
+                editSingleShift(log.id);
+              }
             }
           } else if (e.key.toLowerCase() === "c" && selectedLogIdx >= 0) {
             const log = virtualScrollLogs[selectedLogIdx];
             if (log) {
               e.preventDefault();
+              if (log.isLeaveRecord) return;
               const goal = resolveGoalSecForDate(log.date);
               const diffSec = log.workSec - goal;
 
@@ -21929,10 +22097,8 @@
               dom.deleteBtn.dataset.id = task.id;
             }
 
-            if (
-              child.style.transform !== `translate3d(0px, ${top}px, 0px)` &&
-              child.style.transform !== `translate3d(0, ${top}px, 0)`
-            ) {
+            if (child._currentTop !== top) {
+              child._currentTop = top;
               child.style.transform = `translate3d(0, ${top}px, 0)`;
             }
             child.style.display = "flex";
@@ -21975,7 +22141,7 @@
         const itemHeight = getTaskItemHeight();
 
         if (virtualScrollTasks.length > 0) {
-          container.style.height = `${virtualScrollTasks.length * itemHeight}px`;
+          container.style.height = `${Math.ceil(virtualScrollTasks.length * itemHeight)}px`;
           container.style.contain = "strict";
           if (container.firstChild && !container.firstChild._dom) {
             container.innerHTML = "";
@@ -21994,6 +22160,7 @@
       }
 
       let taskScrollAnimationFrameActive = false;
+      let cachedTaskViewportHeight = 0;
       if (DOM.taskLogScrollViewport) {
         DOM.taskLogScrollViewport.addEventListener(
           "scroll",
@@ -22001,8 +22168,14 @@
             if (!taskScrollAnimationFrameActive) {
               taskScrollAnimationFrameActive = true;
               const currentScrollTop = DOM.taskLogScrollViewport.scrollTop;
-              const viewportHeight =
-                DOM.taskLogScrollViewport.clientHeight || 400;
+              const currentClientHeight =
+                DOM.taskLogScrollViewport.clientHeight;
+              if (currentClientHeight > 0) {
+                cachedTaskViewportHeight = currentClientHeight;
+              } else if (!cachedTaskViewportHeight) {
+                cachedTaskViewportHeight = 400;
+              }
+              const viewportHeight = cachedTaskViewportHeight;
 
               window.requestAnimationFrame(() => {
                 renderVirtualTaskItems(currentScrollTop, viewportHeight);
@@ -22477,6 +22650,8 @@
 
         // Invalidates cached insights key to force a visual update
         insightsCacheKey = null;
+        filterCache = null;
+        filterCacheKey = null;
         renderInsights();
         renderLogbook();
         autoPopulateDailyGoal(state.activeDate);
@@ -22496,6 +22671,8 @@
 
         // Invalidates cached insights key to force a visual update
         insightsCacheKey = null;
+        filterCache = null;
+        filterCacheKey = null;
         renderInsights();
         renderLogbook();
         autoPopulateDailyGoal(state.activeDate);
