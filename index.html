@@ -2131,7 +2131,8 @@
         overflow-anchor: none;
       }
 
-      .tab-content::-webkit-scrollbar {
+      .tab-content::-webkit-scrollbar,
+      #task-log-scroll-viewport::-webkit-scrollbar {
         display: none;
       }
 
@@ -2614,6 +2615,17 @@
         transform: translateX(-50%) translateY(4px);
       }
 
+      /* The badge anchors to the bottom of its containing toolbar via top: 100%.
+         In the logbook that toolbar sits inside the scroller with no bottom
+         margin, so 100% lands exactly where the rows begin. The tasks toolbar
+         sits outside its scroller and carries margin-bottom: 8px, which is
+         outside the padding box, so 100% would land 8px above the row area and
+         the badge would straddle the scroller's top edge. Cancel that 8px so
+         both badges sit the same distance below their first row. */
+      #task-sticky-month-indicator {
+        margin-top: 8px;
+      }
+
       .log-row {
         height: 4.5rem;
         padding: 0.5rem 1rem;
@@ -2641,22 +2653,138 @@
         outline: none;
       }
 
-      .log-row.is-leave-row {
-        background: repeating-linear-gradient(
-          -45deg,
-          color-mix(in srgb, var(--text-muted) 5%, transparent),
-          color-mix(in srgb, var(--text-muted) 5%, transparent) 8px,
-          color-mix(in srgb, var(--text-muted) 15%, transparent) 8px,
-          color-mix(in srgb, var(--text-muted) 15%, transparent) 16px
-        );
-        border: 1px dashed var(--border-main);
-        opacity: 0.85;
+      /* Shared row structure. Mirrors what the row template used to declare
+         inline so leave rows can be restyled without touching work rows. */
+      .log-row-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
       }
 
-      .log-row.is-leave-row:hover,
-      .log-row.is-leave-row.kb-selected {
-        border-color: var(--accent-warning);
+      .log-header-left {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .log-header-right {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+
+      .log-title {
+        font-weight: 400;
+        font-size: var(--font-size-entry-title);
+        color: var(--text-main);
+      }
+
+      .log-date-sub {
+        opacity: 0.5;
+      }
+
+      .log-meta {
+        font-size: var(--font-size-entry-meta);
+        color: var(--text-muted);
+      }
+
+      .log-day-summary-badge {
+        align-items: center;
+        font-size: var(--font-size-entry-meta);
+        color: var(--text-muted);
+        white-space: nowrap;
+        font-family: var(--font-sans);
+      }
+
+      .log-row-body {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: var(--space-1);
+      }
+
+      .log-stats-group {
+        display: flex;
+        gap: var(--space-3);
+        font-size: var(--font-size-entry-stats);
+        align-items: center;
+      }
+
+      .log-stat-cell {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        width: 14ch;
+        flex-shrink: 0;
+      }
+
+      .log-row.is-leave-row {
+        --leave-accent: var(--text-muted);
+        /* A leave day is an absence, so it sits in the same visual plane as a
+           work row and stays quieter than one. The type colour is carried by
+           the header badge; the surface only whispers it. Raise the 6% below
+           for more tint, or drop it to 0% for a fully neutral surface. */
+        background: color-mix(
+          in srgb,
+          var(--leave-accent) 6%,
+          var(--element-bg)
+        );
+        border: 1px dashed
+          color-mix(in srgb, var(--leave-accent) 30%, var(--border-main));
+        opacity: 0.9;
+        /* A leave day has no work/break stats, so the second line collapses and
+           the row reads as one centred line. Row HEIGHT is deliberately left
+           untouched — the virtual scroller assumes a uniform item height. */
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--space-3);
+      }
+
+      .log-row.is-leave-sick {
+        --leave-accent: var(--accent-break);
+      }
+
+      .log-row.is-leave-casual {
+        --leave-accent: var(--accent-warning);
+      }
+
+      .log-row.is-leave-holiday {
+        --leave-accent: var(--accent-work);
+      }
+
+      .log-row.is-leave-row:hover {
+        border-color: var(--leave-accent);
         opacity: 1;
+      }
+
+      /* Keyboard selection has to read the same on every row type. Driving it
+         from --leave-accent made the cue weaker than the row's own resting
+         border under theme-eink (selected #444 over a resting #202020) and
+         identical to it for Sick, where --accent-break collapses onto
+         --border-main. Selection therefore carries the shared .kb-selected
+         treatment; hover keeps the per-type accent. Values are copied verbatim
+         from .log-row.kb-selected above - keep the two in sync. This rule must
+         stay after the :hover rule: they have equal specificity, so a row that
+         is both hovered and selected resolves on source order. */
+      .log-row.is-leave-row.kb-selected {
+        border-color: var(--accent-blue);
+        background: rgba(96, 165, 250, 0.09);
+        opacity: 1;
+      }
+
+      .log-row.is-leave-row .log-row-header {
+        flex: 1 1 auto;
+        min-width: 0;
+      }
+
+      .log-row.is-leave-row .log-row-body {
+        margin-top: 0;
+        flex: 0 0 auto;
+      }
+
+      .log-row.is-leave-row .log-stats-group {
+        display: none;
       }
 
       #log-container,
@@ -4208,6 +4336,12 @@
         background: color-mix(in srgb, var(--accent-work) 11%, transparent);
         border: 1px solid
           color-mix(in srgb, var(--accent-work) 20%, transparent);
+      }
+
+      /* Sits in the logbook row header, which already supplies its own gap.
+         Must stay after .badge-leave* to cancel their inherited margin. */
+      .log-leave-type-badge {
+        margin-left: 0;
       }
 
       .badge-trend-ahead {
@@ -9353,6 +9487,11 @@
                 margin-bottom: 12px;
               "
             ></div>
+
+            <!-- Dynamic Sticky Month Indicator (mirrors the logbook badge) -->
+            <div id="task-sticky-month-indicator" class="sticky-month-header">
+              <span id="task-sticky-month-text"></span>
+            </div>
           </div>
           <div
             id="task-log-scroll-viewport"
@@ -9921,6 +10060,21 @@
           id="logbook-scroll-top-btn"
           class="scroll-top-btn"
           onclick="scrollToTopLogbook()"
+          title="Scroll to Top"
+          aria-label="Scroll to Top"
+        >
+          <svg viewBox="0 0 24 24">
+            <g data-sprite="sprite-039"></g>
+          </svg>
+        </button>
+
+        <!-- Tasks equivalent. Only one of the two is ever .visible, since only
+             one tab is displayed at a time, and the inactive one keeps
+             pointer-events: none so it cannot intercept clicks. -->
+        <button
+          id="task-scroll-top-btn"
+          class="scroll-top-btn"
+          onclick="scrollToTopTasks()"
           title="Scroll to Top"
           aria-label="Scroll to Top"
         >
@@ -10550,17 +10704,60 @@
       const PRESET_VALUES_KEY = "production_custom_presets_v2";
       const LEAVE_DATES_KEY = "production_leave_dates_v1";
 
+      // Parsed-value cache keyed on the raw serialized string. Because the key
+      // is the stored text itself, this self-invalidates no matter which code
+      // path writes LEAVE_DATES_KEY (saveLeaveDates, backup import, full reset),
+      // so no manual invalidation is required anywhere.
+      let _leaveDatesRaw = null;
+      let _leaveDatesParsed = [];
+      let _leaveDatesSet = null;
+
+      function _syncLeaveDatesCache() {
+        let saved = null;
+        try {
+          saved = safeGetLocalStorage(LEAVE_DATES_KEY);
+        } catch (err) {
+          console.error("Error reading leave dates:", err);
+          saved = null;
+        }
+        if (saved === _leaveDatesRaw) return;
+
+        _leaveDatesRaw = saved;
+        _leaveDatesSet = null;
+        try {
+          const parsed = saved ? JSON.parse(saved) : [];
+          _leaveDatesParsed = Array.isArray(parsed) ? parsed : [];
+        } catch (err) {
+          console.error("Error reading leave dates:", err);
+          _leaveDatesParsed = [];
+        }
+      }
+
       /**
        * Executes getLeaveDates logic.
        */
       function getLeaveDates() {
-        try {
-          const saved = safeGetLocalStorage(LEAVE_DATES_KEY);
-          return saved ? JSON.parse(saved) : [];
-        } catch (err) {
-          console.error("Error reading leave dates:", err);
-          return [];
+        _syncLeaveDatesCache();
+        // Callers such as addLeaveDate push/sort the result in place, so hand
+        // back a shallow copy and keep the cached array pristine.
+        return _leaveDatesParsed.slice();
+      }
+
+      /**
+       * Read-only Set of leave date strings for hot paths such as the virtual
+       * scroll renderer. Accepts both legacy string entries and {date, type}
+       * records, matching the shape checks used elsewhere.
+       */
+      function getLeaveDateSet() {
+        _syncLeaveDatesCache();
+        if (!_leaveDatesSet) {
+          _leaveDatesSet = new Set();
+          for (let i = 0; i < _leaveDatesParsed.length; i++) {
+            const entry = _leaveDatesParsed[i];
+            _leaveDatesSet.add(typeof entry === "string" ? entry : entry.date);
+          }
         }
+        return _leaveDatesSet;
       }
 
       /**
@@ -10804,6 +11001,9 @@
       let lastVirtualEnd = -1;
       let _renderLogbookPending = false; // Re-entrancy guard for burst calls
       let _lastSelectedLogIdx = -1; // Fast-path cache for selected index in virtual scroll
+      // Memo keys for the sticky month header; see renderVirtualVisibleItems.
+      let _lastStickyTopIndex = -1;
+      let _lastStickyBelowThreshold = null;
       let selectedLogIdx = -1; // Keyboard-navigated row index into virtualScrollLogs
       window.selectedLogId = null; // ID-based tracker to preserve keyboard focus state
       let currentInsightsView = "weekly";
@@ -11075,6 +11275,13 @@
         themeToggleIcon: document.getElementById("theme-toggle-icon"),
         goalToast: document.getElementById("goal-toast"),
         logbookScrollTopBtn: document.getElementById("logbook-scroll-top-btn"),
+        taskScrollTopBtn: document.getElementById("task-scroll-top-btn"),
+        // Direct refs rather than getters: this object is built after the
+        // markup is parsed, and these are read on every scroll frame.
+        taskStickyIndicator: document.getElementById(
+          "task-sticky-month-indicator",
+        ),
+        taskStickyMonthText: document.getElementById("task-sticky-month-text"),
         heatmapTooltip: document.getElementById("heatmap-tooltip"),
         heatmapYearCurrentLabel: document.getElementById(
           "heatmap-year-current-label",
@@ -14585,34 +14792,54 @@
       // =========================================================================
       let rowTemplate = null;
 
+      // Single source of truth for leave-type colouring. Frozen constants so
+      // per-row lookups during a render allocate nothing.
+      const _LEAVE_VISUALS = {
+        Sick: { badgeClass: "badge-leave-sick", rowClass: "is-leave-sick" },
+        Casual: {
+          badgeClass: "badge-leave-casual",
+          rowClass: "is-leave-casual",
+        },
+        "Public Holiday": {
+          badgeClass: "badge-leave-holiday",
+          rowClass: "is-leave-holiday",
+        },
+        Leave: { badgeClass: "", rowClass: "" },
+      };
+
+      function getLeaveVisuals(type) {
+        return _LEAVE_VISUALS[type] || _LEAVE_VISUALS.Leave;
+      }
+
       function getRowTemplate() {
         if (rowTemplate) return rowTemplate;
 
         rowTemplate = document.createElement("template");
         rowTemplate.innerHTML = `
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-              <div style="display: flex; align-items: center; gap: 8px;">
-                <span style="font-weight: 400; font-size: var(--font-size-entry-title); color: var(--text-main);">
-                  <span class="log-day-name"></span> <span style="opacity: 0.5;" class="log-date-sub"></span>
+            <div class="log-row-header">
+              <div class="log-header-left">
+                <span class="log-title">
+                  <span class="log-day-name"></span> <span class="log-date-sub"></span>
                 </span>
-                <span class="log-meta" style="font-size: var(--font-size-entry-meta); color: var(--text-muted);"></span>
+                <span class="log-meta"></span>
+                <span class="log-leave-type-badge badge badge-leave" style="display: none;"></span>
                 <span class="log-weekend-badge-left badge badge-weekend" style="display: none;">Weekend</span>
                 <span class="log-worked-leave-badge badge badge-leave" style="display: none;">Worked Leave</span>
               </div>
-              <div style="display: flex; align-items: center; gap: 4px;">
+              <div class="log-header-right">
                 <span class="log-weekend-badge-right badge badge-weekend" style="display: none;">Weekend</span>
-                <span class="log-day-summary-badge" style="display: none; align-items: center; font-size: var(--font-size-entry-meta); color: var(--text-muted); white-space: nowrap; font-family: var(--font-sans);"></span>
+                <span class="log-day-summary-badge" style="display: none;"></span>
               </div>
             </div>
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: var(--space-1);">
-              <div class="font-mono" style="display: flex; gap: var(--space-3); font-size: var(--font-size-entry-stats); align-items: center;">
-                <span style="display: inline-flex; align-items: center; gap: 6px; width: 14ch; flex-shrink: 0;">
+            <div class="log-row-body">
+              <div class="log-stats-group font-mono">
+                <span class="log-stat-cell">
                   <span class="badge badge-w">W</span><span class="log-work-text"></span>
                 </span>
-                <span style="display: inline-flex; align-items: center; gap: 6px; width: 14ch; flex-shrink: 0;">
+                <span class="log-stat-cell">
                   <span class="badge badge-b">B</span><span class="log-break-text"></span>
                 </span>
-                <span style="display: inline-flex; align-items: center; gap: 6px; width: 14ch; flex-shrink: 0;">
+                <span class="log-stat-cell">
                   <span class="log-status-badge badge"></span><span class="log-diff-text"></span>
                 </span>
               </div>
@@ -14639,6 +14866,7 @@
           dayName: div.querySelector(".log-day-name"),
           dateSub: div.querySelector(".log-date-sub"),
           meta: div.querySelector(".log-meta"),
+          leaveTypeBadge: div.querySelector(".log-leave-type-badge"),
           weekendBadgeLeft: div.querySelector(".log-weekend-badge-left"),
           weekendBadgeRight: div.querySelector(".log-weekend-badge-right"),
           workedLeaveBadge: div.querySelector(".log-worked-leave-badge"),
@@ -15910,7 +16138,6 @@
               cachedViewportHeight = 400;
             }
             const viewportHeight = cachedViewportHeight;
-            const scrollHeight = DOM.tabLogbook.scrollHeight;
 
             window.requestAnimationFrame(() => {
               renderVirtualVisibleItems(currentScrollTop, viewportHeight);
@@ -16008,17 +16235,19 @@
           passedScrollTop !== undefined
             ? passedScrollTop
             : scrollContainer.scrollTop;
-        // Uses the layout-cached clientHeight value to prevent CPU-based style recalculations
-        const currentClientHeight = scrollContainer.clientHeight;
-        if (currentClientHeight > 0) {
-          cachedViewportHeight = currentClientHeight;
-        } else if (!cachedViewportHeight) {
-          cachedViewportHeight = 400;
+        // Only touch clientHeight when the caller has not already measured it.
+        // The scroll handler measures once per event and hands the value in, so
+        // the scroll path performs no layout reads at all here.
+        let viewportHeight = passedViewportHeight;
+        if (viewportHeight === undefined) {
+          const currentClientHeight = scrollContainer.clientHeight;
+          if (currentClientHeight > 0) {
+            cachedViewportHeight = currentClientHeight;
+          } else if (!cachedViewportHeight) {
+            cachedViewportHeight = 400;
+          }
+          viewportHeight = cachedViewportHeight;
         }
-        const viewportHeight =
-          passedViewportHeight !== undefined
-            ? passedViewportHeight
-            : cachedViewportHeight;
         const itemHeight = getDynamicItemHeight();
 
         const overscan = 5;
@@ -16037,35 +16266,52 @@
         let endIndex = startIndex + targetPoolSize - 1;
 
         // --- Option B: Dynamic Sticky Month Header Logic ---
-        const stickyTextEl = DOM.stickyMonthText;
-        if (scrollTop < 30) {
-          if (stickyIndicator) {
-            stickyIndicator.classList.remove("visible");
-          }
-        } else {
-          const topVisibleIndex = Math.floor(scrollTop / itemHeight);
-          if (virtualScrollLogs[topVisibleIndex]) {
-            const topLog = virtualScrollLogs[topVisibleIndex];
-            // monthNames is defined as a module-level constant (see _MONTH_NAMES)
-            const parts = topLog.date.split("/");
-            if (parts.length === 3) {
-              const monthIdx = parseInt(parts[0], 10) - 1;
-              const shortYear = parts[2];
-              const fullYear =
-                shortYear.length === 2 ? `20${shortYear}` : shortYear;
-              if (monthIdx >= 0 && monthIdx < 12) {
-                const monthText = `${_MONTH_NAMES[monthIdx]} ${fullYear}`;
-                if (stickyTextEl && stickyIndicator) {
-                  if (stickyTextEl.textContent !== monthText) {
-                    stickyTextEl.textContent = monthText;
-                  }
-                  stickyIndicator.classList.add("visible");
-                }
-              }
-            }
-          } else {
+        // Memoised on exactly the inputs this block reads, so a scroll frame
+        // that does not cross a row boundary skips the string work entirely.
+        // This deliberately sits above the visible-range fast-path below and
+        // cannot be folded into it: startIndex saturates at both ends of the
+        // list (it is clamped to len - targetPoolSize) while topVisibleIndex
+        // keeps advancing, so gating on the range would freeze the month label
+        // near the bottom of the list and misfire around the 30px threshold.
+        const stickyBelowThreshold = scrollTop < 30;
+        const stickyTopIndex = Math.floor(scrollTop / itemHeight);
+        if (
+          stickyBelowThreshold !== _lastStickyBelowThreshold ||
+          stickyTopIndex !== _lastStickyTopIndex
+        ) {
+          _lastStickyBelowThreshold = stickyBelowThreshold;
+          _lastStickyTopIndex = stickyTopIndex;
+
+          const stickyTextEl = DOM.stickyMonthText;
+          if (stickyBelowThreshold) {
             if (stickyIndicator) {
               stickyIndicator.classList.remove("visible");
+            }
+          } else {
+            const topVisibleIndex = stickyTopIndex;
+            if (virtualScrollLogs[topVisibleIndex]) {
+              const topLog = virtualScrollLogs[topVisibleIndex];
+              // monthNames is defined as a module-level constant (see _MONTH_NAMES)
+              const parts = topLog.date.split("/");
+              if (parts.length === 3) {
+                const monthIdx = parseInt(parts[0], 10) - 1;
+                const shortYear = parts[2];
+                const fullYear =
+                  shortYear.length === 2 ? `20${shortYear}` : shortYear;
+                if (monthIdx >= 0 && monthIdx < 12) {
+                  const monthText = `${_MONTH_NAMES[monthIdx]} ${fullYear}`;
+                  if (stickyTextEl && stickyIndicator) {
+                    if (stickyTextEl.textContent !== monthText) {
+                      stickyTextEl.textContent = monthText;
+                    }
+                    stickyIndicator.classList.add("visible");
+                  }
+                }
+              }
+            } else {
+              if (stickyIndicator) {
+                stickyIndicator.classList.remove("visible");
+              }
             }
           }
         }
@@ -16105,8 +16351,10 @@
           }
         }
 
-        const cachedLeaveDates =
-          typeof getLeaveDates === "function" ? getLeaveDates() : [];
+        // Set lookup instead of a per-row .some() scan: the old form was
+        // O(rows x leaveDates) on every visible-range change.
+        const leaveDateSet =
+          typeof getLeaveDateSet === "function" ? getLeaveDateSet() : null;
 
         for (let k = 0; k < targetPoolSize; k++) {
           const i = startIndex + k;
@@ -16132,14 +16380,31 @@
               : null;
             const dtString = dt ? `${dt.w}-${dt.count}-${dt.goal}` : "";
 
-            const rowKey = `${log.id}|${isSelected}|${log.date}|${log.login}|${log.logout}|${log.dayGoal}|${log.workSec}|${log.breakSec}|${isLogOver(log) ? "OVER" : "UNDER"}|${log.notes || ""}|${dtString}|${log.isLeaveRecord ? "LEAVE" : "WORK"}`;
+            // Resolved before the row key so the key can encode it. Toggling a
+            // leave date changes no field on the log itself, so without this the
+            // key stays identical and an already-rendered row keeps a stale
+            // worked-leave badge until it happens to be recycled by scrolling.
+            const isWorkedLeave = leaveDateSet
+              ? leaveDateSet.has(log.date)
+              : false;
+
+            const rowKey = `${log.id}|${isSelected}|${log.date}|${log.login}|${log.logout}|${log.dayGoal}|${log.workSec}|${log.breakSec}|${isLogOver(log) ? "OVER" : "UNDER"}|${log.notes || ""}|${dtString}|${log.isLeaveRecord ? "LEAVE" : "WORK"}|${log.leaveType || ""}|${isWorkedLeave ? "WL" : ""}`;
             if (child._rowKey !== rowKey) {
               child._rowKey = rowKey;
               child._logId = log.id;
               child._isSelected = isSelected;
 
+              const leaveVisuals = log.isLeaveRecord
+                ? getLeaveVisuals(log.leaveType)
+                : null;
+
               let rowClass = isSelected ? "log-row kb-selected" : "log-row";
-              if (log.isLeaveRecord) rowClass += " is-leave-row";
+              if (log.isLeaveRecord) {
+                rowClass += " is-leave-row";
+                if (leaveVisuals.rowClass) {
+                  rowClass += ` ${leaveVisuals.rowClass}`;
+                }
+              }
               child.className = rowClass;
 
               child.dataset.id = log.id;
@@ -16151,14 +16416,14 @@
 
               if (log.isLeaveRecord) {
                 dom.meta.textContent = "Scheduled Leave";
-                dom.statusBadge.textContent = "";
-                dom.statusBadge.className =
-                  "log-status-badge badge badge-leave";
-                dom.statusBadge.textContent = log.leaveType || "Leave";
 
-                dom.diffText.textContent = "—";
-                dom.workText.textContent = "—";
-                dom.breakText.textContent = "—";
+                // The stats cluster is hidden by CSS for leave rows, so the
+                // type moves up beside the date in the header instead.
+                dom.leaveTypeBadge.textContent = log.leaveType || "Leave";
+                dom.leaveTypeBadge.className = leaveVisuals.badgeClass
+                  ? `log-leave-type-badge badge badge-leave ${leaveVisuals.badgeClass}`
+                  : "log-leave-type-badge badge badge-leave";
+                dom.leaveTypeBadge.style.display = "";
 
                 dom.summaryBadge.style.display = "none";
                 dom.weekendBadgeLeft.style.display = "none";
@@ -16174,6 +16439,7 @@
                 const isOver = isLogOver(log);
                 dom.meta.textContent = `${log.login} - ${log.logout}`;
                 dom.statusBadge.textContent = isOver ? "O" : "U";
+                dom.leaveTypeBadge.style.display = "none";
 
                 const isFirstLogOfDay =
                   i === 0 ||
@@ -16217,10 +16483,6 @@
                   dom.weekendBadgeRight.style.display = "none";
                 }
 
-                const leaves = cachedLeaveDates;
-                const isWorkedLeave = leaves.some(
-                  (l) => (typeof l === "string" ? l : l.date) === log.date,
-                );
                 if (isWorkedLeave) {
                   dom.workedLeaveBadge.style.display = "";
                   dom.weekendBadgeLeft.style.display = "none";
@@ -16312,6 +16574,10 @@
         }
         lastVirtualStart = -1;
         lastVirtualEnd = -1;
+        // The row set changed, so the cached month label may no longer match
+        // whatever now sits at the top index.
+        _lastStickyTopIndex = -1;
+        _lastStickyBelowThreshold = null;
         const itemHeight = getDynamicItemHeight();
         const countDisplay = DOM.logCountDisplay;
         if (countDisplay) {
@@ -17231,7 +17497,14 @@
                 ? `${escapeHTML(leaveRecord.type)} Leave`
                 : "Leave";
 
-            const leaveBadge = `<span class="badge badge-leave">${leaveLabel}</span>`;
+            // Match the per-type colouring used by the logbook, tooltip and
+            // leave modal rather than always rendering the generic green.
+            const leaveTypeClass = getLeaveVisuals(
+              leaveRecord && typeof leaveRecord === "object"
+                ? leaveRecord.type
+                : "Leave",
+            ).badgeClass;
+            const leaveBadge = `<span class="badge badge-leave${leaveTypeClass ? ` ${leaveTypeClass}` : ""}">${leaveLabel}</span>`;
             const isEmptyLeaveDay =
               dayW === 0 && dayB === 0 && (!isToday || !state.loginTimestamp);
 
@@ -20645,12 +20918,97 @@
           }
         }
 
+        // Tasks pane keyboard navigation. Mirrors the logbook block above; the
+        // two are mutually exclusive because only one tab is ever displayed.
+        const tasksTab = DOM.tabTasks;
+        if (
+          tasksTab &&
+          tasksTab.style.display !== "none" &&
+          virtualScrollTasks.length > 0 &&
+          // Bare keys only. Every shortcut below is a single letter or an arrow,
+          // so without this Ctrl/Cmd+C preventDefaults the native copy and runs
+          // copyTask instead - likewise Ctrl+D, Alt+D and Alt+E, which belong to
+          // the browser. Nothing here is ever meant to fire with a modifier
+          // held, so excluding all three removes no reachable shortcut.
+          !e.ctrlKey &&
+          !e.metaKey &&
+          !e.altKey &&
+          // An open dialog owns the keyboard. Only Enter short-circuits on a
+          // visible modal further up, so without this the list underneath keeps
+          // responding to arrows/d/c/e behind a confirm modal - including
+          // re-entering deleteTask and clobbering confirmCallback. Kept last so
+          // the cheap checks short-circuit before the element scan.
+          !getVisibleModal()
+        ) {
+          const taskViewport = DOM.taskLogScrollViewport;
+          if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+            e.preventDefault();
+            const dir = e.key === "ArrowDown" ? 1 : -1;
+            selectedTaskIdx = Math.max(
+              0,
+              Math.min(virtualScrollTasks.length - 1, selectedTaskIdx + dir),
+            );
+            const selectedTask = virtualScrollTasks[selectedTaskIdx];
+            window.selectedTaskId = selectedTask ? selectedTask.id : null;
+            if (taskViewport) {
+              const itemHeight = getTaskItemHeight();
+              const scrollTop = taskViewport.scrollTop;
+              const viewH = taskViewport.clientHeight;
+              const rowTop = selectedTaskIdx * itemHeight;
+              if (rowTop < scrollTop) taskViewport.scrollTop = rowTop;
+              else if (rowTop + itemHeight > scrollTop + viewH)
+                taskViewport.scrollTop = rowTop + itemHeight - viewH;
+            }
+            lastTaskVirtualStart = -1;
+            lastTaskVirtualEnd = -1;
+            renderVirtualTaskItems();
+          } else if (
+            (e.key === "Enter" || e.key.toLowerCase() === "e") &&
+            selectedTaskIdx >= 0
+          ) {
+            const task = virtualScrollTasks[selectedTaskIdx];
+            if (task) {
+              e.preventDefault();
+              openEditTaskModal(task.id);
+            }
+          } else if (
+            (e.key === "Delete" ||
+              e.key === "Backspace" ||
+              e.key.toLowerCase() === "d") &&
+            selectedTaskIdx >= 0
+          ) {
+            const task = virtualScrollTasks[selectedTaskIdx];
+            if (task) {
+              e.preventDefault();
+              deleteTask(task.id);
+            }
+          } else if (e.key.toLowerCase() === "c" && selectedTaskIdx >= 0) {
+            const task = virtualScrollTasks[selectedTaskIdx];
+            if (task) {
+              e.preventDefault();
+              copyTask(task.id);
+            }
+          }
+        }
+
         if (e.key === "Escape") {
           e.preventDefault();
           selectedLogIdx = -1;
           lastVirtualStart = -1;
           lastVirtualEnd = -1;
           renderVirtualVisibleItems();
+
+          // Clear the task selection too. selectedTaskId is cleared as well so
+          // the next renderTaskLogbook cannot resurrect it, and the re-render is
+          // skipped while the pane is hidden since switchTab rebuilds it anyway.
+          selectedTaskIdx = -1;
+          window.selectedTaskId = null;
+          lastTaskVirtualStart = -1;
+          lastTaskVirtualEnd = -1;
+          if (tasksTab && tasksTab.style.display !== "none") {
+            renderVirtualTaskItems();
+          }
+
           closeAllActiveModals();
         }
       });
@@ -21937,6 +22295,13 @@
       let lastTaskVirtualEnd = -1;
       let _renderTaskLogbookPending = false;
       let taskRowTemplate = null;
+      // Keyboard navigation state, mirroring selectedLogIdx / selectedLogId.
+      let selectedTaskIdx = -1;
+      let _lastSelectedTaskIdx = -1;
+      window.selectedTaskId = null;
+      // Memo keys for the task sticky month header.
+      let _lastTaskStickyTopIndex = -1;
+      let _lastTaskStickyBelowThreshold = null;
 
       function getTaskItemHeight() {
         return getDynamicItemHeight();
@@ -21987,7 +22352,20 @@
       }
 
       function renderVirtualTaskItems(passedScrollTop, passedViewportHeight) {
-        if (cachedTaskLogs.length === 0) return;
+        // Guards on the filtered array the rest of this function reads, matching
+        // renderVirtualVisibleItems. renderTaskLogbook has already emptied the
+        // pool and written the placeholder by the time this can be zero.
+        const stickyIndicator = DOM.taskStickyIndicator;
+        if (virtualScrollTasks.length === 0) {
+          if (stickyIndicator) {
+            stickyIndicator.style.display = "none";
+          }
+          return;
+        } else {
+          if (stickyIndicator) {
+            stickyIndicator.style.display = "";
+          }
+        }
 
         const scrollContainer =
           DOM.taskLogScrollViewport || DOM.taskLogContainer;
@@ -22016,11 +22394,59 @@
         );
         let endIndex = startIndex + targetPoolSize - 1;
 
+        // --- Dynamic Sticky Month Header (mirrors renderVirtualVisibleItems) ---
+        // Memoised on exactly the inputs it reads. Kept above the range
+        // fast-path on purpose: startIndex saturates at both ends of the list
+        // while topVisibleIndex keeps advancing, so gating on the range would
+        // freeze the label near the bottom and misfire at the 30px threshold.
+        const stickyBelowThreshold = scrollTop < 30;
+        const stickyTopIndex = Math.floor(scrollTop / itemHeight);
+        if (
+          stickyBelowThreshold !== _lastTaskStickyBelowThreshold ||
+          stickyTopIndex !== _lastTaskStickyTopIndex
+        ) {
+          _lastTaskStickyBelowThreshold = stickyBelowThreshold;
+          _lastTaskStickyTopIndex = stickyTopIndex;
+
+          const stickyTextEl = DOM.taskStickyMonthText;
+          if (stickyBelowThreshold) {
+            if (stickyIndicator) {
+              stickyIndicator.classList.remove("visible");
+            }
+          } else {
+            const topTask = virtualScrollTasks[stickyTopIndex];
+            if (topTask && typeof topTask.date === "string") {
+              const parts = topTask.date.split("/");
+              if (parts.length === 3) {
+                const monthIdx = parseInt(parts[0], 10) - 1;
+                const shortYear = parts[2];
+                const fullYear =
+                  shortYear.length === 2 ? `20${shortYear}` : shortYear;
+                if (monthIdx >= 0 && monthIdx < 12) {
+                  const monthText = `${_MONTH_NAMES[monthIdx]} ${fullYear}`;
+                  if (stickyTextEl && stickyIndicator) {
+                    if (stickyTextEl.textContent !== monthText) {
+                      stickyTextEl.textContent = monthText;
+                    }
+                    stickyIndicator.classList.add("visible");
+                  }
+                }
+              }
+            } else {
+              if (stickyIndicator) {
+                stickyIndicator.classList.remove("visible");
+              }
+            }
+          }
+        }
+
         if (
           startIndex === lastTaskVirtualStart &&
-          endIndex === lastTaskVirtualEnd
+          endIndex === lastTaskVirtualEnd &&
+          selectedTaskIdx === _lastSelectedTaskIdx
         )
           return;
+        _lastSelectedTaskIdx = selectedTaskIdx;
         lastTaskVirtualStart = startIndex;
         lastTaskVirtualEnd = endIndex;
 
@@ -22055,10 +22481,13 @@
           if (i <= endIndex && i < virtualScrollTasks.length) {
             const task = virtualScrollTasks[i];
             const top = i * itemHeight;
+            const isSelected = i === selectedTaskIdx;
 
-            const rowKey = `${task.id}|${task.note}|${task.durationSec}|${task.startMs}|${task.endMs}`;
+            const rowKey = `${task.id}|${task.note}|${task.durationSec}|${task.startMs}|${task.endMs}|${isSelected}`;
             if (child._rowKey !== rowKey) {
               child._rowKey = rowKey;
+              child._isSelected = isSelected;
+              child.className = isSelected ? "log-row kb-selected" : "log-row";
               const dom = child._dom;
 
               let logbookStyleDate = task.date;
@@ -22136,8 +22565,24 @@
           }
         }
 
+        // Re-resolve the keyboard selection against the new row set so it
+        // tracks the task itself rather than a stale position.
+        if (window.selectedTaskId) {
+          selectedTaskIdx = virtualScrollTasks.findIndex(
+            (t) => t.id === window.selectedTaskId,
+          );
+          if (selectedTaskIdx === -1) window.selectedTaskId = null;
+        } else {
+          selectedTaskIdx = -1;
+        }
+
         lastTaskVirtualStart = -1;
         lastTaskVirtualEnd = -1;
+        _lastSelectedTaskIdx = -1;
+        // The row set changed, so the cached month label may no longer match
+        // whatever now sits at the top index.
+        _lastTaskStickyTopIndex = -1;
+        _lastTaskStickyBelowThreshold = null;
         const itemHeight = getTaskItemHeight();
 
         if (virtualScrollTasks.length > 0) {
@@ -22159,8 +22604,17 @@
         _renderTaskLogbookPending = false;
       }
 
+      // Global scroll helper to safely reset the task pane position
+      window.scrollToTopTasks = function () {
+        const viewport = DOM.taskLogScrollViewport;
+        if (viewport) {
+          viewport.scrollTo({ top: 0, behavior: "smooth" });
+        }
+      };
+
       let taskScrollAnimationFrameActive = false;
       let cachedTaskViewportHeight = 0;
+      let lastTaskScrollTop = 0;
       if (DOM.taskLogScrollViewport) {
         DOM.taskLogScrollViewport.addEventListener(
           "scroll",
@@ -22179,6 +22633,24 @@
 
               window.requestAnimationFrame(() => {
                 renderVirtualTaskItems(currentScrollTop, viewportHeight);
+
+                const safeScrollTop = currentScrollTop;
+
+                // Toggle visibility for the premium Scroll-to-Top action
+                const btn = DOM.taskScrollTopBtn;
+                if (btn) {
+                  const tasksVisible =
+                    DOM.tabTasks && DOM.tabTasks.style.display !== "none";
+                  const isScrollingDown = safeScrollTop > lastTaskScrollTop;
+
+                  if (tasksVisible && safeScrollTop > 150 && isScrollingDown) {
+                    btn.classList.add("visible");
+                  } else if (!isScrollingDown || safeScrollTop <= 150) {
+                    btn.classList.remove("visible");
+                  }
+                }
+
+                lastTaskScrollTop = safeScrollTop;
                 taskScrollAnimationFrameActive = false;
               });
             }
@@ -24221,6 +24693,13 @@
         } else if (target === "tasks") {
           targetContent.style.display = "flex";
           targetContent.style.flexDirection = "column";
+          // Mirrors the logbook branch below: seed the layout cache now that the
+          // pane is visible, so the first scroll frame does not run on a stale
+          // or fallback viewport height.
+          if (DOM.taskLogScrollViewport) {
+            const taskViewH = DOM.taskLogScrollViewport.clientHeight;
+            if (taskViewH > 0) cachedTaskViewportHeight = taskViewH;
+          }
           if (typeof renderTaskLogbook === "function") renderTaskLogbook();
         } else {
           targetContent.style.display = "block";
@@ -24245,6 +24724,19 @@
             scrollTopBtn.classList.add("visible");
           } else {
             scrollTopBtn.classList.remove("visible");
+          }
+        }
+
+        const taskScrollTopBtn = DOM.taskScrollTopBtn;
+        if (taskScrollTopBtn) {
+          if (
+            target === "tasks" &&
+            DOM.taskLogScrollViewport &&
+            DOM.taskLogScrollViewport.scrollTop > 150
+          ) {
+            taskScrollTopBtn.classList.add("visible");
+          } else {
+            taskScrollTopBtn.classList.remove("visible");
           }
         }
       }
