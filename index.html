@@ -519,6 +519,41 @@
         display: flex;
         align-items: center;
         gap: var(--space-2);
+        padding-right: 2rem;
+      }
+
+      .modal-close-btn {
+        position: absolute;
+        top: 1rem;
+        right: 1rem;
+        width: 26px;
+        height: 26px;
+        background: var(--element-bg);
+        border: 1px solid var(--border-main);
+        color: var(--text-muted);
+        border-radius: var(--radius-sm);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        padding: 0;
+        transition:
+          color 0.15s ease,
+          background-color 0.15s ease;
+        z-index: 10;
+      }
+
+      .modal-close-btn:hover {
+        color: var(--text-main);
+        background: var(--element-hover);
+        border-color: var(--border-light);
+      }
+
+      .modal-close-btn svg {
+        width: 14px;
+        height: 14px;
+        stroke-width: 2;
+        stroke-linecap: round;
       }
 
       .modal-header.warning {
@@ -3172,6 +3207,25 @@
         text-align: left;
       }
 
+      .idle-popup-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 0.5rem;
+        width: 100%;
+      }
+
+      .idle-popup-header .modal-close-btn {
+        position: static;
+        flex-shrink: 0;
+      }
+
+      .idle-popup-title {
+        font-size: 0.85rem;
+        font-weight: 700;
+        color: var(--text-main);
+      }
+
       .settings-divider {
         height: 1.5px;
         background: var(--border-light);
@@ -3968,7 +4022,7 @@
       .date-picker-group {
         display: flex;
         align-items: center;
-        background: var(--panel-bg);
+        background: var(--element-bg);
         border: 1px solid var(--border-main);
         border-radius: var(--radius-md);
         padding: 0 var(--space-3);
@@ -3978,6 +4032,11 @@
           border-color 0.15s ease,
           background-color 0.15s ease;
         width: 100%;
+      }
+
+      .date-picker-group:hover {
+        background: var(--element-hover);
+        border-color: var(--border-light);
       }
 
       .date-picker-group:focus-within {
@@ -4010,6 +4069,8 @@
         padding: 0;
         width: 24px;
         height: 24px;
+        min-height: 24px;
+        box-shadow: none;
         border-radius: var(--radius-sm);
         color: var(--text-muted);
         cursor: pointer;
@@ -4607,6 +4668,17 @@
       .custom-select-panel.cs-open {
         opacity: 1;
         pointer-events: auto;
+      }
+
+      /* Drop-up variant for custom select panels near screen bottom */
+      .custom-select-panel.cs-drop-up,
+      #settings-config-popup .custom-select-panel {
+        top: auto;
+        bottom: calc(100% + 4px);
+        max-height: 220px;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.25);
       }
 
       .custom-select-option {
@@ -5450,17 +5522,38 @@
            content; it is defensive, not load-bearing. */
         #m-sheet .idle-popup {
           position: fixed;
-          left: var(--m-gutter);
-          right: var(--m-gutter);
-          bottom: auto;
-          top: 50%;
-          width: auto;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          top: auto;
+          width: 100%;
           max-width: none;
-          transform: translateY(-50%);
+          border-radius: 20px 20px 0 0;
+          border: 1px solid var(--border-main);
+          border-bottom: 0;
+          padding: 1.25rem 1rem calc(1rem + var(--m-safe-bottom)) !important;
+          background: var(--modal-bg, var(--panel-bg));
+          box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.35);
           z-index: calc(var(--z-overlay) - 1);
-          max-height: 70svh;
-          overflow-y: auto;
+          max-height: 85svh;
+          overflow: visible;
           overscroll-behavior: contain;
+          box-sizing: border-box;
+          transform: none;
+          animation: m-sheet-rise 0.25s cubic-bezier(0.32, 0.72, 0, 1);
+        }
+
+        #m-sheet .idle-popup::before {
+          content: "";
+          position: absolute;
+          top: 0.5rem;
+          left: 50%;
+          transform: translateX(-50%);
+          width: 36px;
+          height: 4px;
+          border-radius: 2px;
+          background: var(--border-main);
+          touch-action: none;
         }
 
         /* ---- Content panes ---------------------------------------------- */
@@ -5485,6 +5578,12 @@
         .tab-nav,
         .sidebar-footer {
           display: none !important;
+        }
+
+        .scroll-top-btn {
+          left: 50%;
+          bottom: 24px;
+          z-index: var(--z-dropdown);
         }
 
         /* ---- Bottom tab bar --------------------------------------------- */
@@ -5695,9 +5794,10 @@
         /* Comfortable, thumb-sized controls. */
         .input-standard,
         select.input-standard,
-        textarea.input-standard {
+        textarea.input-standard,
+        .date-picker-group {
           min-height: 44px;
-          padding: var(--space-3);
+          padding: 0 var(--space-3);
         }
 
         textarea.input-standard {
@@ -5706,6 +5806,12 @@
 
         .preset-pill {
           min-height: 40px;
+        }
+
+        .date-picker-group button.preset-pill {
+          min-height: 24px;
+          height: 24px;
+          width: 24px;
         }
 
         /* No grey flash, no double-tap zoom, no long-press callout on chrome. */
@@ -5759,6 +5865,7 @@
           border-left: 0;
           border-right: 0;
           border-bottom: 0;
+          padding-top: 1.5rem;
           padding-bottom: calc(var(--space-5) + var(--m-safe-bottom));
           max-height: 88svh;
           overflow-y: auto;
@@ -5767,6 +5874,19 @@
           animation: m-sheet-rise 0.3s cubic-bezier(0.32, 0.72, 0, 1);
           /* Lifted by the soft keyboard; MobileShell keeps --m-kb-inset current. */
           margin-bottom: var(--m-kb-inset, 0px);
+        }
+
+        .modal-container::before {
+          content: "";
+          position: absolute;
+          top: 0.5rem;
+          left: 50%;
+          transform: translateX(-50%);
+          width: 36px;
+          height: 4px;
+          border-radius: 2px;
+          background: var(--border-main);
+          touch-action: none;
         }
 
         @keyframes m-sheet-rise {
@@ -5782,32 +5902,33 @@
            instead, which is what a native app does with a dense detail view. */
         .modal-width-lg {
           width: 100%;
-          height: 100svh;
-          max-height: none;
-          border-radius: 0;
-          padding-top: calc(var(--space-5) + var(--m-safe-top));
+          height: 92svh;
+          max-height: 92svh;
+          border-radius: 20px 20px 0 0;
+          padding-top: 1.5rem;
         }
 
-        /* Form rows stack: side-by-side fields are unusable at this width. */
+        /* 2-column form rows and action row for compact modal layout */
         .modal-container .form-row {
-          flex-direction: column;
-          gap: var(--space-3);
+          flex-direction: row;
+          gap: var(--space-2);
         }
 
         .modal-container .form-row > * {
-          width: 100%;
+          flex: 1;
+          min-width: 0;
         }
 
-        /* Full-width, thumb-sized action buttons. */
+        /* Side-by-side action buttons. */
         .modal-container .action-row {
-          flex-direction: column-reverse;
-          gap: 0.5rem;
+          flex-direction: row;
+          gap: var(--space-2);
         }
 
         .modal-container .action-row > button {
-          width: 100%;
-          min-height: 48px;
-          font-size: 0.95rem;
+          flex: 1;
+          min-height: 44px;
+          font-size: 0.9rem;
         }
 
         .help-tab-nav {
@@ -6231,6 +6352,16 @@
         role="dialog"
         aria-modal="true"
       >
+        <button
+          class="modal-close-btn"
+          aria-label="Close"
+          onclick="closeSubmitModal()"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
         <h3 class="modal-header">End of Day Submission</h3>
         <div class="form-group">
           <label class="form-label" for="modal-shift-notes"
@@ -6562,9 +6693,19 @@
         role="dialog"
         aria-modal="true"
       >
+        <button
+          class="modal-close-btn"
+          aria-label="Close"
+          onclick="closeHelpModal()"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
         <h3
           class="modal-header"
-          style="justify-content: space-between; display: flex; width: 100%"
+          style="display: flex; width: 100%"
         >
           <span style="display: flex; align-items: center; gap: var(--space-2)">
             <svg
@@ -6580,24 +6721,6 @@
             </svg>
             User Guide & Help
           </span>
-          <button
-            class="toast-close-btn"
-            aria-label="Close"
-            onclick="closeHelpModal()"
-          >
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="1.8"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <g data-sprite="sprite-004"></g>
-            </svg>
-          </button>
         </h3>
 
         <!-- Help Search Input -->
@@ -7636,6 +7759,16 @@
         role="dialog"
         aria-modal="true"
       >
+        <button
+          class="modal-close-btn"
+          aria-label="Close"
+          onclick="closeEditTaskModal()"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
         <h3 class="modal-header">Edit Task</h3>
         <div class="form-group">
           <label class="form-label" for="edit-task-date">Date (MM/DD/YY)</label>
@@ -7744,6 +7877,16 @@
         role="dialog"
         aria-modal="true"
       >
+        <button
+          class="modal-close-btn"
+          aria-label="Close"
+          onclick="closeManualTaskModal()"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
         <h3 class="modal-header">Add Manual Task</h3>
         <div class="form-group">
           <label class="form-label" for="manual-task-date"
@@ -7858,50 +8001,78 @@
         role="dialog"
         aria-modal="true"
       >
+        <button
+          class="modal-close-btn"
+          aria-label="Close"
+          onclick="closeEditModal()"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
         <h3 class="modal-header">Edit Shift</h3>
-        <div class="form-group">
-          <label class="form-label" for="edit-date">Date (MM/DD/YY)</label>
-          <div class="date-picker-group">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="edit-date">Date (MM/DD/YY)</label>
+            <div class="date-picker-group">
+              <input
+                type="text"
+                id="edit-date"
+                class="input-standard"
+                onfocus="this.select()"
+                onkeydown="if (event.key === 'Enter') this.blur();"
+              />
+              <!-- Hidden native input triggered by button click -->
+              <input
+                type="text"
+                readonly
+                id="edit-date-picker"
+                style="
+                  position: absolute;
+                  opacity: 0.01;
+                  width: 1px;
+                  height: 1px;
+                  pointer-events: none;
+                "
+              />
+              <button
+                type="button"
+                class="preset-pill"
+                onclick="safeShowPicker('edit-date-picker')"
+                title="Open Calendar"
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  fill="none"
+                  style="
+                    width: 14px;
+                    height: 14px;
+                    stroke-width: 2;
+                    flex-shrink: 0;
+                  "
+                >
+                  <g data-sprite="sprite-008"></g>
+                </svg>
+              </button>
+            </div>
+          </div>
+          <div class="form-group">
+            <label
+              class="form-label"
+              for="edit-goal"
+              style="color: var(--accent-blue)"
+              >Daily Goal</label
+            >
             <input
               type="text"
-              id="edit-date"
+              id="edit-goal"
               class="input-standard"
+              placeholder="08:00"
               onfocus="this.select()"
               onkeydown="if (event.key === 'Enter') this.blur();"
             />
-            <!-- Hidden native input triggered by button click -->
-            <input
-              type="text"
-              readonly
-              id="edit-date-picker"
-              style="
-                position: absolute;
-                opacity: 0.01;
-                width: 1px;
-                height: 1px;
-                pointer-events: none;
-              "
-            />
-            <button
-              type="button"
-              class="preset-pill"
-              onclick="safeShowPicker('edit-date-picker')"
-              title="Open Calendar"
-            >
-              <svg
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                fill="none"
-                style="
-                  width: 14px;
-                  height: 14px;
-                  stroke-width: 2;
-                  flex-shrink: 0;
-                "
-              >
-                <g data-sprite="sprite-008"></g>
-              </svg>
-            </button>
           </div>
         </div>
         <div class="form-row">
@@ -7959,22 +8130,6 @@
           </div>
         </div>
         <div class="form-group">
-          <label
-            class="form-label"
-            for="edit-goal"
-            style="color: var(--accent-blue)"
-            >Daily Goal for this shift</label
-          >
-          <input
-            type="text"
-            id="edit-goal"
-            class="input-standard"
-            placeholder="08:00"
-            onfocus="this.select()"
-            onkeydown="if (event.key === 'Enter') this.blur();"
-          />
-        </div>
-        <div class="form-group">
           <label class="form-label" for="edit-notes">Notes (Optional)</label>
           <textarea
             id="edit-notes"
@@ -8000,51 +8155,79 @@
         role="dialog"
         aria-modal="true"
       >
+        <button
+          class="modal-close-btn"
+          aria-label="Close"
+          onclick="closeManualModal()"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
         <h3 class="modal-header">Add Manual Shift</h3>
-        <div class="form-group">
-          <label class="form-label" for="manual-date">Date (MM/DD/YY)</label>
-          <div class="date-picker-group">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="manual-date">Date (MM/DD/YY)</label>
+            <div class="date-picker-group">
+              <input
+                type="text"
+                id="manual-date"
+                class="input-standard"
+                placeholder="05/16/26"
+                onfocus="this.select()"
+                onkeydown="if (event.key === 'Enter') this.blur();"
+              />
+              <!-- Hidden native input triggered by button click -->
+              <input
+                type="text"
+                readonly
+                id="manual-date-picker"
+                style="
+                  position: absolute;
+                  opacity: 0.01;
+                  width: 1px;
+                  height: 1px;
+                  pointer-events: none;
+                "
+              />
+              <button
+                type="button"
+                class="preset-pill"
+                onclick="safeShowPicker('manual-date-picker')"
+                title="Open Calendar"
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  fill="none"
+                  style="
+                    width: 14px;
+                    height: 14px;
+                    stroke-width: 2;
+                    flex-shrink: 0;
+                  "
+                >
+                  <g data-sprite="sprite-008"></g>
+                </svg>
+              </button>
+            </div>
+          </div>
+          <div class="form-group">
+            <label
+              class="form-label"
+              for="manual-goal"
+              style="color: var(--accent-blue)"
+              >Daily Goal</label
+            >
             <input
               type="text"
-              id="manual-date"
+              id="manual-goal"
               class="input-standard"
-              placeholder="05/16/26"
+              placeholder="08:00"
               onfocus="this.select()"
               onkeydown="if (event.key === 'Enter') this.blur();"
             />
-            <!-- Hidden native input triggered by button click -->
-            <input
-              type="text"
-              readonly
-              id="manual-date-picker"
-              style="
-                position: absolute;
-                opacity: 0.01;
-                width: 1px;
-                height: 1px;
-                pointer-events: none;
-              "
-            />
-            <button
-              type="button"
-              class="preset-pill"
-              onclick="safeShowPicker('manual-date-picker')"
-              title="Open Calendar"
-            >
-              <svg
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                fill="none"
-                style="
-                  width: 14px;
-                  height: 14px;
-                  stroke-width: 2;
-                  flex-shrink: 0;
-                "
-              >
-                <g data-sprite="sprite-008"></g>
-              </svg>
-            </button>
           </div>
         </div>
         <div class="form-row">
@@ -8100,22 +8283,6 @@
               onkeydown="if (event.key === 'Enter') this.blur();"
             />
           </div>
-        </div>
-        <div class="form-group">
-          <label
-            class="form-label"
-            for="manual-goal"
-            style="color: var(--accent-blue)"
-            >Daily Goal for this shift</label
-          >
-          <input
-            type="text"
-            id="manual-goal"
-            class="input-standard"
-            placeholder="08:00"
-            onfocus="this.select()"
-            onkeydown="if (event.key === 'Enter') this.blur();"
-          />
         </div>
         <div class="form-group">
           <label class="form-label" for="manual-notes">Notes (Optional)</label>
@@ -8211,6 +8378,16 @@
         role="dialog"
         aria-modal="true"
       >
+        <button
+          class="modal-close-btn"
+          aria-label="Close"
+          onclick="closePresetModal()"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
         <h3 class="modal-header">Edit Preset</h3>
         <div class="form-group">
           <label class="form-label" for="preset-input"
@@ -8248,6 +8425,16 @@
         role="dialog"
         aria-modal="true"
       >
+        <button
+          class="modal-close-btn"
+          aria-label="Close"
+          onclick="closeLeaveModal()"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
         <h3 class="modal-header" style="white-space: nowrap; font-size: 1rem">
           <svg
             viewBox="0 0 24 24"
@@ -9929,6 +10116,7 @@
               <!-- Week Month Label (Double-click to jump to today/current week) -->
               <span
                 id="week-month-label"
+                onclick="handleWeekMonthTap(event)"
                 ondblclick="jumpToCurrentWeek()"
                 title="Double-click to jump to current week"
               ></span>
@@ -10841,6 +11029,20 @@
 
               <!-- Adjust Time Floating Popup -->
               <div id="adjust-time-popup" class="idle-popup">
+                <div class="idle-popup-header">
+                  <span class="idle-popup-title">Adjust Timer</span>
+                  <button
+                    type="button"
+                    class="modal-close-btn"
+                    onclick="closeAdjustPopup()"
+                    aria-label="Close"
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                      <line x1="18" y1="6" x2="6" y2="18"></line>
+                      <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                  </button>
+                </div>
                 <!-- Row 1: Target Timer Segmented Control -->
                 <div class="adjust-segmented-control">
                   <button
@@ -10910,8 +11112,22 @@
               <div
                 id="settings-config-popup"
                 class="idle-popup"
-                style="gap: 0.35rem; padding: 0.5rem; scrollbar-width: none"
+                style="gap: 0.35rem; scrollbar-width: none"
               >
+                <div class="idle-popup-header">
+                  <span class="idle-popup-title">Settings</span>
+                  <button
+                    type="button"
+                    class="modal-close-btn"
+                    onclick="closeSettingsPopup()"
+                    aria-label="Close"
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                      <line x1="18" y1="6" x2="6" y2="18"></line>
+                      <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                  </button>
+                </div>
                 <!-- Card 1: Tracking Mode -->
                 <div
                   style="
@@ -14505,6 +14721,9 @@
               state.lastHeartbeatMonotonic = performance.now();
             }
           }
+          if (typeof initMediaSessionAudio === "function") {
+            initMediaSessionAudio();
+          }
         } else {
           state.sessionAnchorWall = null;
         }
@@ -14796,6 +15015,88 @@
               buildTime(window._cachedBstBase),
             );
           }
+        }
+
+        syncMediaSession();
+      }
+
+      let silentAudioEl = null;
+      let lastMediaSessionTitle = "";
+      let mediaSessionHandlersBound = false;
+
+      function initMediaSessionAudio() {
+        if (!("mediaSession" in navigator)) return;
+        if (!silentAudioEl) {
+          silentAudioEl = document.createElement("audio");
+          silentAudioEl.loop = true;
+          silentAudioEl.playsInline = true;
+          silentAudioEl.setAttribute("playsinline", "true");
+          silentAudioEl.setAttribute("webkit-playsinline", "true");
+          silentAudioEl.src =
+            "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=";
+        }
+
+        if (!mediaSessionHandlersBound) {
+          mediaSessionHandlersBound = true;
+          try {
+            navigator.mediaSession.setActionHandler("play", () => switchMode("work"));
+            navigator.mediaSession.setActionHandler("pause", () => switchMode("break"));
+            navigator.mediaSession.setActionHandler("previoustrack", () => switchMode("work"));
+            navigator.mediaSession.setActionHandler("nexttrack", () => switchMode("break"));
+          } catch (e) {}
+        }
+
+        if (silentAudioEl.paused) {
+          silentAudioEl.play().catch(() => {});
+        }
+      }
+
+      function stopMediaSession() {
+        if (silentAudioEl) {
+          try {
+            silentAudioEl.pause();
+            silentAudioEl.currentTime = 0;
+          } catch (e) {}
+        }
+        if ("mediaSession" in navigator) {
+          navigator.mediaSession.playbackState = "none";
+          try {
+            navigator.mediaSession.metadata = null;
+          } catch (e) {}
+        }
+        lastMediaSessionTitle = "";
+      }
+
+      function syncMediaSession() {
+        if (!("mediaSession" in navigator)) return;
+
+        const hasActiveSession = !!state.loginTimestamp && !state.idleLock;
+        const mode = state.currentMode;
+
+        if (!hasActiveSession || mode === null) {
+          stopMediaSession();
+          return;
+        }
+
+        initMediaSessionAudio();
+
+        navigator.mediaSession.playbackState = "playing";
+
+        const workSec = getCurrentWorkSeconds();
+        const breakSec = getCurrentBreakSeconds();
+        const activeSec = mode === "work" ? workSec : breakSec;
+        const modeLabel = mode === "work" ? "Working" : "On Break";
+        const titleStr = `${formatDuration(activeSec)} • ${modeLabel}`;
+
+        if (titleStr !== lastMediaSessionTitle) {
+          lastMediaSessionTitle = titleStr;
+          try {
+            navigator.mediaSession.metadata = new MediaMetadata({
+              title: titleStr,
+              artist: "nodrift",
+              album: `Work: ${formatDuration(workSec)} | Break: ${formatDuration(breakSec)}`,
+            });
+          } catch (e) {}
         }
       }
 
@@ -16064,6 +16365,9 @@
         lastAdjustmentStateBackup = null;
         saveState();
         autoPopulateDailyGoal(state.activeDate);
+        if (typeof stopMediaSession === "function") {
+          stopMediaSession();
+        }
         DOM.submitModal.style.display = "none";
         DOM.ghostModal.style.display = "none";
         DOM.noteModal.style.display = "none";
@@ -26306,7 +26610,25 @@
       /**
        * Re-aligns base date back to current active week and forces a clean render.
        */
+      let lastJumpTime = 0;
+      let lastWeekMonthTapTime = 0;
+
+      window.handleWeekMonthTap = function (e) {
+        const now = Date.now();
+        const diff = now - lastWeekMonthTapTime;
+        lastWeekMonthTapTime = now;
+
+        if (diff > 0 && diff < 380) {
+          lastWeekMonthTapTime = 0;
+          jumpToCurrentWeek();
+        }
+      };
+
       window.jumpToCurrentWeek = function () {
+        const now = Date.now();
+        if (now - lastJumpTime < 300) return;
+        lastJumpTime = now;
+
         displayBaseDate = getPSTDateObj(); // Recalibrate baseline to today's PST date
         // Reset segment caches to force absolute redraw on week navigation
         domWriteCache.todaySegmentScale = -1;
@@ -27713,7 +28035,66 @@ logic (.value reads, .value sets, change listeners) works unchanged.
             if (btn) btn.addEventListener("click", () => haptic(12));
           });
 
+          initModalTouchDrag();
           applyBreakpoint();
+        }
+
+        function initModalTouchDrag() {
+          document.querySelectorAll(".modal-container, .idle-popup").forEach((container) => {
+            if (container._touchDragBound) return;
+            container._touchDragBound = true;
+
+            let startY = 0;
+            let currentDeltaY = 0;
+            let isDragging = false;
+
+            container.addEventListener(
+              "touchstart",
+              (e) => {
+                if (e.touches.length !== 1) return;
+                if (container.scrollTop > 5) return;
+                startY = e.touches[0].clientY;
+                currentDeltaY = 0;
+                isDragging = true;
+              },
+              { passive: true },
+            );
+
+            container.addEventListener(
+              "touchmove",
+              (e) => {
+                if (!isDragging) return;
+                const currentY = e.touches[0].clientY;
+                currentDeltaY = currentY - startY;
+
+                if (currentDeltaY > 0 && container.scrollTop <= 0) {
+                  container.style.transition = "none";
+                  container.style.transform = `translateY(${currentDeltaY}px)`;
+                } else {
+                  currentDeltaY = 0;
+                }
+              },
+              { passive: true },
+            );
+
+            const endDrag = (cancelled) => {
+              if (!isDragging) return;
+              isDragging = false;
+              container.style.transition = "transform 0.2s ease";
+              container.style.transform = "";
+
+              if (!cancelled && currentDeltaY > 70) {
+                closeAllActiveModals();
+              }
+            };
+
+            container.addEventListener("touchend", () => endDrag(false), {
+              passive: true,
+            });
+            container.addEventListener("touchcancel", () => endDrag(true), {
+              passive: true,
+            });
+          });
         }
 
         if (document.readyState === "loading") {
