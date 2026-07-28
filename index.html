@@ -2717,11 +2717,18 @@
         will-change: transform;
       }
 
-      .log-row:hover,
       .log-row.kb-selected {
         border-color: var(--accent-blue);
         background: rgba(96, 165, 250, 0.09);
         outline: none;
+      }
+
+      @media (hover: hover) and (pointer: fine) {
+        .log-row:hover {
+          border-color: var(--accent-blue);
+          background: rgba(96, 165, 250, 0.09);
+          outline: none;
+        }
       }
 
       /* Shared row structure. Mirrors what the row template used to declare
@@ -2824,9 +2831,11 @@
         --leave-accent: var(--accent-work);
       }
 
-      .log-row.is-leave-row:hover {
-        border-color: var(--leave-accent);
-        opacity: 1;
+      @media (hover: hover) and (pointer: fine) {
+        .log-row.is-leave-row:hover {
+          border-color: var(--leave-accent);
+          opacity: 1;
+        }
       }
 
       /* Keyboard selection has to read the same on every row type. Driving it
@@ -17876,6 +17885,7 @@
        * Compiles weekly data aggregates.
        */
       function showHeatmapTooltip(e, dateKey) {
+        if (!canHoverPointer) return;
         const tooltip = DOM.heatmapTooltip;
         if (!tooltip) return;
 
