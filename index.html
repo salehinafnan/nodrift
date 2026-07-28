@@ -1,13 +1,34 @@
 <!doctype html>
-<html lang="en" data-theme="sf-light" style="font-size: clamp(14px, 1vw, 20px)">
+<html lang="en" data-theme="sf-light">
   <head>
     <meta charset="UTF-8" />
-    <meta name="color-scheme" content="dark" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <!-- manifest-src is added so the web app manifest can be inlined as a data:
+         URI and the app can stay a single file. Without it the manifest would
+         fall back to default-src 'self' and be blocked. -->
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' 'unsafe-inline' blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; connect-src 'none'; img-src 'self' data:; font-src 'self' data: https://fonts.gstatic.com;"
+      content="default-src 'self'; script-src 'self' 'unsafe-inline' blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; connect-src 'none'; img-src 'self' data:; font-src 'self' data: https://fonts.gstatic.com; manifest-src 'self' data:;"
     />
     <title>nodrift</title>
+
+    <!-- Home-screen / standalone behaviour. iOS reads the apple-* tags rather
+         than the manifest for Add to Home Screen; black-translucent lets the
+         app draw under the status bar, which is why the layout uses
+         env(safe-area-inset-*) throughout. theme-color is kept in sync with the
+         active theme at runtime (see syncThemeColorMeta). -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta
+      name="apple-mobile-web-app-status-bar-style"
+      content="black-translucent"
+    />
+    <meta name="apple-mobile-web-app-title" content="nodrift" />
+    <meta name="application-name" content="nodrift" />
+    <meta name="theme-color" content="#f2f2f7" />
 
     <!-- Google Fonts Import for Geist Mono -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -23,7 +44,45 @@
       href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2360a5fa' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='10'></circle><polyline points='12 6 12 12 16 14'></polyline></svg>"
     />
 
+    <!-- Home-screen icon. iOS ignores SVG here, so this is a filled raster-safe
+         square with the same clock mark, sized for the 180px Retina slot. -->
+    <link
+      rel="apple-touch-icon"
+      href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180' viewBox='0 0 180 180'><rect width='180' height='180' fill='%23111111'/><g fill='none' stroke='%2360a5fa' stroke-width='9' stroke-linecap='round' stroke-linejoin='round'><circle cx='90' cy='90' r='48'/><polyline points='90 61 90 90 111 101'/></g></svg>"
+    />
+
+    <!-- Inline web app manifest. Kept as a data: URI so the app remains a
+         single file; manifest-src in the CSP above permits it. start_url is
+         intentionally omitted so it defaults to the launching document, which
+         is what lets this work from any host path (or from file://). -->
+    <link
+      rel="manifest"
+      href='data:application/manifest+json,{"name":"nodrift","short_name":"nodrift","display":"standalone","orientation":"any","background_color":"%23f2f2f7","theme_color":"%23f2f2f7","description":"Local-first work session tracker","icons":[{"src":"data:image/svg%2Bxml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%27512%27 height=%27512%27 viewBox=%270 0 180 180%27%3E%3Crect width=%27180%27 height=%27180%27 fill=%27%23111111%27/%3E%3Cg fill=%27none%27 stroke=%27%2360a5fa%27 stroke-width=%279%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27%3E%3Ccircle cx=%2790%27 cy=%2790%27 r=%2748%27/%3E%3Cpolyline points=%2790 61 90 90 111 101%27/%3E%3C/g%3E%3C/svg%3E","sizes":"512x512","type":"image/svg+xml","purpose":"any"}]}'
+    />
+
     <style>
+      /* =========================================================================
+          0. ROOT TYPE SCALE & NATIVE CONTROL COLOR SCHEME
+          Moved here from the <html style> attribute so responsive breakpoints can
+          override it (inline styles outrank stylesheet rules). The clamp value is
+          unchanged, so every desktop width computes exactly as before.
+          ========================================================================= */
+      html {
+        font-size: clamp(14px, 1vw, 20px);
+      }
+
+      /* Drives native pickers, <select> popups, scrollbars and autofill so they
+         match the active theme instead of always rendering dark. */
+      :root[data-theme="sf-light"],
+      :root[data-theme="theme-eink"] {
+        color-scheme: light;
+      }
+
+      :root[data-theme="sf-dark"],
+      :root[data-theme="vercel-dark"] {
+        color-scheme: dark;
+      }
+
       /* =========================================================================
           1. GLOBAL BASE STYLES & VARIABLE CONFIGURATION
           ========================================================================= */
@@ -85,6 +144,14 @@
 
         /* Dynamic Typographic & Layout Fallbacks */
         --number-font: var(--font-mono);
+
+        /* Virtual scroller slot pitch. This is the single source of truth for
+           row geometry: the JS scroller reads it via getDynamicItemHeight(), and
+           .log-row derives its height from it. Changing it in a media query
+           automatically keeps the scroller in sync -- never hardcode a second
+           value anywhere. Rows sit 0.2rem shorter than the pitch to form the gap. */
+        --log-row-pitch: 4.7rem;
+        --log-row-gap: 0.2rem;
 
         /* Unified Logbook & Insights Typography Scale */
         --font-size-entry-title: 0.8rem;
@@ -646,6 +713,10 @@
 
         color: var(--text-main);
         min-height: 100vh;
+        /* Small-viewport height: on mobile browsers 100vh is the *largest* viewport
+           (toolbars retracted), which overflows while they are shown. 100svh is the
+           stable smallest box. Desktop resolves both identically. */
+        min-height: 100svh;
         display: flex;
         justify-content: center;
         align-items: center;
@@ -2627,7 +2698,7 @@
       }
 
       .log-row {
-        height: 4.5rem;
+        height: calc(var(--log-row-pitch) - var(--log-row-gap));
         padding: 0.5rem 1rem;
         border-radius: var(--radius-md);
         background: var(--element-bg);
@@ -3299,24 +3370,31 @@
       }
 
       /* Destructive Zone Hierarchy & Reactions - Transitions removed for CPU optimization */
-      .sidebar-footer .sq-btn.danger-icon {
+      /* Deliberately NOT scoped to .sidebar-footer. MobileShell.borrowNodes()
+         moves .footer-icons into #m-sheet on phones, so an ancestor-scoped rule
+         would silently drop the destructive treatment from the Wipe button and
+         leave it identical to Export/Copy/Help. Dropping the ancestor takes the
+         specificity from (0,3,0) to (0,2,0), which still beats .sidebar-footer
+         .sq-btn (0,2,0) and .icon-btn (0,1,0) on source order -- these rules sit
+         below both -- so the desktop rendering is unchanged. */
+      .sq-btn.danger-icon {
         background: rgba(248, 113, 113, 0.04);
         border-color: rgba(248, 113, 113, 0.12);
         transition: none;
       }
 
-      .sidebar-footer .sq-btn.danger-icon svg {
+      .sq-btn.danger-icon svg {
         stroke: var(--accent-break);
         opacity: 0.85;
         transition: none;
       }
 
-      .sidebar-footer .sq-btn.danger-icon:hover {
+      .sq-btn.danger-icon:hover {
         background: rgba(248, 113, 113, 0.14);
         border-color: var(--accent-break);
       }
 
-      .sidebar-footer .sq-btn.danger-icon:hover svg {
+      .sq-btn.danger-icon:hover svg {
         stroke: var(--accent-break);
         opacity: 1;
         transform: none;
@@ -4829,6 +4907,923 @@
         .sidebar-footer .sq-btn svg {
           width: 18px !important;
           height: 18px !important;
+        }
+      }
+
+      /* =========================================================================
+          MOBILE APP SHELL
+          -------------------------------------------------------------------------
+          Everything from here down is scoped to (max-width: 1023px) or narrower and
+          therefore cannot affect the desktop layout. The shell chrome (#m-tabbar,
+          #m-sheet, #m-sheet-backdrop) is display:none by default and only switched
+          on inside the phone breakpoint.
+          ========================================================================= */
+
+      #m-tabbar,
+      #m-sheet,
+      #m-sheet-backdrop,
+      #m-more-btn {
+        display: none;
+      }
+
+      @media (max-width: 767px) {
+        :root {
+          /* Fixed chrome metrics. --m-topbar-h is enforced as a hard height on
+             .status-bar below, so JS never has to measure it. */
+          --m-topbar-h: 3.25rem;
+          --m-tabbar-h: 3.5rem;
+          --m-safe-top: env(safe-area-inset-top, 0px);
+          --m-safe-bottom: env(safe-area-inset-bottom, 0px);
+          --m-safe-left: env(safe-area-inset-left, 0px);
+          --m-safe-right: env(safe-area-inset-right, 0px);
+          --m-gutter: 1rem;
+        }
+
+        /* ---- Full-bleed app frame -------------------------------------- */
+        body {
+          display: block;
+          padding: 0;
+          min-height: 0;
+          height: 100vh;
+          height: 100svh;
+          overflow: hidden;
+          /* Stop iOS rubber-banding the whole document behind the shell. */
+          overscroll-behavior: none;
+        }
+
+        .console-panel {
+          display: block;
+          width: 100%;
+          max-width: none;
+          height: 100vh;
+          height: 100svh;
+          padding: 0;
+          gap: 0;
+          border: 0;
+          border-radius: 0;
+          box-shadow: none;
+          background: var(--page-bg);
+        }
+
+        /* ---- .main-ui is BOTH the fixed top bar and the Timer pane -------
+           Keeping it in place (rather than relocating .status-bar) means the
+           status bar can stay visible on every pane with no DOM surgery: when
+           the Timer pane is inactive, every child except .status-bar is hidden
+           and the element collapses to bar height. ---------------------- */
+        .main-ui {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          z-index: var(--z-sticky);
+          height: auto;
+          flex: none;
+          justify-content: flex-start;
+          background: var(--panel-bg);
+          padding: var(--m-safe-top) var(--m-gutter) 0;
+          box-sizing: border-box;
+        }
+
+        body[data-mpane="timer"] .main-ui {
+          bottom: 0;
+          justify-content: space-between;
+          padding-bottom: calc(var(--m-tabbar-h) + var(--m-safe-bottom));
+          overflow-y: auto;
+          overscroll-behavior: contain;
+        }
+
+        body:not([data-mpane="timer"]) .main-ui > *:not(.status-bar) {
+          display: none;
+        }
+
+        /* ---- Top bar ---------------------------------------------------- */
+        .status-bar {
+          height: var(--m-topbar-h);
+          min-height: var(--m-topbar-h);
+          flex: none;
+          margin-bottom: 0;
+          gap: 0.5rem;
+          overflow: hidden;
+          border-bottom: 1px solid var(--border-main);
+          /* Bleed the divider to the full window width, ignoring the gutter. */
+          margin-left: calc(var(--m-gutter) * -1);
+          margin-right: calc(var(--m-gutter) * -1);
+          padding-left: var(--m-gutter);
+          padding-right: var(--m-gutter);
+        }
+
+        /* The identity badge shrinks to logo + primary clock + status. The
+           secondary clock, its divider and the "BST" label are dropped: they are
+           still rendered inside the sheet-relocated controls when needed. */
+        .status-bar .status-badge.status-time {
+          flex: 1;
+          min-width: 0;
+          gap: 0.5rem;
+          padding: 0;
+          border: 0;
+          background: none;
+          overflow: hidden;
+        }
+
+        .nodrift-logo {
+          margin-right: 0.35rem;
+        }
+
+        .status-bar .clock-divider,
+        .status-bar .tz-static-label,
+        .status-bar #bst-clock {
+          display: none;
+        }
+
+        #last-seen.last-seen-status {
+          margin-left: auto;
+        }
+
+        /* Overflow entry point sits at the trailing edge of the bar. */
+        #m-more-btn {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex: none;
+          width: 40px;
+          height: 40px;
+          margin-right: -0.5rem;
+          padding: 0;
+          background: none;
+          border: 0;
+          color: var(--text-main);
+          -webkit-tap-highlight-color: transparent;
+          touch-action: manipulation;
+        }
+
+        #m-more-btn svg {
+          width: 22px;
+          height: 22px;
+          fill: currentColor;
+          stroke: none;
+        }
+
+        #m-more-btn:active {
+          opacity: 0.5;
+        }
+
+        /* Each borrowed control becomes a labelled section of the sheet. */
+        .m-sheet-slot {
+          display: block;
+        }
+
+        .m-sheet-slot::before {
+          content: attr(data-label);
+          display: block;
+          margin-bottom: 0.45rem;
+          font-size: 0.68rem;
+          font-weight: 700;
+          letter-spacing: 0.07em;
+          text-transform: uppercase;
+          color: var(--text-muted);
+        }
+
+        /* Controls relocated into the sheet must not keep their desktop
+           absolute/hover popover behaviour once they are out of the bar. */
+        #m-sheet .goal-container,
+        #m-sheet .tz-container,
+        #m-sheet .theme-container {
+          position: static;
+          display: block;
+          width: 100%;
+        }
+
+        /* The compact bar trigger is redundant next to the always-open preset
+           list, except for the goal, whose editable time field lives inside it. */
+        #m-sheet .tz-trigger,
+        #m-sheet .theme-toggle-btn {
+          display: none;
+        }
+
+        #m-sheet .goal-inputs {
+          width: 100%;
+          justify-content: center;
+          height: 44px;
+        }
+
+        #m-sheet .goal-chevron {
+          display: none;
+        }
+
+        #m-sheet .goal-presets,
+        #m-sheet .tz-presets,
+        #m-sheet .theme-presets {
+          position: static;
+          opacity: 1;
+          pointer-events: auto;
+          transform: none;
+          display: flex;
+          flex-direction: row;
+          flex-wrap: wrap;
+          gap: 0.4rem;
+          margin-top: 0.5rem;
+          background: none;
+          border: 0;
+          box-shadow: none;
+          padding: 0;
+        }
+
+        #m-sheet .preset-pill {
+          flex: 1 1 auto;
+          min-height: 40px;
+          white-space: nowrap;
+        }
+
+        #m-sheet .footer-icons {
+          display: grid;
+          grid-template-columns: repeat(5, 1fr);
+          gap: 0.5rem 0.25rem;
+          width: 100%;
+        }
+
+        #m-sheet .icon-stack {
+          position: relative;
+          width: 100%;
+        }
+
+        #m-sheet .icon-stack .sq-btn {
+          width: 100% !important;
+          height: 48px !important;
+          border-radius: var(--radius-md);
+        }
+
+        #m-sheet .icon-stack .sq-btn svg {
+          width: 20px !important;
+          height: 20px !important;
+        }
+
+        /* ---- Timer pane -------------------------------------------------
+           The timer is the hero of this screen, so it gets a viewport-relative
+           size instead of the desktop's 9.5vw (which collapses to its 3.8rem
+           floor on a phone and reads as a caption). ----------------------- */
+        :root {
+          --timer-size: clamp(3.6rem, 17vw, 5.6rem);
+          --break-timer-size: clamp(2.5rem, 12vw, 4rem);
+        }
+
+        /* The three groups (work timer, progress, break timer) must read as one
+           block, so they stay tightly grouped and the block is centred as a unit.
+           space-evenly was tried and rejected: it strands the progress rail alone
+           in the middle of the pane. */
+        body[data-mpane="timer"] .timers-wrapper {
+          flex: 1;
+          justify-content: center;
+          gap: 1.35rem;
+          margin: 0;
+        }
+
+        .timer-group .label-xs {
+          margin-bottom: 0.15rem;
+        }
+
+        /* Action dock. grid-auto-flow lets the visible buttons divide the row
+           evenly: one full-width "Work" before a session starts, then two
+           half-width buttons once Break/Log appear. The desktop's fixed
+           1fr 1fr is deliberately left alone. */
+        .actions {
+          --button-height: 3.4rem;
+          grid-template-columns: none;
+          grid-auto-flow: column;
+          grid-auto-columns: 1fr;
+          gap: 0.6rem;
+          padding: 0.75rem 0 0.25rem;
+          flex: none;
+        }
+
+        .actions button {
+          min-height: 52px;
+          font-size: 1rem;
+          touch-action: manipulation;
+          -webkit-tap-highlight-color: transparent;
+        }
+
+        /* ---- Logbook & Tasks panes ---------------------------------------
+           The row pitch is deliberately NOT changed on phones: 4.7rem at the
+           14px root is ~66px, already a comfortable touch row, and leaving it
+           alone means the virtual scroller needs no mobile-specific handling. */
+
+        .tab-content,
+        #task-log-scroll-viewport {
+          /* Stops the list from chaining its scroll into the page, which is what
+             triggers pull-to-refresh and the rubber-band bounce behind the shell. */
+          overscroll-behavior: contain;
+          -webkit-overflow-scrolling: touch;
+        }
+
+        /* Row action buttons: grow the tap target with padding and a negative
+           margin so the hit area reaches ~40px WITHOUT changing row height --
+           the virtual scroller assumes a fixed row box. */
+        .log-row .icon-actions,
+        #task-log-container .icon-actions {
+          gap: 2px;
+        }
+
+        .log-row .icon-actions .icon-btn,
+        #task-log-container .icon-actions .icon-btn {
+          min-width: 38px;
+          min-height: 34px;
+          padding: 6px 8px;
+          touch-action: manipulation;
+          -webkit-tap-highlight-color: transparent;
+        }
+
+        /* Long-press on a row should not raise the iOS text-selection callout. */
+        .log-row,
+        #task-log-container > * {
+          -webkit-touch-callout: none;
+          touch-action: manipulation;
+        }
+
+        /* Filter chips become a horizontally swipeable strip instead of wrapping
+           into a tall block that eats the list. */
+        #filter-chips-container,
+        #task-filter-chips-container {
+          display: flex;
+          flex-wrap: nowrap;
+          overflow-x: auto;
+          overflow-y: hidden;
+          scrollbar-width: none;
+          -webkit-overflow-scrolling: touch;
+          overscroll-behavior-x: contain;
+          scroll-snap-type: x proximity;
+        }
+
+        #filter-chips-container::-webkit-scrollbar,
+        #task-filter-chips-container::-webkit-scrollbar {
+          display: none;
+        }
+
+        #filter-chips-container > *,
+        #task-filter-chips-container > * {
+          flex: none;
+          scroll-snap-align: start;
+        }
+
+        /* The sticky toolbar must sit above rows but below the fixed top bar. */
+        .logbook-sticky-toolbar {
+          z-index: var(--z-dropdown);
+        }
+
+        /* Anchored popovers inside the sheet centre on the viewport and stay
+           on-screen. This only resolves against the viewport because the
+           `body.m-sheet-open:has(.idle-popup.show) #m-sheet` rule below drops
+           the sheet's transform to `none` while one is open; with the transform
+           in place the sheet is the containing block and #m-sheet-body's
+           overflow clips the popover. The two rules are a pair -- do not remove
+           one without the other.
+
+           Escaping the containing block does NOT escape the stacking context:
+           #m-sheet is position: fixed with an explicit z-index, so it stays one
+           even with transform: none, and the popover still paints inside the
+           sheet's 998 band -- below the modal overlay at 1000, which is what we
+           want. The value here just orders the popover above the sheet's own
+           content; it is defensive, not load-bearing. */
+        #m-sheet .idle-popup {
+          position: fixed;
+          left: var(--m-gutter);
+          right: var(--m-gutter);
+          bottom: auto;
+          top: 50%;
+          width: auto;
+          max-width: none;
+          transform: translateY(-50%);
+          z-index: calc(var(--z-overlay) - 1);
+          max-height: 70svh;
+          overflow-y: auto;
+          overscroll-behavior: contain;
+        }
+
+        /* ---- Content panes ---------------------------------------------- */
+        .sidebar {
+          position: fixed;
+          top: calc(var(--m-topbar-h) + var(--m-safe-top));
+          left: 0;
+          right: 0;
+          bottom: calc(var(--m-tabbar-h) + var(--m-safe-bottom));
+          height: auto;
+          border-left: 0;
+          padding: 0.75rem var(--m-gutter) 0;
+          box-sizing: border-box;
+        }
+
+        body[data-mpane="timer"] .sidebar {
+          display: none;
+        }
+
+        /* The desktop segmented control and the footer tool strip are both
+           replaced by shell chrome (#m-tabbar and #m-sheet respectively). */
+        .tab-nav,
+        .sidebar-footer {
+          display: none !important;
+        }
+
+        /* ---- Bottom tab bar --------------------------------------------- */
+        #m-tabbar {
+          display: flex;
+          position: fixed;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          z-index: var(--z-sticky);
+          height: calc(var(--m-tabbar-h) + var(--m-safe-bottom));
+          padding: 0 var(--m-safe-right) var(--m-safe-bottom) var(--m-safe-left);
+          background: var(--panel-bg);
+          border-top: 1px solid var(--border-main);
+          box-sizing: border-box;
+        }
+
+        .m-tab {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 2px;
+          padding: 0;
+          border: 0;
+          border-radius: 0;
+          background: none;
+          color: var(--text-muted);
+          font-size: 0.62rem;
+          font-weight: 500;
+          letter-spacing: 0.01em;
+          -webkit-tap-highlight-color: transparent;
+          touch-action: manipulation;
+        }
+
+        .m-tab svg {
+          width: 22px;
+          height: 22px;
+          stroke-width: 1.7;
+          stroke-linecap: round;
+          stroke-linejoin: round;
+        }
+
+        .m-tab[aria-selected="true"] {
+          color: var(--accent-blue);
+        }
+
+        .m-tab:active {
+          opacity: 0.55;
+        }
+
+        /* ---- Settings & tools sheet --------------------------------------
+           Stacking order, lowest first: backdrop (997) < sheet (998) <
+           in-sheet popover (999) < .modal-overlay (--z-overlay, 1000).
+
+           The sheet MUST sit below the modal band. .modal-overlay is 1000 and
+           #m-sheet-backdrop appears later in the document, so at an equal
+           z-index the backdrop wins the tie and its scrim -- which is
+           pointer-events: auto while open -- covers and swallows taps on any
+           dialog. That is unreachable for tool buttons, which close the sheet
+           on click, but NOT for dialogs the app raises by itself: the idle lock
+           (handleWakeUpRecovery) and the tab-conflict modal (checkLeaseState).
+           Everything here still clears the fixed chrome at --z-sticky (600). */
+        #m-sheet-backdrop {
+          display: block;
+          position: fixed;
+          inset: 0;
+          z-index: calc(var(--z-overlay) - 3);
+          background: rgba(0, 0, 0, 0.4);
+          opacity: 0;
+          pointer-events: none;
+          transition: opacity 0.24s ease;
+        }
+
+        body.m-sheet-open #m-sheet-backdrop {
+          opacity: 1;
+          pointer-events: auto;
+        }
+
+        #m-sheet {
+          display: flex;
+          flex-direction: column;
+          position: fixed;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          z-index: calc(var(--z-overlay) - 2);
+          max-height: 85svh;
+          background: var(--modal-bg, var(--panel-bg));
+          border-top: 1px solid var(--border-main);
+          border-radius: 18px 18px 0 0;
+          box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.24);
+          transform: translateY(101%);
+          /* visibility (not display) is what takes the closed sheet out of the
+             accessibility tree and the tab order. display would kill the slide;
+             visibility can be transitioned, so it flips to hidden only after the
+             0.28s slide-out has finished, and back to visible instantly on open.
+             Without this the sheet is permanently present as an open
+             aria-modal="true" dialog, which tells screen readers to ignore the
+             rest of the page, and leaves its controls tabbable off-screen. */
+          visibility: hidden;
+          transition:
+            transform 0.28s cubic-bezier(0.32, 0.72, 0, 1),
+            visibility 0s linear 0.28s;
+          padding-bottom: var(--m-safe-bottom);
+          box-sizing: border-box;
+        }
+
+        body.m-sheet-open #m-sheet {
+          transform: translateY(0);
+          visibility: visible;
+          transition:
+            transform 0.28s cubic-bezier(0.32, 0.72, 0, 1),
+            visibility 0s linear 0s;
+        }
+
+        /* A transform of translateY(0) is a zero-pixel move, but it is still a
+           transform, and ANY transform other than the keyword `none` makes the
+           element a containing block for its position: fixed descendants and a
+           stacking context. That is what anchors #m-sheet .idle-popup to the
+           sheet instead of the viewport and lets #m-sheet-body's overflow-y clip
+           it. Dropping to `none` while a popover is showing is visually
+           identical -- the sheet is parked, nothing is animating -- and the
+           slide itself is untouched, because no popover can be open during it.
+
+           transition: none is load-bearing. An in-flight transition still
+           computes to a matrix, so without it the swap would spend 280ms
+           interpolating identity->identity with the containing block still
+           alive, and the popover would sit wrong and then snap. */
+        body.m-sheet-open:has(#m-sheet .idle-popup.show) #m-sheet {
+          transform: none;
+          transition: none;
+        }
+
+        #m-sheet-head {
+          position: relative;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 0.5rem;
+          padding: 1.15rem var(--m-gutter) 0.6rem;
+          flex: none;
+        }
+
+        #m-sheet-head h2 {
+          margin: 0;
+          font-size: 0.95rem;
+          font-weight: 600;
+          color: var(--text-main);
+        }
+
+        .m-sheet-grabber {
+          position: absolute;
+          top: 0.5rem;
+          left: 50%;
+          transform: translateX(-50%);
+          width: 36px;
+          height: 4px;
+          border-radius: 2px;
+          background: var(--border-main);
+        }
+
+        #m-sheet-close {
+          width: 32px;
+          height: 32px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex: none;
+        }
+
+        #m-sheet-close svg {
+          width: 18px;
+          height: 18px;
+          stroke-width: 2;
+          stroke-linecap: round;
+        }
+
+        #m-sheet-body {
+          overflow-y: auto;
+          overscroll-behavior: contain;
+          padding: 0 var(--m-gutter) 1.25rem;
+          display: flex;
+          flex-direction: column;
+          gap: 0.9rem;
+        }
+
+        .m-sheet-slot:empty {
+          display: none;
+        }
+
+        /* ---- Touch & input semantics --------------------------------------
+           iOS Safari auto-zooms the page whenever a focused form control
+           computes below 16px, and then leaves the viewport scaled. Every
+           control in this app inherits --text-sm (~11.5px at the 14px root), so
+           all 71 of them would trigger it. !important is deliberate: several
+           controls carry inline font sizes, and a zoom-on-focus is far worse
+           than the type being a step larger. */
+        input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]),
+        select,
+        textarea {
+          font-size: 16px !important;
+        }
+
+        /* Comfortable, thumb-sized controls. */
+        .input-standard,
+        select.input-standard,
+        textarea.input-standard {
+          min-height: 44px;
+          padding: var(--space-3);
+        }
+
+        textarea.input-standard {
+          min-height: 88px;
+        }
+
+        .preset-pill {
+          min-height: 40px;
+        }
+
+        /* No grey flash, no double-tap zoom, no long-press callout on chrome. */
+        button,
+        .preset-pill,
+        .tab-btn,
+        .icon-btn,
+        .sq-btn,
+        [onclick],
+        [role="button"] {
+          -webkit-tap-highlight-color: transparent;
+          touch-action: manipulation;
+          -webkit-touch-callout: none;
+        }
+
+        /* Native-feeling press feedback, since :hover means nothing here. */
+        button:active:not(:disabled),
+        .preset-pill:active,
+        .icon-btn:active,
+        .sq-btn:active {
+          transform: scale(0.97);
+        }
+
+        /* Text content stays selectable; app chrome does not. */
+        .status-bar,
+        #m-tabbar,
+        #m-sheet-head,
+        .tab-nav,
+        .label-xs {
+          -webkit-user-select: none;
+          user-select: none;
+        }
+
+        /* ---- Modals become bottom sheets ---------------------------------
+           All 17 overlays are opened by setting an inline display, so CSS can
+           only restyle them -- never re-show them. That is fine: only
+           align-items / padding / geometry change here. The slide-up is a CSS
+           animation rather than a transition precisely because animations
+           replay whenever an element goes from display:none to displayed, so
+           no JS hook into the open path is needed. ---------------------- */
+        .modal-overlay {
+          align-items: flex-end;
+          padding: 0;
+          overscroll-behavior: contain;
+        }
+
+        .modal-container {
+          width: 100%;
+          max-width: none !important;
+          border-radius: 20px 20px 0 0;
+          border-left: 0;
+          border-right: 0;
+          border-bottom: 0;
+          padding-bottom: calc(var(--space-5) + var(--m-safe-bottom));
+          max-height: 88svh;
+          overflow-y: auto;
+          overscroll-behavior: contain;
+          -webkit-overflow-scrolling: touch;
+          animation: m-sheet-rise 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+          /* Lifted by the soft keyboard; MobileShell keeps --m-kb-inset current. */
+          margin-bottom: var(--m-kb-inset, 0px);
+        }
+
+        @keyframes m-sheet-rise {
+          from {
+            transform: translateY(100%);
+          }
+          to {
+            transform: translateY(0);
+          }
+        }
+
+        /* The two oversized modals (help, consistency heatmap) go full-screen
+           instead, which is what a native app does with a dense detail view. */
+        .modal-width-lg {
+          width: 100%;
+          height: 100svh;
+          max-height: none;
+          border-radius: 0;
+          padding-top: calc(var(--space-5) + var(--m-safe-top));
+        }
+
+        /* Form rows stack: side-by-side fields are unusable at this width. */
+        .modal-container .form-row {
+          flex-direction: column;
+          gap: var(--space-3);
+        }
+
+        .modal-container .form-row > * {
+          width: 100%;
+        }
+
+        /* Full-width, thumb-sized action buttons. */
+        .modal-container .action-row {
+          flex-direction: column-reverse;
+          gap: 0.5rem;
+        }
+
+        .modal-container .action-row > button {
+          width: 100%;
+          min-height: 48px;
+          font-size: 0.95rem;
+        }
+
+        .help-tab-nav {
+          scroll-snap-type: x proximity;
+        }
+
+        .help-tab-nav > button {
+          flex: none;
+          scroll-snap-align: start;
+          padding-left: 0.9rem;
+          padding-right: 0.9rem;
+        }
+
+        /* The heatmap already ships an inline overflow-x:auto wrapper around its
+           52-week grid and auto-scrolls to today, so it only needs touch polish:
+           keep its horizontal swipe from chaining out to the sheet behind it. */
+        #heatmap-container-anim div[style*="overflow-x"] {
+          overscroll-behavior-x: contain;
+          -webkit-overflow-scrolling: touch;
+        }
+
+        /* Its own open animation is driven by an inline transform, so it must not
+           also receive the generic sheet rise -- the two would fight. */
+        #heatmap-container-anim {
+          animation: none;
+        }
+      }
+
+      /* =========================================================================
+          TABLET (768-1149px)
+          -------------------------------------------------------------------------
+          Keeps the two-pane console, which is what a native iPad app does, but at
+          a tighter density. iPad Split View and Slide Over report genuinely narrow
+          widths and fall through to the phone shell, because every breakpoint here
+          keys off width and never off the user agent.
+
+          The upper bound is 1149 rather than 1023 on measured evidence: the
+          original desktop grid does not actually fit its own content until
+          ~1150px. Swept against the unmodified baseline, widths 1024-1120 render
+          25 (at 1024) to 4 (at 1120) elements past the viewport edge with the
+          sidebar crushed to 165px. That band contains iPad Pro 12.9" portrait
+          (1024x1366), so it has to be handled. Every iPad landscape size
+          (1180, 1194, 1366) is >=1150 and keeps the untouched desktop layout.
+          ========================================================================= */
+      @media (min-width: 768px) and (max-width: 1149px) {
+        :root {
+          --panel-columns: 1fr 1fr;
+          --panel-gap: 1.25rem;
+        }
+
+        body {
+          padding: 0;
+        }
+
+        .console-panel {
+          width: 100%;
+          max-width: none;
+          height: 100vh;
+          height: 100svh;
+          padding: 1.25rem;
+          padding-top: max(1.25rem, env(safe-area-inset-top));
+          padding-bottom: max(1.25rem, env(safe-area-inset-bottom));
+          border: 0;
+          border-radius: 0;
+        }
+
+        /* Grid items default to min-width: auto, so the status bar's nowrap
+           min-content width was blowing out the first column and squeezing the
+           sidebar down to ~29px. This is the fix for that. */
+        .main-ui,
+        .sidebar {
+          min-width: 0;
+        }
+
+        .sidebar {
+          padding-left: 1.25rem;
+        }
+
+        /* The bar has to be allowed to reflow at this width. */
+        .status-bar {
+          flex-wrap: wrap;
+          gap: 0.5rem 0.75rem;
+          margin-bottom: 1rem;
+        }
+
+        .status-bar .clock-divider,
+        .status-bar .tz-static-label,
+        .status-bar #bst-clock {
+          display: none;
+        }
+
+        /* The 1600px rule forces these to 32px, which is under the touch
+           minimum on a device that has no cursor. */
+        .sidebar-footer .sq-btn {
+          width: 40px !important;
+          height: 40px !important;
+        }
+
+        .sidebar-footer .sq-btn svg {
+          width: 20px !important;
+          height: 20px !important;
+        }
+
+        /* Ten 40px buttons plus gaps need ~436px; the pane is ~358px at the
+           768px end of this range, so the strip wraps to two rows instead of
+           spilling past the edge. */
+        .footer-icons {
+          flex-wrap: wrap;
+          justify-content: center;
+          gap: 0.35rem 0.25rem !important;
+        }
+
+        .sidebar-footer {
+          padding-bottom: 0.5rem;
+        }
+
+        /* Touch affordances still apply here -- there is no cursor on an iPad. */
+        input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]),
+        select,
+        textarea {
+          font-size: 16px !important;
+        }
+
+        button,
+        .preset-pill,
+        .tab-btn,
+        .icon-btn,
+        .sq-btn {
+          -webkit-tap-highlight-color: transparent;
+          touch-action: manipulation;
+        }
+
+        .tab-content,
+        #task-log-scroll-viewport {
+          overscroll-behavior: contain;
+          -webkit-overflow-scrolling: touch;
+        }
+
+        .modal-container {
+          max-height: 88svh;
+          overflow-y: auto;
+          overscroll-behavior: contain;
+        }
+
+        /* These popovers are centred on their trigger with translateX(-50%).
+           Near the left edge of a narrow tablet that pushes them off-screen, so
+           anchor them to the trigger's leading edge instead. */
+        .goal-presets,
+        .tz-presets,
+        .theme-presets {
+          left: 0;
+          transform: none;
+          max-width: calc(100vw - 2.5rem);
+          flex-wrap: wrap;
+        }
+
+        .goal-container:hover .goal-presets,
+        .goal-container:focus-within .goal-presets,
+        .tz-container:hover .tz-presets,
+        .tz-container:focus-within .tz-presets,
+        .theme-container:hover .theme-presets,
+        .theme-container:focus-within .theme-presets {
+          transform: none;
+        }
+      }
+
+      /* Users who ask for reduced motion get no sheet animations at all. */
+      @media (max-width: 767px) and (prefers-reduced-motion: reduce) {
+        .modal-container {
+          animation: none;
+        }
+
+        /* body.m-sheet-open #m-sheet is (1,1,1) and now carries its own
+           transition, so a bare #m-sheet (1,0,0) here would no longer beat it.
+           Both states have to be named. visibility still resolves correctly:
+           with no transition it simply flips instantly in each direction. */
+        #m-sheet,
+        body.m-sheet-open #m-sheet {
+          transition: none;
+        }
+
+        #m-sheet-backdrop {
+          transition: none;
         }
       }
     </style>
@@ -7970,6 +8965,23 @@
               </div>
             </div>
           </div>
+
+          <!-- Mobile-only overflow entry point. display:none above the phone
+               breakpoint, so it never appears in or affects the desktop bar. -->
+          <button
+            id="m-more-btn"
+            type="button"
+            class="icon-btn"
+            aria-label="Settings and tools"
+            aria-haspopup="dialog"
+            aria-expanded="false"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <circle cx="5" cy="12" r="1.6"></circle>
+              <circle cx="12" cy="12" r="1.6"></circle>
+              <circle cx="19" cy="12" r="1.6"></circle>
+            </svg>
+          </button>
         </div>
 
         <!-- Live Counters Visualization Section -->
@@ -10085,6 +11097,113 @@
       </div>
     </div>
 
+    <!-- =====================================================================
+         MOBILE APP SHELL
+         Inert on desktop: every element below is display:none until the
+         (max-width: 767px) breakpoint matches, and MobileShell.active gates
+         all of its JS. Nothing here participates in desktop layout.
+         ===================================================================== -->
+    <nav id="m-tabbar" aria-label="Primary">
+      <button
+        class="m-tab"
+        data-pane="timer"
+        type="button"
+        aria-label="Timer"
+        aria-selected="true"
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <circle cx="12" cy="12" r="9"></circle>
+          <polyline points="12 7 12 12 15.5 14"></polyline>
+        </svg>
+        <span>Timer</span>
+      </button>
+      <button
+        class="m-tab"
+        data-pane="insights"
+        type="button"
+        aria-label="Insights"
+        aria-selected="false"
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <path d="M4 19V10"></path>
+          <path d="M10 19V5"></path>
+          <path d="M16 19v-6"></path>
+          <path d="M21 19H3"></path>
+        </svg>
+        <span>Insights</span>
+      </button>
+      <button
+        class="m-tab"
+        data-pane="logbook"
+        type="button"
+        aria-label="Logbook"
+        aria-selected="false"
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3z"></path>
+          <path d="M5 17h14"></path>
+          <path d="M9 8h6"></path>
+        </svg>
+        <span>Logbook</span>
+      </button>
+      <button
+        class="m-tab"
+        data-pane="tasks"
+        type="button"
+        aria-label="Tasks"
+        aria-selected="false"
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <polyline points="4 12 7.5 15.5 13 8.5"></polyline>
+          <path d="M4 19h16"></path>
+          <path d="M16 5h4"></path>
+        </svg>
+        <span>Tasks</span>
+      </button>
+    </nav>
+
+    <div id="m-sheet-backdrop"></div>
+    <section
+      id="m-sheet"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Settings and tools"
+    >
+      <header id="m-sheet-head">
+        <span class="m-sheet-grabber" aria-hidden="true"></span>
+        <h2>Settings &amp; Tools</h2>
+        <button
+          id="m-sheet-close"
+          type="button"
+          aria-label="Close"
+          class="icon-btn"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </header>
+      <div id="m-sheet-body">
+        <!-- Live nodes (goal / timezone / theme / tool icons) are relocated
+             here by MobileShell.mount() and returned to their original parents
+             by unmount(). They are never cloned, so element identity, the DOM
+             cache and every inline handler stay intact. -->
+        <div
+          class="m-sheet-slot"
+          data-slot="goal"
+          data-label="Daily goal"
+        ></div>
+        <div class="m-sheet-slot" data-slot="tz" data-label="Time zone"></div>
+        <div
+          class="m-sheet-slot"
+          data-slot="theme"
+          data-label="Appearance"
+        ></div>
+        <div class="m-sheet-slot" data-slot="tools" data-label="Tools"></div>
+      </div>
+    </section>
+
     <script>
       // =========================================================================
       // UTILITY FUNCTIONS (INLINED)
@@ -10976,6 +12095,10 @@
       let cachedBaseFontSize = parseFloat(
         getComputedStyle(document.documentElement).fontSize,
       );
+      // Resolved pixel value of --log-row-pitch. Recomputed by
+      // refreshLayoutMetricsCache() on resize/orientation change; getDynamicItemHeight()
+      // reads it on every scroll frame, so it must never trigger a style recalc itself.
+      let cachedLogRowPitch = 0;
       // Added a layout cache to avoid clientHeight calls on scrolls
       let cachedViewportHeight = 0;
       let isDatabaseHealthy = true;
@@ -15095,7 +16218,52 @@
 
       let globalTooltipTimeout = null;
 
+      /**
+       * True only on devices with a real hovering pointer. Touch browsers emit a
+       * synthetic mouseover on tap, which would latch the custom tooltip open on
+       * top of the content with no matching mouseout to clear it.
+       *
+       * Read live rather than captured once: an iPad gains a hovering pointer the
+       * moment a trackpad keyboard is attached, and loses it again on detach.
+       */
+      let canHoverPointer = true;
+      (function trackHoverCapability() {
+        if (typeof window.matchMedia !== "function") return;
+        const mq = window.matchMedia("(hover: hover) and (pointer: fine)");
+        const apply = (matches) => {
+          canHoverPointer = matches;
+          if (matches) return;
+
+          // Losing the pointer has to run the same teardown mouseout does,
+          // because mouseout is gated on this flag and can no longer run it.
+          // Dropping only the class leaves three things stale:
+          //   1. a pending 150ms globalTooltipTimeout, whose callback re-adds
+          //      .visible -- with nothing left able to remove it, the tooltip
+          //      is stuck at z-index 9999 for the rest of the session;
+          //   2. the inline sizing applyTooltipStyles wrote;
+          //   3. isHoveringTodayHeatmap, which keeps the per-tick block in
+          //      renderTimersOnly writing into a tooltip nobody can see.
+          if (globalTooltipTimeout) {
+            clearTimeout(globalTooltipTimeout);
+            globalTooltipTimeout = null;
+          }
+          window.isHoveringTodayHeatmap = false;
+          if (DOM.appTooltip) {
+            DOM.appTooltip.classList.remove("visible");
+            resetTooltipStyles(DOM.appTooltip);
+          }
+          if (typeof hideHeatmapTooltip === "function") hideHeatmapTooltip();
+        };
+        apply(mq.matches);
+        if (typeof mq.addEventListener === "function") {
+          mq.addEventListener("change", (e) => apply(e.matches));
+        } else if (typeof mq.addListener === "function") {
+          mq.addListener((e) => apply(e.matches));
+        }
+      })();
+
       document.addEventListener("mouseover", (e) => {
+        if (!canHoverPointer) return;
         if (isHelperTooltipActive()) return;
         const tooltip = DOM.appTooltip;
         if (!tooltip) return;
@@ -15191,6 +16359,7 @@
       });
 
       document.addEventListener("mouseout", (e) => {
+        if (!canHoverPointer) return;
         if (isHelperTooltipActive()) return;
         const tooltip = DOM.appTooltip;
         if (!tooltip) return;
@@ -16076,50 +17245,105 @@
        * to prevent misalignment during browser zoom.
        */
       function getDynamicItemHeight() {
-        return 4.7 * (cachedBaseFontSize || 16);
+        // Falls back to the historical 4.7rem constant if the custom property is
+        // missing or unparseable, so a bad value can never collapse the scroller.
+        return cachedLogRowPitch > 0
+          ? cachedLogRowPitch
+          : 4.7 * (cachedBaseFontSize || 16);
       }
 
+      /**
+       * Re-reads every layout value the virtual scrollers depend on. Called from the
+       * debounced resize path and from orientation/visualViewport changes on mobile,
+       * where the breakpoint can swap --log-row-pitch out from under the scroller.
+       */
+      function refreshLayoutMetricsCache() {
+        cachedBaseFontSize = parseFloat(
+          getComputedStyle(document.documentElement).fontSize,
+        );
+
+        const pitchRaw = getComputedStyle(
+          document.documentElement,
+        ).getPropertyValue("--log-row-pitch");
+        const pitchPx = parseFloat(pitchRaw);
+        if (Number.isFinite(pitchPx) && pitchPx > 0) {
+          // The token is authored in rem, so resolve it against the live root size.
+          cachedLogRowPitch = pitchRaw.trim().endsWith("rem")
+            ? pitchPx * (cachedBaseFontSize || 16)
+            : pitchPx;
+        } else {
+          cachedLogRowPitch = 0;
+        }
+      }
+
+      // Seed the cache immediately so the first render uses the real token value.
+      refreshLayoutMetricsCache();
+
+      /**
+       * Shared re-measure + re-render for the logbook and task virtual scrollers.
+       * Safe to call at any time; it no-ops when the lists are empty.
+       */
+      function remeasureVirtualScrollers() {
+        const logbookTab = DOM.tabLogbook;
+        if (logbookTab) {
+          cachedViewportHeight = logbookTab.clientHeight;
+        }
+        if (DOM.taskLogScrollViewport) {
+          cachedTaskViewportHeight = DOM.taskLogScrollViewport.clientHeight;
+        }
+
+        refreshLayoutMetricsCache();
+
+        // Recalculate total container height and clear render key to force update
+        const itemHeight = getDynamicItemHeight();
+        if (virtualScrollLogs.length > 0) {
+          DOM.logContainer.style.height = `${Math.ceil(virtualScrollLogs.length * itemHeight)}px`;
+          lastVirtualStart = -1;
+          renderVirtualVisibleItems();
+        }
+
+        const taskItemHeight =
+          typeof getTaskItemHeight === "function" ? getTaskItemHeight() : 0;
+        if (
+          taskItemHeight > 0 &&
+          typeof virtualScrollTasks !== "undefined" &&
+          virtualScrollTasks.length > 0 &&
+          DOM.taskLogContainer
+        ) {
+          DOM.taskLogContainer.style.height = `${Math.ceil(virtualScrollTasks.length * taskItemHeight)}px`;
+          if (typeof lastTaskVirtualStart !== "undefined")
+            lastTaskVirtualStart = -1;
+          if (typeof renderVirtualTaskItems === "function")
+            renderVirtualTaskItems();
+        }
+      }
+
+      const debouncedRemeasureVirtualScrollers = debounce(
+        remeasureVirtualScrollers,
+        150,
+      );
+
+      window.addEventListener("resize", debouncedRemeasureVirtualScrollers, {
+        passive: true,
+      });
+
+      // Orientation changes do not always emit a usable "resize" on iOS, and the
+      // breakpoint swap can change --log-row-pitch, so re-measure explicitly.
       window.addEventListener(
-        "resize",
-        debounce(() => {
-          const logbookTab = DOM.tabLogbook;
-          if (logbookTab) {
-            cachedViewportHeight = logbookTab.clientHeight;
-          }
-          if (DOM.taskLogScrollViewport) {
-            cachedTaskViewportHeight = DOM.taskLogScrollViewport.clientHeight;
-          }
-
-          // Refresh cached base font size on resize to support zoom events cleanly
-          cachedBaseFontSize = parseFloat(
-            getComputedStyle(document.documentElement).fontSize,
-          );
-
-          // Recalculate total container height and clear render key to force update
-          const itemHeight = getDynamicItemHeight();
-          if (virtualScrollLogs.length > 0) {
-            DOM.logContainer.style.height = `${Math.ceil(virtualScrollLogs.length * itemHeight)}px`;
-            lastVirtualStart = -1;
-            renderVirtualVisibleItems();
-          }
-
-          const taskItemHeight =
-            typeof getTaskItemHeight === "function" ? getTaskItemHeight() : 0;
-          if (
-            taskItemHeight > 0 &&
-            typeof virtualScrollTasks !== "undefined" &&
-            virtualScrollTasks.length > 0 &&
-            DOM.taskLogContainer
-          ) {
-            DOM.taskLogContainer.style.height = `${Math.ceil(virtualScrollTasks.length * taskItemHeight)}px`;
-            if (typeof lastTaskVirtualStart !== "undefined")
-              lastTaskVirtualStart = -1;
-            if (typeof renderVirtualTaskItems === "function")
-              renderVirtualTaskItems();
-          }
-        }, 150),
+        "orientationchange",
+        debouncedRemeasureVirtualScrollers,
         { passive: true },
       );
+
+      // The visual viewport shrinks when the soft keyboard opens. Re-measuring keeps
+      // the scroller's viewport height honest instead of overscanning behind the keyboard.
+      if (window.visualViewport) {
+        window.visualViewport.addEventListener(
+          "resize",
+          debouncedRemeasureVirtualScrollers,
+          { passive: true },
+        );
+      }
 
       // High-performance passive animation frame throttle for scroll calculations
       let scrollAnimationFrameActive = false;
@@ -19908,26 +21132,40 @@
           "Are you sure you want to permanently delete ALL logs and settings? This is irreversible.",
           () => {
             if (window.dirtyChunks) window.dirtyChunks.add("ALL");
+
+            localStorage.removeItem(STATE_KEY);
+            localStorage.removeItem(GOAL_H_KEY);
+            localStorage.removeItem(GOAL_M_KEY);
+            localStorage.removeItem(GOAL_S_KEY);
+            localStorage.removeItem(PRESET_VALUES_KEY);
+            localStorage.removeItem(LEAVE_DATES_KEY);
+            localStorage.removeItem(VIEWS_KEY); // Clears saved custom filter views
+            localStorage.removeItem(FILTERS_PREF_KEY); // Clears active filters preferences
+            localStorage.removeItem(TASK_STATE_KEY);
+            localStorage.removeItem(TASK_LOGS_KEY);
+            localStorage.removeItem(THEME_KEY);
+            localStorage.removeItem(TZ_KEY);
+
+            _leaveDatesRaw = null;
+            _leaveDatesParsed = [];
+            _leaveDatesSet = null;
+            filterCache = null;
+            filterCacheKey = null;
+            cachedTaskLogs = [];
+            _cachedIdleThresholdMs = 3600000;
+
             saveLogs([]).then(() => {
-              localStorage.removeItem(STATE_KEY);
-              localStorage.removeItem(GOAL_H_KEY);
-              localStorage.removeItem(GOAL_M_KEY);
-              localStorage.removeItem(GOAL_S_KEY);
-              localStorage.removeItem(PRESET_VALUES_KEY);
-              localStorage.removeItem(LEAVE_DATES_KEY);
-              localStorage.removeItem(VIEWS_KEY); // Clears saved custom filter views
-              localStorage.removeItem(FILTERS_PREF_KEY); // Clears active filters preferences
-
-              cachedTaskLogs = [];
               resetTaskUI();
-
-              localStorage.removeItem(TASK_STATE_KEY);
-              localStorage.removeItem(TASK_LOGS_KEY);
+              clearFilters();
+              clearTaskFilters();
+              loadSavedFilterViews();
+              renderPresets();
+              setThemeDirect("sf-light");
+              selectPresetTZ("America/Los_Angeles");
+              resetSession(true);
+              syncSettingsUI();
 
               if (typeof renderTaskLogbook === "function") renderTaskLogbook();
-
-              _cachedIdleThresholdMs = 3600000;
-              resetSession(true);
               showAppToast("All data wiped");
             });
           },
@@ -20463,6 +21701,56 @@
         handleWakeUpRecovery();
       });
 
+      /**
+       * Back/forward cache restore.
+       *
+       * Mobile Safari aggressively freezes and then restores backgrounded tabs
+       * through the bfcache. On restore the page resumes with its old JS heap
+       * intact but an arbitrary amount of wall-clock time elapsed, and the
+       * pagehide handler above has already released this instance's lease.
+       * visibilitychange is not guaranteed to fire for a bfcache restore, so
+       * without this the app can come back holding stale timers and no lease.
+       *
+       * Elapsed time itself is safe -- every duration is derived from stored
+       * timestamps rather than accumulated per tick -- but the rendered values
+       * and the lease both need to be re-established.
+       */
+      window.addEventListener("pageshow", (event) => {
+        if (!event.persisted) return;
+        try {
+          renewLease();
+        } catch (e) {
+          /* lease renewal is best-effort; checkLeaseState below also runs */
+        }
+        handleWakeUpRecovery();
+        if (typeof remeasureVirtualScrollers === "function") {
+          remeasureVirtualScrollers();
+        }
+      });
+
+      /**
+       * Ask for durable storage.
+       *
+       * Without this, iOS Safari evicts IndexedDB and localStorage for
+       * non-installed sites after roughly seven days of inactivity, which for
+       * this app means silent, total loss of the logbook. Granting is at the
+       * browser's discretion (Chrome grants on engagement, Safari on Add to
+       * Home Screen), so this is a request and not a guarantee -- but not
+       * asking guarantees the eviction.
+       */
+      (async function requestDurableStorage() {
+        try {
+          if (!navigator.storage || !navigator.storage.persist) return;
+          const already = navigator.storage.persisted
+            ? await navigator.storage.persisted()
+            : false;
+          window.storageIsPersisted =
+            already || (await navigator.storage.persist());
+        } catch (e) {
+          window.storageIsPersisted = false;
+        }
+      })();
+
       window.addEventListener("pagehide", () => {
         saveState(true);
         try {
@@ -20528,22 +21816,14 @@
         if (typeof closeHeatmapModal === "function") closeHeatmapModal();
         if (typeof closePresetModal === "function") closePresetModal();
 
-        const settingsPopup = DOM.settingsConfigPopup;
-        if (settingsPopup && settingsPopup.classList.contains("show")) {
-          settingsPopup.classList.remove("show");
-        }
-
-        const adjustPopup = DOM.adjustTimePopup;
-        if (adjustPopup && adjustPopup.classList.contains("show")) {
-          adjustPopup.classList.remove("show");
-          if (adjustPopupAbortController) {
-            adjustPopupAbortController.abort();
-            adjustPopupAbortController = null;
-          }
-          if (DOM.adjustSmartInput) DOM.adjustSmartInput.value = "";
-          const tooltip = document.getElementById("adjust-time-tooltip");
-          if (tooltip) tooltip.classList.remove("visible");
-        }
+        // Both helpers are idempotent, so the previous contains("show") guards
+        // are redundant. Note the settings popup now also aborts its
+        // outside-click listener here, which the inline copy did not do -- that
+        // listener used to survive until the next stray click.
+        if (typeof window.closeSettingsPopup === "function")
+          window.closeSettingsPopup();
+        if (typeof window.closeAdjustPopup === "function")
+          window.closeAdjustPopup();
 
         const panel = DOM.advancedFilters;
         const btn = DOM.filterToggleBtn;
@@ -21113,6 +22393,27 @@
       /** Cleanup ref for the popup's outside-click dismissal listener. */
       let adjustPopupAbortController = null;
 
+      /**
+       * The single definition of "the adjust popup is now closed".
+       *
+       * Four steps, and every one matters. #adjust-time-tooltip in particular is
+       * NOT inside the popup -- it is a top-level floating .app-tooltip sibling
+       * of #app-tooltip -- so hiding the popup does not hide it, and a partial
+       * teardown strands it on screen until the next tick() self-heals it.
+       * Idempotent, so it is safe to call on an already-closed popup.
+       */
+      window.closeAdjustPopup = function () {
+        const popup = DOM.adjustTimePopup;
+        if (popup) popup.classList.remove("show");
+        if (adjustPopupAbortController) {
+          adjustPopupAbortController.abort();
+          adjustPopupAbortController = null;
+        }
+        if (DOM.adjustSmartInput) DOM.adjustSmartInput.value = "";
+        const tooltip = document.getElementById("adjust-time-tooltip");
+        if (tooltip) tooltip.classList.remove("visible");
+      };
+
       /** Selected target for time adjustments ('work' or 'break') */
       let selectedAdjustTarget = "work";
 
@@ -21164,14 +22465,7 @@
         const isShowing = popup.classList.contains("show");
 
         if (isShowing) {
-          popup.classList.remove("show");
-          if (adjustPopupAbortController) {
-            adjustPopupAbortController.abort();
-            adjustPopupAbortController = null;
-          }
-          if (DOM.adjustSmartInput) DOM.adjustSmartInput.value = "";
-          const tooltip = document.getElementById("adjust-time-tooltip");
-          if (tooltip) tooltip.classList.remove("visible");
+          window.closeAdjustPopup();
         } else {
           _syncAdjustPopupContext();
           popup.classList.add("show");
@@ -21190,18 +22484,42 @@
 
           adjustPopupAbortController = new AbortController();
 
+          // Hold the controller in a local. The registration below is deferred,
+          // so re-reading the module-level variable from inside the timer means
+          // reading whatever it happens to be one macrotask later -- and every
+          // close path sets it to null, which makes `null.signal` throw.
+          //
+          // Capturing also gives the right semantics in the reopen case: if this
+          // controller was aborted before the timer fired, addEventListener with
+          // an already-aborted signal is a no-op per spec, so the listener is
+          // simply never registered. Re-reading the variable would instead bind
+          // this stale registration to the NEW controller and double-register.
+          const openController = adjustPopupAbortController;
+
           // Defer one tick so this open-click doesn't immediately close the popup
           setTimeout(() => {
             window.addEventListener(
               "click",
               (event) => {
                 if (!popup.contains(event.target)) {
-                  popup.classList.remove("show");
-                  adjustPopupAbortController.abort();
-                  adjustPopupAbortController = null;
+                  // Full teardown, same as every other close path. This used to
+                  // strip .show and abort inline, which left two things behind:
+                  // the typed value, and #adjust-time-tooltip (a top-level
+                  // floating element, not a child of the popup, so hiding the
+                  // popup does not hide it).
+                  //
+                  // The stale value was the dangerous half. _syncAdjustPopupContext()
+                  // re-points the popup at whichever timer is running when you
+                  // REOPEN it, so a "+15m" typed against work could come back
+                  // aimed at break with the text still sitting in the box, one
+                  // tap away from adjusting the wrong timer.
+                  //
+                  // closeAdjustPopup() aborts this same controller, which is what
+                  // unregisters this listener -- the self-removal is preserved.
+                  window.closeAdjustPopup();
                 }
               },
-              { signal: adjustPopupAbortController.signal },
+              { signal: openController.signal },
             );
           }, 0);
         }
@@ -21463,19 +22781,11 @@
         const wasSuccess = processTimeAdjustment(val);
 
         if (wasSuccess) {
-          // --- Reset inputs ---
-          if (DOM.adjustSmartInput) DOM.adjustSmartInput.value = "";
-          const tooltip = document.getElementById("adjust-time-tooltip");
-          if (tooltip) tooltip.classList.remove("visible");
-
-          // --- Close popup ---
-          if (DOM.adjustTimePopup) {
-            DOM.adjustTimePopup.classList.remove("show");
-          }
-          if (adjustPopupAbortController) {
-            adjustPopupAbortController.abort();
-            adjustPopupAbortController = null;
-          }
+          // Same four steps this used to inline, in a different order. The four
+          // are independent, so routing through the shared helper is equivalent
+          // -- and keeps this from drifting out of sync with the other callers.
+          // processTimeAdjustment() has already read the value by this point.
+          window.closeAdjustPopup();
         }
       };
 
@@ -21484,6 +22794,16 @@
        * =========================================================================*/
       let settingsPopupAbortController = null;
 
+      /** Counterpart to closeAdjustPopup. Idempotent. */
+      window.closeSettingsPopup = function () {
+        const popup = DOM.settingsConfigPopup;
+        if (popup) popup.classList.remove("show");
+        if (settingsPopupAbortController) {
+          settingsPopupAbortController.abort();
+          settingsPopupAbortController = null;
+        }
+      };
+
       window.toggleSettingsPopup = function (e) {
         e.stopPropagation();
         const popup = DOM.settingsConfigPopup;
@@ -21491,11 +22811,7 @@
 
         const isShowing = popup.classList.contains("show");
         if (isShowing) {
-          popup.classList.remove("show");
-          if (settingsPopupAbortController) {
-            settingsPopupAbortController.abort();
-            settingsPopupAbortController = null;
-          }
+          window.closeSettingsPopup();
         } else {
           popup.classList.add("show");
           syncSettingsUI();
@@ -21505,16 +22821,22 @@
           }
 
           settingsPopupAbortController = new AbortController();
+
+          // Registered synchronously, unlike the adjust popup's deferred one, so
+          // the signal read below cannot see a nulled variable. Captured anyway
+          // to keep the two popups reading the same way.
+          const openController = settingsPopupAbortController;
+
           window.addEventListener(
             "click",
             (event) => {
               if (!popup.contains(event.target)) {
-                popup.classList.remove("show");
-                settingsPopupAbortController.abort();
-                settingsPopupAbortController = null;
+                // Was an inline copy of closeSettingsPopup(), identical to it --
+                // no bug, just a second definition that could drift.
+                window.closeSettingsPopup();
               }
             },
-            { signal: settingsPopupAbortController.signal },
+            { signal: openController.signal },
           );
         }
       };
@@ -24675,6 +25997,14 @@
        * Executes switchTab logic.
        */
       function switchTab(target) {
+        // Mobile shell hook. The pane must become visible BEFORE the clientHeight
+        // reads further down, otherwise they measure a display:none box as 0 and
+        // the virtual scroller is seeded with a bogus viewport height.
+        // No-ops entirely on desktop (MobileShell.active is false there).
+        if (window.MobileShell && window.MobileShell.active) {
+          window.MobileShell.syncPane(target);
+        }
+
         document.querySelectorAll(".tab-content").forEach((el) => {
           el.style.display = "none";
         });
@@ -25749,6 +27079,416 @@ logic (.value reads, .value sets, change listeners) works unchanged.
             popup.style.left = Math.max(10, left) + "px";
             popup.classList.add("cdp-open");
           },
+        };
+      })();
+
+      /* =====================================================================
+       * MOBILE APP SHELL
+       * ---------------------------------------------------------------------
+       * Owns the phone-only chrome: the bottom tab bar, the settings sheet and
+       * the pane routing that replaces the desktop segmented control.
+       *
+       * Desktop contract: `active` is false whenever the phone media query does
+       * not match, and every entry point below returns early in that case. The
+       * only hook into existing code is MobileShell.syncPane(), called from the
+       * top of switchTab().
+       * ===================================================================== */
+      window.MobileShell = (function () {
+        const PHONE_MQ = window.matchMedia("(max-width: 767px)");
+        const PANES = ["timer", "insights", "logbook", "tasks"];
+        const DEFAULT_PANE = "timer";
+
+        // Nodes borrowed from the desktop layout, with enough information to put
+        // each one back exactly where it came from. Moving (never cloning) keeps
+        // element identity, the DOM cache and all 96 inline handlers intact.
+        const RELOCATIONS = [
+          { slot: "goal", selector: ".goal-container" },
+          { slot: "tz", selector: ".tz-container" },
+          { slot: "theme", selector: ".theme-container" },
+          { slot: "tools", selector: ".footer-icons" },
+        ];
+
+        const state = {
+          active: false,
+          pane: DEFAULT_PANE,
+          mounted: false,
+          borrowed: [],
+        };
+
+        function el(id) {
+          return document.getElementById(id);
+        }
+
+        /* ---- borrow / return -------------------------------------------- */
+
+        function borrowNodes() {
+          RELOCATIONS.forEach(function (spec) {
+            const node = document.querySelector(spec.selector);
+            const slot = document.querySelector(
+              '.m-sheet-slot[data-slot="' + spec.slot + '"]',
+            );
+            if (!node || !slot || slot.contains(node)) return;
+            state.borrowed.push({
+              node: node,
+              parent: node.parentNode,
+              next: node.nextSibling,
+            });
+            slot.appendChild(node);
+          });
+        }
+
+        function returnNodes() {
+          // Unwind in reverse so re-inserted siblings land in the right order.
+          while (state.borrowed.length) {
+            const rec = state.borrowed.pop();
+            if (!rec.parent) continue;
+            if (rec.next && rec.next.parentNode === rec.parent) {
+              rec.parent.insertBefore(rec.node, rec.next);
+            } else {
+              rec.parent.appendChild(rec.node);
+            }
+          }
+        }
+
+        /* ---- sheet -------------------------------------------------------- */
+
+        function openSheet() {
+          if (!state.active) return;
+          document.body.classList.add("m-sheet-open");
+          const btn = el("m-more-btn");
+          if (btn) btn.setAttribute("aria-expanded", "true");
+        }
+
+        function closeSheet() {
+          document.body.classList.remove("m-sheet-open");
+          const btn = el("m-more-btn");
+          if (btn) btn.setAttribute("aria-expanded", "false");
+          // The sheet becomes visibility: hidden, so a popover left with .show
+          // would be invisible but still flagged open -- it would reappear on
+          // the next open, and it holds the sheet's transform at `none`.
+          // Escape-to-close in particular never reaches the popovers' own
+          // outside-click listeners, so close them here.
+          //
+          // Delegate rather than just stripping .show: #adjust-time-tooltip is
+          // a top-level floating element, NOT a child of the popup, so a
+          // class-only close strands it visible on top of the app.
+          if (typeof window.closeAdjustPopup === "function")
+            window.closeAdjustPopup();
+          if (typeof window.closeSettingsPopup === "function")
+            window.closeSettingsPopup();
+        }
+
+        function toggleSheet() {
+          if (document.body.classList.contains("m-sheet-open")) closeSheet();
+          else openSheet();
+        }
+
+        /* ---- pane routing -------------------------------------------------- */
+
+        /**
+         * Reflects `pane` in the DOM without invoking switchTab(). Called from
+         * inside switchTab() so the target pane is already visible by the time
+         * that function measures clientHeight -- measuring a display:none pane
+         * yields 0 and silently mis-sizes the virtual scroller.
+         */
+        function syncPane(pane) {
+          if (!state.active || PANES.indexOf(pane) === -1) return;
+          state.pane = pane;
+          document.body.dataset.mpane = pane;
+          const tabs = document.querySelectorAll("#m-tabbar .m-tab");
+          for (let i = 0; i < tabs.length; i++) {
+            tabs[i].setAttribute(
+              "aria-selected",
+              tabs[i].dataset.pane === pane ? "true" : "false",
+            );
+          }
+        }
+
+        /**
+         * Public navigation entry point used by the tab bar.
+         * For content panes it delegates to the existing switchTab(), which
+         * re-enters syncPane() first thing -- that ordering is deliberate.
+         */
+        function setPane(pane) {
+          if (!state.active || PANES.indexOf(pane) === -1) return;
+          closeSheet();
+          if (pane === "timer") {
+            syncPane(pane);
+          } else if (typeof switchTab === "function") {
+            switchTab(pane);
+          }
+          // The pane's box changed; re-measure before the next scroll frame.
+          if (typeof remeasureVirtualScrollers === "function") {
+            requestAnimationFrame(remeasureVirtualScrollers);
+          }
+        }
+
+        /* ---- mount / unmount ------------------------------------------------ */
+
+        function mount() {
+          if (state.mounted) return;
+          state.mounted = true;
+          state.active = true;
+          document.body.classList.add("m-shell");
+          borrowNodes();
+          // syncThemeColorMeta() no-ops off the shell, so any theme change made
+          // at desktop width was skipped. Catch up now that the tint is read.
+          syncThemeColorMeta();
+          // Restore the pane that was last shown, defaulting to the timer.
+          syncPane(state.pane);
+          if (state.pane !== "timer" && typeof switchTab === "function") {
+            switchTab(state.pane);
+          }
+          if (typeof remeasureVirtualScrollers === "function") {
+            requestAnimationFrame(remeasureVirtualScrollers);
+          }
+        }
+
+        function unmount() {
+          if (!state.mounted) return;
+          state.mounted = false;
+          state.active = false;
+          closeSheet();
+          document.body.classList.remove("m-shell");
+          delete document.body.dataset.mpane;
+          // Leaving a stale keyboard inset behind would offset desktop modals.
+          document.documentElement.style.setProperty("--m-kb-inset", "0px");
+          returnNodes();
+          // Desktop always shows both panes, but the tab content that was last
+          // selected must stay selected, so replay it through switchTab().
+          if (state.pane !== "timer" && typeof switchTab === "function") {
+            switchTab(state.pane);
+          }
+          if (typeof remeasureVirtualScrollers === "function") {
+            requestAnimationFrame(remeasureVirtualScrollers);
+          }
+        }
+
+        function applyBreakpoint() {
+          if (PHONE_MQ.matches) mount();
+          else unmount();
+        }
+
+        /* ---- soft-keyboard avoidance ---------------------------------------
+         * The layout viewport does not shrink when the on-screen keyboard opens,
+         * so a bottom-anchored sheet ends up underneath it. visualViewport does
+         * report the occluded height; publish it as --m-kb-inset and let the
+         * sheet lift by that amount.
+         */
+        function updateKeyboardInset() {
+          // Bail BEFORE any CSSOM write. Setting a custom property on <html>
+          // invalidates style for the whole document, and off the phone
+          // breakpoint --m-kb-inset is read by exactly one rule that cannot
+          // match. With the write ahead of this guard, every focusout on
+          // desktop -- every log-entry edit, every modal field -- paid for a
+          // document-wide style invalidation. unmount() already clears the
+          // property on the way out of the shell, so nothing is left stale.
+          if (!state.active) return;
+          const vv = window.visualViewport;
+          if (!vv) {
+            document.documentElement.style.setProperty("--m-kb-inset", "0px");
+            return;
+          }
+          const occluded = Math.max(
+            0,
+            window.innerHeight - vv.height - vv.offsetTop,
+          );
+          // Ignore small deltas: browser chrome collapsing is not a keyboard.
+          const inset = occluded > 120 ? Math.round(occluded) : 0;
+          document.documentElement.style.setProperty(
+            "--m-kb-inset",
+            inset + "px",
+          );
+        }
+
+        /* ---- native chrome tinting -------------------------------------------
+         * In standalone mode the OS paints the status bar and the Android nav
+         * bar with <meta name="theme-color">. Keeping it equal to the panel
+         * background is what makes the app read as one continuous surface
+         * rather than a web page in a frame.
+         *
+         * Driven by a MutationObserver rather than by hooking setThemeDirect,
+         * because data-theme is written from five different places (including
+         * the live hover preview) and an observer cannot miss one.
+         */
+        const STANDALONE_MQ =
+          typeof window.matchMedia === "function"
+            ? window.matchMedia("(display-mode: standalone)")
+            : null;
+
+        /**
+         * theme-color is consulted by mobile browser chrome and by standalone
+         * PWA windows, and by nothing else. Running the sync unconditionally
+         * put a forced style recalc (getComputedStyle) plus a meta write on
+         * every data-theme change -- including the desktop hover preview, which
+         * previewTheme() debounces at 60ms specifically to keep that path
+         * cheap. Gate on the two contexts that read the value; mount() syncs on
+         * entry so the shell never inherits a stale tint.
+         */
+        function themeColorIsRead() {
+          return (
+            state.active ||
+            (STANDALONE_MQ !== null && STANDALONE_MQ.matches) ||
+            window.navigator.standalone === true
+          );
+        }
+
+        function syncThemeColorMeta() {
+          if (!themeColorIsRead()) return;
+          const meta = document.querySelector('meta[name="theme-color"]');
+          if (!meta) return;
+          const bg = getComputedStyle(document.documentElement)
+            .getPropertyValue("--panel-bg")
+            .trim();
+          if (bg) meta.setAttribute("content", bg);
+        }
+
+        /* ---- haptics ----------------------------------------------------------
+         * Android/Chrome only. iOS Safari has no Vibration API and no web-exposed
+         * Taptic Engine, so there is deliberately no fallback -- a fake one would
+         * just be a no-op with extra code.
+         */
+        function haptic(pattern) {
+          if (!state.active) return;
+          if (typeof navigator.vibrate !== "function") return;
+          if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+          try {
+            navigator.vibrate(pattern);
+          } catch (e) {
+            /* vibration can be blocked by permissions policy */
+          }
+        }
+
+        /* ---- wiring ---------------------------------------------------------- */
+
+        function init() {
+          const tabbar = el("m-tabbar");
+          if (tabbar) {
+            tabbar.addEventListener("click", function (e) {
+              const btn = e.target.closest(".m-tab");
+              if (btn && btn.dataset.pane) setPane(btn.dataset.pane);
+            });
+          }
+
+          const moreBtn = el("m-more-btn");
+          if (moreBtn) moreBtn.addEventListener("click", toggleSheet);
+
+          const closeBtn = el("m-sheet-close");
+          if (closeBtn) closeBtn.addEventListener("click", closeSheet);
+
+          // Tools that open a modal or complete an action must dismiss the sheet,
+          // otherwise it stays stacked underneath the modal. The two tools that
+          // open an in-sheet popover are excluded, as are the preset pills in the
+          // goal / timezone / appearance sections, which are adjustments rather
+          // than navigation.
+          const sheetBody = el("m-sheet-body");
+          if (sheetBody) {
+            sheetBody.addEventListener("click", function (e) {
+              const btn = e.target.closest("button");
+              if (!btn) return;
+              if (e.target.closest(".idle-popup")) return;
+              if (
+                btn.id === "adjust-time-btn" ||
+                btn.id === "settings-config-btn"
+              )
+                return;
+              if (!btn.closest('.m-sheet-slot[data-slot="tools"]')) return;
+              closeSheet();
+            });
+          }
+
+          const backdrop = el("m-sheet-backdrop");
+          if (backdrop) backdrop.addEventListener("click", closeSheet);
+
+          document.addEventListener("keydown", function (e) {
+            if (
+              e.key === "Escape" &&
+              document.body.classList.contains("m-sheet-open")
+            ) {
+              closeSheet();
+            }
+          });
+
+          // Breakpoint crossings happen live on iPad Split View and on desktop
+          // window resizes, so this must be an event subscription, not a one-shot.
+          if (typeof PHONE_MQ.addEventListener === "function") {
+            PHONE_MQ.addEventListener("change", applyBreakpoint);
+          } else if (typeof PHONE_MQ.addListener === "function") {
+            PHONE_MQ.addListener(applyBreakpoint);
+          }
+
+          if (window.visualViewport) {
+            window.visualViewport.addEventListener(
+              "resize",
+              updateKeyboardInset,
+              { passive: true },
+            );
+            window.visualViewport.addEventListener(
+              "scroll",
+              updateKeyboardInset,
+              { passive: true },
+            );
+          }
+          // Blur leaves the inset stale on some Android keyboards. Gated here
+          // as well as inside the callee so desktop does not even arm a timer.
+          document.addEventListener("focusout", function () {
+            if (!state.active) return;
+            setTimeout(updateKeyboardInset, 50);
+          });
+
+          // The timezone / goal / appearance / saved-view popovers open on
+          // :hover OR :focus-within. Touch has no hover, so a tap focuses the
+          // trigger and the popover opens correctly -- but nothing ever takes
+          // that focus away, so it would stay open until another focusable
+          // element is tapped. Blur on any outside pointerdown closes it.
+          document.addEventListener(
+            "pointerdown",
+            function (e) {
+              if (!state.active) return;
+              const open = document.activeElement;
+              if (!open || open === document.body) return;
+              const holder = open.closest(
+                ".tz-container, .goal-container, .theme-container, .view-container, .heatmap-year-container",
+              );
+              if (holder && !holder.contains(e.target)) open.blur();
+            },
+            true,
+          );
+
+          // Keep the OS status / navigation bar tint matched to the theme.
+          syncThemeColorMeta();
+          new MutationObserver(syncThemeColorMeta).observe(
+            document.documentElement,
+            { attributes: true, attributeFilter: ["data-theme"] },
+          );
+
+          // Short pulse when a session state changes -- the one place a physical
+          // confirmation genuinely helps, since the user is often not looking.
+          ["start-btn", "pause-btn", "submit-btn"].forEach(function (id) {
+            const btn = el(id);
+            if (btn) btn.addEventListener("click", () => haptic(12));
+          });
+
+          applyBreakpoint();
+        }
+
+        if (document.readyState === "loading") {
+          document.addEventListener("DOMContentLoaded", init, { once: true });
+        } else {
+          init();
+        }
+
+        return {
+          get active() {
+            return state.active;
+          },
+          get pane() {
+            return state.pane;
+          },
+          syncPane: syncPane,
+          setPane: setPane,
+          openSheet: openSheet,
+          closeSheet: closeSheet,
         };
       })();
     </script>
