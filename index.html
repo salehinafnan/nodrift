@@ -5627,14 +5627,20 @@
           height: auto;
           border-left: 0;
           padding: calc(var(--m-topbar-h) + var(--m-safe-top) + 40px)
-            var(--m-gutter)
-            calc(var(--m-tabbar-h) + var(--m-safe-bottom) + 24px);
+            var(--m-gutter) 0;
           box-sizing: border-box;
           background: var(--panel-bg);
         }
 
         body[data-mpane="timer"] .sidebar {
           display: none;
+        }
+
+        /* SF Dark theme full pitch black background on mobile */
+        :root[data-theme="sf-dark"] body[data-mpane="timer"] .main-ui,
+        :root[data-theme="sf-dark"] .sidebar,
+        :root[data-theme="sf-dark"] .logbook-sticky-toolbar {
+          background: var(--page-bg);
         }
 
         /* The desktop segmented control and the footer tool strip are both
