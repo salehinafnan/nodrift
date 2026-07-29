@@ -4095,11 +4095,11 @@
       top: max(16px, env(safe-area-inset-top));
       left: 50%;
       height: 44px;
-      background: color-mix(in srgb, var(--panel-bg) 85%, #000000 15%);
-      backdrop-filter: blur(24px);
-      -webkit-backdrop-filter: blur(24px);
+      background: color-mix(in srgb, var(--panel-bg) 75%, transparent);
+      backdrop-filter: blur(20px) saturate(160%);
+      -webkit-backdrop-filter: blur(20px) saturate(160%);
       color: var(--text-main);
-      border: 1px solid color-mix(in srgb, var(--border-main) 50%, transparent);
+      border: 1px solid color-mix(in srgb, var(--border-main) 60%, rgba(255, 255, 255, 0.15));
       padding: 0 16px 0 8px;
       border-radius: 9999px;
       font-weight: 600;
@@ -4110,7 +4110,7 @@
       justify-content: center;
       white-space: nowrap;
       box-shadow:
-        0 12px 32px rgba(0, 0, 0, 0.2),
+        0 6px 20px rgba(0, 0, 0, 0.08),
         inset 0 1px 0 rgba(255, 255, 255, 0.15);
       transition:
         transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1),
@@ -4988,7 +4988,7 @@
       :root {
         /* Fixed chrome metrics. --m-topbar-h is enforced as a hard height on
              .status-bar below, so JS never has to measure it. */
-        --m-topbar-h: 3rem;
+        --m-topbar-h: 3.6rem;
         --m-tabbar-h: var(--m-topbar-h);
         --m-safe-top: env(safe-area-inset-top, 0px);
         --m-safe-bottom: env(safe-area-inset-bottom, 0px);
@@ -5073,11 +5073,11 @@
         gap: 0.5rem;
         overflow: hidden;
         border-radius: var(--radius-lg);
-        background: color-mix(in srgb, var(--panel-bg) 80%, transparent);
-        backdrop-filter: blur(24px);
-        -webkit-backdrop-filter: blur(24px);
-        border: 1px solid color-mix(in srgb, var(--border-main) 50%, transparent);
-        box-shadow: 0 12px 36px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+        background: color-mix(in srgb, var(--panel-bg) 72%, transparent);
+        backdrop-filter: blur(20px) saturate(160%);
+        -webkit-backdrop-filter: blur(20px) saturate(160%);
+        border: 1px solid color-mix(in srgb, var(--border-main) 60%, rgba(255, 255, 255, 0.12));
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.15);
         pointer-events: auto;
         padding: 4px 12px;
       }
@@ -5095,10 +5095,10 @@
       }
 
       .nodrift-logo {
-        font-size: 1rem;
+        font-size: 1.12rem;
         margin-right: 0;
-        width: 72px;
-        flex: 0 0 72px;
+        width: 78px;
+        flex: 0 0 78px;
       }
 
       .status-bar .clock-divider {
@@ -5107,15 +5107,20 @@
 
       .status-bar .tz-static-label {
         display: inline-flex;
-        font-size: 0.88rem;
-        margin-left: 5px;
-        margin-right: 2px;
+        font-size: 0.95rem;
+        margin-left: 4px;
+        margin-right: 1px;
       }
 
       .status-bar #primary-clock,
       .status-bar #bst-clock {
         display: inline-block;
-        font-size: 0.88rem;
+        font-size: 0.98rem;
+      }
+
+      .status-bar #primary-clock .clock-ampm,
+      .status-bar #bst-clock .clock-ampm {
+        font-size: 0.72rem;
       }
 
       .status-bar #bst-clock {
@@ -5123,7 +5128,7 @@
       }
 
       .status-bar .tz-trigger {
-        font-size: 0.88rem;
+        font-size: 0.95rem;
         padding: 0;
         pointer-events: none;
         background: none !important;
@@ -5140,11 +5145,13 @@
 
       #last-seen.last-seen-status {
         margin-left: 0;
-        font-size: 0.76rem;
-        width: 72px;
-        flex: 0 0 72px;
+        font-size: 0.82rem;
+        width: 78px;
+        flex: 0 0 78px;
         justify-content: flex-end;
         text-align: right;
+        white-space: nowrap;
+        overflow: hidden;
       }
 
       /* Overflow entry point sits at the trailing edge of the bar. */
@@ -5263,11 +5270,11 @@
         flex: 1 1 auto;
         min-height: 40px;
         white-space: nowrap;
-        background: color-mix(in srgb, var(--element-bg) 60%, transparent) !important;
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
-        border: 1px solid color-mix(in srgb, var(--border-main) 50%, transparent) !important;
-        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+        background: color-mix(in srgb, var(--element-bg) 65%, transparent) !important;
+        backdrop-filter: blur(16px) saturate(150%);
+        -webkit-backdrop-filter: blur(16px) saturate(150%);
+        border: 1px solid color-mix(in srgb, var(--border-main) 60%, rgba(255, 255, 255, 0.12)) !important;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
       }
 
       #m-sheet .footer-icons {
@@ -5346,9 +5353,9 @@
         border-radius: var(--radius-md);
         touch-action: manipulation;
         -webkit-tap-highlight-color: transparent;
-        backdrop-filter: blur(16px);
-        -webkit-backdrop-filter: blur(16px);
-        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12), inset 0 1.5px 0 rgba(255, 255, 255, 0.2);
+        backdrop-filter: blur(16px) saturate(150%);
+        -webkit-backdrop-filter: blur(16px) saturate(150%);
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.2);
       }
 
       .actions button svg {
@@ -5414,13 +5421,6 @@
       #task-log-container .log-row.show-actions .icon-actions {
         max-width: 200px;
         opacity: 1;
-        padding: 3px 6px;
-        border-radius: var(--radius-sm);
-        background: color-mix(in srgb, var(--element-bg) 70%, transparent);
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
-        border: 1px solid color-mix(in srgb, var(--border-main) 50%, transparent);
-        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
       }
 
       .log-row .icon-actions .icon-btn,
@@ -5488,11 +5488,11 @@
       .advanced-filters {
         padding: 8px;
         gap: 6px;
-        background: color-mix(in srgb, var(--panel-bg) 85%, transparent) !important;
-        backdrop-filter: blur(20px);
-        -webkit-backdrop-filter: blur(20px);
-        border: 1px solid color-mix(in srgb, var(--border-main) 50%, transparent) !important;
-        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
+        background: color-mix(in srgb, var(--panel-bg) 75%, transparent) !important;
+        backdrop-filter: blur(20px) saturate(160%);
+        -webkit-backdrop-filter: blur(20px) saturate(160%);
+        border: 1px solid color-mix(in srgb, var(--border-main) 60%, rgba(255, 255, 255, 0.12)) !important;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.15) !important;
       }
 
       .advanced-filters .filter-row {
@@ -5537,10 +5537,10 @@
 
       .filter-chip {
         border-radius: 9999px;
-        background: color-mix(in srgb, var(--accent-blue) 12%, transparent);
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
-        border: 1px solid color-mix(in srgb, var(--accent-blue) 30%, transparent);
+        background: color-mix(in srgb, var(--accent-blue) 14%, transparent);
+        backdrop-filter: blur(12px) saturate(140%);
+        -webkit-backdrop-filter: blur(12px) saturate(140%);
+        border: 1px solid color-mix(in srgb, var(--accent-blue) 35%, transparent);
         box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15);
       }
 
@@ -5647,12 +5647,12 @@
         bottom: calc(16px + var(--m-safe-bottom));
         height: var(--m-topbar-h);
         z-index: var(--z-modal);
-        background: color-mix(in srgb, var(--panel-bg) 80%, transparent);
-        backdrop-filter: blur(24px);
-        -webkit-backdrop-filter: blur(24px);
-        border: 1px solid color-mix(in srgb, var(--border-main) 50%, transparent);
+        background: color-mix(in srgb, var(--panel-bg) 72%, transparent);
+        backdrop-filter: blur(20px) saturate(160%);
+        -webkit-backdrop-filter: blur(20px) saturate(160%);
+        border: 1px solid color-mix(in srgb, var(--border-main) 60%, rgba(255, 255, 255, 0.12));
         border-radius: var(--radius-lg);
-        box-shadow: 0 12px 36px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.15);
         padding: 4px;
         overflow: hidden;
         transition:
@@ -5743,20 +5743,13 @@
         bottom: 0;
         z-index: calc(var(--z-overlay) - 2);
         max-height: 85svh;
-        background: color-mix(in srgb, var(--modal-bg, var(--panel-bg)) 85%, transparent);
-        backdrop-filter: blur(28px);
-        -webkit-backdrop-filter: blur(28px);
-        border-top: 1px solid color-mix(in srgb, var(--border-light) 60%, transparent);
+        background: color-mix(in srgb, var(--modal-bg, var(--panel-bg)) 75%, transparent);
+        backdrop-filter: blur(24px) saturate(160%);
+        -webkit-backdrop-filter: blur(24px) saturate(160%);
+        border-top: 1px solid color-mix(in srgb, var(--border-light) 60%, rgba(255, 255, 255, 0.15));
         border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-        box-shadow: 0 -12px 36px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+        box-shadow: 0 -12px 36px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.15);
         transform: translateY(101%);
-        /* visibility (not display) is what takes the closed sheet out of the
-             accessibility tree and the tab order. display would kill the slide;
-             visibility can be transitioned, so it flips to hidden only after the
-             0.28s slide-out has finished, and back to visible instantly on open.
-             Without this the sheet is permanently present as an open
-             aria-modal="true" dialog, which tells screen readers to ignore the
-             rest of the page, and leaves its controls tabbable off-screen. */
         visibility: hidden;
         transition:
           transform 0.28s cubic-bezier(0.32, 0.72, 0, 1),
@@ -5935,14 +5928,14 @@
         width: 100%;
         max-width: none !important;
         border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-        background: color-mix(in srgb, var(--modal-bg) 85%, transparent);
-        backdrop-filter: blur(28px);
-        -webkit-backdrop-filter: blur(28px);
-        border-top: 1px solid color-mix(in srgb, var(--border-light) 60%, transparent);
+        background: color-mix(in srgb, var(--modal-bg) 75%, transparent);
+        backdrop-filter: blur(24px) saturate(160%);
+        -webkit-backdrop-filter: blur(24px) saturate(160%);
+        border-top: 1px solid color-mix(in srgb, var(--border-light) 60%, rgba(255, 255, 255, 0.15));
         border-left: 0;
         border-right: 0;
         border-bottom: 0;
-        box-shadow: 0 -12px 36px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+        box-shadow: 0 -12px 36px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.15);
         padding-top: 1.5rem;
         padding-bottom: calc(var(--space-5) + var(--m-safe-bottom));
         max-height: 88svh;
@@ -5950,7 +5943,6 @@
         overscroll-behavior: contain;
         -webkit-overflow-scrolling: touch;
         animation: m-sheet-rise 0.3s cubic-bezier(0.32, 0.72, 0, 1);
-        /* Lifted by the soft keyboard; MobileShell keeps --m-kb-inset current. */
         margin-bottom: var(--m-kb-inset, 0px);
       }
 
@@ -6037,10 +6029,10 @@
 
       .app-tooltip {
         border-radius: var(--radius-md);
-        background: color-mix(in srgb, var(--panel-bg) 85%, transparent) !important;
-        backdrop-filter: blur(20px);
-        -webkit-backdrop-filter: blur(20px);
-        border: 1px solid color-mix(in srgb, var(--border-light) 60%, transparent) !important;
+        background: color-mix(in srgb, var(--panel-bg) 75%, transparent) !important;
+        backdrop-filter: blur(16px) saturate(150%);
+        -webkit-backdrop-filter: blur(16px) saturate(150%);
+        border: 1px solid color-mix(in srgb, var(--border-light) 60%, rgba(255, 255, 255, 0.15)) !important;
         box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.15) !important;
       }
     }
