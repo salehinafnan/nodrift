@@ -759,12 +759,20 @@
         position: relative;
       }
 
-      @media (display-mode: standalone) {
-        body {
-          padding-bottom: 0;
-        }
+      html.is-standalone body {
+        padding-bottom: 0 !important;
       }
-
+    </style>
+    <script>
+      if (
+        window.navigator.standalone === true ||
+        (window.matchMedia &&
+          window.matchMedia("(display-mode: standalone)").matches)
+      ) {
+        document.documentElement.classList.add("is-standalone");
+      }
+    </script>
+    <style>
       /* REFACTORED STYLE:
           Clean division between ticking monospace elements and premium proportional dashboard stats. */
 
