@@ -15020,29 +15020,52 @@
         syncMediaSession();
       }
 
+      const SILENT_WAV_URI = "data:audio/wav;base64,UklGRmQfAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YUAfAACAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgA==";
+
       let silentAudioEl = null;
       let lastMediaSessionTitle = "";
       let mediaSessionHandlersBound = false;
 
       function initMediaSessionAudio() {
         if (!("mediaSession" in navigator)) return;
+
         if (!silentAudioEl) {
           silentAudioEl = document.createElement("audio");
           silentAudioEl.loop = true;
           silentAudioEl.playsInline = true;
           silentAudioEl.setAttribute("playsinline", "true");
           silentAudioEl.setAttribute("webkit-playsinline", "true");
-          silentAudioEl.src =
-            "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=";
+          silentAudioEl.src = SILENT_WAV_URI;
         }
 
         if (!mediaSessionHandlersBound) {
           mediaSessionHandlersBound = true;
           try {
-            navigator.mediaSession.setActionHandler("play", () => switchMode("work"));
-            navigator.mediaSession.setActionHandler("pause", () => switchMode("break"));
+            navigator.mediaSession.setActionHandler("play", () => {
+              if (!state.loginTimestamp) {
+                switchMode("work");
+              } else if (state.currentMode === "break" || state.currentMode === null) {
+                switchMode("work");
+              }
+              if (silentAudioEl && silentAudioEl.paused) {
+                silentAudioEl.play().catch(() => {});
+              }
+            });
+
+            navigator.mediaSession.setActionHandler("pause", () => {
+              if (state.currentMode === "work") {
+                switchMode("break");
+              }
+            });
+
             navigator.mediaSession.setActionHandler("previoustrack", () => switchMode("work"));
             navigator.mediaSession.setActionHandler("nexttrack", () => switchMode("break"));
+
+            navigator.mediaSession.setActionHandler("stop", () => {
+              if (state.loginTimestamp) {
+                openSubmitModal();
+              }
+            });
           } catch (e) {}
         }
 
@@ -15080,12 +15103,18 @@
 
         initMediaSessionAudio();
 
-        navigator.mediaSession.playbackState = "playing";
+        if (mode === "work") {
+          navigator.mediaSession.playbackState = "playing";
+        } else if (mode === "break") {
+          navigator.mediaSession.playbackState = "paused";
+        } else {
+          navigator.mediaSession.playbackState = "paused";
+        }
 
         const workSec = getCurrentWorkSeconds();
         const breakSec = getCurrentBreakSeconds();
         const activeSec = mode === "work" ? workSec : breakSec;
-        const modeLabel = mode === "work" ? "Working" : "On Break";
+        const modeLabel = mode === "work" ? "Working 🟢" : "Break 🔴";
         const titleStr = `${formatDuration(activeSec)} • ${modeLabel}`;
 
         if (titleStr !== lastMediaSessionTitle) {
@@ -15095,6 +15124,13 @@
               title: titleStr,
               artist: "nodrift",
               album: `Work: ${formatDuration(workSec)} | Break: ${formatDuration(breakSec)}`,
+              artwork: [
+                {
+                  src: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='512' height='512' viewBox='0 0 180 180'><rect width='180' height='180' fill='%23111111'/><g fill='none' stroke='%2360a5fa' stroke-width='9' stroke-linecap='round' stroke-linejoin='round'><circle cx='90' cy='90' r='48'/><polyline points='90 61 90 90 111 101'/></g></svg>",
+                  sizes: "512x512",
+                  type: "image/svg+xml"
+                }
+              ]
             });
           } catch (e) {}
         }
@@ -15601,6 +15637,25 @@
               toast.classList.remove("toast-visible");
             }, 5000);
           }
+
+          if ("Notification" in window && Notification.permission === "granted" && document.hidden) {
+            const sendOSNotification = (reg) => {
+              if (reg && reg.showNotification) {
+                reg.showNotification("Daily Goal Reached!", {
+                  body: `You completed your ${formatFriendlyDuration(anchorGoalSec, "0h")} work target.`,
+                  icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180' viewBox='0 0 180 180'><rect width='180' height='180' fill='%23111111'/><g fill='none' stroke='%2360a5fa' stroke-width='9' stroke-linecap='round' stroke-linejoin='round'><circle cx='90' cy='90' r='48'/><polyline points='90 61 90 90 111 101'/></g></svg>",
+                  tag: "goal-reached"
+                }).catch(() => {});
+              }
+            };
+
+            if (window.swRegistration) {
+              sendOSNotification(window.swRegistration);
+            } else if (navigator.serviceWorker && navigator.serviceWorker.ready) {
+              navigator.serviceWorker.ready.then(sendOSNotification).catch(() => {});
+            }
+          }
+
           playGoalSound();
           state.goalNotified = true;
           saveState();
@@ -24644,10 +24699,16 @@
       });
 
       DOM.startBtn.addEventListener("click", () => {
+        if ("Notification" in window && Notification.permission === "default") {
+          Notification.requestPermission().catch(() => {});
+        }
         switchMode("work");
       });
 
       DOM.pauseBtn.addEventListener("click", () => {
+        if ("Notification" in window && Notification.permission === "default") {
+          Notification.requestPermission().catch(() => {});
+        }
         if (state.currentMode === "work") {
           switchMode("break");
         } else {
@@ -27051,6 +27112,20 @@
 
             if (typeof triggerAutoSnapshot === "function") {
               triggerAutoSnapshot();
+            }
+
+            if ("serviceWorker" in navigator && !window.swRegistration) {
+              navigator.serviceWorker.register("./sw.js").then(reg => {
+                window.swRegistration = reg;
+              }).catch(err => {
+                console.warn("sw.js registration failed, trying inline blob fallback:", err);
+                const swScript = "self.addEventListener('install', e => self.skipWaiting()); self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));";
+                const blob = new Blob([swScript], { type: "application/javascript" });
+                const swUrl = URL.createObjectURL(blob);
+                navigator.serviceWorker.register(swUrl).then(reg => {
+                  window.swRegistration = reg;
+                }).catch(() => {});
+              });
             }
 
             autoPopulateDailyGoal(state.activeDate || getPSTDate());
