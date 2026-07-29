@@ -761,7 +761,14 @@
 
       @media (display-mode: standalone) {
         :root {
+          /* Tightly crop the bottom gap */
           --m-safe-bottom: 12px !important;
+          /* Close the top gap slightly to reduce empty space below notches/islands, 
+             but ensure it never goes below standard 20px status bar */
+          --m-safe-top: max(
+            20px,
+            calc(env(safe-area-inset-top) - 8px)
+          ) !important;
         }
         html {
           background-color: var(--panel-bg) !important;
@@ -5653,9 +5660,9 @@
         }
 
         .m-tab svg {
-          width: 22px;
-          height: 22px;
-          stroke-width: 1.7;
+          width: 26px;
+          height: 26px;
+          stroke-width: 2;
           stroke-linecap: round;
           stroke-linejoin: round;
         }
