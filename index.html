@@ -1926,13 +1926,18 @@
         transition: opacity 0.15s ease;
       }
 
-      button:hover:not(:disabled)::before,
-      button:active:not(:disabled)::before {
-        opacity: 1;
+      @media (hover: hover) {
+        button:hover:not(:disabled)::before {
+          opacity: 1;
+        }
+        
+        button:not(.btn-work):not(.btn-break):not(.btn-log):hover:not(:disabled) {
+          opacity: 0.85;
+        }
       }
 
-      button:not(.btn-work):not(.btn-break):not(.btn-log):hover:not(:disabled) {
-        opacity: 0.85;
+      button:active:not(:disabled)::before {
+        opacity: 1;
       }
 
       #start-btn {
