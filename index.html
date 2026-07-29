@@ -5048,7 +5048,7 @@
         :root {
           /* Fixed chrome metrics. --m-topbar-h is enforced as a hard height on
              .status-bar below, so JS never has to measure it. */
-          --m-topbar-h: 3.25rem;
+          --m-topbar-h: 2.5rem;
           --m-tabbar-h: 3.5rem;
           --m-safe-top: env(safe-area-inset-top, 0px);
           --m-safe-bottom: env(safe-area-inset-bottom, 0px);
@@ -5097,17 +5097,27 @@
           height: auto;
           flex: none;
           justify-content: flex-start;
-          background: var(--panel-bg);
-          padding: var(--m-safe-top) var(--m-gutter) 0;
+          background: transparent;
+          pointer-events: none;
+          padding: calc(12px + var(--m-safe-top)) 12px 0;
           box-sizing: border-box;
         }
 
         body[data-mpane="timer"] .main-ui {
           bottom: 0;
           justify-content: space-between;
-          padding-bottom: calc(var(--m-tabbar-h) + var(--m-safe-bottom));
+          padding-bottom: calc(var(--m-tabbar-h) + var(--m-safe-bottom) + 24px);
           overflow-y: auto;
           overscroll-behavior: contain;
+          background: var(--panel-bg);
+          pointer-events: auto;
+          padding-left: var(--m-gutter);
+          padding-right: var(--m-gutter);
+          padding-top: var(--m-safe-top);
+        }
+
+        body[data-mpane="timer"] .main-ui .status-bar {
+          margin-top: 12px;
         }
 
         body:not([data-mpane="timer"]) .main-ui > *:not(.status-bar) {
@@ -5116,18 +5126,18 @@
 
         /* ---- Top bar ---------------------------------------------------- */
         .status-bar {
-          height: var(--m-topbar-h);
+          height: auto;
           min-height: var(--m-topbar-h);
           flex: none;
-          margin-bottom: 0;
+          margin-bottom: 24px;
           gap: 0.5rem;
           overflow: hidden;
-          border-bottom: 1px solid var(--border-main);
-          /* Bleed the divider to the full window width, ignoring the gutter. */
-          margin-left: calc(var(--m-gutter) * -1);
-          margin-right: calc(var(--m-gutter) * -1);
-          padding-left: var(--m-gutter);
-          padding-right: var(--m-gutter);
+          border-radius: var(--radius-lg);
+          border: 1px solid var(--border-main);
+          background: var(--panel-bg);
+          box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+          pointer-events: auto;
+          padding: 4px 12px;
         }
 
         /* Header status bar dual clock layout for mobile */
@@ -5155,7 +5165,7 @@
 
         .status-bar .tz-static-label {
           display: inline-flex;
-          font-size: 0.82rem;
+          font-size: 0.88rem;
           margin-left: 5px;
           margin-right: 2px;
         }
@@ -5163,7 +5173,7 @@
         .status-bar #primary-clock,
         .status-bar #bst-clock {
           display: inline-block;
-          font-size: 0.82rem;
+          font-size: 0.88rem;
         }
 
         .status-bar #bst-clock {
@@ -5171,7 +5181,7 @@
         }
 
         .status-bar .tz-trigger {
-          font-size: 0.82rem;
+          font-size: 0.88rem;
           padding: 0;
           pointer-events: none;
           background: none !important;
@@ -5610,14 +5620,17 @@
         /* ---- Content panes ---------------------------------------------- */
         .sidebar {
           position: fixed;
-          top: calc(var(--m-topbar-h) + var(--m-safe-top));
+          top: 0;
           left: 0;
           right: 0;
-          bottom: calc(var(--m-tabbar-h) + var(--m-safe-bottom));
+          bottom: 0;
           height: auto;
           border-left: 0;
-          padding: 0.75rem var(--m-gutter) 0;
+          padding: calc(var(--m-topbar-h) + var(--m-safe-top) + 40px)
+            var(--m-gutter)
+            calc(var(--m-tabbar-h) + var(--m-safe-bottom) + 24px);
           box-sizing: border-box;
+          background: var(--panel-bg);
         }
 
         body[data-mpane="timer"] .sidebar {
@@ -5641,15 +5654,26 @@
         #m-tabbar {
           display: flex;
           position: fixed;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          z-index: var(--z-sticky);
-          height: calc(var(--m-tabbar-h) + var(--m-safe-bottom));
-          padding: 0 var(--m-safe-right) var(--m-safe-bottom) var(--m-safe-left);
+          left: 12px;
+          right: 12px;
+          bottom: calc(12px + var(--m-safe-bottom));
+          height: var(--m-tabbar-h);
+          z-index: var(--z-modal);
           background: var(--panel-bg);
-          border-top: 1px solid var(--border-main);
-          box-sizing: border-box;
+          border: 1px solid var(--border-main);
+          border-radius: var(--radius-lg);
+          box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.12);
+          padding: 0;
+          overflow: hidden;
+          transition:
+            transform 0.28s cubic-bezier(0.32, 0.72, 0, 1),
+            opacity 0.28s cubic-bezier(0.32, 0.72, 0, 1);
+        }
+
+        body.m-sheet-open #m-tabbar {
+          transform: translateY(calc(100% + 24px + var(--m-safe-bottom)));
+          opacity: 0;
+          pointer-events: none;
         }
 
         .m-tab {
@@ -5672,9 +5696,9 @@
         }
 
         .m-tab svg {
-          width: 28px;
-          height: 28px;
-          stroke-width: 2;
+          width: 24px;
+          height: 24px;
+          stroke-width: 1.5;
           stroke-linecap: round;
           stroke-linejoin: round;
         }
@@ -11523,10 +11547,11 @@
         aria-selected="true"
       >
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-          <circle cx="12" cy="12" r="9"></circle>
-          <polyline points="12 7 12 12 15.5 14"></polyline>
+          <circle cx="12" cy="13" r="8"></circle>
+          <path d="M12 9v4l2 2"></path>
+          <line x1="12" y1="2" x2="12" y2="5"></line>
+          <line x1="9" y1="2" x2="15" y2="2"></line>
         </svg>
-        <span>Timer</span>
       </button>
       <button
         class="m-tab"
@@ -11536,12 +11561,10 @@
         aria-selected="false"
       >
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-          <path d="M4 19V10"></path>
-          <path d="M10 19V5"></path>
-          <path d="M16 19v-6"></path>
-          <path d="M21 19H3"></path>
+          <line x1="18" y1="20" x2="18" y2="10"></line>
+          <line x1="12" y1="20" x2="12" y2="4"></line>
+          <line x1="6" y1="20" x2="6" y2="14"></line>
         </svg>
-        <span>Insights</span>
       </button>
       <button
         class="m-tab"
@@ -11551,11 +11574,14 @@
         aria-selected="false"
       >
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-          <path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3z"></path>
-          <path d="M5 17h14"></path>
-          <path d="M9 8h6"></path>
+          <path
+            d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"
+          ></path>
+          <path d="M14 2v4a2 2 0 0 0 2 2h4"></path>
+          <path d="M10 9H8"></path>
+          <path d="M16 13H8"></path>
+          <path d="M16 17H8"></path>
         </svg>
-        <span>Logbook</span>
       </button>
       <button
         class="m-tab"
@@ -11565,11 +11591,12 @@
         aria-selected="false"
       >
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-          <polyline points="4 12 7.5 15.5 13 8.5"></polyline>
-          <path d="M4 19h16"></path>
-          <path d="M16 5h4"></path>
+          <path d="m3 17 2 2 4-4"></path>
+          <path d="m3 7 2 2 4-4"></path>
+          <path d="M13 6h8"></path>
+          <path d="M13 12h8"></path>
+          <path d="M13 18h8"></path>
         </svg>
-        <span>Tasks</span>
       </button>
       <button
         class="m-tab"
@@ -11579,17 +11606,11 @@
         aria-selected="false"
       >
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-          <line x1="4" y1="21" x2="4" y2="14"></line>
-          <line x1="4" y1="10" x2="4" y2="3"></line>
-          <line x1="12" y1="21" x2="12" y2="12"></line>
-          <line x1="12" y1="8" x2="12" y2="3"></line>
-          <line x1="20" y1="21" x2="20" y2="16"></line>
-          <line x1="20" y1="12" x2="20" y2="3"></line>
-          <line x1="1" y1="14" x2="7" y2="14"></line>
-          <line x1="9" y1="8" x2="15" y2="8"></line>
-          <line x1="17" y1="16" x2="23" y2="16"></line>
+          <path
+            d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"
+          ></path>
+          <circle cx="12" cy="12" r="3"></circle>
         </svg>
-        <span>Tools</span>
       </button>
     </nav>
 
@@ -11623,9 +11644,9 @@
         <div
           class="m-sheet-slot"
           data-slot="goal"
-          data-label="Daily goal"
+          data-label="Daily Goal"
         ></div>
-        <div class="m-sheet-slot" data-slot="tz" data-label="Time zone"></div>
+        <div class="m-sheet-slot" data-slot="tz" data-label="Time Zone"></div>
         <div
           class="m-sheet-slot"
           data-slot="theme"
