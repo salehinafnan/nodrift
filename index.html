@@ -5080,7 +5080,7 @@
           border: 0;
           border-radius: 0;
           box-shadow: none;
-          background: var(--page-bg);
+          background: var(--panel-bg);
         }
 
         /* ---- .main-ui is BOTH the fixed top bar and the Timer pane -------
@@ -5235,7 +5235,6 @@
           font-size: 0.68rem;
           font-weight: 700;
           letter-spacing: 0.07em;
-          text-transform: uppercase;
           color: var(--text-muted);
         }
 
@@ -5808,6 +5807,7 @@
           justify-content: center;
           flex: none;
           padding: 0;
+          position: static;
         }
 
         #m-sheet-close svg {
@@ -11297,6 +11297,7 @@
                             style="
                               width: 10ch;
                               height: 22px;
+                              min-height: 22px;
                               padding: 0 4px;
                               font-size: 0.75rem;
                               text-align: center;
@@ -11606,7 +11607,7 @@
           id="m-sheet-close"
           type="button"
           aria-label="Close"
-          class="icon-btn"
+          class="modal-close-btn"
         >
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
             <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -15905,7 +15906,7 @@
         if (!activeNoteLogId) return;
         const logId = activeNoteLogId;
         closeNoteModal();
-        editSingleShift(logId);
+        editSingleShift(logId, true);
       };
 
       /**
@@ -20484,7 +20485,7 @@
       /**
        * populates log editor values.
        */
-      function editSingleShift(logId) {
+      function editSingleShift(logId, focusNotes = false) {
         const logs = getLogs();
         const log = logs.find((l) => l.id === logId);
         if (!log) return;
@@ -20518,7 +20519,11 @@
 
         DOM.editNotes.value = log.notes || "";
         DOM.editModal.style.display = "flex";
-        setTimeout(() => DOM.editWork.focus(), 100);
+        if (focusNotes) {
+          setTimeout(() => DOM.editNotes.focus(), 100);
+        } else if (window.innerWidth > 768) {
+          setTimeout(() => DOM.editWork.focus(), 100);
+        }
       }
 
       /**
@@ -20532,7 +20537,7 @@
 
       let editingTaskId = null;
 
-      window.openEditTaskModal = function (taskId) {
+      window.openEditTaskModal = function (taskId, focusNotes = false) {
         const task = cachedTaskLogs.find((t) => t.id === taskId);
         if (!task) return;
         editingTaskId = taskId;
@@ -20564,7 +20569,11 @@
         const modal = document.getElementById("edit-task-modal");
         if (modal) {
           modal.style.display = "flex";
-          setTimeout(() => durEl && durEl.focus(), 100);
+          if (focusNotes) {
+            setTimeout(() => noteEl && noteEl.focus(), 100);
+          } else if (window.innerWidth > 768) {
+            setTimeout(() => durEl && durEl.focus(), 100);
+          }
         }
       };
 
@@ -23117,10 +23126,8 @@
 
           const smartInput = DOM.adjustSmartInput;
           if (smartInput && !smartInput.disabled) {
-            setTimeout(() => {
-              smartInput.focus();
-              smartInput.select();
-            }, 50);
+            smartInput.focus();
+            smartInput.select();
           }
 
           if (adjustPopupAbortController) {
@@ -24654,7 +24661,7 @@
             if (!taskId) return;
 
             if (action === "edit-task") {
-              openEditTaskModal(taskId);
+              openEditTaskModal(taskId, true);
             } else if (action === "copy-task") {
               copyTask(taskId);
             } else if (action === "delete-task") {
