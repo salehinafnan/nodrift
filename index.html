@@ -759,11 +759,19 @@
         position: relative;
       }
 
-      html.is-standalone {
-        background-color: var(--panel-bg);
-      }
-      html.is-standalone body {
-        padding-bottom: 0 !important;
+      @media (display-mode: standalone) {
+        :root {
+          --m-safe-bottom: 12px !important;
+        }
+        html {
+          background-color: var(--panel-bg) !important;
+          height: 100vh !important;
+        }
+        body {
+          padding-bottom: 0 !important;
+          height: 100vh !important;
+          min-height: 100vh !important;
+        }
       }
     </style>
     <script>
