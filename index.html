@@ -759,6 +759,12 @@
         position: relative;
       }
 
+      @media (display-mode: standalone) {
+        body {
+          padding-bottom: 0;
+        }
+      }
+
       /* REFACTORED STYLE:
           Clean division between ticking monospace elements and premium proportional dashboard stats. */
 
@@ -15150,7 +15156,7 @@
         const workSec = getCurrentWorkSeconds();
         const breakSec = getCurrentBreakSeconds();
         const activeSec = mode === "work" ? workSec : breakSec;
-        const modeLabel = mode === "work" ? "Working 🟢" : "Break 🔴";
+        const modeLabel = mode === "work" ? "Work" : "Break";
         const titleStr = `${formatDuration(activeSec)} • ${modeLabel}`;
 
         if (titleStr !== lastMediaSessionTitle) {
