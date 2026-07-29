@@ -15020,8 +15020,7 @@
         syncMediaSession();
       }
 
-      const SILENT_WAV_URI =
-        "data:audio/wav;base64,UklGRmQfAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YUAfAACAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgA==";
+      let _silentAudioCtx = null;
 
       let silentAudioEl = null;
       let lastMediaSessionTitle = "";
@@ -15031,12 +15030,32 @@
         if (!("mediaSession" in navigator)) return;
 
         if (!silentAudioEl) {
-          silentAudioEl = document.createElement("audio");
-          silentAudioEl.loop = true;
-          silentAudioEl.playsInline = true;
-          silentAudioEl.setAttribute("playsinline", "true");
-          silentAudioEl.setAttribute("webkit-playsinline", "true");
-          silentAudioEl.src = SILENT_WAV_URI;
+          try {
+            const AudioCtx = window.AudioContext || window.webkitAudioContext;
+            _silentAudioCtx = new AudioCtx();
+            const osc = _silentAudioCtx.createOscillator();
+            const gain = _silentAudioCtx.createGain();
+            osc.frequency.value = 1;
+            gain.gain.value = 0.001;
+            const dest = _silentAudioCtx.createMediaStreamDestination();
+            osc.connect(gain);
+            gain.connect(dest);
+            osc.start();
+            silentAudioEl = document.createElement("audio");
+            silentAudioEl.srcObject = dest.stream;
+            silentAudioEl.loop = true;
+            silentAudioEl.playsInline = true;
+            silentAudioEl.setAttribute("playsinline", "true");
+            silentAudioEl.setAttribute("webkit-playsinline", "true");
+          } catch (e) {
+            silentAudioEl = document.createElement("audio");
+            silentAudioEl.loop = true;
+            silentAudioEl.playsInline = true;
+            silentAudioEl.setAttribute("playsinline", "true");
+            silentAudioEl.setAttribute("webkit-playsinline", "true");
+            silentAudioEl.src =
+              "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=";
+          }
         }
 
         if (!mediaSessionHandlersBound) {
@@ -15050,6 +15069,9 @@
                 state.currentMode === null
               ) {
                 switchMode("work");
+              }
+              if (_silentAudioCtx && _silentAudioCtx.state === "suspended") {
+                _silentAudioCtx.resume().catch(() => {});
               }
               if (silentAudioEl && silentAudioEl.paused) {
                 silentAudioEl.play().catch(() => {});
@@ -15077,6 +15099,9 @@
           } catch (e) {}
         }
 
+        if (_silentAudioCtx && _silentAudioCtx.state === "suspended") {
+          _silentAudioCtx.resume().catch(() => {});
+        }
         if (silentAudioEl.paused) {
           silentAudioEl.play().catch(() => {});
         }
@@ -15088,6 +15113,9 @@
             silentAudioEl.pause();
             silentAudioEl.currentTime = 0;
           } catch (e) {}
+        }
+        if (_silentAudioCtx && _silentAudioCtx.state === "running") {
+          _silentAudioCtx.suspend().catch(() => {});
         }
         if ("mediaSession" in navigator) {
           navigator.mediaSession.playbackState = "none";
