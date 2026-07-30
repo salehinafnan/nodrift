@@ -207,14 +207,14 @@
           ========================================================================= */
       :root[data-theme="vercel-dark"] {
         --page-bg: #000000;
-        --panel-bg: #111111;
+        --panel-bg: #000000;
         --panel-shadow: none;
         --panel-blur: none;
-        --element-bg: #222222;
-        --element-hover: #333333;
-        --element-bg-light: #222222;
-        --border-main: #333333;
-        --border-light: #444444;
+        --element-bg: #1c1c1e;
+        --element-hover: #2c2c2e;
+        --element-bg-light: #1c1c1e;
+        --border-main: #2c2c2e;
+        --border-light: #3a3a3c;
         --text-main: #ededed;
         --text-muted: #a1a1a1;
         --accent-work: #ffffff;
@@ -224,14 +224,14 @@
         --btn-work-bg: #ffffff;
         --btn-work-border: #ffffff;
         --btn-work-text: #000000;
-        --btn-break-bg: #000000;
-        --btn-break-border: #333333;
-        --btn-break-text: #ededed;
-        --btn-log-bg: #000000;
-        --btn-log-text: #ededed;
-        --btn-log-border: #333333;
-        --dropdown-bg: #111111;
-        --modal-bg: #111111;
+        --btn-break-bg: #1a1a1c;
+        --btn-break-border: #444446;
+        --btn-break-text: #ffffff;
+        --btn-log-bg: #1a1a1c;
+        --btn-log-border: #444446;
+        --btn-log-text: #ffffff;
+        --dropdown-bg: #161618;
+        --modal-bg: #161618;
         --track-bg: rgba(255, 255, 255, 0.08);
         --segmented-bg: rgba(255, 255, 255, 0.1);
         --segmented-active-bg: #333333;
@@ -310,6 +310,16 @@
         border: 1px solid #111111;
       }
 
+      :root[data-theme="theme-eink"] .breakdown-row {
+        border: 1px solid #111111;
+        background: #ffffff;
+      }
+
+      :root[data-theme="theme-eink"] .breakdown-row.is-today-row {
+        border: 2px solid #111111 !important;
+        background: #e8e8e8 !important;
+      }
+
       :root[data-theme="theme-eink"] .btn-work {
         border: 1px solid #111111 !important;
       }
@@ -320,6 +330,14 @@
 
       :root[data-theme="theme-eink"] .btn-log {
         border: 1px solid #111111 !important;
+      }
+
+      :root[data-theme="vercel-dark"] .btn-break {
+        border: 1px solid var(--btn-break-border) !important;
+      }
+
+      :root[data-theme="vercel-dark"] .btn-log {
+        border: 1px solid var(--btn-log-border) !important;
       }
 
       :root[data-theme="vercel-dark"] .progress-segment {
@@ -1800,7 +1818,7 @@
         border: 1px solid var(--border-main);
         color: var(--text-muted);
         font-size: 0.75rem;
-        font-weight: 700;
+        font-weight: 600;
         padding: 6px 12px;
         border-radius: 8px;
         cursor: pointer;
@@ -1850,7 +1868,7 @@
         border: none;
         color: var(--text-muted);
         font-size: 0.75rem;
-        font-weight: 700;
+        font-weight: 600;
         padding: 0 12px;
         border-radius: calc(
           var(--segmented-radius, var(--radius-md, 10px)) -
@@ -3162,7 +3180,7 @@
           ========================================================================= */
       .sidebar-footer {
         margin-top: auto;
-        padding-top: 0.75rem;
+        padding-top: 0.5rem;
         border-top: 1px solid var(--border-main);
         display: flex;
         justify-content: center;
@@ -3170,7 +3188,7 @@
         width: 100%;
         box-sizing: border-box;
         flex-shrink: 0;
-        min-height: 60px;
+        min-height: 56px;
       }
 
       /* Left Side: Two-line Micro Metadata */
@@ -3506,24 +3524,24 @@
          .sq-btn (0,2,0) and .icon-btn (0,1,0) on source order -- these rules sit
          below both -- so the desktop rendering is unchanged. */
       .sq-btn.danger-icon {
-        background: rgba(248, 113, 113, 0.04);
-        border-color: rgba(248, 113, 113, 0.12);
+        background: rgba(255, 69, 58, 0.1) !important;
+        border: 1px solid rgba(255, 69, 58, 0.3) !important;
         transition: none;
       }
 
       .sq-btn.danger-icon svg {
-        stroke: var(--accent-break);
-        opacity: 0.85;
+        stroke: #ff453a !important;
+        opacity: 1 !important;
         transition: none;
       }
 
       .sq-btn.danger-icon:hover {
-        background: rgba(248, 113, 113, 0.14);
-        border-color: var(--accent-break);
+        background: rgba(255, 69, 58, 0.2) !important;
+        border-color: #ff453a !important;
       }
 
       .sq-btn.danger-icon:hover svg {
-        stroke: var(--accent-break);
+        stroke: #ff453a !important;
         opacity: 1;
         transform: none;
       }
@@ -3815,6 +3833,8 @@
         flex: 1;
         display: flex;
         flex-direction: column;
+        gap: 6px;
+        padding-bottom: 12px;
       }
 
       .breakdown-row {
@@ -3824,21 +3844,33 @@
         gap: 4px;
         min-height: 54px;
         height: auto;
-        padding: 8px 12px;
-        border-bottom: 1px solid var(--border-main);
+        padding: 10px 14px;
+        background: var(--element-bg);
+        border: 1px solid var(--border-main);
+        border-radius: var(--radius-md);
         font-variant-numeric: tabular-nums;
         line-height: 1.2;
         flex: 1 0 auto;
         contain: layout paint;
         box-sizing: border-box;
+        transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
       }
 
-      .breakdown-row:last-child {
-        border-bottom: none;
+      @media (hover: hover) and (pointer: fine) {
+        .breakdown-row:hover {
+          border-color: var(--border-light);
+          background: var(--element-hover);
+        }
+      }
+
+      .breakdown-row.is-today-row {
+        background: color-mix(in srgb, var(--accent-blue) 8%, var(--element-bg));
+        border: 1px solid var(--accent-blue);
+        box-shadow: 0 0 10px color-mix(in srgb, var(--accent-blue) 12%, transparent);
       }
 
       .breakdown-row.is-empty {
-        opacity: 0.7;
+        opacity: 0.65;
       }
 
       .segmented-progress-bar {
@@ -3854,9 +3886,9 @@
         align-items: center;
         justify-content: center;
         font-size: 0.65rem;
-        font-weight: 700;
+        font-weight: 600;
         color: var(--text-main);
-        opacity: 0.7;
+        opacity: 0.85;
         z-index: var(--z-base);
         pointer-events: none;
       }
@@ -4003,7 +4035,7 @@
         background: transparent;
         color: var(--tab-btn-color, var(--text-muted));
         font-size: var(--text-sm);
-        font-weight: 700;
+        font-weight: 600;
         cursor: pointer;
         border: none;
         text-align: center;
@@ -4561,7 +4593,7 @@
       }
 
       .badge-trend-ahead {
-        font-size: 0.55rem;
+        font-size: var(--text-3xs);
         padding: 2px 6px;
         gap: 2px;
         font-variant-numeric: tabular-nums;
@@ -4573,7 +4605,7 @@
       }
 
       .badge-trend-behind {
-        font-size: 0.55rem;
+        font-size: var(--text-3xs);
         padding: 2px 6px;
         gap: 2px;
         font-variant-numeric: tabular-nums;
@@ -5171,7 +5203,7 @@
           -webkit-backdrop-filter: blur(20px) saturate(160%);
           border: 0.5px solid
             color-mix(in srgb, var(--text-main) 12%, transparent);
-          box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+          box-shadow: 0 4px 14px color-mix(in srgb, var(--text-main) 8%, transparent), 0 1px 3px rgba(0, 0, 0, 0.03);
           pointer-events: auto;
           padding: 4px 8px;
         }
@@ -5395,6 +5427,11 @@
           border-radius: var(--radius-md);
         }
 
+        #m-sheet .icon-stack .sq-btn.danger-icon {
+          background: rgba(255, 69, 58, 0.12) !important;
+          border: 0.5px solid rgba(255, 69, 58, 0.35) !important;
+        }
+
         #m-sheet .icon-stack .sq-btn svg {
           width: 20px !important;
           height: 20px !important;
@@ -5488,6 +5525,15 @@
           content: "";
           display: block;
           height: calc(var(--m-tabbar-h) + var(--m-safe-bottom) + 8px) !important;
+        }
+
+        #weekly-progress-card {
+          margin-bottom: 10px !important;
+        }
+
+        #weekly-progress-card + .label-xs {
+          margin-top: 0 !important;
+          margin-bottom: 10px !important;
         }
 
         #weekly-breakdown {
@@ -5684,20 +5730,17 @@
            content; it is defensive, not load-bearing. */
         #m-sheet .idle-popup {
           position: fixed;
-          left: 0;
-          right: 0;
-          bottom: 0;
+          left: 16px;
+          right: 16px;
+          bottom: calc(16px + var(--m-safe-bottom));
           top: auto;
-          width: 100%;
+          width: auto;
           max-width: none;
-          border-radius: 20px 20px 0 0;
-          border-top: 0.5px solid color-mix(in srgb, var(--text-main) 12%, transparent);
-          border-left: 0;
-          border-right: 0;
-          border-bottom: 0;
+          border-radius: var(--radius-xl) !important;
+          border: 0.5px solid color-mix(in srgb, var(--text-main) 12%, transparent) !important;
           padding: 1.15rem 1rem calc(1rem + var(--m-safe-bottom)) !important;
           background: var(--modal-bg, var(--panel-bg));
-          box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.35);
+          box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
           z-index: calc(var(--z-overlay) - 1);
           max-height: 85svh;
           overflow: visible;
@@ -5740,10 +5783,13 @@
           display: none;
         }
 
-        /* SF Dark theme full pitch black background on mobile */
+        /* OLED dark themes full pitch black background on mobile */
         :root[data-theme="sf-dark"] body[data-mpane="timer"] .main-ui,
         :root[data-theme="sf-dark"] .sidebar,
-        :root[data-theme="sf-dark"] .logbook-sticky-toolbar {
+        :root[data-theme="sf-dark"] .logbook-sticky-toolbar,
+        :root[data-theme="vercel-dark"] body[data-mpane="timer"] .main-ui,
+        :root[data-theme="vercel-dark"] .sidebar,
+        :root[data-theme="vercel-dark"] .logbook-sticky-toolbar {
           background: var(--page-bg);
         }
 
@@ -5874,21 +5920,21 @@
           display: flex;
           flex-direction: column;
           position: fixed;
-          left: 0;
-          right: 0;
-          bottom: 0;
+          left: 16px;
+          right: 16px;
+          bottom: calc(16px + var(--m-safe-bottom));
           z-index: calc(var(--z-overlay) - 2);
           max-height: 85svh;
           background: var(--modal-bg, var(--panel-bg));
-          border-top: 0.5px solid color-mix(in srgb, var(--text-main) 12%, transparent);
-          border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-          box-shadow: 0 -12px 36px rgba(0, 0, 0, 0.28);
-          transform: translateY(101%);
+          border: 0.5px solid color-mix(in srgb, var(--text-main) 12%, transparent);
+          border-radius: var(--radius-xl);
+          box-shadow: 0 12px 36px rgba(0, 0, 0, 0.28);
+          transform: translateY(120%);
           visibility: hidden;
           transition:
             transform 0.28s cubic-bezier(0.32, 0.72, 0, 1),
             visibility 0s linear 0.28s;
-          padding-bottom: var(--m-safe-bottom);
+          padding-bottom: var(--space-3);
           box-sizing: border-box;
         }
 
@@ -6122,7 +6168,7 @@
           user-select: none;
         }
 
-        /* ---- Modals become bottom sheets ---------------------------------
+        /* ---- Modals become floating cards with standard screen gaps ---------------------------------
            All 17 overlays are opened by setting an inline display, so CSS can
            only restyle them -- never re-show them. That is fine: only
            align-items / padding / geometry change here. The slide-up is a CSS
@@ -6131,22 +6177,21 @@
            no JS hook into the open path is needed. ---------------------- */
         .modal-overlay {
           align-items: flex-end;
-          padding: 0;
+          justify-content: center;
+          padding: 16px;
+          padding-bottom: calc(16px + var(--m-safe-bottom));
           overscroll-behavior: contain;
         }
 
         .modal-container {
           width: 100%;
-          max-width: none !important;
-          border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+          max-width: calc(100vw - 32px) !important;
+          border-radius: var(--radius-xl) !important;
           background: var(--modal-bg, var(--panel-bg));
-          border-top: 0.5px solid color-mix(in srgb, var(--text-main) 12%, transparent);
-          border-left: 0;
-          border-right: 0;
-          border-bottom: 0;
-          box-shadow: 0 -12px 36px rgba(0, 0, 0, 0.28);
+          border: 0.5px solid color-mix(in srgb, var(--text-main) 12%, transparent) !important;
+          box-shadow: 0 8px 32px rgba(0, 0, 0, 0.28);
           padding-top: 1.15rem;
-          padding-bottom: calc(var(--space-5) + var(--m-safe-bottom));
+          padding-bottom: var(--space-5);
           max-height: 88svh;
           overflow-y: auto;
           overscroll-behavior: contain;
@@ -6170,31 +6215,32 @@
         }
 
         .modal-container.accent-warning {
-          border-top: 1.5px solid color-mix(in srgb, var(--accent-warning) 75%, transparent) !important;
-          box-shadow: 0 -4px 20px -2px color-mix(in srgb, var(--accent-warning) 30%, transparent), 0 -12px 36px rgba(0, 0, 0, 0.28) !important;
+          border: 1.5px solid color-mix(in srgb, var(--accent-warning) 75%, transparent) !important;
+          box-shadow: 0 4px 20px -2px color-mix(in srgb, var(--accent-warning) 30%, transparent), 0 12px 36px rgba(0, 0, 0, 0.28) !important;
         }
 
         .modal-container.accent-danger {
-          border-top: 1.5px solid color-mix(in srgb, var(--accent-break) 75%, transparent) !important;
-          box-shadow: 0 -4px 20px -2px color-mix(in srgb, var(--accent-break) 30%, transparent), 0 -12px 36px rgba(0, 0, 0, 0.28) !important;
+          border: 1.5px solid color-mix(in srgb, var(--accent-break) 75%, transparent) !important;
+          box-shadow: 0 4px 20px -2px color-mix(in srgb, var(--accent-break) 30%, transparent), 0 12px 36px rgba(0, 0, 0, 0.28) !important;
         }
 
         .modal-container.accent-info {
-          border-top: 1.5px solid color-mix(in srgb, var(--accent-blue) 75%, transparent) !important;
-          box-shadow: 0 -4px 20px -2px color-mix(in srgb, var(--accent-blue) 30%, transparent), 0 -12px 36px rgba(0, 0, 0, 0.28) !important;
+          border: 1.5px solid color-mix(in srgb, var(--accent-blue) 75%, transparent) !important;
+          box-shadow: 0 4px 20px -2px color-mix(in srgb, var(--accent-blue) 30%, transparent), 0 12px 36px rgba(0, 0, 0, 0.28) !important;
         }
 
         .modal-container.accent-success {
-          border-top: 1.5px solid color-mix(in srgb, var(--accent-work) 75%, transparent) !important;
-          box-shadow: 0 -4px 20px -2px color-mix(in srgb, var(--accent-work) 30%, transparent), 0 -12px 36px rgba(0, 0, 0, 0.28) !important;
+          border: 1.5px solid color-mix(in srgb, var(--accent-work) 75%, transparent) !important;
+          box-shadow: 0 4px 20px -2px color-mix(in srgb, var(--accent-work) 30%, transparent), 0 12px 36px rgba(0, 0, 0, 0.28) !important;
         }
 
         #heatmap-container-anim {
           width: 100% !important;
           height: auto !important;
-          max-width: 100vw !important;
+          max-width: calc(100vw - 32px) !important;
           max-height: 88svh !important;
-          border-radius: 20px 20px 0 0 !important;
+          border-radius: var(--radius-xl) !important;
+          border: 0.5px solid color-mix(in srgb, var(--text-main) 12%, transparent) !important;
           padding: 1.15rem var(--m-gutter) calc(1rem + var(--m-safe-bottom)) !important;
         }
 
@@ -6216,9 +6262,11 @@
            instead, which is what a native app does with a dense detail view. */
         .modal-width-lg {
           width: 100%;
-          height: 92svh;
-          max-height: 92svh;
-          border-radius: 20px 20px 0 0;
+          max-width: calc(100vw - 32px) !important;
+          height: 88svh;
+          max-height: 88svh;
+          border-radius: var(--radius-xl) !important;
+          border: 0.5px solid color-mix(in srgb, var(--text-main) 12%, transparent) !important;
           padding-top: 1.15rem;
         }
 
@@ -6284,7 +6332,16 @@
         }
 
         .breakdown-row {
-          border-bottom: 0.5px solid color-mix(in srgb, var(--text-main) 12%, transparent) !important;
+          border: 0.5px solid color-mix(in srgb, var(--text-main) 12%, transparent) !important;
+          background: color-mix(in srgb, var(--element-bg) 70%, transparent) !important;
+          backdrop-filter: blur(16px) saturate(150%);
+          -webkit-backdrop-filter: blur(16px) saturate(150%);
+          border-radius: var(--radius-md) !important;
+        }
+
+        .breakdown-row.is-today-row {
+          border: 1px solid var(--accent-blue) !important;
+          background: color-mix(in srgb, var(--accent-blue) 12%, var(--element-bg)) !important;
         }
 
         #undo-toast,
@@ -6591,7 +6648,7 @@
               height: auto;
             "
           >
-            <span style="font-weight: 700; font-size: var(--text-sm)"
+            <span style="font-weight: 600; font-size: var(--text-sm)"
               >Log as Work</span
             >
             <span
@@ -6617,7 +6674,7 @@
               height: auto;
             "
           >
-            <span style="font-weight: 700; font-size: var(--text-sm)"
+            <span style="font-weight: 600; font-size: var(--text-sm)"
               >Log as Break</span
             >
             <span
@@ -6643,7 +6700,7 @@
               height: auto;
             "
           >
-            <span style="font-weight: 700; font-size: var(--text-sm)"
+            <span style="font-weight: 600; font-size: var(--text-sm)"
               >Discard Idle Time</span
             >
             <span
@@ -6951,7 +7008,7 @@
               height: auto;
             "
           >
-            <span style="font-weight: 700; font-size: var(--text-sm)"
+            <span style="font-weight: 600; font-size: var(--text-sm)"
               >Keep Current Local</span
             >
             <span
@@ -6978,7 +7035,7 @@
               height: auto;
             "
           >
-            <span style="font-weight: 700; font-size: var(--text-sm)"
+            <span style="font-weight: 600; font-size: var(--text-sm)"
               >Overwrite with Backup</span
             >
             <span
@@ -7005,7 +7062,7 @@
               border-color: var(--border-light);
             "
           >
-            <span style="font-weight: 700; font-size: var(--text-sm)"
+            <span style="font-weight: 600; font-size: var(--text-sm)"
               >Keep Both (Create Duplicates)</span
             >
             <span
@@ -11544,7 +11601,6 @@
                   <div class="settings-row">
                     <span
                       class="settings-label"
-                      style="font-size: 0.72rem; font-weight: 700"
                       >Auto-populate daily goal</span
                     >
                     <label class="switch">
@@ -11579,7 +11635,6 @@
                       <div class="settings-row">
                         <span
                           class="settings-label"
-                          style="font-size: 0.72rem; font-weight: 700"
                           >Enable idle lock</span
                         >
                         <label class="switch">
@@ -11656,7 +11711,6 @@
                       <div class="settings-row">
                         <span
                           class="settings-label"
-                          style="font-size: 0.72rem; font-weight: 700"
                           >Auto-save JSON backup</span
                         >
                         <label class="switch">
@@ -11681,7 +11735,6 @@
                       <div class="settings-row">
                         <span
                           class="settings-label"
-                          style="font-size: 0.72rem; font-weight: 700"
                           >Auto-email EOD summary</span
                         >
                         <label class="switch">
@@ -11708,7 +11761,6 @@
                       >
                         <span
                           class="settings-label"
-                          style="font-size: 0.72rem; font-weight: 700"
                           >Restore Snapshot</span
                         >
                         <div class="custom-select">
@@ -19179,6 +19231,7 @@
 
         const todayStrForBase =
           typeof getPSTDate === "function" ? getPSTDate() : "";
+        const todayStrForHighlight = todayStrForBase;
         const todayBaseData = heatmapMap[todayStrForBase];
         window.todayBaseWorkSec = todayBaseData ? todayBaseData.w : 0;
         window.todayBaseBreakSec = todayBaseData ? todayBaseData.b : 0;
@@ -19279,6 +19332,8 @@
         let html = "";
         let monthsHtml = "";
         let lastMonth = -1;
+        let todayCol = -1;
+        let lastActiveCol = -1;
         const shortMonths = [
           "Jan",
           "Feb",
@@ -19418,7 +19473,15 @@
 
           // Don't show data or active backgrounds for days outside of the current year
           if (d.getFullYear() === currentYear) {
+            if (dateKey === todayStrForHighlight) {
+              todayCol = colIndex;
+            }
             const data = heatmapMap[dateKey];
+            if (data && (data.w > 0 || data.b > 0 || data.isLeave)) {
+              if (lastActiveCol === -1 || colIndex > lastActiveCol) {
+                lastActiveCol = colIndex;
+              }
+            }
             if (data) {
               if (data.isLeave) {
                 hClass = "heatmap-leave";
@@ -19475,8 +19538,6 @@
           }
 
           let cellClass = hClass;
-          const todayStrForHighlight =
-            typeof getPSTDate === "function" ? getPSTDate() : "";
           if (
             d.getFullYear() === currentYear &&
             dateKey === todayStrForHighlight
@@ -19520,7 +19581,16 @@
         // Auto-scroll the parent container holding the overflow layout
         requestAnimationFrame(() => {
           const wrapper = container.closest('div[style*="overflow-x: auto"]');
-          if (wrapper) wrapper.scrollLeft = wrapper.scrollWidth;
+          if (wrapper) {
+            const targetCol =
+              todayCol !== -1
+                ? todayCol
+                : lastActiveCol !== -1
+                  ? lastActiveCol
+                  : 26;
+            const targetCenterX = targetCol * 19 + 7;
+            wrapper.scrollLeft = targetCenterX - wrapper.clientWidth / 2;
+          }
         });
       }
 
@@ -19758,11 +19828,7 @@
           }
           totalB_AllWeek += dayB;
 
-          const rowStyle = `border-left: 3px solid ${
-            isToday ? "var(--accent-blue)" : "transparent"
-          }; background: ${
-            isToday ? "rgba(124, 180, 232, 0.08)" : "transparent"
-          }; border-radius: 8px; margin-bottom: 2px;`;
+          const rowClass = `breakdown-row${isToday ? " is-today-row" : ""}`;
 
           const weekendBadge = isWeekend
             ? `<span class="badge badge-weekend">Weekend</span>`
@@ -19790,9 +19856,9 @@
 
             if (isEmptyLeaveDay) {
               breakdownHTML += `
-                                <div class="breakdown-row is-empty" style="${rowStyle}">
+                                <div class="breakdown-row is-empty${isToday ? " is-today-row" : ""}">
                                   <div class="breakdown-row-header">
-                                    <span style="font-weight: ${isToday ? "700" : "400"}; font-size: var(--font-size-entry-title);">
+                                    <span style="font-weight: ${isToday ? "600" : "400"}; font-size: var(--font-size-entry-title);">
                                       ${_DAY_NAMES_SHORT[dayOfWeekIndex]} <span style="opacity: 0.5;">(${displayDateNoYear})</span>${weekendBadge}${leaveBadge}
                                     </span>
                                     <div class="font-mono stats-alignment-wrapper" style="font-size: var(--font-size-entry-stats); color: var(--text-main); display: flex; gap: 12px;">
@@ -19836,9 +19902,9 @@
               }
 
               breakdownHTML += `
-                                <div class="breakdown-row" style="${rowStyle}">
+                                <div class="${rowClass}">
                                   <div class="breakdown-row-header">
-                                    <span style="font-weight: ${isToday ? "700" : "400"}; font-size: var(--font-size-entry-title);">
+                                    <span style="font-weight: ${isToday ? "600" : "400"}; font-size: var(--font-size-entry-title);">
                                       ${_DAY_NAMES_SHORT[dayOfWeekIndex]} <span style="opacity: 0.5;">(${displayDateNoYear})</span>${weekendBadge}${leaveBadge}
                                     </span>
                                     <div class="font-mono stats-alignment-wrapper" style="font-size: var(--font-size-entry-stats); color: var(--text-main); display: flex; gap: 12px;">
@@ -19867,10 +19933,10 @@
             if (isEmptyDay) {
               if (!isWeekend) {
                 breakdownHTML += `
-                      <div class="breakdown-row is-empty" style="${rowStyle}">
+                      <div class="breakdown-row is-empty${isToday ? " is-today-row" : ""}">
                         <div class="breakdown-row-header">
                           <span style="font-weight: ${
-                            isToday ? "700" : "400"
+                            isToday ? "600" : "400"
                           }; font-size: var(--font-size-entry-title);">
                             ${
                               _DAY_NAMES_SHORT[dayOfWeekIndex]
@@ -19941,10 +20007,10 @@
               const textClass = isOver ? "text-work" : "text-warning";
 
               breakdownHTML += `
-                    <div class="breakdown-row" style="${rowStyle}">
+                    <div class="${rowClass}">
                       <div class="breakdown-row-header">
                         <span style="font-weight: ${
-                          isToday ? "700" : "400"
+                          isToday ? "600" : "400"
                         }; font-size: var(--font-size-entry-title);">
                           ${
                             _DAY_NAMES_SHORT[dayOfWeekIndex]
@@ -20406,7 +20472,7 @@
             isCurrent: isCurrentRow,
           });
 
-          const rowStyle = `border-left: 3px solid ${isCurrentRow ? "var(--accent-blue)" : "transparent"}; background: ${isCurrentRow ? "rgba(124, 180, 232, 0.08)" : "transparent"}; border-radius: 8px; margin-bottom: 2px;`;
+          const rowClass = `breakdown-row${isCurrentRow ? " is-today-row" : ""}`;
           const leaveText =
             bData.leaveDays > 0
               ? `<span class="badge badge-leave">${bData.leaveDays} Day${bData.leaveDays === 1 ? "" : "s"} Off</span>`
@@ -20419,9 +20485,9 @@
 
           if (isEmptyBucket) {
             breakdownHTML += `
-                <div class="breakdown-row is-empty" style="${rowStyle}">
+                <div class="breakdown-row is-empty${isCurrentRow ? " is-today-row" : ""}">
                   <div class="breakdown-row-header">
-                    <span style="font-weight: ${isCurrentRow ? "700" : "400"}; font-size: var(--font-size-entry-title);">
+                    <span style="font-weight: ${isCurrentRow ? "600" : "400"}; font-size: var(--font-size-entry-title);">
                       ${escapeHTML(bData.label)}${leaveText}
                     </span>
                     <div class="font-mono stats-alignment-wrapper" style="font-size: var(--font-size-entry-stats); color: var(--text-main); display: flex; gap: 12px;">
@@ -20446,9 +20512,9 @@
             const shiftText = `${bData.logs.length} Shift${bData.logs.length !== 1 ? "s" : ""}`;
 
             breakdownHTML += `
-                <div class="breakdown-row" style="${rowStyle}">
+                <div class="${rowClass}">
                   <div class="breakdown-row-header">
-                    <span style="font-weight: ${isCurrentRow ? "700" : "400"}; font-size: var(--font-size-entry-title);">
+                    <span style="font-weight: ${isCurrentRow ? "600" : "400"}; font-size: var(--font-size-entry-title);">
                       ${escapeHTML(bData.label)}${leaveText}
                     </span>
                     <div class="font-mono stats-alignment-wrapper" style="font-size: var(--font-size-entry-stats); color: var(--text-main); display: flex; gap: 12px;">
@@ -24704,7 +24770,7 @@
         taskRowTemplate.innerHTML = `
             <div style="display: flex; justify-content: space-between; align-items: center;">
               <div style="display: flex; align-items: center; gap: 8px; min-width: 0;">
-                <span style="font-weight: 500; font-size: 0.75rem; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" class="task-note-text"></span>
+                <span style="font-weight: 400; font-size: var(--font-size-entry-title); color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" class="task-note-text"></span>
               </div>
               <div class="font-mono" style="display: flex; align-items: center; gap: 6px; flex-shrink: 0; font-size: var(--font-size-entry-stats);">
                 <span class="badge badge-t">T</span><span class="task-dur-text"></span>
