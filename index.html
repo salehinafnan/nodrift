@@ -2312,7 +2312,7 @@
         background: var(--element-bg);
         border: 1px solid var(--border-main);
         color: var(--text-muted);
-        padding: 0 10px;
+        padding: 0 8px;
         height: 27px;
         box-sizing: border-box;
         border-radius: 6px;
@@ -2320,7 +2320,7 @@
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        gap: 6px;
+        gap: 4px;
         font-family: var(--font-sans);
         font-size: 0.72rem;
         font-weight: 600;
@@ -5367,7 +5367,7 @@
 
         #m-sheet .footer-icons {
           display: grid;
-          grid-template-columns: repeat(5, 1fr);
+          grid-template-columns: repeat(4, 1fr);
           gap: 0.5rem 0.25rem;
           width: 100%;
         }
@@ -5823,7 +5823,7 @@
         }
 
         .m-tab[aria-selected="true"] {
-          color: var(--text-main);
+          color: var(--accent-blue);
           background: var(--element-hover);
           box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
         }
@@ -9737,8 +9737,62 @@
                 </button>
               </div>
 
-              <!-- Total Active Log Item Indicator Counter (Styled cleanly via CSS ID now) -->
-              <span id="log-count-display"></span>
+              <div style="display: flex; align-items: center; gap: 8px">
+                <!-- Total Active Log Item Indicator Counter (Styled cleanly via CSS ID now) -->
+                <span
+                  id="log-count-display"
+                  style="
+                    font-size: 0.75rem;
+                    color: var(--text-main);
+                    font-weight: 500;
+                    font-variant-numeric: tabular-nums;
+                  "
+                ></span>
+                <div
+                  style="
+                    display: flex;
+                    gap: 0;
+                    border-left: 1px solid var(--border-main);
+                    padding-left: 8px;
+                    margin-left: 4px;
+                  "
+                >
+                  <button
+                    id="copy-all-btn"
+                    class="task-export-icon"
+                    title="Copy Logs"
+                    onclick="copyLog()"
+                  >
+                    <svg
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      fill="none"
+                      stroke-width="1.8"
+                      width="16"
+                      height="16"
+                    >
+                      <g data-sprite="sprite-040"></g>
+                    </svg>
+                  </button>
+                  <button
+                    id="export-csv-btn"
+                    class="task-export-icon"
+                    title="Export CSV"
+                    onclick="exportCSV()"
+                  >
+                    <svg
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      fill="none"
+                      stroke-width="1.8"
+                      width="16"
+                      height="16"
+                    >
+                      <g data-sprite="sprite-030"></g>
+                    </svg>
+                  </button>
+                </div>
+              </div>
             </div>
 
             <!-- Filter Drawer Container -->
@@ -10741,7 +10795,7 @@
                 <div
                   style="
                     display: flex;
-                    gap: 4px;
+                    gap: 0;
                     border-left: 1px solid var(--border-main);
                     padding-left: 8px;
                     margin-left: 4px;
@@ -11122,42 +11176,6 @@
         <div class="sidebar-footer">
           <!-- Left Bottom: Two Lines Metadata -->
           <div class="footer-icons">
-            <div class="icon-stack">
-              <button
-                title="Export CSV"
-                aria-label="Export CSV"
-                class="icon-btn sq-btn"
-                onclick="exportCSV()"
-              >
-                <svg
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  fill="none"
-                  stroke-width="1.8"
-                >
-                  <g data-sprite="sprite-030"></g>
-                </svg>
-              </button>
-            </div>
-
-            <div class="icon-stack">
-              <button
-                title="Copy Logs"
-                aria-label="Copy Logs"
-                class="icon-btn sq-btn"
-                onclick="copyLog()"
-              >
-                <svg
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  fill="none"
-                  stroke-width="1.8"
-                >
-                  <g data-sprite="sprite-031"></g>
-                </svg>
-              </button>
-            </div>
-
             <div class="icon-stack">
               <button
                 title="Backup JSON"
