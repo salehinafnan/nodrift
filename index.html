@@ -296,7 +296,14 @@
       :root[data-theme="theme-eink"] .status-badge,
       :root[data-theme="theme-eink"] .theme-toggle-btn {
         border: 1px solid #111111;
-        box-shadow: 3px 3px 0 #111111;
+      }
+
+      @media (min-width: 1150px) {
+        :root[data-theme="theme-eink"] .console-panel,
+        :root[data-theme="theme-eink"] .status-badge,
+        :root[data-theme="theme-eink"] .theme-toggle-btn {
+          box-shadow: 3px 3px 0 #111111;
+        }
       }
 
       :root[data-theme="theme-eink"] .stat-card {
@@ -528,12 +535,12 @@
         position: absolute;
         top: 1rem;
         right: 1rem;
-        width: 26px;
-        height: 26px;
+        width: 28px;
+        height: 28px;
         background: var(--element-bg);
         border: 1px solid var(--border-main);
         color: var(--text-muted);
-        border-radius: var(--radius-sm);
+        border-radius: var(--radius-md);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -541,8 +548,11 @@
         padding: 0;
         transition:
           color 0.15s ease,
-          background-color 0.15s ease;
+          background-color 0.15s ease,
+          border-color 0.15s ease,
+          transform 0.1s ease;
         z-index: 10;
+        box-sizing: border-box;
       }
 
       .modal-close-btn:hover {
@@ -551,11 +561,17 @@
         border-color: var(--border-light);
       }
 
+      .modal-close-btn:active {
+        transform: scale(0.92);
+      }
+
       .modal-close-btn svg {
         width: 14px;
         height: 14px;
+        stroke: currentColor;
         stroke-width: 2;
         stroke-linecap: round;
+        stroke-linejoin: round;
       }
 
       .modal-header.warning {
@@ -1256,8 +1272,8 @@
 
       .goal-inputs input[type="text"]:hover,
       .goal-inputs input[type="text"]:focus {
-        background: var(--element-hover);
-        border-color: var(--border-light);
+        background: transparent;
+        border-color: transparent;
         cursor: text;
       }
 
@@ -5471,11 +5487,11 @@
         #task-log-scroll-viewport::after {
           content: "";
           display: block;
-          height: calc(var(--m-tabbar-h) + var(--m-safe-bottom)) !important;
+          height: calc(var(--m-tabbar-h) + var(--m-safe-bottom) + 8px) !important;
         }
 
         #weekly-breakdown {
-          padding-bottom: calc(var(--m-tabbar-h) + var(--m-safe-bottom));
+          padding-bottom: calc(var(--m-tabbar-h) + var(--m-safe-bottom) + 8px);
         }
 
         /* Row action buttons: sliding drawer for mobile */
@@ -5747,7 +5763,7 @@
 
         .scroll-top-btn {
           left: 50%;
-          bottom: calc(var(--m-topbar-h) + var(--m-safe-bottom) + 16px);
+          bottom: calc(var(--m-tabbar-h) + var(--m-safe-bottom) + 12px);
           z-index: var(--z-modal);
         }
 
@@ -5766,9 +5782,11 @@
           border-top: 0.5px solid
             color-mix(in srgb, var(--text-main) 12%, transparent);
           border-radius: 0;
-          box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.12);
-          padding: 4px;
+          box-shadow: none;
+          padding-top: 4px;
           padding-bottom: calc(4px + var(--m-safe-bottom));
+          padding-left: max(12px, env(safe-area-inset-left, 0px));
+          padding-right: max(12px, env(safe-area-inset-right, 0px));
           overflow: hidden;
           transition:
             transform 0.28s cubic-bezier(0.32, 0.72, 0, 1),
@@ -5816,7 +5834,7 @@
         .m-tab[aria-selected="true"] {
           color: var(--accent-blue);
           background: var(--element-hover);
-          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+          box-shadow: none;
         }
 
         .m-tab:active {
@@ -5930,8 +5948,8 @@
         }
 
         #m-sheet-close {
-          width: 26px;
-          height: 26px;
+          width: 28px;
+          height: 28px;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -5945,6 +5963,7 @@
           height: 14px;
           stroke-width: 2;
           stroke-linecap: round;
+          stroke-linejoin: round;
         }
 
         #m-sheet-body {
@@ -6058,12 +6077,18 @@
         }
 
         #m-sheet .goal-inputs .input-standard,
+        #m-sheet .goal-inputs input,
+        .goal-inputs .input-standard,
+        .goal-inputs input,
         .modal-container .date-picker-group .input-standard,
         #m-sheet .date-picker-group .input-standard,
+        .date-picker-group .input-standard,
         .filter-group-card .filter-input {
           background: transparent !important;
           border: none !important;
           box-shadow: none !important;
+          backdrop-filter: none !important;
+          -webkit-backdrop-filter: none !important;
         }
 
         /* No grey flash, no double-tap zoom, no long-press callout on chrome. */
@@ -6165,7 +6190,16 @@
         }
 
         #heatmap-container-anim {
-          padding-top: 1.15rem !important;
+          width: 100% !important;
+          height: auto !important;
+          max-width: 100vw !important;
+          max-height: 88svh !important;
+          border-radius: 20px 20px 0 0 !important;
+          padding: 1.15rem var(--m-gutter) calc(1rem + var(--m-safe-bottom)) !important;
+        }
+
+        #heatmap-container-anim::before {
+          display: none !important;
         }
 
         @keyframes m-sheet-rise {
@@ -9129,21 +9163,23 @@
             </div>
           </h3>
           <button
-            class="toast-close-btn"
+            class="modal-close-btn"
             aria-label="Close"
             onclick="closeHeatmapModal()"
+            style="position: static;"
           >
             <svg
-              width="20"
-              height="20"
+              width="14"
+              height="14"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
-              stroke-width="1.8"
+              stroke-width="2"
               stroke-linecap="round"
               stroke-linejoin="round"
             >
-              <g data-sprite="sprite-014"></g>
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
             </svg>
           </button>
         </div>
@@ -28633,9 +28669,19 @@ logic (.value reads, .value sets, change listeners) works unchanged.
         }
 
         function initModalTouchDrag() {
+          function hasScrolledParent(target, root) {
+            let node = target;
+            while (node && node !== root) {
+              if (node.scrollTop && node.scrollTop > 0) return true;
+              node = node.parentElement;
+            }
+            return false;
+          }
+
           document
             .querySelectorAll(".modal-container, .idle-popup")
             .forEach((container) => {
+              if (container.id === "heatmap-container-anim") return;
               if (container._touchDragBound) return;
               container._touchDragBound = true;
 
@@ -28647,7 +28693,16 @@ logic (.value reads, .value sets, change listeners) works unchanged.
                 "touchstart",
                 (e) => {
                   if (e.touches.length !== 1) return;
+                  const target = e.target;
+                  if (
+                    target.closest(
+                      "input, textarea, select, button, a, .preset-pill, .slider-toggle, .custom-select-trigger",
+                    )
+                  )
+                    return;
+                  if (hasScrolledParent(target, container)) return;
                   if (container.scrollTop > 5) return;
+
                   startY = e.touches[0].clientY;
                   currentDeltaY = 0;
                   isDragging = true;
@@ -28659,6 +28714,13 @@ logic (.value reads, .value sets, change listeners) works unchanged.
                 "touchmove",
                 (e) => {
                   if (!isDragging) return;
+                  if (hasScrolledParent(e.target, container)) {
+                    isDragging = false;
+                    container.style.transition = "";
+                    container.style.transform = "";
+                    return;
+                  }
+
                   const currentY = e.touches[0].clientY;
                   currentDeltaY = currentY - startY;
 
@@ -28668,6 +28730,7 @@ logic (.value reads, .value sets, change listeners) works unchanged.
                     container.style.transform = `translateY(${currentDeltaY}px)`;
                   } else {
                     currentDeltaY = 0;
+                    container.style.transform = "";
                   }
                 },
                 { passive: false },
