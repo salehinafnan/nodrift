@@ -1237,8 +1237,8 @@
       }
 
       .goal-inputs input[type="text"] {
-        background: transparent;
-        border: 1px solid transparent;
+        background: transparent !important;
+        border: none !important;
         color: var(--text-main);
         font-weight: 500;
         font-size: 1rem;
@@ -2578,8 +2578,8 @@
       }
 
       .filter-group-card input.filter-input {
-        border: none;
-        background: transparent;
+        border: none !important;
+        background: transparent !important;
         padding: 0;
         outline: none;
         margin: 0;
@@ -3259,7 +3259,7 @@
 
       .idle-popup-header {
         display: flex;
-        align-items: center;
+        align-items: flex-start;
         justify-content: space-between;
         margin-bottom: 0.5rem;
         width: 100%;
@@ -3271,9 +3271,10 @@
       }
 
       .idle-popup-title {
-        font-size: 0.85rem;
-        font-weight: 700;
+        font-size: 0.95rem;
+        font-weight: 600;
         color: var(--text-main);
+        line-height: 26px;
       }
 
       .settings-divider {
@@ -4097,8 +4098,8 @@
       }
 
       .date-picker-group input.input-standard {
-        border: none;
-        background: transparent;
+        border: none !important;
+        background: transparent !important;
         padding: 0;
         outline: none;
         width: 100%;
@@ -5351,18 +5352,13 @@
           white-space: nowrap;
           background: color-mix(
             in srgb,
-            var(--element-bg) 65%,
+            var(--element-bg) 70%,
             transparent
           ) !important;
           backdrop-filter: blur(16px) saturate(150%);
           -webkit-backdrop-filter: blur(16px) saturate(150%);
-          border: 1px solid
-            color-mix(
-              in srgb,
-              var(--border-main) 60%,
-              rgba(255, 255, 255, 0.12)
-            ) !important;
-          box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+          border: 0.5px solid color-mix(in srgb, var(--text-main) 12%, transparent) !important;
+          box-shadow: none;
         }
 
         #m-sheet .footer-icons {
@@ -5439,6 +5435,10 @@
           min-height: 64px;
           font-size: 1.15rem;
           border-radius: var(--radius-md);
+        }
+
+        .actions button,
+        #task-actions-group button {
           touch-action: manipulation;
           -webkit-tap-highlight-color: transparent;
           backdrop-filter: blur(16px) saturate(150%);
@@ -5588,20 +5588,13 @@
           gap: 6px;
           background: color-mix(
             in srgb,
-            var(--panel-bg) 75%,
+            var(--panel-bg) 72%,
             transparent
           ) !important;
           backdrop-filter: blur(20px) saturate(160%);
           -webkit-backdrop-filter: blur(20px) saturate(160%);
-          border: 1px solid
-            color-mix(
-              in srgb,
-              var(--border-main) 60%,
-              rgba(255, 255, 255, 0.12)
-            ) !important;
-          box-shadow:
-            0 8px 24px rgba(0, 0, 0, 0.18),
-            inset 0 1px 0 rgba(255, 255, 255, 0.15) !important;
+          border: 0.5px solid color-mix(in srgb, var(--text-main) 12%, transparent) !important;
+          box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18) !important;
         }
 
         .advanced-filters .filter-row {
@@ -5649,9 +5642,8 @@
           background: color-mix(in srgb, var(--accent-blue) 14%, transparent);
           backdrop-filter: blur(12px) saturate(140%);
           -webkit-backdrop-filter: blur(12px) saturate(140%);
-          border: 1px solid
-            color-mix(in srgb, var(--accent-blue) 35%, transparent);
-          box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15);
+          border: 0.5px solid color-mix(in srgb, var(--accent-blue) 35%, transparent);
+          box-shadow: none;
         }
 
         /* The sticky toolbar must sit above rows but below the fixed top bar. */
@@ -5683,9 +5675,11 @@
           width: 100%;
           max-width: none;
           border-radius: 20px 20px 0 0;
-          border: 1px solid var(--border-main);
+          border-top: 0.5px solid color-mix(in srgb, var(--text-main) 12%, transparent);
+          border-left: 0;
+          border-right: 0;
           border-bottom: 0;
-          padding: 1.25rem 1rem calc(1rem + var(--m-safe-bottom)) !important;
+          padding: 1.15rem 1rem calc(1rem + var(--m-safe-bottom)) !important;
           background: var(--modal-bg, var(--panel-bg));
           box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.35);
           z-index: calc(var(--z-overlay) - 1);
@@ -5708,6 +5702,7 @@
           border-radius: 2px;
           background: var(--border-main);
           touch-action: none;
+          z-index: 100;
         }
 
         /* ---- Content panes ---------------------------------------------- */
@@ -5867,16 +5862,9 @@
           z-index: calc(var(--z-overlay) - 2);
           max-height: 85svh;
           background: var(--modal-bg, var(--panel-bg));
-          border-top: 1px solid
-            color-mix(
-              in srgb,
-              var(--border-light) 60%,
-              rgba(255, 255, 255, 0.15)
-            );
+          border-top: 0.5px solid color-mix(in srgb, var(--text-main) 12%, transparent);
           border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-          box-shadow:
-            0 -12px 36px rgba(0, 0, 0, 0.28),
-            inset 0 1px 0 rgba(255, 255, 255, 0.15);
+          box-shadow: 0 -12px 36px rgba(0, 0, 0, 0.28);
           transform: translateY(101%);
           visibility: hidden;
           transition:
@@ -5915,7 +5903,7 @@
         #m-sheet-head {
           position: relative;
           display: flex;
-          align-items: center;
+          align-items: flex-start;
           justify-content: space-between;
           gap: 0.5rem;
           padding: 1.15rem var(--m-gutter) 0.6rem;
@@ -5988,7 +5976,6 @@
         /* Comfortable, thumb-sized controls. */
         .input-standard,
         select.input-standard,
-        textarea.input-standard,
         .date-picker-group {
           min-height: 44px;
           padding: 0 var(--space-3);
@@ -5996,6 +5983,7 @@
 
         textarea.input-standard {
           min-height: 88px;
+          padding: var(--space-3);
         }
 
         .preset-pill {
@@ -6015,10 +6003,15 @@
         .goal-inputs,
         .sq-btn,
         .header-icon-btn,
-        #task-note-input,
+        #task-note-input:not(.task-input-running),
         .goal-inputs button:not(.active),
         #m-sheet-close,
-        .modal-container button {
+        .modal-container button,
+        .input-standard:not(.task-input-running),
+        .filter-input,
+        .custom-select-trigger,
+        .date-picker-group,
+        .stat-card {
           border: 0.5px solid
             color-mix(in srgb, var(--text-main) 12%, transparent) !important;
           background: color-mix(
@@ -6028,6 +6021,49 @@
           ) !important;
           backdrop-filter: blur(16px) saturate(150%);
           -webkit-backdrop-filter: blur(16px) saturate(150%);
+        }
+
+        #task-note-input {
+          min-height: 34px !important;
+          height: 34px !important;
+          line-height: 34px !important;
+          margin-bottom: var(--space-3) !important;
+          padding: 0 12px !important;
+        }
+
+        #task-note-input:not(.task-input-running) {
+          font-size: 0.82rem !important;
+        }
+
+        #task-note-input.task-input-running {
+          border: none !important;
+          background: transparent !important;
+          box-shadow: none !important;
+          font-size: 0.85rem !important;
+          font-weight: 600 !important;
+        }
+
+        .modal-container .input-standard,
+        .modal-container .date-picker-group,
+        #m-sheet .input-standard {
+          background: var(--element-bg) !important;
+          border: 0.5px solid color-mix(in srgb, var(--text-main) 12%, transparent) !important;
+          outline: none !important;
+        }
+
+        .modal-container .input-standard:focus,
+        .modal-container .date-picker-group:focus-within,
+        #m-sheet .input-standard:focus {
+          border-color: var(--accent-blue) !important;
+        }
+
+        #m-sheet .goal-inputs .input-standard,
+        .modal-container .date-picker-group .input-standard,
+        #m-sheet .date-picker-group .input-standard,
+        .filter-group-card .filter-input {
+          background: transparent !important;
+          border: none !important;
+          box-shadow: none !important;
         }
 
         /* No grey flash, no double-tap zoom, no long-press callout on chrome. */
@@ -6078,20 +6114,13 @@
           width: 100%;
           max-width: none !important;
           border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-          background: var(--modal-bg);
-          border-top: 1px solid
-            color-mix(
-              in srgb,
-              var(--border-light) 60%,
-              rgba(255, 255, 255, 0.15)
-            );
+          background: var(--modal-bg, var(--panel-bg));
+          border-top: 0.5px solid color-mix(in srgb, var(--text-main) 12%, transparent);
           border-left: 0;
           border-right: 0;
           border-bottom: 0;
-          box-shadow:
-            0 -12px 36px rgba(0, 0, 0, 0.28),
-            inset 0 1px 0 rgba(255, 255, 255, 0.15);
-          padding-top: 1.5rem;
+          box-shadow: 0 -12px 36px rgba(0, 0, 0, 0.28);
+          padding-top: 1.15rem;
           padding-bottom: calc(var(--space-5) + var(--m-safe-bottom));
           max-height: 88svh;
           overflow-y: auto;
@@ -6112,6 +6141,31 @@
           border-radius: 2px;
           background: var(--border-main);
           touch-action: none;
+          z-index: 100;
+        }
+
+        .modal-container.accent-warning {
+          border-top: 1.5px solid color-mix(in srgb, var(--accent-warning) 75%, transparent) !important;
+          box-shadow: 0 -4px 20px -2px color-mix(in srgb, var(--accent-warning) 30%, transparent), 0 -12px 36px rgba(0, 0, 0, 0.28) !important;
+        }
+
+        .modal-container.accent-danger {
+          border-top: 1.5px solid color-mix(in srgb, var(--accent-break) 75%, transparent) !important;
+          box-shadow: 0 -4px 20px -2px color-mix(in srgb, var(--accent-break) 30%, transparent), 0 -12px 36px rgba(0, 0, 0, 0.28) !important;
+        }
+
+        .modal-container.accent-info {
+          border-top: 1.5px solid color-mix(in srgb, var(--accent-blue) 75%, transparent) !important;
+          box-shadow: 0 -4px 20px -2px color-mix(in srgb, var(--accent-blue) 30%, transparent), 0 -12px 36px rgba(0, 0, 0, 0.28) !important;
+        }
+
+        .modal-container.accent-success {
+          border-top: 1.5px solid color-mix(in srgb, var(--accent-work) 75%, transparent) !important;
+          box-shadow: 0 -4px 20px -2px color-mix(in srgb, var(--accent-work) 30%, transparent), 0 -12px 36px rgba(0, 0, 0, 0.28) !important;
+        }
+
+        #heatmap-container-anim {
+          padding-top: 1.15rem !important;
         }
 
         @keyframes m-sheet-rise {
@@ -6131,7 +6185,7 @@
           height: 92svh;
           max-height: 92svh;
           border-radius: 20px 20px 0 0;
-          padding-top: 1.5rem;
+          padding-top: 1.15rem;
         }
 
         /* 2-column form rows and action row for compact modal layout */
@@ -6186,20 +6240,25 @@
           border-radius: var(--radius-md);
           background: color-mix(
             in srgb,
-            var(--panel-bg) 75%,
+            var(--panel-bg) 72%,
             transparent
           ) !important;
           backdrop-filter: blur(16px) saturate(150%);
           -webkit-backdrop-filter: blur(16px) saturate(150%);
-          border: 1px solid
-            color-mix(
-              in srgb,
-              var(--border-light) 60%,
-              rgba(255, 255, 255, 0.15)
-            ) !important;
-          box-shadow:
-            0 8px 24px rgba(0, 0, 0, 0.2),
-            inset 0 1px 0 rgba(255, 255, 255, 0.15) !important;
+          border: 0.5px solid color-mix(in srgb, var(--text-main) 12%, transparent) !important;
+          box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2) !important;
+        }
+
+        .breakdown-row {
+          border-bottom: 0.5px solid color-mix(in srgb, var(--text-main) 12%, transparent) !important;
+        }
+
+        #undo-toast,
+        #sync-toast,
+        #goal-toast,
+        #app-toast {
+          border: 0.5px solid color-mix(in srgb, var(--text-main) 12%, transparent) !important;
+          box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12) !important;
         }
       }
 
@@ -8900,7 +8959,6 @@
           border: 1px solid var(--border-main);
           transform: scale(0.96) translateY(-10px);
           opacity: 0;
-          transition: none;
           overflow: hidden;
           cursor: default;
           width: max-content;
@@ -10495,8 +10553,8 @@
             border-color: transparent !important;
             background: transparent !important;
             text-align: center;
-            font-weight: 700;
-            font-size: 1.1rem;
+            font-weight: 600 !important;
+            font-size: 0.85rem !important;
             pointer-events: none;
             padding: 0 !important;
           }
@@ -19450,7 +19508,9 @@
         if (!modal || !anim) return;
         modal.style.opacity = "0";
         anim.style.opacity = "0";
-        anim.style.transform = "scale(0.96) translateY(-10px)";
+        if (window.innerWidth > 767) {
+          anim.style.transform = "scale(0.96) translateY(-10px)";
+        }
         setTimeout(() => {
           modal.style.display = "none";
         }, 150);
@@ -28603,23 +28663,31 @@ logic (.value reads, .value sets, change listeners) works unchanged.
                   currentDeltaY = currentY - startY;
 
                   if (currentDeltaY > 0 && container.scrollTop <= 0) {
+                    if (e.cancelable) e.preventDefault();
                     container.style.transition = "none";
                     container.style.transform = `translateY(${currentDeltaY}px)`;
                   } else {
                     currentDeltaY = 0;
                   }
                 },
-                { passive: true },
+                { passive: false },
               );
 
               const endDrag = (cancelled) => {
                 if (!isDragging) return;
                 isDragging = false;
-                container.style.transition = "transform 0.2s ease";
-                container.style.transform = "";
 
                 if (!cancelled && currentDeltaY > 70) {
-                  closeAllActiveModals();
+                  container.style.transition = "transform 0.2s ease";
+                  container.style.transform = `translateY(100%)`;
+                  setTimeout(() => {
+                    closeAllActiveModals();
+                    container.style.transform = "";
+                    container.style.transition = "";
+                  }, 200);
+                } else {
+                  container.style.transition = "transform 0.2s ease";
+                  container.style.transform = "";
                 }
               };
 
