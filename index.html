@@ -2269,6 +2269,7 @@
       }
 
       .tab-content,
+      #logbook-scroll-viewport,
       #task-log-scroll-viewport {
         flex: 1;
         overflow-y: auto;
@@ -2281,6 +2282,7 @@
       }
 
       .tab-content::-webkit-scrollbar,
+      #logbook-scroll-viewport::-webkit-scrollbar,
       #task-log-scroll-viewport::-webkit-scrollbar {
         display: none;
       }
@@ -3018,7 +3020,7 @@
       }
 
       .log-more-btn {
-        display: none;
+        display: none !important;
       }
 
       .idle-action-btn {
@@ -5108,6 +5110,8 @@
           pointer-events: none;
           padding: calc(12px + var(--m-safe-top)) var(--m-gutter) 0;
           box-sizing: border-box;
+          border: none;
+          box-shadow: none;
         }
 
         body[data-mpane="timer"] .main-ui {
@@ -5455,6 +5459,7 @@
            alone means the virtual scroller needs no mobile-specific handling. */
 
         .tab-content,
+        #logbook-scroll-viewport,
         #task-log-scroll-viewport {
           /* Stops the list from chaining its scroll into the page, which is what
              triggers pull-to-refresh and the rubber-band bounce behind the shell. */
@@ -5462,7 +5467,7 @@
           -webkit-overflow-scrolling: touch;
         }
 
-        #tab-logbook::after,
+        #logbook-scroll-viewport::after,
         #task-log-scroll-viewport::after {
           content: "";
           display: block;
@@ -6293,6 +6298,7 @@
         }
 
         .tab-content,
+        #logbook-scroll-viewport,
         #task-log-scroll-viewport {
           overscroll-behavior: contain;
           -webkit-overflow-scrolling: touch;
@@ -9675,7 +9681,16 @@
         </div>
 
         <!-- Tab Content Area: Historical Shift Logbook -->
-        <div id="tab-logbook" class="tab-content" style="display: none">
+        <div
+          id="tab-logbook"
+          class="tab-content"
+          style="
+            display: none;
+            flex-direction: column;
+            height: 100%;
+            overflow-y: hidden;
+          "
+        >
           <div class="logbook-sticky-toolbar">
             <div class="logbook-controls-header">
               <div style="display: flex; gap: 8px; align-items: center">
@@ -10166,7 +10181,19 @@
           <!-- Close logbook-sticky-toolbar -->
 
           <!-- Virtual list target container -->
-          <div id="log-container"></div>
+          <div
+            id="logbook-scroll-viewport"
+            style="
+              flex: 1;
+              overflow-y: auto;
+              overflow-x: hidden;
+              min-height: 0;
+              overscroll-behavior: contain;
+              -webkit-overflow-scrolling: touch;
+            "
+          >
+            <div id="log-container"></div>
+          </div>
         </div>
 
         <!-- Tab Content Area: Analytical Insights & Metrics -->
@@ -12932,6 +12959,9 @@
           this._progressSegmentFills = null;
         },
         tabLogbook: document.getElementById("tab-logbook"),
+        logbookScrollViewport: document.getElementById(
+          "logbook-scroll-viewport",
+        ),
         tabInsights: document.getElementById("tab-insights"),
         tabTasks: document.getElementById("tab-tasks"),
         taskNoteInput: document.getElementById("task-note-input"),
@@ -18179,7 +18209,8 @@
       function remeasureVirtualScrollers() {
         const logbookTab = DOM.tabLogbook;
         if (logbookTab) {
-          cachedViewportHeight = logbookTab.clientHeight;
+          cachedViewportHeight = (DOM.logbookScrollViewport || logbookTab)
+            .clientHeight;
         }
         if (DOM.taskLogScrollViewport) {
           cachedTaskViewportHeight = DOM.taskLogScrollViewport.clientHeight;
@@ -18241,14 +18272,18 @@
       // High-performance passive animation frame throttle for scroll calculations
       let scrollAnimationFrameActive = false;
       let lastLogbookScrollTop = 0;
-      DOM.tabLogbook.addEventListener(
+      (DOM.logbookScrollViewport || DOM.tabLogbook).addEventListener(
         "scroll",
         () => {
           if (!scrollAnimationFrameActive) {
             scrollAnimationFrameActive = true;
 
-            const currentScrollTop = DOM.tabLogbook.scrollTop;
-            const currentClientHeight = DOM.tabLogbook.clientHeight;
+            const currentScrollTop = (
+              DOM.logbookScrollViewport || DOM.tabLogbook
+            ).scrollTop;
+            const currentClientHeight = (
+              DOM.logbookScrollViewport || DOM.tabLogbook
+            ).clientHeight;
             if (currentClientHeight > 0) {
               cachedViewportHeight = currentClientHeight;
             } else if (!cachedViewportHeight) {
@@ -18286,7 +18321,10 @@
       window.scrollToTopLogbook = function () {
         const logbookTab = DOM.tabLogbook;
         if (logbookTab) {
-          logbookTab.scrollTo({ top: 0, behavior: "smooth" });
+          (DOM.logbookScrollViewport || logbookTab).scrollTo({
+            top: 0,
+            behavior: "smooth",
+          });
         }
       };
 
@@ -18347,7 +18385,7 @@
             stickyIndicator.style.display = "";
           }
         }
-        const scrollContainer = DOM.tabLogbook;
+        const scrollContainer = DOM.logbookScrollViewport || DOM.tabLogbook;
         const scrollTop =
           passedScrollTop !== undefined
             ? passedScrollTop
@@ -22995,12 +23033,13 @@
             const selectedLog = virtualScrollLogs[selectedLogIdx];
             window.selectedLogId = selectedLog ? selectedLog.id : null;
             const itemHeight = getDynamicItemHeight();
-            const scrollTop = logbookTab.scrollTop;
-            const viewH = logbookTab.clientHeight;
+            const scrollContainer = DOM.logbookScrollViewport || logbookTab;
+            const scrollTop = scrollContainer.scrollTop;
+            const viewH = scrollContainer.clientHeight;
             const rowTop = selectedLogIdx * itemHeight;
-            if (rowTop < scrollTop) logbookTab.scrollTop = rowTop;
+            if (rowTop < scrollTop) scrollContainer.scrollTop = rowTop;
             else if (rowTop + itemHeight > scrollTop + viewH)
-              logbookTab.scrollTop = rowTop + itemHeight - viewH;
+              scrollContainer.scrollTop = rowTop + itemHeight - viewH;
             lastVirtualStart = -1;
             lastVirtualEnd = -1;
             renderVirtualVisibleItems();
@@ -26965,10 +27004,12 @@
           }
           if (typeof renderTaskLogbook === "function") renderTaskLogbook();
         } else {
-          targetContent.style.display = "block";
+          targetContent.style.display = "flex";
+          targetContent.style.flexDirection = "column";
           // Render the logbook on-demand whenever the tab is selected to ensure data is always fresh
           if (target === "logbook") {
-            cachedViewportHeight = targetContent.clientHeight;
+            cachedViewportHeight = (DOM.logbookScrollViewport || targetContent)
+              .clientHeight;
             renderLogbook();
           }
         }
@@ -26982,7 +27023,7 @@
           if (
             target === "logbook" &&
             DOM.tabLogbook &&
-            DOM.tabLogbook.scrollTop > 150
+            (DOM.logbookScrollViewport || DOM.tabLogbook).scrollTop > 150
           ) {
             scrollTopBtn.classList.add("visible");
           } else {
@@ -27421,7 +27462,8 @@
 
           const logbookTab = DOM.tabLogbook;
           if (logbookTab) {
-            cachedViewportHeight = logbookTab.clientHeight;
+            cachedViewportHeight = (DOM.logbookScrollViewport || logbookTab)
+              .clientHeight;
           }
 
           acquireLease().then(() => {
