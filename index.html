@@ -13356,6 +13356,7 @@
             if (timeoutId) clearTimeout(timeoutId);
             timeoutId = null;
           } else if (e.data === 'ack') {
+            if (timeoutId) clearTimeout(timeoutId);
             timeoutId = setTimeout(() => {
               self.postMessage('tick');
             }, 1000);
@@ -13396,18 +13397,38 @@
         };
       }
 
+      let tickerRunning = false;
+
       tickerWorker.onmessage = function (e) {
         if (e.data === "tick") {
+          if (!tickerRunning) return;
           tick();
-          tickerWorker.postMessage("ack");
+          // tick() can stop the ticker via syncTickerState; don't re-arm it.
+          if (tickerRunning) tickerWorker.postMessage("ack");
         }
       };
 
       function startUITimer() {
+        if (tickerRunning) return;
+        tickerRunning = true;
         tickerWorker.postMessage("start");
       }
       function stopUITimer() {
+        if (!tickerRunning) return;
+        tickerRunning = false;
         tickerWorker.postMessage("stop");
+      }
+
+      /**
+       * Hidden with no lock-screen session to feed means there is nothing to
+       * compute until wake: every duration is derived from stored timestamps,
+       * and handleWakeUpRecovery replays midnight/idle boundaries on return.
+       * While the media session is engaged the tick keeps running so the OS
+       * controls stay live.
+       */
+      function syncTickerState() {
+        if (document.hidden && !mediaSessionEngaged) stopUITimer();
+        else startUITimer();
       }
 
       /*==========================================================================
@@ -14173,6 +14194,22 @@
       };
 
       /**
+       * A hidden tab stops heartbeating (see syncTickerState) but is still
+       * alive, so its lease has to survive far longer than the 3s a ticking
+       * tab needs. pagehide removes the lease outright, so the wider window
+       * only ever delays recovery from a hard crash, never a normal close.
+       */
+      const LEASE_STALE_MS = 3000;
+      const LEASE_STALE_HIDDEN_MS = 300000;
+      function isLeaseFresh(lease, now = Date.now()) {
+        if (!lease || typeof lease.lastHeartbeat !== "number") return false;
+        return (
+          now - lease.lastHeartbeat <
+          (lease.hidden ? LEASE_STALE_HIDDEN_MS : LEASE_STALE_MS)
+        );
+      }
+
+      /**
        * Checks the master lease in storage and evicts this tab if another instance owns it.
        */
       function checkLeaseState() {
@@ -14184,7 +14221,7 @@
           const now = Date.now();
           if (lease.ownerId && lease.ownerId !== instanceId) {
             // A lease exists with another owner. Is it active (unexpired)?
-            if (now - lease.lastHeartbeat < 3000) {
+            if (isLeaseFresh(lease, now)) {
               if (!isTabConflict) {
                 isTabConflict = true;
                 if (typeof webLockReleaser === "function") {
@@ -14200,7 +14237,7 @@
             if (
               lease.tabId &&
               lease.tabId !== myTabId &&
-              now - lease.lastHeartbeat < 3000
+              isLeaseFresh(lease, now)
             ) {
               if (!isTabConflict) {
                 isTabConflict = true;
@@ -14295,11 +14332,11 @@
                 if (
                   (existingLease.ownerId &&
                     existingLease.ownerId !== instanceId &&
-                    now - existingLease.lastHeartbeat < 3000) ||
+                    isLeaseFresh(existingLease, now)) ||
                   (existingLease.ownerId === instanceId &&
                     existingLease.tabId &&
                     existingLease.tabId !== myTabId &&
-                    now - existingLease.lastHeartbeat < 3000)
+                    isLeaseFresh(existingLease, now))
                 ) {
                   isTabConflict = true;
                   DOM.tabConflictModal.style.display = "flex";
@@ -14324,7 +14361,7 @@
                 const isLeaseTaken =
                   latestLease &&
                   latestLease.ownerId !== instanceId &&
-                  now - latestLease.lastHeartbeat < 3000;
+                  isLeaseFresh(latestLease, now);
 
                 if (stagingId === instanceId && !isLeaseTaken) {
                   const lease = {
@@ -14357,13 +14394,13 @@
       /**
        * Renew our active lease with high-efficiency periodic writing.
        */
-      function renewLease() {
+      function renewLease(force = false) {
         if (isTabConflict) return;
         // Ensure localStorage lease is always updated so fallback logic and stale detections work
 
         const now = Date.now();
         // Only renew lease and touch localStorage once every 2 seconds (50% disk I/O reduction)
-        if (now - lastLeaseRenewTime < 2000) return;
+        if (!force && now - lastLeaseRenewTime < 2000) return;
         lastLeaseRenewTime = now;
 
         try {
@@ -14390,6 +14427,7 @@
             tabId: myTabId,
             lastHeartbeat: now,
             generationCounter: gen,
+            hidden: document.hidden,
           };
           localStorage.setItem(LEASE_KEY, JSON.stringify(lease));
         } catch (e) {
@@ -15703,16 +15741,22 @@
           root.style.setProperty("--slash-color", slashColor);
         }
 
-        const cursor = document.getElementById("nodrift-cursor");
-        if (cursor) {
-          if (state.currentMode === "work") {
-            cursor.style.opacity =
-              Math.floor(workSeconds) % 2 === 0 ? "1" : "0";
-          } else if (state.currentMode === "break") {
-            cursor.style.opacity =
-              Math.floor(breakSeconds) % 2 === 0 ? "1" : "0";
-          } else {
-            cursor.style.opacity = "1";
+        if (!document.hidden) {
+          const cursor = document.getElementById("nodrift-cursor");
+          if (cursor) {
+            const blinkSeconds =
+              state.currentMode === "work"
+                ? workSeconds
+                : state.currentMode === "break"
+                  ? breakSeconds
+                  : null;
+            const nextOpacity =
+              blinkSeconds === null || Math.floor(blinkSeconds) % 2 === 0
+                ? "1"
+                : "0";
+            if (cursor.style.opacity !== nextOpacity) {
+              cursor.style.opacity = nextOpacity;
+            }
           }
         }
 
@@ -15968,7 +16012,16 @@
         if (!silentAudioEl) {
           try {
             const AudioCtx = window.AudioContext || window.webkitAudioContext;
-            _silentAudioCtx = new AudioCtx();
+            try {
+              // 8 kHz is plenty for a 1 Hz tone and cuts render-quantum work
+              // ~6x. Some engines reject an explicit rate, hence the retry.
+              _silentAudioCtx = new AudioCtx({
+                sampleRate: 8000,
+                latencyHint: "playback",
+              });
+            } catch (rateErr) {
+              _silentAudioCtx = new AudioCtx();
+            }
             const osc = _silentAudioCtx.createOscillator();
             const gain = _silentAudioCtx.createGain();
             osc.frequency.value = 1;
@@ -16038,11 +16091,13 @@
         }
 
         mediaSessionEngaged = true;
+        syncTickerState();
         ensureSilentAudioPlaying();
       }
 
       function stopMediaSession() {
         mediaSessionEngaged = false;
+        syncTickerState();
         if (silentAudioEl) {
           try {
             silentAudioEl.pause();
@@ -23281,7 +23336,12 @@
         if (document.hidden) {
           state.tabHiddenAt = Date.now();
           saveState(true);
+          // Final heartbeat, stamped hidden so other tabs read it as alive.
+          renewLease(true);
+          syncTickerState();
         } else {
+          syncTickerState();
+          renewLease(true);
           handleWakeUpRecovery();
         }
       });
@@ -23308,10 +23368,11 @@
       window.addEventListener("pageshow", (event) => {
         if (!event.persisted) return;
         try {
-          renewLease();
+          renewLease(true);
         } catch (e) {
           /* lease renewal is best-effort; checkLeaseState below also runs */
         }
+        syncTickerState();
         handleWakeUpRecovery();
         if (typeof remeasureVirtualScrollers === "function") {
           remeasureVirtualScrollers();
@@ -28209,7 +28270,7 @@
             }
 
             autoPopulateDailyGoal(state.activeDate || getPSTDate());
-            startUITimer();
+            syncTickerState();
           });
         }
 
