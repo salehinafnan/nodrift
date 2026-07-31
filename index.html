@@ -2821,6 +2821,7 @@
         border-radius: var(--radius-md);
         background: var(--element-bg);
         border: 1px solid var(--border-main);
+        background-clip: padding-box;
         contain: layout paint;
         position: absolute;
         top: 0;
@@ -3875,7 +3876,6 @@
       }
 
       .breakdown-row.is-today-row {
-        background: color-mix(in srgb, var(--accent-blue) 8%, var(--element-bg));
         border: 1px solid var(--accent-blue);
         box-shadow: 0 0 10px color-mix(in srgb, var(--accent-blue) 12%, transparent);
       }
@@ -6105,7 +6105,7 @@
 
         /* Unified Liquid Glass Borders for all mobile elements */
         .task-card-active,
-        .log-row,
+        .log-row:not(.is-leave-row),
         .preset-pill:not(.active),
         .goal-inputs,
         .sq-btn,
@@ -6125,6 +6125,18 @@
             in srgb,
             var(--element-bg) 70%,
             transparent
+          ) !important;
+          backdrop-filter: blur(16px) saturate(150%);
+          -webkit-backdrop-filter: blur(16px) saturate(150%);
+        }
+
+        .log-row.is-leave-row {
+          border: 1px dashed
+            color-mix(in srgb, var(--leave-accent) 30%, var(--border-main)) !important;
+          background: color-mix(
+            in srgb,
+            var(--leave-accent) 6%,
+            color-mix(in srgb, var(--element-bg) 70%, transparent)
           ) !important;
           backdrop-filter: blur(16px) saturate(150%);
           -webkit-backdrop-filter: blur(16px) saturate(150%);
@@ -6406,7 +6418,6 @@
 
         .breakdown-row.is-today-row {
           border: 1px solid var(--accent-blue) !important;
-          background: color-mix(in srgb, var(--accent-blue) 12%, var(--element-bg)) !important;
         }
 
         #undo-toast,
@@ -17055,6 +17066,10 @@
           badgeClass: "badge-leave-holiday",
           rowClass: "is-leave-holiday",
         },
+        "In Lieu": {
+          badgeClass: "badge-leave-holiday",
+          rowClass: "is-leave-holiday",
+        },
         Leave: { badgeClass: "", rowClass: "" },
       };
 
@@ -17262,7 +17277,7 @@
           leaveType = leaveRecord.type || "Leave";
           if (leaveType === "Sick") leaveBadgeClass = "badge-leave-sick";
           if (leaveType === "Casual") leaveBadgeClass = "badge-leave-casual";
-          if (leaveType === "Public Holiday")
+          if (leaveType === "Public Holiday" || leaveType === "In Lieu")
             leaveBadgeClass = "badge-leave-holiday";
         }
 
@@ -18907,9 +18922,10 @@
               }
             }
 
-            if (child._currentTop !== top) {
-              child._currentTop = top;
-              child.style.transform = `translate3d(0, ${top}px, 0)`;
+            const roundedTop = Math.round(top);
+            if (child._currentTop !== roundedTop) {
+              child._currentTop = roundedTop;
+              child.style.transform = `translate3d(0, ${roundedTop}px, 0)`;
             }
             child.style.display = "flex";
           }
@@ -25049,9 +25065,10 @@
               dom.deleteBtn.dataset.id = task.id;
             }
 
-            if (child._currentTop !== top) {
-              child._currentTop = top;
-              child.style.transform = `translate3d(0, ${top}px, 0)`;
+            const roundedTop = Math.round(top);
+            if (child._currentTop !== roundedTop) {
+              child._currentTop = roundedTop;
+              child.style.transform = `translate3d(0, ${roundedTop}px, 0)`;
             }
             child.style.display = "flex";
           }
@@ -25725,7 +25742,7 @@
           let badgeClass = "badge-leave";
           if (type === "Sick") badgeClass = "badge-leave badge-leave-sick";
           if (type === "Casual") badgeClass = "badge-leave badge-leave-casual";
-          if (type === "Public Holiday")
+          if (type === "Public Holiday" || type === "In Lieu")
             badgeClass = "badge-leave badge-leave-holiday";
 
           html += `
