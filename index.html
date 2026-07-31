@@ -1093,6 +1093,15 @@
         flex-shrink: 0;
       }
 
+      /* Column groups for the phone status bar's three-column grid. They
+         generate no box at all outside the phone breakpoint, so their children
+         remain direct flex items of .status-time and the desktop bar lays out
+         exactly as it did before the wrappers existed. */
+      .m-clock-cluster,
+      .m-status-tail {
+        display: contents;
+      }
+
       .tz-container {
         position: relative;
         display: inline-flex;
@@ -5246,23 +5255,70 @@
           padding: 4px 8px;
         }
 
-        /* Header status bar dual clock layout for mobile */
+        /* ---- Phone status bar: three-column grid -------------------------
+           logo | clocks | tail(chip + alarm)
+
+           The clock cluster must sit dead centre of the bar and must never
+           move -- the liveness chip beside it retimes every second and its
+           text changes width ("Active" -> "Idle 9s" -> "Idle 12s"), so any
+           layout where the centre depends on the sides visibly jitters.
+
+           The previous layout centred the clocks with auto margins, which
+           splits only the space LEFT OVER after the sides are measured. That
+           made the centre a function of both side widths -- it looked right
+           purely because the logo (62px) and the chip's min-width (70px)
+           happened to be close, and drifted the moment either changed.
+
+           A grid removes the dependency entirely: columns 1 and 3 are equal
+           by definition, so column 2 is centred by construction, whatever the
+           sides contain. minmax(0, 1fr) rather than a bare 1fr is the
+           load-bearing detail -- 1fr means minmax(AUTO, 1fr), whose minimum is
+           the content width, so a long chip would still push the centre.
+           A 0 minimum lets the sides absorb every squeeze instead.
+
+           This holds against everything that has historically moved it: the
+           async webfont swap, 12h/24h clocks, longer timezone abbreviations,
+           the storage alarm appearing, and anything added to the bar later. */
         .status-bar .status-badge.status-time {
           flex: 1;
           min-width: 0;
-          gap: 0.1rem;
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+          align-items: center;
+          gap: 0;
           padding: 0;
           border: 0;
           background: none;
           overflow: hidden;
-          align-items: center;
         }
 
+        .m-clock-cluster {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 4px;
+          min-width: 0;
+        }
+
+        .m-status-tail {
+          display: flex;
+          align-items: center;
+          justify-content: flex-end;
+          gap: 6px;
+          min-width: 0;
+          overflow: hidden;
+        }
+
+        /* No width reservation. The old 62px was 10px wider than the logo's
+           natural 52px, padding added only to fake symmetry against the chip.
+           The grid provides symmetry now, and those 10px are exactly what lets
+           the logo still fit inside its column on a 320px screen. */
         .nodrift-logo {
           font-size: 0.92rem;
           margin-right: 0;
-          width: 62px;
-          flex: 0 0 62px;
+          width: auto;
+          flex: 0 0 auto;
+          min-width: 0;
         }
 
         .status-bar .clock-divider {
@@ -5272,8 +5328,7 @@
         .status-bar .tz-static-label {
           display: inline-flex;
           font-size: 0.78rem;
-          margin-left: 2px;
-          margin-right: 1px;
+          margin: 0;
         }
 
         .status-bar #primary-clock,
@@ -5287,37 +5342,74 @@
           font-size: 0.6rem;
         }
 
-        .status-bar #bst-clock {
-          margin-right: auto;
+        /* The timezone control is a settings affordance, and settings live in
+           the sheet on a phone -- the bar only has to READ the current zone.
+           display: contents drops both wrapper boxes so #tz-current-label sits
+           in the cluster as a peer of the "BST" label, with no dropdown
+           machinery taking part in layout. The element stays in the DOM
+           because .tz-presets lives inside it and MobileShell borrows that
+           node into the sheet; colour still reaches the label because
+           display: contents does not interrupt inheritance. */
+        .status-bar .tz-container,
+        .status-bar .tz-trigger {
+          display: contents;
         }
 
-        .status-bar .tz-trigger {
+        .status-bar #tz-current-label {
           font-size: 0.78rem;
-          padding: 0;
-          pointer-events: none;
-          background: none !important;
-          color: var(--accent-blue) !important;
+          color: var(--accent-blue);
         }
 
         .status-bar .tz-chevron {
           display: none;
         }
 
-        .status-bar .tz-container {
-          margin-left: auto;
-          margin-right: 1px;
-          pointer-events: none;
+        /* Empty on a phone -- goal and theme are relocated into the sheet --
+           but a zero-width flex item still draws the parent's 0.25rem gap,
+           and that alone sits the whole grid 1.75px left of true centre.
+           !important because the element carries an inline display: flex. */
+        .status-bar-actions {
+          display: none !important;
         }
 
+        /* Lives in its own grid column, so it can size to its text freely
+           without moving anything. inline-flex (not block) is required: the
+           status dot is a ::before pseudo-element spaced by `gap`, which does
+           nothing on a block container -- that is what made the dot collide
+           with the text. overflow is a backstop for a pathological string
+           ("Idle 1440m"); it should never truncate in practice. */
         #last-seen.last-seen-status {
+          display: inline-flex;
           margin-left: 0;
           font-size: 0.72rem;
           width: auto;
-          flex: 0 0 auto;
-          justify-content: flex-end;
+          min-width: 0;
+          flex: 0 1 auto;
+          gap: 0.4em;
           text-align: right;
           white-space: nowrap;
-          overflow: visible;
+          overflow: hidden;
+        }
+
+        /* Slightly tighter than the desktop 5px: at 0.72rem the dot and the
+           label need to read as one unit, not as two adjacent things. */
+        #last-seen.last-seen-status::before {
+          width: 4.5px;
+          height: 4.5px;
+        }
+
+        /* Icon-only. The label costs ~52px, which is more than the tail column
+           has at 320px, and a clipped data-loss warning is worse than a
+           compact one. The icon keeps its accent-break colour, its title and
+           an aria-label, so the meaning survives in every modality. */
+        #storage-status-warn {
+          flex: 0 0 auto;
+          margin-left: 0 !important;
+          gap: 0 !important;
+        }
+
+        #storage-status-warn .storage-warn-label {
+          display: none;
         }
 
         /* Overflow entry point sits at the trailing edge of the bar. */
@@ -6305,6 +6397,13 @@
           ) !important;
         }
 
+        /* Geometry only -- deliberately no font-size here.
+           An id selector (1,1,0) outranks the 16px iOS anti-zoom guard above
+           (0,3,1), so setting a font-size on this input opts it out of that
+           guard entirely: iOS Safari then zooms the viewport the moment the
+           field is focused and leaves it zoomed, which is far worse than the
+           text reading one step larger. The guard already made this trade for
+           every other control in the app; this one is not special. */
         #task-note-input {
           min-height: 34px !important;
           height: 34px !important;
@@ -6313,15 +6412,10 @@
           padding: 0 12px !important;
         }
 
-        #task-note-input:not(.task-input-running) {
-          font-size: 0.82rem !important;
-        }
-
         #task-note-input.task-input-running {
           border: none !important;
           background: transparent !important;
           box-shadow: none !important;
-          font-size: 0.85rem !important;
           font-weight: 600 !important;
         }
 
@@ -9705,88 +9799,98 @@
               <option value="America/New_York">EST</option>
             </select>
 
-            <div class="tz-container">
-              <div class="tz-trigger" tabindex="0">
-                <!-- Inline chevron SVG matching the goal control chevron -->
+            <!-- Grouping wrappers for the phone status bar's three-column
+                 grid: logo | clocks | tail. They are display: contents above
+                 the phone breakpoint, so the desktop layout is unchanged. -->
+            <div class="m-clock-cluster">
+              <div class="tz-container">
+                <div class="tz-trigger" tabindex="0">
+                  <!-- Inline chevron SVG matching the goal control chevron -->
+                  <svg
+                    class="tz-chevron"
+                    width="12"
+                    height="12"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.8"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <g data-sprite="sprite-016"></g>
+                  </svg>
+                  <span id="tz-current-label">PST</span>
+                </div>
+                <div class="tz-presets">
+                  <button
+                    class="preset-pill"
+                    onclick="selectPresetTZ('America/Los_Angeles')"
+                  >
+                    PST
+                  </button>
+                  <button
+                    class="preset-pill"
+                    onclick="selectPresetTZ('America/Denver')"
+                  >
+                    MST
+                  </button>
+                  <button
+                    class="preset-pill"
+                    onclick="selectPresetTZ('America/Chicago')"
+                  >
+                    CST
+                  </button>
+                  <button
+                    class="preset-pill"
+                    onclick="selectPresetTZ('America/New_York')"
+                  >
+                    EST
+                  </button>
+                </div>
+              </div>
+
+              <span id="primary-clock"
+                ><span class="clock-time-text"></span
+                ><span class="clock-ampm"></span
+              ></span>
+              <i class="clock-divider"></i>
+              <span class="tz-static-label">BST</span>
+              <span id="bst-clock"
+                ><span class="clock-time-text"></span
+                ><span class="clock-ampm"></span
+              ></span>
+            </div>
+
+            <div class="m-status-tail">
+              <div id="last-seen" class="last-seen-status">Active</div>
+              <div
+                id="storage-status-warn"
+                style="
+                  display: none;
+                  align-items: center;
+                  gap: 4px;
+                  font-size: 0.75rem;
+                  font-weight: 700;
+                  color: var(--accent-break);
+                  margin-left: 12px;
+                "
+                role="status"
+                aria-label="Storage write blocked. Running in temporary memory. Back up now."
+                title="Storage write blocked! Running in temporary memory. Backup now!"
+              >
                 <svg
-                  class="tz-chevron"
-                  width="12"
-                  height="12"
                   viewBox="0 0 24 24"
+                  width="14"
+                  height="14"
                   fill="none"
                   stroke="currentColor"
                   stroke-width="1.8"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
+                  style="flex-shrink: 0"
                 >
-                  <g data-sprite="sprite-016"></g>
+                  <g data-sprite="sprite-014"></g>
                 </svg>
-                <span id="tz-current-label">PST</span>
+                <span class="storage-warn-label">RAM Only</span>
               </div>
-              <div class="tz-presets">
-                <button
-                  class="preset-pill"
-                  onclick="selectPresetTZ('America/Los_Angeles')"
-                >
-                  PST
-                </button>
-                <button
-                  class="preset-pill"
-                  onclick="selectPresetTZ('America/Denver')"
-                >
-                  MST
-                </button>
-                <button
-                  class="preset-pill"
-                  onclick="selectPresetTZ('America/Chicago')"
-                >
-                  CST
-                </button>
-                <button
-                  class="preset-pill"
-                  onclick="selectPresetTZ('America/New_York')"
-                >
-                  EST
-                </button>
-              </div>
-            </div>
-
-            <span id="primary-clock"
-              ><span class="clock-time-text"></span
-              ><span class="clock-ampm"></span
-            ></span>
-            <i class="clock-divider"></i>
-            <span class="tz-static-label">BST</span>
-            <span id="bst-clock"
-              ><span class="clock-time-text"></span
-              ><span class="clock-ampm"></span
-            ></span>
-            <div id="last-seen" class="last-seen-status">Active</div>
-            <div
-              id="storage-status-warn"
-              style="
-                display: none;
-                align-items: center;
-                gap: 4px;
-                font-size: 0.75rem;
-                font-weight: 700;
-                color: var(--accent-break);
-                margin-left: 12px;
-              "
-              title="Storage write blocked! Running in temporary memory. Backup now!"
-            >
-              <svg
-                viewBox="0 0 24 24"
-                width="14"
-                height="14"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="1.8"
-                style="flex-shrink: 0"
-              >
-                <g data-sprite="sprite-014"></g>
-              </svg>
-              <span>RAM Only</span>
             </div>
           </div>
           <div
@@ -16529,11 +16633,16 @@
 
             if (window.swRegistration) {
               sendOSNotification(window.swRegistration);
-            } else if (
-              navigator.serviceWorker &&
-              navigator.serviceWorker.ready
-            ) {
-              navigator.serviceWorker.ready
+            } else if (navigator.serviceWorker) {
+              // getRegistration(), not .ready: `ready` is specified to never
+              // settle while nothing is registered -- it does not reject, it
+              // simply hangs. That turns a missing sw.js into a silent dead
+              // branch instead of a visible failure, which is exactly the
+              // situation if index.html ever ships on its own.
+              // getRegistration() resolves to undefined, and
+              // sendOSNotification already no-ops on a falsy registration.
+              navigator.serviceWorker
+                .getRegistration()
                 .then(sendOSNotification)
                 .catch(() => {});
             }
@@ -28077,6 +28186,14 @@
               triggerAutoSnapshot();
             }
 
+            // Registered solely so the goal-reached OS notification has a
+            // ServiceWorkerRegistration to post through -- sw.js caches
+            // nothing, because the app is a single file served from anywhere.
+            //
+            // There is no blob: fallback: browsers reject blob: URLs as
+            // service worker scripts outright, so that branch could only ever
+            // swallow its own failure. Failing loudly and losing exactly one
+            // optional feature is the better trade.
             if ("serviceWorker" in navigator && !window.swRegistration) {
               navigator.serviceWorker
                 .register("./sw.js")
@@ -28085,21 +28202,9 @@
                 })
                 .catch((err) => {
                   console.warn(
-                    "sw.js registration failed, trying inline blob fallback:",
+                    "Service worker registration failed; OS notifications will be unavailable. Is sw.js deployed next to index.html?",
                     err,
                   );
-                  const swScript =
-                    "self.addEventListener('install', e => self.skipWaiting()); self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));";
-                  const blob = new Blob([swScript], {
-                    type: "application/javascript",
-                  });
-                  const swUrl = URL.createObjectURL(blob);
-                  navigator.serviceWorker
-                    .register(swUrl)
-                    .then((reg) => {
-                      window.swRegistration = reg;
-                    })
-                    .catch(() => {});
                 });
             }
 
