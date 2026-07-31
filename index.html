@@ -795,11 +795,18 @@
         position: relative;
       }
 
-      @media (display-mode: standalone) {
+      /* Installed-PWA chrome trimming. Deliberately scoped to the phone
+         breakpoint as well as display-mode: standalone -- the height clamp
+         below assumes the fixed mobile shell (.main-ui / .sidebar / #m-tabbar
+         are all position: fixed there, so body height is inert). On a desktop
+         PWA install body is still the flow container and content-box, so
+         height: 100vh plus the 20px padding-top would push a 20px strip past
+         the bottom of a viewport that body's overflow: hidden then clips. */
+      @media (max-width: 767px) and (display-mode: standalone) {
         :root {
           /* Tightly crop the bottom gap */
           --m-safe-bottom: 22px !important;
-          /* Close the top gap slightly to reduce empty space below notches/islands, 
+          /* Close the top gap slightly to reduce empty space below notches/islands,
              but ensure it never goes below standard 20px status bar */
           --m-safe-top: max(
             20px,
@@ -818,17 +825,7 @@
           min-height: 100vh !important;
         }
       }
-    </style>
-    <script>
-      if (
-        window.navigator.standalone === true ||
-        (window.matchMedia &&
-          window.matchMedia("(display-mode: standalone)").matches)
-      ) {
-        document.documentElement.classList.add("is-standalone");
-      }
-    </script>
-    <style>
+
       /* REFACTORED STYLE:
           Clean division between ticking monospace elements and premium proportional dashboard stats. */
 
@@ -2201,9 +2198,11 @@
         background: color-mix(in srgb, var(--panel-bg) 72%, transparent);
         backdrop-filter: blur(16px) saturate(150%);
         -webkit-backdrop-filter: blur(16px) saturate(150%);
-        border: 0.5px solid color-mix(in srgb, var(--text-main) 12%, transparent);
+        border: 0.5px solid
+          color-mix(in srgb, var(--text-main) 12%, transparent);
         border-radius: 50%;
-        box-shadow: 0 4px 12px color-mix(in srgb, var(--text-main) 8%, transparent);
+        box-shadow: 0 4px 12px
+          color-mix(in srgb, var(--text-main) 8%, transparent);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -2246,7 +2245,8 @@
         opacity: 1;
         background: var(--element-hover);
         border-color: var(--accent-blue);
-        box-shadow: 0 4px 14px color-mix(in srgb, var(--accent-blue) 25%, transparent);
+        box-shadow: 0 4px 14px
+          color-mix(in srgb, var(--accent-blue) 25%, transparent);
       }
 
       .scroll-top-btn.visible:hover svg {
@@ -2784,7 +2784,8 @@
         background: color-mix(in srgb, var(--panel-bg) 72%, transparent);
         backdrop-filter: blur(16px) saturate(150%);
         -webkit-backdrop-filter: blur(16px) saturate(150%);
-        border: 0.5px solid color-mix(in srgb, var(--text-main) 12%, transparent);
+        border: 0.5px solid
+          color-mix(in srgb, var(--text-main) 12%, transparent);
         color: var(--accent-blue);
         font-weight: 600;
         font-size: var(--text-xs);
@@ -2795,7 +2796,9 @@
         width: fit-content;
         letter-spacing: 0.05em;
         text-align: center;
-        box-shadow: 0 4px 14px color-mix(in srgb, var(--text-main) 8%, transparent), 0 1px 3px rgba(0, 0, 0, 0.04);
+        box-shadow:
+          0 4px 14px color-mix(in srgb, var(--text-main) 8%, transparent),
+          0 1px 3px rgba(0, 0, 0, 0.04);
         opacity: 0;
         visibility: hidden;
         transition:
@@ -3865,7 +3868,10 @@
         flex: 1 0 auto;
         contain: layout paint;
         box-sizing: border-box;
-        transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+        transition:
+          background-color 0.15s ease,
+          border-color 0.15s ease,
+          transform 0.15s ease;
       }
 
       @media (hover: hover) and (pointer: fine) {
@@ -3877,7 +3883,8 @@
 
       .breakdown-row.is-today-row {
         border: 1px solid var(--accent-blue);
-        box-shadow: 0 0 10px color-mix(in srgb, var(--accent-blue) 12%, transparent);
+        box-shadow: 0 0 10px
+          color-mix(in srgb, var(--accent-blue) 12%, transparent);
       }
 
       .breakdown-row.is-empty {
@@ -5129,6 +5136,24 @@
           --m-safe-left: env(safe-area-inset-left, 0px);
           --m-safe-right: env(safe-area-inset-right, 0px);
           --m-gutter: 1rem;
+
+          /* ---- Liquid-glass material tokens ---------------------------
+             Single source of truth for the translucent surface the mobile
+             shell is built from. The state variants further down re-tint
+             THIS surface rather than falling back to the opaque desktop
+             styling, which is what keeps selected / active / semantic
+             states legible without breaking the material. */
+          --glass-surface: color-mix(
+            in srgb,
+            var(--element-bg) 70%,
+            transparent
+          );
+          --glass-hairline: color-mix(
+            in srgb,
+            var(--text-main) 12%,
+            transparent
+          );
+          --glass-filter: blur(16px) saturate(150%);
         }
 
         /* ---- Full-bleed app frame -------------------------------------- */
@@ -5214,7 +5239,9 @@
           -webkit-backdrop-filter: blur(20px) saturate(160%);
           border: 0.5px solid
             color-mix(in srgb, var(--text-main) 12%, transparent);
-          box-shadow: 0 4px 14px color-mix(in srgb, var(--text-main) 8%, transparent), 0 1px 3px rgba(0, 0, 0, 0.03);
+          box-shadow:
+            0 4px 14px color-mix(in srgb, var(--text-main) 8%, transparent),
+            0 1px 3px rgba(0, 0, 0, 0.03);
           pointer-events: auto;
           padding: 4px 8px;
         }
@@ -5409,15 +5436,23 @@
           flex: 1 1 auto;
           min-height: 40px;
           white-space: nowrap;
+          background: var(--glass-surface) !important;
+          backdrop-filter: var(--glass-filter);
+          -webkit-backdrop-filter: var(--glass-filter);
+          border: 0.5px solid var(--glass-hairline) !important;
+          box-shadow: none;
+        }
+
+        /* The sheet's own surface rule (0,2,0 / 0,3,0) outranks
+           .preset-pill.active (0,2,0) on source order, so the selected goal /
+           timezone / theme preset needs its glass variant here too. */
+        #m-sheet .preset-pill.active {
+          border-color: var(--accent-blue) !important;
           background: color-mix(
             in srgb,
-            var(--element-bg) 70%,
-            transparent
+            var(--accent-blue) 20%,
+            var(--glass-surface)
           ) !important;
-          backdrop-filter: blur(16px) saturate(150%);
-          -webkit-backdrop-filter: blur(16px) saturate(150%);
-          border: 0.5px solid color-mix(in srgb, var(--text-main) 12%, transparent) !important;
-          box-shadow: none;
         }
 
         #m-sheet .footer-icons {
@@ -5535,7 +5570,9 @@
         #task-log-scroll-viewport::after {
           content: "";
           display: block;
-          height: calc(var(--m-tabbar-h) + var(--m-safe-bottom) + 8px) !important;
+          height: calc(
+            var(--m-tabbar-h) + var(--m-safe-bottom) + 8px
+          ) !important;
         }
 
         #weekly-progress-card {
@@ -5666,7 +5703,8 @@
           ) !important;
           backdrop-filter: blur(20px) saturate(160%);
           -webkit-backdrop-filter: blur(20px) saturate(160%);
-          border: 0.5px solid color-mix(in srgb, var(--text-main) 12%, transparent) !important;
+          border: 0.5px solid
+            color-mix(in srgb, var(--text-main) 12%, transparent) !important;
           box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18) !important;
         }
 
@@ -5715,7 +5753,8 @@
           background: color-mix(in srgb, var(--accent-blue) 14%, transparent);
           backdrop-filter: blur(12px) saturate(140%);
           -webkit-backdrop-filter: blur(12px) saturate(140%);
-          border: 0.5px solid color-mix(in srgb, var(--accent-blue) 35%, transparent);
+          border: 0.5px solid
+            color-mix(in srgb, var(--accent-blue) 35%, transparent);
           box-shadow: none;
         }
 
@@ -5748,7 +5787,8 @@
           width: 100%;
           max-width: none;
           border-radius: var(--radius-xl) var(--radius-xl) 0 0 !important;
-          border: 0.5px solid color-mix(in srgb, var(--text-main) 12%, transparent) !important;
+          border: 0.5px solid
+            color-mix(in srgb, var(--text-main) 12%, transparent) !important;
           border-bottom: none !important;
           padding: 1.15rem 1rem calc(1.1rem + var(--m-safe-bottom)) !important;
           background: var(--modal-bg, var(--panel-bg));
@@ -5832,13 +5872,6 @@
           background: var(--page-bg);
         }
 
-        #logbook-list-container,
-        #task-list-container {
-          padding-bottom: calc(
-            var(--m-tabbar-h) + var(--m-safe-bottom)
-          ) !important;
-        }
-
         /* The desktop segmented control and the footer tool strip are both
            replaced by shell chrome (#m-tabbar and #m-sheet respectively). */
         .tab-nav,
@@ -5846,10 +5879,13 @@
           display: none !important;
         }
 
+        /* Above the list it scrolls, below the modal band -- an overlay must
+           never have a floating action button punched through it. Clearance
+           over the tab bar is geometric (see `bottom`), not stacking. */
         .scroll-top-btn {
           left: 50%;
           bottom: calc(var(--m-tabbar-h) + var(--m-safe-bottom) + 12px);
-          z-index: var(--z-modal);
+          z-index: var(--z-sticky);
         }
 
         /* ---- Bottom tab bar --------------------------------------------- */
@@ -5860,7 +5896,12 @@
           right: 0;
           bottom: 0;
           height: calc(var(--m-tabbar-h) + var(--m-safe-bottom));
-          z-index: var(--z-modal);
+          /* Below the modal band (--z-overlay, 1000) and below the sheet
+             (--z-overlay - 2). Ordering is what keeps overlays on top; it
+             must not depend on a class being applied in time by JS, because
+             any overlay that is added later without the exact markup that JS
+             watches for would silently render underneath the bar. */
+          z-index: var(--z-sticky);
           background: color-mix(in srgb, var(--panel-bg) 72%, transparent);
           backdrop-filter: blur(20px) saturate(160%);
           -webkit-backdrop-filter: blur(20px) saturate(160%);
@@ -5878,8 +5919,10 @@
             opacity 0.28s cubic-bezier(0.32, 0.72, 0, 1);
         }
 
-        body.m-sheet-open #m-tabbar,
-        body.modal-open #m-tabbar {
+        /* The sheet slides up from the same edge, so the bar gets out of its
+           way. Modals do not need this -- they sit above the bar by z-order
+           and dim it with their own scrim. */
+        body.m-sheet-open #m-tabbar {
           transform: translateY(calc(100% + 24px + var(--m-safe-bottom)));
           opacity: 0;
           pointer-events: none;
@@ -5965,7 +6008,8 @@
           z-index: calc(var(--z-overlay) - 2);
           max-height: 85svh;
           background: var(--modal-bg, var(--panel-bg));
-          border-top: 0.5px solid color-mix(in srgb, var(--text-main) 12%, transparent);
+          border-top: 0.5px solid
+            color-mix(in srgb, var(--text-main) 12%, transparent);
           border-left: none;
           border-right: none;
           border-bottom: none;
@@ -6103,7 +6147,19 @@
           width: 24px;
         }
 
-        /* Unified Liquid Glass Borders for all mobile elements */
+        /* ---- Liquid glass: base surface ---------------------------------
+           This rule is blanket + !important on purpose: the mobile layer has
+           to beat a large opaque desktop layer it does not own, and several
+           of these components are also styled from theme-scoped rules of
+           higher specificity earlier in the sheet.
+
+           The cost of that is that it also flattens component STATE, which
+           the desktop rules express as plain (non-important) declarations.
+           Every such state is therefore re-declared as a tint of this same
+           material in the "state variants" block below. When adding a
+           selector here, check whether the component has an .active /
+           .selected / semantic variant and add the matching variant too --
+           otherwise the state silently disappears on mobile. */
         .task-card-active,
         .log-row:not(.is-leave-row),
         .preset-pill:not(.active),
@@ -6119,15 +6175,10 @@
         .custom-select-trigger,
         .date-picker-group,
         .stat-card {
-          border: 0.5px solid
-            color-mix(in srgb, var(--text-main) 12%, transparent) !important;
-          background: color-mix(
-            in srgb,
-            var(--element-bg) 70%,
-            transparent
-          ) !important;
-          backdrop-filter: blur(16px) saturate(150%);
-          -webkit-backdrop-filter: blur(16px) saturate(150%);
+          border: 0.5px solid var(--glass-hairline) !important;
+          background: var(--glass-surface) !important;
+          backdrop-filter: var(--glass-filter);
+          -webkit-backdrop-filter: var(--glass-filter);
         }
 
         .log-row.is-leave-row {
@@ -6136,10 +6187,122 @@
           background: color-mix(
             in srgb,
             var(--leave-accent) 6%,
-            color-mix(in srgb, var(--element-bg) 70%, transparent)
+            var(--glass-surface)
           ) !important;
-          backdrop-filter: blur(16px) saturate(150%);
-          -webkit-backdrop-filter: blur(16px) saturate(150%);
+          backdrop-filter: var(--glass-filter);
+          -webkit-backdrop-filter: var(--glass-filter);
+        }
+
+        /* ---- Liquid glass: state variants -------------------------------
+           Each rule below is the glass equivalent of a desktop state rule
+           that the base surface above outranks. They keep the hairline
+           weight and the blur (inherited from the base rule) and change only
+           the tint and the border colour, so state reads as a shift in the
+           material rather than a different material.
+
+           Specificity is deliberate in every case -- see the note on each. */
+
+        /* .log-row.kb-selected (0,2,0) ties with .log-row:not(.is-leave-row)
+           (0,2,0), so this must stay AFTER the base rule to win on order. */
+        .log-row.kb-selected {
+          border-color: var(--accent-blue) !important;
+          background: color-mix(
+            in srgb,
+            var(--accent-blue) 16%,
+            var(--glass-surface)
+          ) !important;
+        }
+
+        /* Toggled toolbar buttons -- the filter drawer trigger is the only
+           thing that tells the user the drawer is open. 0,2,0 over 0,1,0. */
+        .header-icon-btn.active {
+          border-color: var(--accent-blue) !important;
+          background: color-mix(
+            in srgb,
+            var(--accent-blue) 18%,
+            var(--glass-surface)
+          ) !important;
+        }
+
+        /* Open dropdown trigger. 0,2,0 over 0,1,0. */
+        .custom-select-trigger.cs-open {
+          border-color: var(--accent-blue) !important;
+          background: color-mix(
+            in srgb,
+            var(--accent-blue) 14%,
+            var(--glass-surface)
+          ) !important;
+        }
+
+        /* Focused standalone filter field. Fields inside .filter-group-card
+           are stripped to transparent further down and carry their focus ring
+           on the card, so they are intentionally not covered here. */
+        .filter-input:focus {
+          border-color: var(--accent-blue) !important;
+          background: color-mix(
+            in srgb,
+            var(--accent-blue) 10%,
+            var(--glass-surface)
+          ) !important;
+        }
+
+        /* Semantic dialog actions. `.modal-container button` (0,1,1) outranks
+           the .btn-*-outline classes (0,1,0), so without these every action
+           button in every dialog renders as the same neutral pill -- Cancel
+           becomes indistinguishable from a destructive Confirm, and the idle
+           dialog's three outcomes become indistinguishable from each other.
+           These are 0,2,0. .btn-secondary is intentionally absent: the neutral
+           base surface is already the correct treatment for it. */
+        .modal-container .btn-danger-outline {
+          border-color: color-mix(
+            in srgb,
+            var(--accent-break) 45%,
+            transparent
+          ) !important;
+          background: color-mix(
+            in srgb,
+            var(--accent-break) 16%,
+            var(--glass-surface)
+          ) !important;
+        }
+
+        .modal-container .btn-warning-outline {
+          border-color: color-mix(
+            in srgb,
+            var(--accent-warning) 45%,
+            transparent
+          ) !important;
+          background: color-mix(
+            in srgb,
+            var(--accent-warning) 16%,
+            var(--glass-surface)
+          ) !important;
+        }
+
+        .modal-container .btn-success-outline {
+          border-color: color-mix(
+            in srgb,
+            var(--accent-work) 45%,
+            transparent
+          ) !important;
+          background: color-mix(
+            in srgb,
+            var(--accent-work) 16%,
+            var(--glass-surface)
+          ) !important;
+        }
+
+        .modal-container .btn-info-outline {
+          border-color: color-mix(
+            in srgb,
+            var(--accent-blue) 45%,
+            transparent
+          ) !important;
+          background: color-mix(
+            in srgb,
+            var(--accent-blue) 16%,
+            var(--glass-surface)
+          ) !important;
         }
 
         #task-note-input {
@@ -6166,7 +6329,8 @@
         .modal-container .date-picker-group,
         #m-sheet .input-standard {
           background: var(--element-bg) !important;
-          border: 0.5px solid color-mix(in srgb, var(--text-main) 12%, transparent) !important;
+          border: 0.5px solid
+            color-mix(in srgb, var(--text-main) 12%, transparent) !important;
           outline: none !important;
         }
 
@@ -6243,7 +6407,8 @@
           margin-right: 0 !important;
           border-radius: var(--radius-xl) var(--radius-xl) 0 0 !important;
           background: var(--modal-bg, var(--panel-bg));
-          border-top: 0.5px solid color-mix(in srgb, var(--text-main) 12%, transparent) !important;
+          border-top: 0.5px solid
+            color-mix(in srgb, var(--text-main) 12%, transparent) !important;
           border-left: none !important;
           border-right: none !important;
           border-bottom: none !important;
@@ -6273,7 +6438,8 @@
         }
 
         .modal-container.accent-warning {
-          border-top: 0.5px solid color-mix(in srgb, var(--accent-warning) 85%, transparent) !important;
+          border-top: 0.5px solid
+            color-mix(in srgb, var(--accent-warning) 85%, transparent) !important;
           border-left: none !important;
           border-right: none !important;
           border-bottom: none !important;
@@ -6281,7 +6447,8 @@
         }
 
         .modal-container.accent-danger {
-          border-top: 0.5px solid color-mix(in srgb, var(--accent-break) 85%, transparent) !important;
+          border-top: 0.5px solid
+            color-mix(in srgb, var(--accent-break) 85%, transparent) !important;
           border-left: none !important;
           border-right: none !important;
           border-bottom: none !important;
@@ -6289,7 +6456,8 @@
         }
 
         .modal-container.accent-info {
-          border-top: 0.5px solid color-mix(in srgb, var(--accent-blue) 85%, transparent) !important;
+          border-top: 0.5px solid
+            color-mix(in srgb, var(--accent-blue) 85%, transparent) !important;
           border-left: none !important;
           border-right: none !important;
           border-bottom: none !important;
@@ -6297,7 +6465,8 @@
         }
 
         .modal-container.accent-success {
-          border-top: 0.5px solid color-mix(in srgb, var(--accent-work) 85%, transparent) !important;
+          border-top: 0.5px solid
+            color-mix(in srgb, var(--accent-work) 85%, transparent) !important;
           border-left: none !important;
           border-right: none !important;
           border-bottom: none !important;
@@ -6342,7 +6511,8 @@
           height: 88svh;
           max-height: 88svh;
           border-radius: var(--radius-xl) var(--radius-xl) 0 0 !important;
-          border: 0.5px solid color-mix(in srgb, var(--text-main) 12%, transparent) !important;
+          border: 0.5px solid
+            color-mix(in srgb, var(--text-main) 12%, transparent) !important;
           border-bottom: none !important;
           padding-top: 1.15rem;
         }
@@ -6404,13 +6574,19 @@
           ) !important;
           backdrop-filter: blur(16px) saturate(150%);
           -webkit-backdrop-filter: blur(16px) saturate(150%);
-          border: 0.5px solid color-mix(in srgb, var(--text-main) 12%, transparent) !important;
+          border: 0.5px solid
+            color-mix(in srgb, var(--text-main) 12%, transparent) !important;
           box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2) !important;
         }
 
         .breakdown-row {
-          border: 0.5px solid color-mix(in srgb, var(--text-main) 12%, transparent) !important;
-          background: color-mix(in srgb, var(--element-bg) 70%, transparent) !important;
+          border: 0.5px solid
+            color-mix(in srgb, var(--text-main) 12%, transparent) !important;
+          background: color-mix(
+            in srgb,
+            var(--element-bg) 70%,
+            transparent
+          ) !important;
           backdrop-filter: blur(16px) saturate(150%);
           -webkit-backdrop-filter: blur(16px) saturate(150%);
           border-radius: var(--radius-md) !important;
@@ -6424,7 +6600,8 @@
         #sync-toast,
         #goal-toast,
         #app-toast {
-          border: 0.5px solid color-mix(in srgb, var(--text-main) 12%, transparent) !important;
+          border: 0.5px solid
+            color-mix(in srgb, var(--text-main) 12%, transparent) !important;
           box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12) !important;
         }
       }
@@ -9299,7 +9476,7 @@
             class="modal-close-btn"
             aria-label="Close"
             onclick="closeHeatmapModal()"
-            style="position: static;"
+            style="position: static"
           >
             <svg
               width="14"
@@ -11675,10 +11852,7 @@
                   "
                 >
                   <div class="settings-row">
-                    <span
-                      class="settings-label"
-                      >Auto-populate daily goal</span
-                    >
+                    <span class="settings-label">Auto-populate daily goal</span>
                     <label class="switch">
                       <input
                         type="checkbox"
@@ -11709,10 +11883,7 @@
                     >
                       <!-- Row 1: Enable Idle Lock -->
                       <div class="settings-row">
-                        <span
-                          class="settings-label"
-                          >Enable idle lock</span
-                        >
+                        <span class="settings-label">Enable idle lock</span>
                         <label class="switch">
                           <input
                             type="checkbox"
@@ -11785,8 +11956,7 @@
 
                       <!-- Row 3: Auto-save JSON Backup -->
                       <div class="settings-row">
-                        <span
-                          class="settings-label"
+                        <span class="settings-label"
                           >Auto-save JSON backup</span
                         >
                         <label class="switch">
@@ -11809,8 +11979,7 @@
 
                       <!-- Row 4: Auto-email EOD Summary -->
                       <div class="settings-row">
-                        <span
-                          class="settings-label"
+                        <span class="settings-label"
                           >Auto-email EOD summary</span
                         >
                         <label class="switch">
@@ -11835,10 +12004,7 @@
                       <div
                         style="display: flex; flex-direction: column; gap: 4px"
                       >
-                        <span
-                          class="settings-label"
-                          >Restore Snapshot</span
-                        >
+                        <span class="settings-label">Restore Snapshot</span>
                         <div class="custom-select">
                           <select
                             id="snapshot-restore-select"
@@ -12608,6 +12774,22 @@
       }
     </script>
     <script>
+      /* The one phone breakpoint. Must stay in lockstep with the
+         `@media (max-width: 767px)` blocks in the stylesheet and with
+         MobileShell's PHONE_MQ, which reuses this exact query object.
+         Anything that needs "am I on the phone layout?" reads
+         isPhoneLayout() -- never a hand-rolled innerWidth comparison, which
+         is how the 767 / 768 mismatch (a one-pixel dead zone where the
+         desktop layout rendered with mobile-only behaviour) crept in. */
+      const PHONE_BREAKPOINT_PX = 767;
+      const PHONE_MEDIA_QUERY = window.matchMedia(
+        `(max-width: ${PHONE_BREAKPOINT_PX}px)`,
+      );
+      function isPhoneLayout() {
+        return PHONE_MEDIA_QUERY.matches;
+      }
+      window.isPhoneLayout = isPhoneLayout;
+
       // Global safety interceptors to prevent crashes in private modes, storage limits, or security restrictions
       (function () {
         const _fallbackStorage = new Map();
@@ -13368,38 +13550,6 @@
           return document.getElementById("today-meta-val");
         },
       };
-
-      /*==========================================================================
-       * GLOBAL MODAL OBSERVER (Mobile Tab Bar Collision Prevention)
-       * =========================================================================*/
-      (function initModalObserver() {
-        const observer = new MutationObserver(() => {
-          let isAnyModalOpen = false;
-          const modals = document.querySelectorAll(".modal-overlay");
-
-          for (let i = 0; i < modals.length; i++) {
-            const display = modals[i].style.display;
-            if (display === "flex" || display === "block") {
-              isAnyModalOpen = true;
-              break;
-            }
-          }
-
-          if (isAnyModalOpen) {
-            document.body.classList.add("modal-open");
-          } else {
-            document.body.classList.remove("modal-open");
-          }
-        });
-
-        // Attach the observer to all modals to watch for inline style changes
-        document.querySelectorAll(".modal-overlay").forEach((modal) => {
-          observer.observe(modal, {
-            attributes: true,
-            attributeFilter: ["style"],
-          });
-        });
-      })();
 
       /*==========================================================================
        * 3. DATE-TIME FORMATTING CONFIGURATORS
@@ -14230,28 +14380,45 @@
         currentTheme = "vercel-dark";
       }
 
+      const DARK_SCHEME_MQ = window.matchMedia
+        ? window.matchMedia("(prefers-color-scheme: dark)")
+        : null;
+
+      function resolveSystemTheme() {
+        return DARK_SCHEME_MQ && DARK_SCHEME_MQ.matches
+          ? "sf-dark"
+          : "sf-light";
+      }
+
+      /**
+       * Adopt the OS colour scheme WITHOUT persisting it.
+       *
+       * Not writing THEME_KEY is the whole point: an absent key is what marks
+       * the theme as "still following the system", which is the condition the
+       * listener below tests. Routing this through setThemeDirect() would
+       * write the key and silently pin the app to whatever the OS happened to
+       * be at that moment.
+       */
+      function applySystemTheme() {
+        currentTheme = resolveSystemTheme();
+        document.documentElement.setAttribute("data-theme", currentTheme);
+        syncColorSchemeMeta(currentTheme);
+        if (typeof renderStaticUI === "function") renderStaticUI();
+        if (typeof renderThemeToggle === "function") renderThemeToggle();
+      }
+
       if (!currentTheme) {
-        const prefersDark =
-          window.matchMedia &&
-          window.matchMedia("(prefers-color-scheme: dark)").matches;
-        currentTheme = prefersDark ? "sf-dark" : "sf-light";
+        currentTheme = resolveSystemTheme();
       }
       document.documentElement.setAttribute("data-theme", currentTheme);
       syncColorSchemeMeta(currentTheme);
 
-      if (window.matchMedia) {
-        window
-          .matchMedia("(prefers-color-scheme: dark)")
-          .addEventListener("change", (e) => {
-            if (!safeGetLocalStorage(THEME_KEY)) {
-              const systemTheme = e.matches ? "sf-dark" : "sf-light";
-              currentTheme = systemTheme;
-              document.documentElement.setAttribute("data-theme", systemTheme);
-              syncColorSchemeMeta(systemTheme);
-              renderStaticUI();
-              renderThemeToggle();
-            }
-          });
+      if (DARK_SCHEME_MQ) {
+        DARK_SCHEME_MQ.addEventListener("change", () => {
+          // Only follow the OS while the user has not made an explicit
+          // choice; setThemeDirect() writes THEME_KEY and opts out for good.
+          if (!safeGetLocalStorage(THEME_KEY)) applySystemTheme();
+        });
       }
 
       // DOM Manipulation Fast Helpers
@@ -15584,11 +15751,112 @@
         syncMediaSession();
       }
 
-      let _silentAudioCtx = null;
+      /*==========================================================================
+       * LOCK-SCREEN / BACKGROUND SESSION BRIDGE
+       *
+       * A silent looping stream keeps the page off the aggressive background
+       * throttle and puts the running timer on the OS media controls.
+       *
+       * Three invariants hold this together:
+       *
+       *  1. Exactly ONE AudioContext for the page lifetime. It is suspended
+       *     when no session is running and never closed -- close() is
+       *     irreversible and a replacement context needs a fresh user
+       *     gesture, so closing would silently break the next session start.
+       *
+       *  2. Playback is only ATTEMPTED on a state transition or a user
+       *     gesture -- never on the 1 Hz render tick. Autoplay policy
+       *     rejects an ungestured play(), so polling it produced a rejected
+       *     promise every second, forever, with no path to success. When a
+       *     start does get rejected we arm a one-shot gesture listener and
+       *     retry exactly once, on the next real interaction.
+       *
+       *  3. Media actions are a control surface like the on-screen buttons
+       *     and answer to the same gate -- see mediaControlsAllowed().
+       * =========================================================================*/
 
+      // 512x512 PNG. Raster, not SVG: Chrome silently drops SVG for both
+      // Notification icons and MediaMetadata artwork.
+      const APP_ICON_PNG =
+        "data:image/png;base64,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";
+
+      let _silentAudioCtx = null;
       let silentAudioEl = null;
       let lastMediaSessionTitle = "";
+      let lastMediaPlaybackState = "";
       let mediaSessionHandlersBound = false;
+      // True while the silent stream is meant to be running. Makes the
+      // engage / disengage transitions edge-triggered instead of polled.
+      let mediaSessionEngaged = false;
+      let _silentAudioPlayPending = false;
+      let _audioGestureRetryArmed = false;
+
+      /**
+       * Whether a media-control action may mutate session state.
+       *
+       * While the idle lock is up the on-screen Start / Break / Submit
+       * buttons are disabled (see renderStaticUI) and the keyboard shortcuts
+       * are blocked, because the idle dialog owns the decision about where
+       * the elapsed time goes. The lock screen and hardware media keys are
+       * just another way to press those buttons and must obey the same gate:
+       * without it, a lock-screen play resumes the timer behind the still-open
+       * dialog and leaves state.preIdleMode describing a mode that is no
+       * longer current, so whichever resolution the user then picks
+       * reconciles against corrupted state.
+       */
+      function mediaControlsAllowed() {
+        return !state.idleLock;
+      }
+
+      /**
+       * Retry a rejected play() once, on the next genuine user interaction.
+       * Capture phase so it still fires for handlers that stop propagation.
+       */
+      function armAudioGestureRetry() {
+        if (_audioGestureRetryArmed) return;
+        _audioGestureRetryArmed = true;
+        const retry = () => {
+          _audioGestureRetryArmed = false;
+          document.removeEventListener("pointerdown", retry, true);
+          document.removeEventListener("keydown", retry, true);
+          if (mediaSessionEngaged) ensureSilentAudioPlaying();
+        };
+        document.addEventListener("pointerdown", retry, true);
+        document.addEventListener("keydown", retry, true);
+      }
+
+      function ensureSilentAudioPlaying() {
+        if (!silentAudioEl) return;
+        if (_silentAudioCtx && _silentAudioCtx.state === "suspended") {
+          _silentAudioCtx.resume().catch(() => {});
+        }
+        // _silentAudioPlayPending stops a second call stacking on top of an
+        // in-flight play() promise, which browsers abort with an error.
+        if (!silentAudioEl.paused || _silentAudioPlayPending) return;
+
+        _silentAudioPlayPending = true;
+        let playback;
+        try {
+          playback = silentAudioEl.play();
+        } catch (e) {
+          _silentAudioPlayPending = false;
+          armAudioGestureRetry();
+          return;
+        }
+        if (playback && typeof playback.then === "function") {
+          playback.then(
+            () => {
+              _silentAudioPlayPending = false;
+            },
+            () => {
+              _silentAudioPlayPending = false;
+              armAudioGestureRetry();
+            },
+          );
+        } else {
+          _silentAudioPlayPending = false;
+        }
+      }
 
       function initMediaSessionAudio() {
         if (!("mediaSession" in navigator)) return;
@@ -15626,36 +15894,38 @@
           mediaSessionHandlersBound = true;
           try {
             navigator.mediaSession.setActionHandler("play", () => {
-              if (!state.loginTimestamp) {
-                switchMode("work");
-              } else if (
+              if (!mediaControlsAllowed()) return;
+              if (
+                !state.loginTimestamp ||
                 state.currentMode === "break" ||
                 state.currentMode === null
               ) {
                 switchMode("work");
               }
-              if (_silentAudioCtx && _silentAudioCtx.state === "suspended") {
-                _silentAudioCtx.resume().catch(() => {});
-              }
-              if (silentAudioEl && silentAudioEl.paused) {
-                silentAudioEl.play().catch(() => {});
-              }
+              ensureSilentAudioPlaying();
             });
 
             navigator.mediaSession.setActionHandler("pause", () => {
+              if (!mediaControlsAllowed()) return;
               if (state.currentMode === "work") {
                 switchMode("break");
               }
             });
 
-            navigator.mediaSession.setActionHandler("previoustrack", () =>
-              switchMode("work"),
-            );
-            navigator.mediaSession.setActionHandler("nexttrack", () =>
-              switchMode("break"),
-            );
+            navigator.mediaSession.setActionHandler("previoustrack", () => {
+              if (!mediaControlsAllowed()) return;
+              switchMode("work");
+            });
+
+            navigator.mediaSession.setActionHandler("nexttrack", () => {
+              if (!mediaControlsAllowed()) return;
+              // switchMode() refuses "break" before a shift has legally
+              // started, so this cannot open a break with no login anchor.
+              switchMode("break");
+            });
 
             navigator.mediaSession.setActionHandler("stop", () => {
+              if (!mediaControlsAllowed()) return;
               if (state.loginTimestamp) {
                 openSubmitModal();
               }
@@ -15663,21 +15933,19 @@
           } catch (e) {}
         }
 
-        if (_silentAudioCtx && _silentAudioCtx.state === "suspended") {
-          _silentAudioCtx.resume().catch(() => {});
-        }
-        if (silentAudioEl.paused) {
-          silentAudioEl.play().catch(() => {});
-        }
+        mediaSessionEngaged = true;
+        ensureSilentAudioPlaying();
       }
 
       function stopMediaSession() {
+        mediaSessionEngaged = false;
         if (silentAudioEl) {
           try {
             silentAudioEl.pause();
             silentAudioEl.currentTime = 0;
           } catch (e) {}
         }
+        // Suspend, never close: see invariant 1 above.
         if (_silentAudioCtx && _silentAudioCtx.state === "running") {
           _silentAudioCtx.suspend().catch(() => {});
         }
@@ -15688,8 +15956,14 @@
           } catch (e) {}
         }
         lastMediaSessionTitle = "";
+        lastMediaPlaybackState = "none";
       }
 
+      /**
+       * Called once per render tick. Every branch here is edge-triggered:
+       * the tick only pushes a metadata update when the displayed string
+       * actually changes, and engage / disengage run once per transition.
+       */
       function syncMediaSession() {
         if (!("mediaSession" in navigator)) return;
 
@@ -15697,18 +15971,16 @@
         const mode = state.currentMode;
 
         if (!hasActiveSession || mode === null) {
-          stopMediaSession();
+          if (mediaSessionEngaged) stopMediaSession();
           return;
         }
 
-        initMediaSessionAudio();
+        if (!mediaSessionEngaged) initMediaSessionAudio();
 
-        if (mode === "work") {
-          navigator.mediaSession.playbackState = "playing";
-        } else if (mode === "break") {
-          navigator.mediaSession.playbackState = "paused";
-        } else {
-          navigator.mediaSession.playbackState = "paused";
+        const playbackState = mode === "work" ? "playing" : "paused";
+        if (playbackState !== lastMediaPlaybackState) {
+          lastMediaPlaybackState = playbackState;
+          navigator.mediaSession.playbackState = playbackState;
         }
 
         const workSec = getCurrentWorkSeconds();
@@ -15726,9 +15998,9 @@
               album: `Work: ${formatDuration(workSec)} | Break: ${formatDuration(breakSec)}`,
               artwork: [
                 {
-                  src: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='512' height='512' viewBox='0 0 180 180'><rect width='180' height='180' fill='%23111111'/><g fill='none' stroke='%2360a5fa' stroke-width='9' stroke-linecap='round' stroke-linejoin='round'><circle cx='90' cy='90' r='48'/><polyline points='90 61 90 90 111 101'/></g></svg>",
+                  src: APP_ICON_PNG,
                   sizes: "512x512",
-                  type: "image/svg+xml",
+                  type: "image/png",
                 },
               ],
             });
@@ -16248,7 +16520,7 @@
                 reg
                   .showNotification("Daily Goal Reached!", {
                     body: `You completed your ${formatFriendlyDuration(anchorGoalSec, "0h")} work target.`,
-                    icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180' viewBox='0 0 180 180'><rect width='180' height='180' fill='%23111111'/><g fill='none' stroke='%2360a5fa' stroke-width='9' stroke-linecap='round' stroke-linejoin='round'><circle cx='90' cy='90' r='48'/><polyline points='90 61 90 90 111 101'/></g></svg>",
+                    icon: APP_ICON_PNG,
                     tag: "goal-reached",
                   })
                   .catch(() => {});
@@ -19685,7 +19957,9 @@
         if (!modal || !anim) return;
         modal.style.opacity = "0";
         anim.style.opacity = "0";
-        if (window.innerWidth > 767) {
+        // The mobile layout centres this card and gives it no scale-in, so
+        // resetting the transform there would just jog it 10px on close.
+        if (!isPhoneLayout()) {
           anim.style.transform = "scale(0.96) translateY(-10px)";
         }
         setTimeout(() => {
@@ -21068,7 +21342,9 @@
         DOM.editModal.style.display = "flex";
         if (focusNotes) {
           setTimeout(() => DOM.editNotes.focus(), 100);
-        } else if (window.innerWidth > 768) {
+        } else if (!isPhoneLayout()) {
+          // Autofocus only on desktop -- on a phone it opens the soft keyboard
+          // over the sheet before the user has seen the form.
           setTimeout(() => DOM.editWork.focus(), 100);
         }
       }
@@ -21118,7 +21394,8 @@
           modal.style.display = "flex";
           if (focusNotes) {
             setTimeout(() => noteEl && noteEl.focus(), 100);
-          } else if (window.innerWidth > 768) {
+          } else if (!isPhoneLayout()) {
+            // See editSingleShift(): desktop-only autofocus.
             setTimeout(() => durEl && durEl.focus(), 100);
           }
         }
@@ -22361,10 +22638,10 @@
               clearTaskFilters();
               loadSavedFilterViews();
               renderPresets();
-              const prefersDark =
-                window.matchMedia &&
-                window.matchMedia("(prefers-color-scheme: dark)").matches;
-              setThemeDirect(prefersDark ? "sf-dark" : "sf-light");
+              // THEME_KEY was just removed above; applySystemTheme() adopts
+              // the OS scheme without writing it back, so a wiped install
+              // keeps following the system exactly like a fresh one.
+              applySystemTheme();
               selectPresetTZ("America/Los_Angeles");
               resetSession(true);
               syncSettingsUI();
@@ -23995,16 +24272,6 @@
         }
       };
 
-      window.applyQuickAdjust = function (val) {
-        if (DOM.adjustSmartInput) {
-          DOM.adjustSmartInput.value = val;
-        }
-        if (typeof updateAdjustTimePreview === "function") {
-          updateAdjustTimePreview();
-        }
-        applyTimeAdjustment();
-      };
-
       /*==========================================================================
        * 19. MANUAL LOG INSERTION UTILITIES
        * =========================================================================*/
@@ -25370,17 +25637,38 @@
         showAppToast("Exported tasks as CSV");
       });
 
+      /**
+       * Ask for notification permission the first time the user starts or
+       * switches a session, which is the moment the request is self-evidently
+       * about "tell me when I hit my goal".
+       *
+       * Phone-only on purpose: the goal notification exists because a phone
+       * screen is off or the app is backgrounded. On desktop the toast and
+       * the tab title are already visible, so a permission prompt on the very
+       * first click would be an unexplained interruption for no added signal.
+       *
+       * Never awaited and never blocking -- the mode switch below must happen
+       * whether or not the user grants, dismisses, or the call throws.
+       */
+      function maybeRequestNotificationPermission() {
+        if (!isPhoneLayout()) return;
+        if (!("Notification" in window)) return;
+        if (Notification.permission !== "default") return;
+        try {
+          const request = Notification.requestPermission();
+          if (request && typeof request.catch === "function") {
+            request.catch(() => {});
+          }
+        } catch (e) {}
+      }
+
       DOM.startBtn.addEventListener("click", () => {
-        if ("Notification" in window && Notification.permission === "default") {
-          Notification.requestPermission().catch(() => {});
-        }
+        maybeRequestNotificationPermission();
         switchMode("work");
       });
 
       DOM.pauseBtn.addEventListener("click", () => {
-        if ("Notification" in window && Notification.permission === "default") {
-          Notification.requestPermission().catch(() => {});
-        }
+        maybeRequestNotificationPermission();
         if (state.currentMode === "work") {
           switchMode("break");
         } else {
@@ -28385,7 +28673,9 @@ logic (.value reads, .value sets, change listeners) works unchanged.
        * top of switchTab().
        * ===================================================================== */
       window.MobileShell = (function () {
-        const PHONE_MQ = window.matchMedia("(max-width: 767px)");
+        // Shared with isPhoneLayout() and with the stylesheet's
+        // `@media (max-width: 767px)` blocks -- see PHONE_BREAKPOINT_PX.
+        const PHONE_MQ = PHONE_MEDIA_QUERY;
         const PANES = ["timer", "insights", "logbook", "tasks"];
         const DEFAULT_PANE = "timer";
 
@@ -28481,15 +28771,20 @@ logic (.value reads, .value sets, change listeners) works unchanged.
             state.pane = pane;
             document.body.dataset.mpane = pane;
           }
+
+          // Exactly one tab may be current at a time. While the sheet is open
+          // it owns the selection outright -- marking Tools selected *and*
+          // leaving the underlying content pane selected announces two current
+          // tabs, which is invalid and leaves a screen reader with no way to
+          // tell which one it is actually on.
+          const sheetOpen = document.body.classList.contains("m-sheet-open");
+          const selectedPane = sheetOpen ? "tools" : pane;
+
           const tabs = document.querySelectorAll("#m-tabbar .m-tab");
           for (let i = 0; i < tabs.length; i++) {
-            const isTools = tabs[i].dataset.pane === "tools";
-            const isSelected = isTools
-              ? document.body.classList.contains("m-sheet-open")
-              : tabs[i].dataset.pane === pane;
             tabs[i].setAttribute(
               "aria-selected",
-              isSelected ? "true" : "false",
+              tabs[i].dataset.pane === selectedPane ? "true" : "false",
             );
           }
         }
