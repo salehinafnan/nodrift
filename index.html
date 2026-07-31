@@ -6043,9 +6043,15 @@
             transform 0.15s ease;
         }
 
+        /* Every paint property for the tab icons lives here, so the markup
+           carries only a viewBox and the sprites only geometry. `fill` and
+           `stroke` inherit down into the hydrated shapes, and #m-tabbar is
+           display:none outside this breakpoint, so nothing leaks to desktop. */
         .m-tab svg {
           width: 24px;
           height: 24px;
+          fill: none;
+          stroke: currentColor;
           stroke-width: 1.5;
           stroke-linecap: round;
           stroke-linejoin: round;
@@ -12348,7 +12354,7 @@
         aria-label="Insights"
         aria-selected="false"
       >
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+        <svg viewBox="0 0 24 24">
           <g data-sprite="sprite-103"></g>
         </svg>
       </button>
@@ -12359,7 +12365,7 @@
         aria-label="Tasks"
         aria-selected="false"
       >
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+        <svg viewBox="0 0 24 24">
           <g data-sprite="sprite-105"></g>
         </svg>
       </button>
@@ -12370,7 +12376,7 @@
         aria-label="Timer"
         aria-selected="true"
       >
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+        <svg viewBox="0 0 24 24">
           <g data-sprite="sprite-102"></g>
         </svg>
       </button>
@@ -12381,7 +12387,7 @@
         aria-label="Logbook"
         aria-selected="false"
       >
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+        <svg viewBox="0 0 24 24">
           <g data-sprite="sprite-104"></g>
         </svg>
       </button>
@@ -12392,8 +12398,8 @@
         aria-label="Settings & Tools"
         aria-selected="false"
       >
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-          <g data-sprite="sprite-036"></g>
+        <svg viewBox="0 0 24 24">
+          <g data-sprite="sprite-106"></g>
         </svg>
       </button>
     </nav>
@@ -13247,14 +13253,31 @@
           '<circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line>',
         "sprite-101":
           '<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline>',
+        /* ---- Mobile tab bar (#m-tabbar) -----------------------------------
+           The phone shell's five tabs, and nothing else, draw from these.
+           Each is built on the same 24px grid: content inset ~3 units from
+           every edge, corner radii of 1.5-3, and no per-element stroke or
+           fill -- `.m-tab svg` is the single source for stroke-width 1.5,
+           currentColor and round caps/joins, so the geometry below stays
+           optically consistent across all five. */
+        /* Stopwatch: crown + running hand. */
         "sprite-102":
-          '<circle cx="12" cy="13" r="8"></circle><path d="M12 9v4l2 2"></path><line x1="12" y1="2" x2="12" y2="5"></line><line x1="9" y1="2" x2="15" y2="2"></line>',
+          '<circle cx="12" cy="14" r="7.5"></circle><path d="M9.5 3h5"></path><path d="M12 3v3.5"></path><path d="m12 14 3-3"></path>',
+        /* Rounded columns on a shared baseline (y=19). */
         "sprite-103":
-          '<line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line>',
+          '<rect x="3" y="10.5" width="4" height="8.5" rx="1.75"></rect><rect x="10" y="4.5" width="4" height="14.5" rx="1.75"></rect><rect x="17" y="7.5" width="4" height="11.5" rx="1.75"></rect>',
+        /* Bound book: cover, page block along the spine, two ruled lines. A
+           plain panel-and-divider outline reads as a layout icon instead, so
+           the page block is what carries the metaphor -- keep it. */
         "sprite-104":
-          '<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"></path><path d="M14 2v4a2 2 0 0 0 2 2h4"></path><path d="M10 9H8"></path><path d="M16 13H8"></path><path d="M16 17H8"></path>',
+          '<path d="M6.5 2.5H18a2 2 0 0 1 2 2v15a2 2 0 0 1-2 2H6.5A2.5 2.5 0 0 1 4 19v-14a2.5 2.5 0 0 1 2.5-2.5Z"></path><path d="M4 19a2.5 2.5 0 0 1 2.5-2.5H20"></path><path d="M8 7.5h7.5"></path><path d="M8 11.5h7.5"></path>',
+        /* Checklist: one open item, one completed. */
         "sprite-105":
-          '<path d="m3 17 2 2 4-4"></path><path d="m3 7 2 2 4-4"></path><path d="M13 6h8"></path><path d="M13 12h8"></path><path d="M13 18h8"></path>',
+          '<rect x="2.75" y="3.75" width="7.5" height="7.5" rx="2.25"></rect><path d="M13.5 7.5h7.5"></path><path d="m3 16.75 2.25 2.25 4.5-4.5"></path><path d="M13.5 16.75h7.5"></path>',
+        /* Sliders -- the tools sheet is adjustment, not machinery, so the
+           phone tab uses these rather than the desktop cog (sprite-036). */
+        "sprite-106":
+          '<path d="M3.5 7h2.5"></path><circle cx="8.5" cy="7" r="2.5"></circle><path d="M11 7h9.5"></path><path d="M3.5 17h9.5"></path><circle cx="15.5" cy="17" r="2.5"></circle><path d="M18 17h2.5"></path>',
       };
 
       function getSprite(id) {
