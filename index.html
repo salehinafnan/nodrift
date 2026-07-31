@@ -6859,6 +6859,106 @@
         }
       }
     </style>
+
+    <!-- =========================================================================
+         PRE-PAINT THEME BOOT
+         Resolves the stored theme and writes data-theme, color-scheme and
+         theme-color before the document is first painted.
+
+         This has to run here rather than in the main script because iOS Safari
+         samples <meta name="theme-color"> when it commits the first paint and
+         tints both the status bar and the bottom address bar from it. The main
+         script only reaches syncThemeColorMeta() via MobileShell.mount() at
+         DOMContentLoaded, and on a ~1.1 MB single-file document that is far
+         too late: Safari has already committed the parse-time #f2f2f7, so a
+         dark theme rendered under a white status bar and a white address bar
+         until some later repaint made Safari re-read the tag. (Measured on a
+         local phone-width load: theme-color was still #f2f2f7 on the first
+         frame and only became #1c1c1e ~100 ms afterwards -- and that is the
+         best case, with no network and a desktop CPU.)
+
+         Deliberately placed after the stylesheet: the theme variables are
+         parsed by this point, so the colours are read back out of CSS instead
+         of being duplicated into a JS table that would silently drift as the
+         themes are edited. The literal map below is only a fallback for the
+         case where the custom properties cannot be resolved this early.
+         ========================================================================= -->
+    <script>
+      (function () {
+        const root = document.documentElement;
+
+        /* Same storage key and the same legacy migrations as the main theme
+           loader further down. Kept deliberately identical -- including the
+           "only fall back when falsy" rule, which lets an unrecognised stored
+           value through to the :root defaults exactly as it does there. A
+           stricter check here would disagree with the main loader and the
+           theme would visibly change a second time on boot. */
+        let theme = null;
+        try {
+          theme = localStorage.getItem("production_theme_pref");
+        } catch (e) {
+          /* private mode / storage disabled */
+        }
+        if (theme === "glass") theme = "sf-light";
+        else if (theme === "midnight") theme = "sf-dark";
+        else if (
+          theme === "linear" ||
+          theme === "cyber-glass" ||
+          theme === "cobalt-glass"
+        )
+          theme = "theme-eink";
+        else if (theme === "pure-noir") theme = "vercel-dark";
+
+        if (!theme) {
+          theme =
+            window.matchMedia &&
+            window.matchMedia("(prefers-color-scheme: dark)").matches
+              ? "sf-dark"
+              : "sf-light";
+        }
+
+        root.setAttribute("data-theme", theme);
+
+        /* Mirrors syncColorSchemeMeta() so native controls, scrollbars and
+           form widgets are already correct on frame one. */
+        const isDark = theme === "sf-dark" || theme === "vercel-dark";
+        root.style.colorScheme = isDark ? "only dark" : "only light";
+        const schemeMeta = document.querySelector('meta[name="color-scheme"]');
+        if (schemeMeta)
+          schemeMeta.setAttribute("content", isDark ? "dark" : "light");
+
+        /* Tint has to match whatever <html> is actually painted, because that
+           is the surface the browser chrome butts up against. The
+           `(max-width: 767px) and (display-mode: standalone)` block above
+           repaints html with --panel-bg; every other context leaves it at
+           --page-bg. Using --panel-bg unconditionally (as this used to) put a
+           #1c1c1e status bar against a #000000 page on the phone. */
+        const prop =
+          window.matchMedia &&
+          window.matchMedia("(max-width: 767px) and (display-mode: standalone)")
+            .matches
+            ? "--panel-bg"
+            : "--page-bg";
+
+        const FALLBACK = {
+          "sf-light": { "--page-bg": "#f2f2f7", "--panel-bg": "#ffffff" },
+          "sf-dark": { "--page-bg": "#000000", "--panel-bg": "#1c1c1e" },
+          "theme-eink": { "--page-bg": "#e8e8e8", "--panel-bg": "#ffffff" },
+          "vercel-dark": { "--page-bg": "#000000", "--panel-bg": "#000000" },
+        };
+
+        let color = "";
+        try {
+          color = getComputedStyle(root).getPropertyValue(prop).trim();
+        } catch (e) {
+          /* fall through to the literal map */
+        }
+        if (!color) color = (FALLBACK[theme] || FALLBACK["sf-light"])[prop];
+
+        const meta = document.querySelector('meta[name="theme-color"]');
+        if (meta && color) meta.setAttribute("content", color);
+      })();
+    </script>
   </head>
 
   <body>
@@ -29072,6 +29172,16 @@ logic (.value reads, .value sets, change listeners) works unchanged.
             ? window.matchMedia("(display-mode: standalone)")
             : null;
 
+        // Mirrors the one stylesheet block that repaints <html> with
+        // --panel-bg instead of --page-bg. Kept as a single query so it cannot
+        // drift out of step with that selector -- see syncThemeColorMeta().
+        const PANEL_SURFACE_MQ =
+          typeof window.matchMedia === "function"
+            ? window.matchMedia(
+                "(max-width: 767px) and (display-mode: standalone)",
+              )
+            : { matches: false };
+
         /**
          * theme-color is consulted by mobile browser chrome and by standalone
          * PWA windows, and by nothing else. Running the sync unconditionally
@@ -29093,8 +29203,25 @@ logic (.value reads, .value sets, change listeners) works unchanged.
           if (!themeColorIsRead()) return;
           const meta = document.querySelector('meta[name="theme-color"]');
           if (!meta) return;
+          /* Must resolve to the same surface the pre-paint boot script in
+             <head> picked, or the tint would jump the moment the first theme
+             change lands. <html> is painted --panel-bg only under
+             `(max-width: 767px) and (display-mode: standalone)`; everywhere
+             else -- including a phone browser, which is where the mobile shell
+             spends most of its life -- it is --page-bg. Reading --panel-bg
+             unconditionally tinted iOS Safari's chrome #1c1c1e against a
+             #000000 page.
+
+             This tests the CSS override's own media query verbatim rather than
+             combining PHONE_MQ with navigator.standalone: on iOS before 15.4
+             navigator.standalone is true while `display-mode: standalone` does
+             not match, so the two would disagree and the tint would drift off
+             the page again. themeColorIsRead() still honours
+             navigator.standalone -- whether the tint is read and which surface
+             it should copy are separate questions. */
+          const prop = PANEL_SURFACE_MQ.matches ? "--panel-bg" : "--page-bg";
           const bg = getComputedStyle(document.documentElement)
-            .getPropertyValue("--panel-bg")
+            .getPropertyValue(prop)
             .trim();
           if (bg) meta.setAttribute("content", bg);
         }
@@ -29260,7 +29387,6 @@ logic (.value reads, .value sets, change listeners) works unchanged.
           );
 
           // Keep the OS status / navigation bar tint matched to the theme.
-          syncThemeColorMeta();
           new MutationObserver(syncThemeColorMeta).observe(
             document.documentElement,
             { attributes: true, attributeFilter: ["data-theme"] },
@@ -29275,6 +29401,11 @@ logic (.value reads, .value sets, change listeners) works unchanged.
 
           initModalTouchDrag();
           applyBreakpoint();
+          // After applyBreakpoint(), never before it: themeColorIsRead() gates
+          // on state.active, which only turns true once applyBreakpoint() has
+          // called mount(). Run earlier -- as this was -- it is a guaranteed
+          // no-op in a phone browser, and the boot tint went unverified.
+          syncThemeColorMeta();
         }
 
         function initModalTouchDrag() {
