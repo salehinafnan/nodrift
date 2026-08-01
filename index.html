@@ -11,7 +11,7 @@
          fall back to default-src 'self' and be blocked. -->
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' 'unsafe-inline' blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; connect-src 'none'; img-src 'self' data:; font-src 'self' data: https://fonts.gstatic.com; media-src 'self' data:; manifest-src 'self' data:;"
+      content="default-src 'self'; script-src 'self' 'unsafe-inline' blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; connect-src 'none'; img-src 'self' data:; font-src 'self' data: https://fonts.gstatic.com; manifest-src 'self' data:;"
     />
     <title>nodrift</title>
 
@@ -13878,14 +13878,12 @@
       }
 
       /**
-       * Hidden with no lock-screen session to feed means there is nothing to
-       * compute until wake: every duration is derived from stored timestamps,
-       * and handleWakeUpRecovery replays midnight/idle boundaries on return.
-       * While the media session is engaged the tick keeps running so the OS
-       * controls stay live.
+       * A hidden page has nothing to compute. Every duration is derived from
+       * stored timestamps, and handleWakeUpRecovery replays the midnight and
+       * idle boundaries on return, so the tick is pure UI and stops with it.
        */
       function syncTickerState() {
-        if (document.hidden && !mediaSessionEngaged) stopUITimer();
+        if (document.hidden) stopUITimer();
         else startUITimer();
       }
 
@@ -16052,9 +16050,6 @@
               state.lastHeartbeatMonotonic = performance.now();
             }
           }
-          if (typeof initMediaSessionAudio === "function") {
-            initMediaSessionAudio();
-          }
         } else {
           state.sessionAnchorWall = null;
         }
@@ -16357,300 +16352,6 @@
               buildTime(window._cachedBstBase),
             );
           }
-        }
-
-        syncMediaSession();
-      }
-
-      /*==========================================================================
-       * LOCK-SCREEN / BACKGROUND SESSION BRIDGE
-       *
-       * A silent looping stream keeps the page off the aggressive background
-       * throttle and puts the running timer on the OS media controls.
-       *
-       * Three invariants hold this together:
-       *
-       *  1. Exactly ONE AudioContext for the page lifetime. It is suspended
-       *     when no session is running and never closed -- close() is
-       *     irreversible and a replacement context needs a fresh user
-       *     gesture, so closing would silently break the next session start.
-       *
-       *  2. Playback is only ATTEMPTED on a state transition or a user
-       *     gesture -- never on the 1 Hz render tick. Autoplay policy
-       *     rejects an ungestured play(), so polling it produced a rejected
-       *     promise every second, forever, with no path to success. When a
-       *     start does get rejected we arm a one-shot gesture listener and
-       *     retry exactly once, on the next real interaction.
-       *
-       *  3. Media actions are a control surface like the on-screen buttons
-       *     and answer to the same gate -- see mediaControlsAllowed().
-       * =========================================================================*/
-
-      // 512x512 PNG. Raster, not SVG: Chrome silently drops SVG for both
-      // Notification icons and MediaMetadata artwork.
-      const APP_ICON_PNG =
-        "data:image/png;base64,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";
-
-      let _silentAudioCtx = null;
-      let silentAudioEl = null;
-      let lastMediaSessionTitle = "";
-      let lastMediaSessionAlbum = "";
-      let lastMediaPlaybackState = "";
-      let mediaSessionHandlersBound = false;
-      // True while the silent stream is meant to be running. Makes the
-      // engage / disengage transitions edge-triggered instead of polled.
-      let mediaSessionEngaged = false;
-      let _silentAudioPlayPending = false;
-      let _audioGestureRetryArmed = false;
-
-      /**
-       * Whether a media-control action may mutate session state.
-       *
-       * While the idle lock is up the on-screen Start / Break / Submit
-       * buttons are disabled (see renderStaticUI) and the keyboard shortcuts
-       * are blocked, because the idle dialog owns the decision about where
-       * the elapsed time goes. The lock screen and hardware media keys are
-       * just another way to press those buttons and must obey the same gate:
-       * without it, a lock-screen play resumes the timer behind the still-open
-       * dialog and leaves state.preIdleMode describing a mode that is no
-       * longer current, so whichever resolution the user then picks
-       * reconciles against corrupted state.
-       */
-      function mediaControlsAllowed() {
-        return !state.idleLock;
-      }
-
-      /**
-       * Retry a rejected play() once, on the next genuine user interaction.
-       * Capture phase so it still fires for handlers that stop propagation.
-       */
-      function armAudioGestureRetry() {
-        if (_audioGestureRetryArmed) return;
-        _audioGestureRetryArmed = true;
-        const retry = () => {
-          _audioGestureRetryArmed = false;
-          document.removeEventListener("pointerdown", retry, true);
-          document.removeEventListener("keydown", retry, true);
-          if (mediaSessionEngaged) ensureSilentAudioPlaying();
-        };
-        document.addEventListener("pointerdown", retry, true);
-        document.addEventListener("keydown", retry, true);
-      }
-
-      function ensureSilentAudioPlaying() {
-        if (!silentAudioEl) return;
-        if (_silentAudioCtx && _silentAudioCtx.state === "suspended") {
-          _silentAudioCtx.resume().catch(() => {});
-        }
-        // _silentAudioPlayPending stops a second call stacking on top of an
-        // in-flight play() promise, which browsers abort with an error.
-        if (!silentAudioEl.paused || _silentAudioPlayPending) return;
-
-        _silentAudioPlayPending = true;
-        let playback;
-        try {
-          playback = silentAudioEl.play();
-        } catch (e) {
-          _silentAudioPlayPending = false;
-          armAudioGestureRetry();
-          return;
-        }
-        if (playback && typeof playback.then === "function") {
-          playback.then(
-            () => {
-              _silentAudioPlayPending = false;
-            },
-            () => {
-              _silentAudioPlayPending = false;
-              armAudioGestureRetry();
-            },
-          );
-        } else {
-          _silentAudioPlayPending = false;
-        }
-      }
-
-      function initMediaSessionAudio() {
-        if (!("mediaSession" in navigator)) return;
-
-        if (!silentAudioEl) {
-          try {
-            const AudioCtx = window.AudioContext || window.webkitAudioContext;
-            try {
-              // 8 kHz is plenty for a 1 Hz tone and cuts render-quantum work
-              // ~6x. Some engines reject an explicit rate, hence the retry.
-              _silentAudioCtx = new AudioCtx({
-                sampleRate: 8000,
-                latencyHint: "playback",
-              });
-            } catch (rateErr) {
-              _silentAudioCtx = new AudioCtx();
-            }
-            const osc = _silentAudioCtx.createOscillator();
-            const gain = _silentAudioCtx.createGain();
-            osc.frequency.value = 1;
-            gain.gain.value = 0.001;
-            const dest = _silentAudioCtx.createMediaStreamDestination();
-            osc.connect(gain);
-            gain.connect(dest);
-            osc.start();
-            silentAudioEl = document.createElement("audio");
-            silentAudioEl.srcObject = dest.stream;
-            silentAudioEl.loop = true;
-            silentAudioEl.playsInline = true;
-            silentAudioEl.setAttribute("playsinline", "true");
-            silentAudioEl.setAttribute("webkit-playsinline", "true");
-          } catch (e) {
-            silentAudioEl = document.createElement("audio");
-            silentAudioEl.loop = true;
-            silentAudioEl.playsInline = true;
-            silentAudioEl.setAttribute("playsinline", "true");
-            silentAudioEl.setAttribute("webkit-playsinline", "true");
-            silentAudioEl.src =
-              "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=";
-          }
-        }
-
-        if (!mediaSessionHandlersBound) {
-          mediaSessionHandlersBound = true;
-          try {
-            navigator.mediaSession.setActionHandler("play", () => {
-              if (!mediaControlsAllowed()) return;
-              if (
-                !state.loginTimestamp ||
-                state.currentMode === "break" ||
-                state.currentMode === null
-              ) {
-                switchMode("work");
-              }
-              ensureSilentAudioPlaying();
-            });
-
-            navigator.mediaSession.setActionHandler("pause", () => {
-              if (!mediaControlsAllowed()) return;
-              if (state.currentMode === "work") {
-                switchMode("break");
-              }
-            });
-
-            navigator.mediaSession.setActionHandler("previoustrack", () => {
-              if (!mediaControlsAllowed()) return;
-              switchMode("work");
-            });
-
-            navigator.mediaSession.setActionHandler("nexttrack", () => {
-              if (!mediaControlsAllowed()) return;
-              // switchMode() refuses "break" before a shift has legally
-              // started, so this cannot open a break with no login anchor.
-              switchMode("break");
-            });
-
-            navigator.mediaSession.setActionHandler("stop", () => {
-              if (!mediaControlsAllowed()) return;
-              if (state.loginTimestamp) {
-                openSubmitModal();
-              }
-            });
-          } catch (e) {}
-        }
-
-        mediaSessionEngaged = true;
-        syncTickerState();
-        ensureSilentAudioPlaying();
-      }
-
-      function stopMediaSession() {
-        mediaSessionEngaged = false;
-        syncTickerState();
-        if (silentAudioEl) {
-          try {
-            silentAudioEl.pause();
-            silentAudioEl.currentTime = 0;
-          } catch (e) {}
-        }
-        // Suspend, never close: see invariant 1 above.
-        if (_silentAudioCtx && _silentAudioCtx.state === "running") {
-          _silentAudioCtx.suspend().catch(() => {});
-        }
-        if ("mediaSession" in navigator) {
-          navigator.mediaSession.playbackState = "none";
-          try {
-            navigator.mediaSession.metadata = null;
-          } catch (e) {}
-        }
-        lastMediaSessionTitle = "";
-        lastMediaSessionAlbum = "";
-        lastMediaPlaybackState = "none";
-      }
-
-      /**
-       * Called once per render tick. Every branch here is edge-triggered:
-       * the tick only pushes a metadata update when the displayed string
-       * actually changes, and engage / disengage run once per transition.
-       */
-      function syncMediaSession() {
-        if (!("mediaSession" in navigator)) return;
-
-        const hasActiveSession = !!state.loginTimestamp && !state.idleLock;
-        const mode = state.currentMode;
-
-        if (!hasActiveSession || mode === null) {
-          if (mediaSessionEngaged) stopMediaSession();
-          return;
-        }
-
-        if (!mediaSessionEngaged) initMediaSessionAudio();
-
-        const playbackState = mode === "work" ? "playing" : "paused";
-        if (playbackState !== lastMediaPlaybackState) {
-          lastMediaPlaybackState = playbackState;
-          navigator.mediaSession.playbackState = playbackState;
-        }
-
-        const workSec = getCurrentWorkSeconds();
-        const breakSec = getCurrentBreakSeconds();
-        const activeSec = mode === "work" ? workSec : breakSec;
-        const modeLabel = mode === "work" ? "Work" : "Break";
-
-        /* Minute resolution, and that is the whole point of this block.
-         *
-         * Assigning navigator.mediaSession.metadata is not a DOM write: it
-         * marshals a new MediaMetadata across the browser's IPC boundary and
-         * asks the operating system to redraw the lock screen and the
-         * notification shade. These strings previously carried ticking
-         * seconds, so the guard below could never hold -- every tick built a
-         * fresh object and woke the system UI thread, for the entire length
-         * of a tracked shift, with the screen off. That is the single most
-         * expensive thing this page did in the background.
-         *
-         * Rounding down to the minute makes the guard real: metadata now goes
-         * out at most once a minute, plus once per mode change. Album is
-         * compared as well as title because both carry a duration -- checking
-         * only the title would let the album go stale for a whole minute.
-         */
-        const titleStr = `${formatCoarseDuration(activeSec)} • ${modeLabel}`;
-        const albumStr = `Work: ${formatCoarseDuration(workSec)} | Break: ${formatCoarseDuration(breakSec)}`;
-
-        if (
-          titleStr !== lastMediaSessionTitle ||
-          albumStr !== lastMediaSessionAlbum
-        ) {
-          lastMediaSessionTitle = titleStr;
-          lastMediaSessionAlbum = albumStr;
-          try {
-            navigator.mediaSession.metadata = new MediaMetadata({
-              title: titleStr,
-              artist: "nodrift",
-              album: albumStr,
-              artwork: [
-                {
-                  src: APP_ICON_PNG,
-                  sizes: "512x512",
-                  type: "image/png",
-                },
-              ],
-            });
-          } catch (e) {}
         }
       }
 
@@ -17156,41 +16857,6 @@
             }, 5000);
           }
 
-          if (
-            "Notification" in window &&
-            Notification.permission === "granted" &&
-            document.hidden
-          ) {
-            const sendOSNotification = (reg) => {
-              if (reg && reg.showNotification) {
-                reg
-                  .showNotification("Daily Goal Reached!", {
-                    body: `You completed your ${formatFriendlyDuration(anchorGoalSec, "0h")} work target.`,
-                    icon: APP_ICON_PNG,
-                    tag: "goal-reached",
-                  })
-                  .catch(() => {});
-              }
-            };
-
-            if (window.swRegistration) {
-              sendOSNotification(window.swRegistration);
-            } else if (navigator.serviceWorker) {
-              // getRegistration(), not .ready: `ready` is specified to never
-              // settle while nothing is registered -- it does not reject, it
-              // simply hangs. That turns a missing sw.js into a silent dead
-              // branch instead of a visible failure, which is exactly the
-              // situation if index.html ever ships on its own.
-              // getRegistration() resolves to undefined, and
-              // sendOSNotification already no-ops on a falsy registration.
-              navigator.serviceWorker
-                .getRegistration()
-                .then(sendOSNotification)
-                .catch(() => {});
-            }
-          }
-
-          playGoalSound();
           state.goalNotified = true;
           saveState();
         }
@@ -17954,9 +17620,6 @@
         lastAdjustmentStateBackup = null;
         saveState();
         autoPopulateDailyGoal(state.activeDate);
-        if (typeof stopMediaSession === "function") {
-          stopMediaSession();
-        }
         DOM.submitModal.style.display = "none";
         DOM.ghostModal.style.display = "none";
         DOM.noteModal.style.display = "none";
@@ -24481,60 +24144,6 @@
         }
       });
 
-      function playGoalSound() {
-        try {
-          const context = new (
-            window.AudioContext || window.webkitAudioContext
-          )();
-          const osc1 = context.createOscillator();
-          const gain1 = context.createGain();
-          osc1.type = "triangle";
-          osc1.frequency.setValueAtTime(880, context.currentTime);
-          osc1.connect(gain1);
-          gain1.connect(context.destination);
-          gain1.gain.setValueAtTime(0, context.currentTime);
-          gain1.gain.linearRampToValueAtTime(1.0, context.currentTime + 0.05);
-          gain1.gain.exponentialRampToValueAtTime(
-            0.001,
-            context.currentTime + 0.25,
-          );
-          osc1.start(context.currentTime);
-          osc1.stop(context.currentTime + 0.25);
-
-          const osc2 = context.createOscillator();
-          const gain2 = context.createGain();
-          osc2.type = "triangle";
-          osc2.frequency.setValueAtTime(880, context.currentTime + 0.15);
-          osc2.connect(gain2);
-          gain2.connect(context.destination);
-          gain2.gain.setValueAtTime(0, context.currentTime + 0.15);
-          gain2.gain.linearRampToValueAtTime(1.0, context.currentTime + 0.2);
-          gain2.gain.exponentialRampToValueAtTime(
-            0.001,
-            context.currentTime + 0.4,
-          );
-          osc2.start(context.currentTime + 0.15);
-          osc2.stop(context.currentTime + 0.4);
-
-          const osc3 = context.createOscillator();
-          const gain3 = context.createGain();
-          osc3.type = "triangle";
-          osc3.frequency.setValueAtTime(880, context.currentTime + 0.3);
-          osc3.connect(gain3);
-          gain3.connect(context.destination);
-          gain3.gain.setValueAtTime(0, context.currentTime + 0.3);
-          gain3.gain.linearRampToValueAtTime(1.0, context.currentTime + 0.35);
-          gain3.gain.exponentialRampToValueAtTime(
-            0.001,
-            context.currentTime + 0.55,
-          );
-          osc3.start(context.currentTime + 0.3);
-          osc3.stop(context.currentTime + 0.55);
-        } catch (e) {
-          console.error(e);
-        }
-      }
-
       /**
        * Refreshes user active state notifications on master clocks.
        */
@@ -26339,38 +25948,11 @@
         showAppToast("Exported tasks as CSV");
       });
 
-      /**
-       * Ask for notification permission the first time the user starts or
-       * switches a session, which is the moment the request is self-evidently
-       * about "tell me when I hit my goal".
-       *
-       * Phone-only on purpose: the goal notification exists because a phone
-       * screen is off or the app is backgrounded. On desktop the toast and
-       * the tab title are already visible, so a permission prompt on the very
-       * first click would be an unexplained interruption for no added signal.
-       *
-       * Never awaited and never blocking -- the mode switch below must happen
-       * whether or not the user grants, dismisses, or the call throws.
-       */
-      function maybeRequestNotificationPermission() {
-        if (!isPhoneLayout()) return;
-        if (!("Notification" in window)) return;
-        if (Notification.permission !== "default") return;
-        try {
-          const request = Notification.requestPermission();
-          if (request && typeof request.catch === "function") {
-            request.catch(() => {});
-          }
-        } catch (e) {}
-      }
-
       DOM.startBtn.addEventListener("click", () => {
-        maybeRequestNotificationPermission();
         switchMode("work");
       });
 
       DOM.pauseBtn.addEventListener("click", () => {
-        maybeRequestNotificationPermission();
         if (state.currentMode === "work") {
           switchMode("break");
         } else {
@@ -28781,28 +28363,6 @@
 
             if (typeof triggerAutoSnapshot === "function") {
               triggerAutoSnapshot();
-            }
-
-            // Registered solely so the goal-reached OS notification has a
-            // ServiceWorkerRegistration to post through -- sw.js caches
-            // nothing, because the app is a single file served from anywhere.
-            //
-            // There is no blob: fallback: browsers reject blob: URLs as
-            // service worker scripts outright, so that branch could only ever
-            // swallow its own failure. Failing loudly and losing exactly one
-            // optional feature is the better trade.
-            if ("serviceWorker" in navigator && !window.swRegistration) {
-              navigator.serviceWorker
-                .register("./sw.js")
-                .then((reg) => {
-                  window.swRegistration = reg;
-                })
-                .catch((err) => {
-                  console.warn(
-                    "Service worker registration failed; OS notifications will be unavailable. Is sw.js deployed next to index.html?",
-                    err,
-                  );
-                });
             }
 
             autoPopulateDailyGoal(state.activeDate || getPSTDate());
