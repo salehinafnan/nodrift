@@ -99,6 +99,17 @@
         --z-toast: 3500;
         --z-tooltip: 9999;
         --global-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+
+        /* The flat fill that sits behind the app's floating chrome -- the
+           scroll-to-top button, the sticky month badge, toasts, the phone
+           shell's bars and rows. This app paints no backdrop-filter anywhere
+           (see the note in the mobile token block), so any surface that used
+           to lean on one instead pre-mixes its tint against this, which is
+           what the blur would have sampled. Panel is correct everywhere
+           except the phone's OLED themes, which repaint their containers with
+           --page-bg and override this inside the breakpoint. */
+        --chrome-backdrop: var(--panel-bg);
+
         /* Shared Color Scheme Accents */
         --accent-work: #34c759;
         --accent-break: #ff3b30;
@@ -2204,9 +2215,15 @@
         width: 28px;
         height: 28px;
         padding: 0;
-        background: color-mix(in srgb, var(--panel-bg) 72%, transparent);
-        backdrop-filter: blur(16px) saturate(150%);
-        -webkit-backdrop-filter: blur(16px) saturate(150%);
+        /* Opaque: this floats over the logbook, so rows really do pass
+           beneath it and a translucent pill with no blur would show their
+           text through the arrow. Mixing the old 72% tint against the fill
+           the list sits on keeps its resting colour unchanged. */
+        background: color-mix(
+          in srgb,
+          var(--panel-bg) 72%,
+          var(--chrome-backdrop)
+        );
         border: 0.5px solid
           color-mix(in srgb, var(--text-main) 12%, transparent);
         border-radius: 50%;
@@ -2790,9 +2807,14 @@
         left: 50%;
         transform: translateX(-50%) translateY(8px);
         z-index: var(--z-elevated);
-        background: color-mix(in srgb, var(--panel-bg) 72%, transparent);
-        backdrop-filter: blur(16px) saturate(150%);
-        -webkit-backdrop-filter: blur(16px) saturate(150%);
+        /* Opaque for the same reason as .scroll-top-btn: the badge hangs
+           below the toolbar over the scrolling list, so rows travel under it
+           continuously. Same 72% tint, resolved against the list's fill. */
+        background: color-mix(
+          in srgb,
+          var(--panel-bg) 72%,
+          var(--chrome-backdrop)
+        );
         border: 0.5px solid
           color-mix(in srgb, var(--text-main) 12%, transparent);
         color: var(--accent-blue);
@@ -2845,7 +2867,16 @@
         flex-direction: column;
         justify-content: center;
         cursor: pointer;
-        will-change: transform;
+        /* Deliberately no will-change: transform. Rows do not animate -- the
+           scroll is native, and the JS scroller only rewrites a row's
+           translate3d when the visible range crosses a row boundary, which is
+           a handful of times per second at most. The hint would instead
+           promote every one of the ~25 pooled rows to its own compositor
+           layer for the life of the page, which is VRAM spent to make a
+           near-static element cheap to move. `contain: layout paint` above
+           already gives the repaint isolation that actually matters here, and
+           on lower-end phones staying under the layer budget is what keeps
+           the scroll on the GPU at all. */
       }
 
       .log-row.kb-selected {
@@ -4232,9 +4263,16 @@
         top: max(16px, env(safe-area-inset-top));
         left: 50%;
         height: 44px;
-        background: color-mix(in srgb, var(--panel-bg) 75%, transparent);
-        backdrop-filter: blur(20px) saturate(160%);
-        -webkit-backdrop-filter: blur(20px) saturate(160%);
+        /* Opaque: a toast floats over whatever is on screen, so it is one of
+           the few surfaces with no single fill behind it. The sf-light and
+           theme-eink overrides below already opted out of translucency for
+           exactly this reason; this brings the other two into line rather
+           than leaving them see-through once the blur is gone. */
+        background: color-mix(
+          in srgb,
+          var(--panel-bg) 75%,
+          var(--chrome-backdrop)
+        );
         color: var(--text-main);
         border: 1px solid
           color-mix(in srgb, var(--border-main) 60%, rgba(255, 255, 255, 0.15));
@@ -5162,7 +5200,59 @@
             var(--text-main) 12%,
             transparent
           );
-          --glass-filter: blur(16px) saturate(150%);
+
+          /* ---- No backdrop-filter, anywhere -----------------------------
+             This shell is styled as translucent "liquid glass", but it
+             renders none of it through a backdrop-filter. That filter is the
+             single most expensive thing a mobile GPU can be asked to do per
+             frame: it reads back the pixels behind the element, runs a
+             separable Gaussian over them and recomposites -- and the result
+             cannot be cached for any element that moves, which on a phone is
+             most of them.
+
+             Two observations make it unnecessary here.
+
+             First, the blur was almost always sampling nothing. Every
+             surface that carried one -- rows, cards, inputs, the bars, the
+             toolbar, the chips -- sits on a single flat fill: .sidebar, the
+             sticky toolbar, #m-sheet or .main-ui, all of which paint one
+             opaque colour. Blurring a uniform region returns that region, so
+             those filters were pure cost for an identical picture. Deleting
+             them is invisible.
+
+             Second, translucency itself is cheap. An rgba() or color-mix()
+             background is an alpha blend during compositing; it is the
+             filter, not the transparency, that costs. So the material's tint
+             survives wherever the fill behind it is uniform, and only the
+             filter goes.
+
+             The handful of surfaces content genuinely does travel beneath --
+             #m-tabbar, the scroll-to-top button, the sticky month badge,
+             toasts, the tooltip -- cannot rely on that, because without a
+             blur a translucent overlay lets text read straight through it.
+             Those are opaque instead, tinted so that their resting
+             appearance is unchanged. Each carries its own note.
+
+             --glass-surface-solid is the opaque twin of --glass-surface, for
+             the two scrollers. Rows are worth flattening rather than merely
+             de-blurring: an opaque row lets the compositor skip whatever is
+             behind it, which a translucent one forbids, and with ~25 pooled
+             rows recycling that is the difference worth having. */
+          --glass-surface-solid: color-mix(
+            in srgb,
+            var(--element-bg) 70%,
+            var(--chrome-backdrop)
+          );
+        }
+
+        /* The OLED themes repaint .sidebar, the sticky toolbar and the timer
+           pane with --page-bg (see the rule further down), so on a phone the
+           fill behind the chrome is that, not --panel-bg. (0,2,0) beats the
+           :root default. Deliberately scoped inside the breakpoint: on the
+           desktop those panes sit on .console-panel, which is --panel-bg. */
+        :root[data-theme="sf-dark"],
+        :root[data-theme="vercel-dark"] {
+          --chrome-backdrop: var(--page-bg);
         }
 
         /* ---- Full-bleed app frame -------------------------------------- */
@@ -5243,9 +5333,16 @@
           gap: 0.25rem;
           overflow: hidden;
           border-radius: var(--radius-lg);
-          background: color-mix(in srgb, var(--panel-bg) 72%, transparent);
-          backdrop-filter: blur(20px) saturate(160%);
-          -webkit-backdrop-filter: blur(20px) saturate(160%);
+          /* Deliberately opaque: nothing ever passes under this bar. In the
+             content panes .sidebar clears it with a padding-top and clips at
+             that edge; in the timer pane the bar is an in-flow child of the
+             scroller, so it moves with the content rather than over it. The
+             blur this replaces was sampling a flat fill. */
+          background: color-mix(
+            in srgb,
+            var(--panel-bg) 72%,
+            var(--chrome-backdrop)
+          );
           border: 0.5px solid
             color-mix(in srgb, var(--text-main) 12%, transparent);
           box-shadow:
@@ -5528,9 +5625,10 @@
           flex: 1 1 auto;
           min-height: 40px;
           white-space: nowrap;
+          /* Tint kept, filter dropped: these sit directly on #m-sheet, which
+             paints an opaque --modal-bg, so the blur had a uniform region to
+             sample and produced that same region back. */
           background: var(--glass-surface) !important;
-          backdrop-filter: var(--glass-filter);
-          -webkit-backdrop-filter: var(--glass-filter);
           border: 0.5px solid var(--glass-hairline) !important;
           box-shadow: none;
         }
@@ -5632,8 +5730,11 @@
         #task-actions-group button {
           touch-action: manipulation;
           -webkit-tap-highlight-color: transparent;
-          backdrop-filter: blur(16px) saturate(150%);
-          -webkit-backdrop-filter: blur(16px) saturate(150%);
+          /* These carry no background of their own -- the translucent tint
+             comes from .btn-work / .btn-break / .btn-log. Behind them is the
+             timer pane's flat fill, so the blur was sampling one colour and
+             handing it straight back. The tint composites over it exactly as
+             before. */
           border: 0.5px solid
             color-mix(in srgb, var(--text-main) 12%, transparent) !important;
           box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
@@ -5788,13 +5889,15 @@
         .advanced-filters {
           padding: 8px;
           gap: 6px;
+          /* The drawer lives in .logbook-sticky-toolbar, which is a sibling
+             of the scroll viewport rather than its container -- nothing
+             scrolls behind it. Its fill is the toolbar's, which is flat, so
+             the tint stands on its own without the filter. */
           background: color-mix(
             in srgb,
             var(--panel-bg) 72%,
             transparent
           ) !important;
-          backdrop-filter: blur(20px) saturate(160%);
-          -webkit-backdrop-filter: blur(20px) saturate(160%);
           border: 0.5px solid
             color-mix(in srgb, var(--text-main) 12%, transparent) !important;
           box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18) !important;
@@ -5842,9 +5945,9 @@
 
         .filter-chip {
           border-radius: 9999px;
+          /* Chips swipe horizontally, but only across the toolbar's own flat
+             fill -- there is nothing behind them to blur. */
           background: color-mix(in srgb, var(--accent-blue) 14%, transparent);
-          backdrop-filter: blur(12px) saturate(140%);
-          -webkit-backdrop-filter: blur(12px) saturate(140%);
           border: 0.5px solid
             color-mix(in srgb, var(--accent-blue) 35%, transparent);
           box-shadow: none;
@@ -5994,9 +6097,35 @@
              any overlay that is added later without the exact markup that JS
              watches for would silently render underneath the bar. */
           z-index: var(--z-sticky);
-          background: color-mix(in srgb, var(--panel-bg) 72%, transparent);
-          backdrop-filter: blur(20px) saturate(160%);
-          -webkit-backdrop-filter: blur(20px) saturate(160%);
+          /* Fully opaque, and the opacity is load-bearing rather than a
+             leftover. This is the one surface in the shell that content
+             really does travel beneath -- the scrollers run to the bottom
+             edge of the viewport and clear the bar with an ::after spacer
+             instead of a padding -- so it cannot use the pre-mixed trick the
+             other chrome does; there is no single fill behind it to mix
+             against.
+
+             That leaves two honest options, because the blur was the only
+             thing making a translucent bar legible: keep paying for a blur
+             the GPU must recompute every frame of every scroll, or stop
+             compositing through the bar at all. Translucent WITHOUT the blur
+             is the one combination to avoid -- row text would read straight
+             through the tabs.
+
+             Keeping the same 72% tint but resolving it against the fill the
+             pane behind it uses reproduces the bar's resting appearance --
+             what it already looked like whenever the list was scrolled short
+             of it -- bit for bit on all four themes. Resolving to the bare
+             pane colour instead would have flattened the SF Dark bar from
+             #141416 to pure black and lost its lift off the page. The only
+             thing that changes here is that content passing behind the bar
+             is now hidden rather than blurred; the hairline below and the
+             active tab's own tint still separate it exactly as before. */
+          background: color-mix(
+            in srgb,
+            var(--panel-bg) 72%,
+            var(--chrome-backdrop)
+          );
           border-top: 0.5px solid
             color-mix(in srgb, var(--text-main) 12%, transparent);
           border-radius: 0;
@@ -6257,9 +6386,12 @@
            material in the "state variants" block below. When adding a
            selector here, check whether the component has an .active /
            .selected / semantic variant and add the matching variant too --
-           otherwise the state silently disappears on mobile. */
+           otherwise the state silently disappears on mobile.
+
+           Do NOT add .log-row back to this list. Rows are the one component
+           that scrolls, and they get the solid twin of this surface in the
+           rule immediately below -- see the note there. */
         .task-card-active,
-        .log-row:not(.is-leave-row),
         .preset-pill:not(.active),
         .goal-inputs,
         .sq-btn,
@@ -6274,9 +6406,30 @@
         .date-picker-group,
         .stat-card {
           border: 0.5px solid var(--glass-hairline) !important;
+          /* Tint without a filter. Every selector above resolves against one
+             flat fill -- .sidebar, the sticky toolbar, #m-sheet or a modal --
+             so the blur was returning the colour it started from. The state
+             variants below inherit this surface and stay translucent for the
+             same reason. */
           background: var(--glass-surface) !important;
-          backdrop-filter: var(--glass-filter);
-          -webkit-backdrop-filter: var(--glass-filter);
+        }
+
+        /* Rows wear the same hairline and tint as the rest of the material
+           but resolve it to a solid colour. They are the one component that
+           lives inside a virtual scroller: with ~25 nodes in the pool a
+           backdrop-filter costs the GPU one blur pass per row per frame of a
+           momentum scroll, and none of it can be cached because every row is
+           moving. Nothing renders behind a row to blur in the first place --
+           see --glass-surface-solid, which is the same pixel.
+
+           Both scrollers build their rows with class="log-row", so this
+           covers the Tasks pane as well as the logbook.
+
+           Must stay AFTER the base block and BEFORE the state variants:
+           these are all (0,2,0) and resolve on source order. */
+        .log-row:not(.is-leave-row) {
+          border: 0.5px solid var(--glass-hairline) !important;
+          background: var(--glass-surface-solid) !important;
         }
 
         .log-row.is-leave-row {
@@ -6285,29 +6438,30 @@
           background: color-mix(
             in srgb,
             var(--leave-accent) 6%,
-            var(--glass-surface)
+            var(--glass-surface-solid)
           ) !important;
-          backdrop-filter: var(--glass-filter);
-          -webkit-backdrop-filter: var(--glass-filter);
         }
 
         /* ---- Liquid glass: state variants -------------------------------
            Each rule below is the glass equivalent of a desktop state rule
            that the base surface above outranks. They keep the hairline
-           weight and the blur (inherited from the base rule) and change only
-           the tint and the border colour, so state reads as a shift in the
-           material rather than a different material.
+           weight and whatever surface their base rule established -- blurred
+           for chrome, solid for rows -- and change only the tint and the
+           border colour, so state reads as a shift in the material rather
+           than a different material.
 
            Specificity is deliberate in every case -- see the note on each. */
 
         /* .log-row.kb-selected (0,2,0) ties with .log-row:not(.is-leave-row)
-           (0,2,0), so this must stay AFTER the base rule to win on order. */
+           and .log-row.is-leave-row (both 0,2,0), so this must stay AFTER
+           them to win on order. Mixes against the solid row surface for the
+           same reason those do -- a selected row is still a scrolling row. */
         .log-row.kb-selected {
           border-color: var(--accent-blue) !important;
           background: color-mix(
             in srgb,
             var(--accent-blue) 16%,
-            var(--glass-surface)
+            var(--glass-surface-solid)
           ) !important;
         }
 
@@ -6448,11 +6602,11 @@
         #m-sheet .date-picker-group .input-standard,
         .date-picker-group .input-standard,
         .filter-group-card .filter-input {
+          /* The backdrop-filter: none resets that used to sit here are gone
+             with the filters they were undoing -- nothing sets one now. */
           background: transparent !important;
           border: none !important;
           box-shadow: none !important;
-          backdrop-filter: none !important;
-          -webkit-backdrop-filter: none !important;
         }
 
         /* No grey flash, no double-tap zoom, no long-press callout on chrome. */
@@ -6665,30 +6819,30 @@
           animation: none;
         }
 
+        /* No background override here on purpose. A tooltip floats over
+           arbitrary content, so it has to be opaque once the blur is gone --
+           and every theme already declares an opaque .app-tooltip background
+           equal to its own --panel-bg further up. Dropping the translucent
+           override lets those through instead of restating them. This still
+           matters on touch: the adjust-time preview and the smart-input
+           previews drive .app-tooltip from input and focus, not hover. */
         .app-tooltip {
           border-radius: var(--radius-md);
-          background: color-mix(
-            in srgb,
-            var(--panel-bg) 72%,
-            transparent
-          ) !important;
-          backdrop-filter: blur(16px) saturate(150%);
-          -webkit-backdrop-filter: blur(16px) saturate(150%);
           border: 0.5px solid
             color-mix(in srgb, var(--text-main) 12%, transparent) !important;
           box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2) !important;
         }
 
+        /* Solid, for the same reason rows are: the Insights list scrolls, so
+           a blur here could never be cached, and a whole week of rows is on
+           screen at once. #weekly-breakdown and .tab-content are both
+           background-less, so the only thing behind a row is .sidebar's flat
+           fill -- --glass-surface-solid resolves to the identical pixel.
+           (This was already the same 70% element-bg tint, spelled out.) */
         .breakdown-row {
           border: 0.5px solid
             color-mix(in srgb, var(--text-main) 12%, transparent) !important;
-          background: color-mix(
-            in srgb,
-            var(--element-bg) 70%,
-            transparent
-          ) !important;
-          backdrop-filter: blur(16px) saturate(150%);
-          -webkit-backdrop-filter: blur(16px) saturate(150%);
+          background: var(--glass-surface-solid) !important;
           border-radius: var(--radius-md) !important;
         }
 
@@ -12463,6 +12617,23 @@
         return `${String(dateObj.getMonth() + 1).padStart(2, "0")}/${String(dateObj.getDate()).padStart(2, "0")}/${String(dateObj.getFullYear()).slice(-2)}`;
       }
 
+      /**
+       * Day of week (0 = Sunday) for a UTC timestamp, allocating nothing.
+       *
+       * `new Date(ms).getUTCDay()` is the obvious form and is fine anywhere
+       * it runs once, but the virtual scroller needs this for every row it
+       * recycles, so the throwaway Date object turned into steady GC pressure
+       * on exactly the frames that must not drop one.
+       *
+       * The Unix epoch began on a Thursday, so the day index is the whole-day
+       * count offset by 4. The outer modulo normalises pre-1970 timestamps,
+       * where JS's % yields a negative remainder. Log epochMs values are
+       * anchored at noon UTC, so the floor is never near a day boundary.
+       */
+      function getUTCDayFromEpochMs(epochMs) {
+        return (((Math.floor(epochMs / 86400000) + 4) % 7) + 7) % 7;
+      }
+
       function formatDuration(sec) {
         if (isNaN(sec)) return "00:00:00";
         // Add a microscopic 1-nanosecond buffer (1e-9) before flooring.
@@ -12726,6 +12897,25 @@
           parts.push(`${s}s`);
         }
         return parts.join(" ");
+      }
+
+      /**
+       * Minute-resolution duration, for the two readouts that cost a hop out
+       * of the renderer process to update: the tab title and the OS media
+       * metadata.
+       *
+       * Both used to carry ticking seconds, which meant every second of every
+       * tracked shift pushed a cross-process message -- one to repaint the tab
+       * strip and the accessibility tree, one to redraw the system lock
+       * screen. Neither is read closely enough for a seconds digit to be worth
+       * that: both are glanced at, and the on-screen timers next to them are
+       * still exact and still free, being ordinary DOM text.
+       *
+       * Flooring to the minute cuts both to at most one update per minute.
+       */
+      function formatCoarseDuration(sec) {
+        const safeSec = Number.isFinite(sec) ? sec : 0;
+        return formatFriendlyDuration(Math.floor(safeSec / 60) * 60, "0m");
       }
 
       function calculatePeriodGoalStats(weekdayDateStrs) {
@@ -15840,21 +16030,26 @@
             iconColor = "#94a3b8";
           }
         } else if (state.currentMode === "work") {
-          activeTitle = `${formatDuration(workSeconds)} • Working`;
+          activeTitle = `${formatCoarseDuration(workSeconds)} • Working`;
           iconColor = "#4ade80";
           slashColor = "var(--accent-work)";
         } else if (state.currentMode === "break") {
-          activeTitle = `${formatDuration(breakSeconds)} • Break`;
+          activeTitle = `${formatCoarseDuration(breakSeconds)} • Break`;
           iconColor = "#f87171";
           slashColor = "var(--accent-break)";
         } else {
           if (state.loginTimestamp) {
-            activeTitle = `${formatDuration(workSeconds)} • Paused`;
+            activeTitle = `${formatCoarseDuration(workSeconds)} • Paused`;
           } else {
             activeTitle = "nodrift";
           }
         }
 
+        // Minute resolution above is load-bearing, not cosmetic: assigning
+        // document.title repaints the tab strip and rebuilds an accessibility
+        // node, which is a hop out of the renderer process. The guard below
+        // only helps if the string can actually hold still, and with seconds
+        // in it never could. The on-screen timers keep full precision.
         if (document.title !== activeTitle) {
           document.title = activeTitle;
         }
@@ -16054,6 +16249,7 @@
       let _silentAudioCtx = null;
       let silentAudioEl = null;
       let lastMediaSessionTitle = "";
+      let lastMediaSessionAlbum = "";
       let lastMediaPlaybackState = "";
       let mediaSessionHandlersBound = false;
       // True while the silent stream is meant to be running. Makes the
@@ -16238,6 +16434,7 @@
           } catch (e) {}
         }
         lastMediaSessionTitle = "";
+        lastMediaSessionAlbum = "";
         lastMediaPlaybackState = "none";
       }
 
@@ -16269,15 +16466,37 @@
         const breakSec = getCurrentBreakSeconds();
         const activeSec = mode === "work" ? workSec : breakSec;
         const modeLabel = mode === "work" ? "Work" : "Break";
-        const titleStr = `${formatDuration(activeSec)} • ${modeLabel}`;
 
-        if (titleStr !== lastMediaSessionTitle) {
+        /* Minute resolution, and that is the whole point of this block.
+         *
+         * Assigning navigator.mediaSession.metadata is not a DOM write: it
+         * marshals a new MediaMetadata across the browser's IPC boundary and
+         * asks the operating system to redraw the lock screen and the
+         * notification shade. These strings previously carried ticking
+         * seconds, so the guard below could never hold -- every tick built a
+         * fresh object and woke the system UI thread, for the entire length
+         * of a tracked shift, with the screen off. That is the single most
+         * expensive thing this page did in the background.
+         *
+         * Rounding down to the minute makes the guard real: metadata now goes
+         * out at most once a minute, plus once per mode change. Album is
+         * compared as well as title because both carry a duration -- checking
+         * only the title would let the album go stale for a whole minute.
+         */
+        const titleStr = `${formatCoarseDuration(activeSec)} • ${modeLabel}`;
+        const albumStr = `Work: ${formatCoarseDuration(workSec)} | Break: ${formatCoarseDuration(breakSec)}`;
+
+        if (
+          titleStr !== lastMediaSessionTitle ||
+          albumStr !== lastMediaSessionAlbum
+        ) {
           lastMediaSessionTitle = titleStr;
+          lastMediaSessionAlbum = albumStr;
           try {
             navigator.mediaSession.metadata = new MediaMetadata({
               title: titleStr,
               artist: "nodrift",
-              album: `Work: ${formatDuration(workSec)} | Break: ${formatDuration(breakSec)}`,
+              album: albumStr,
               artwork: [
                 {
                   src: APP_ICON_PNG,
@@ -19323,8 +19542,11 @@
             const top = i * itemHeight;
             const isSelected = i === selectedLogIdx;
 
-            const logDate = new Date(log.epochMs);
-            const dayNum = logDate.getUTCDay();
+            // Arithmetic rather than `new Date(...).getUTCDay()`: this runs
+            // once per pooled row every time the visible range shifts, so the
+            // throwaway Date objects were garbage generated on precisely the
+            // frames a scroll cannot afford a collection pause.
+            const dayNum = getUTCDayFromEpochMs(log.epochMs);
             const isWeekend = dayNum === 0 || dayNum === 6;
             const dateParts = log.date.split("/");
             const displayMonthDay =
@@ -21472,12 +21694,17 @@
         const workValEl = document.getElementById("today-work-val");
         const breakValEl = document.getElementById("today-break-val");
 
-        if (workValEl) {
-          workValEl.innerHTML = formatFriendlyDuration(todayW);
-        }
-        if (breakValEl) {
-          breakValEl.innerHTML = formatFriendlyDuration(todayB);
-        }
+        /* setText, not innerHTML, for every write in this function.
+         *
+         * This runs on the tick, once for each second the work or break timer
+         * advances. Every value below is plain text -- formatFriendlyDuration
+         * returns "1h 24m", the badge is a single letter -- so innerHTML was
+         * paying for the HTML parser, a tear-down of the existing text node
+         * and a fresh allocation, once a second, to produce a node identical
+         * in kind to the one it destroyed. setText also short-circuits when
+         * the string has not changed, which the durations often have not. */
+        if (workValEl) setText(workValEl, formatFriendlyDuration(todayW));
+        if (breakValEl) setText(breakValEl, formatFriendlyDuration(todayB));
 
         const anchorGoal = resolveGoalSecForDate(todayStr);
         const diffSec = todayW - anchorGoal;
@@ -21492,13 +21719,16 @@
         );
 
         if (todayVarianceValEl && todayVarianceBadgeEl) {
-          todayVarianceValEl.innerHTML = varianceTime;
-          todayVarianceValEl.className = "";
+          setText(todayVarianceValEl, varianceTime);
+          if (todayVarianceValEl.className !== "") {
+            todayVarianceValEl.className = "";
+          }
 
-          todayVarianceBadgeEl.innerHTML = isOver ? "O" : "U";
-          todayVarianceBadgeEl.className = isOver
-            ? "badge badge-over"
-            : "badge badge-under";
+          setText(todayVarianceBadgeEl, isOver ? "O" : "U");
+          const badgeClass = isOver ? "badge badge-over" : "badge badge-under";
+          if (todayVarianceBadgeEl.className !== badgeClass) {
+            todayVarianceBadgeEl.className = badgeClass;
+          }
         }
 
         const todayMetaValEl = document.getElementById("today-meta-val");
