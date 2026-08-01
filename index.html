@@ -2346,11 +2346,32 @@
       }
 
       /* ── E-INK BRUTALIST THEME: Inverse Hovers ── */
+
+      /* The inversion is TWO declarations that have to travel together: the
+         ::before fills the button with the opposite colour, and a colour rule
+         flips the label to match. Splitting them is what broke the phone.
+
+         The fill is revealed by `button:hover::before` inside
+         @media (hover: hover), so on a touch device it never fires -- but
+         these colour rules used to sit unwrapped, and a tap leaves :hover
+         stuck until you tap somewhere else. The label inverted while the fill
+         did not: #ffffff text on the #ffffff --btn-break-bg, which is the
+         Pause/Resume button in the task dock rendering as an empty box.
+
+         So each flip is now stated twice, in the same place its fill is
+         stated: :active out here, matching the unwrapped
+         button:active::before, and :hover behind the hover query below. A
+         pointer gets both; a finger gets only the press, which is the one it
+         can actually perform. The :active pass is not merely a guard against
+         the stuck state either -- there was no colour rule for it at all, so a
+         press inverted the fill and left the label behind, putting #111111 on
+         #333333 for the whole touch. */
+
       :root[data-theme="theme-eink"] .btn-work::before {
         background: #ffffff;
       }
 
-      :root[data-theme="theme-eink"] .btn-work:hover:not(:disabled) {
+      :root[data-theme="theme-eink"] .btn-work:active:not(:disabled) {
         color: #111111;
       }
 
@@ -2362,7 +2383,7 @@
         background: #111111;
       }
 
-      :root[data-theme="theme-eink"] .btn-break:hover:not(:disabled) {
+      :root[data-theme="theme-eink"] .btn-break:active:not(:disabled) {
         color: #ffffff;
       }
 
@@ -2374,12 +2395,30 @@
         background: #111111;
       }
 
-      :root[data-theme="theme-eink"] .btn-log:hover:not(:disabled) {
+      :root[data-theme="theme-eink"] .btn-log:active:not(:disabled) {
         color: #ffffff;
       }
 
       :root[data-theme="theme-eink"] .btn-log:active:not(:disabled)::before {
         background: #333333;
+      }
+
+      /* Equal specificity to the :active rules above and later in source, so
+         on a desktop click both match and these win. Deliberate, and harmless:
+         every pair resolves to the same colour. The press only changes which
+         fill sits under it. */
+      @media (hover: hover) {
+        :root[data-theme="theme-eink"] .btn-work:hover:not(:disabled) {
+          color: #111111;
+        }
+
+        :root[data-theme="theme-eink"] .btn-break:hover:not(:disabled) {
+          color: #ffffff;
+        }
+
+        :root[data-theme="theme-eink"] .btn-log:hover:not(:disabled) {
+          color: #ffffff;
+        }
       }
 
       /* =========================================================================
