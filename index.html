@@ -98,17 +98,146 @@
         --z-modal: 1500;
         --z-toast: 3500;
         --z-tooltip: 9999;
-        --global-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        --global-shadow: var(--elev-1);
 
-        /* The flat fill that sits behind the app's floating chrome -- the
-           scroll-to-top button, the sticky month badge, toasts, the phone
-           shell's bars and rows. This app paints no backdrop-filter anywhere
-           (see the note in the mobile token block), so any surface that used
-           to lean on one instead pre-mixes its tint against this, which is
-           what the blur would have sampled. Panel is correct everywhere
-           except the phone's OLED themes, which repaint their containers with
-           --page-bg and override this inside the breakpoint. */
-        --chrome-backdrop: var(--panel-bg);
+        /* =====================================================================
+           SURFACE MATERIAL SYSTEM
+           ---------------------------------------------------------------------
+           Every surface in this app that is not the page itself is one of
+           exactly three elevations, and each elevation has exactly one recipe.
+           Desktop and mobile share these tokens verbatim -- the ONLY thing that
+           differs between the two is what sits behind them (see --surface-under
+           below), which is the single sanctioned platform difference: the
+           desktop console floats on a tinted panel, the phone runs full-bleed
+           on the page fill, which is pitch black on the OLED themes.
+
+             Level 1  content   rows, cards, inputs, pills, chips, buttons
+             Level 2  chrome    bars, floating badges and buttons, sticky UI
+             Level 3  overlay   modals, sheets, dropdowns, popovers, toasts,
+                                tooltips
+
+           Each level is a translucent film of its own pigment. That is what
+           makes one token resolve correctly on both platforms without a
+           breakpoint: the same 70% film reads #282829 over the desktop panel
+           and #1f1f21 over the phone's black page, which is what each platform
+           already wanted. Hardcoding a hex per level could not do that, and
+           hardcoding one per level PER PLATFORM is the drift this replaces --
+           there were seven different recipes for what is one material.
+
+           Every level also publishes a `-solid` twin: the same film already
+           composited against --surface-under. It is the identical pixel, and it
+           exists for the two places translucency is the wrong tool -- virtual
+           scroller rows, where an opaque box lets the compositor skip whatever
+           is behind it, and any surface whose backdrop is a flat fill, where a
+           blur would cost a GPU pass to return the colour it started from.
+
+           BLUR POLICY. Levels 2 and 3 carry --surface-blur, which is real
+           backdrop-filter -- content genuinely travels under them and the blur
+           is what keeps a translucent overlay legible without it. Level 1 never
+           does: it is worn by the ~25 pooled nodes of a virtual scroller and by
+           every button and input in the app, and a blur there is one full-frame
+           readback per element per frame of a momentum scroll, uncacheable
+           because the rows are moving. Translucency itself is nearly free (an
+           alpha blend at composite time) -- it is the filter that costs -- so
+           level 1 keeps the material's tint and pays none of it. Do not add a
+           backdrop-filter to a level 1 selector.
+
+           Themes override these tokens rather than the rules that use them.
+           E-Ink resolves all three levels to opaque paper and --surface-blur to
+           none, because frosted glass is not a material that theme has; Vercel
+           Dark lifts its chrome pigment off pure black and drops the saturate.
+           Both still travel through exactly the same rules.
+           ===================================================================== */
+
+        /* The fill behind floating chrome, and what a `-solid` twin resolves
+           against. Panel everywhere except the phone's OLED themes, which
+           repaint their containers with --page-bg and override this inside the
+           mobile breakpoint. */
+        --surface-under: var(--panel-bg);
+
+        /* The pigment each level is a film of. Split out from the levels
+           themselves so a theme can lift one without restating the recipe. */
+        --tint-content: var(--element-bg);
+        --tint-chrome: var(--panel-bg);
+        --tint-overlay: var(--modal-bg);
+
+        --surface-1: color-mix(in srgb, var(--tint-content) 70%, transparent);
+        --surface-1-solid: color-mix(
+          in srgb,
+          var(--tint-content) 70%,
+          var(--surface-under)
+        );
+        --surface-2: color-mix(in srgb, var(--tint-chrome) 72%, transparent);
+        --surface-2-solid: color-mix(
+          in srgb,
+          var(--tint-chrome) 72%,
+          var(--surface-under)
+        );
+        /* Overlays run denser than chrome because they sit on a dimmed scrim
+           rather than on content: at chrome's 72% a light sheet turns grey and
+           a dark one loses its lift off the page. 90% keeps every dialog the
+           colour it already was and spends the translucency on the edge. */
+        --surface-3: color-mix(in srgb, var(--tint-overlay) 90%, transparent);
+        --surface-3-solid: var(--tint-overlay);
+
+        /* Saturation, not just blur: pushing the sampled backdrop past 100%
+           is what stops colour read through glass from going muddy, and is
+           the difference between this reading as a material and reading as a
+           translucent rectangle. */
+        --surface-blur: blur(24px) saturate(180%);
+
+        /* One hairline for the whole app. Tinting it from --text-main rather
+           than from a border variable is what keeps it correct on all four
+           themes at once -- it is always "a little of the foreground", never a
+           grey that happens to suit one background. */
+        --hairline-color: color-mix(in srgb, var(--text-main) 14%, transparent);
+        --hairline: 0.5px solid var(--hairline-color);
+        --hairline-strong: 0.5px solid
+          color-mix(in srgb, var(--text-main) 28%, transparent);
+
+        /* Elevation shadows. Deliberately neutral black rather than a tint of
+           --text-main: on the dark themes --text-main is white, so a tint of it
+           is a glow that haloes an element instead of seating it. */
+        --elev-1: 0 4px 12px rgba(0, 0, 0, 0.2);
+        --elev-2: 0 8px 32px rgba(0, 0, 0, 0.24);
+        --elev-3: 0 -4px 32px rgba(0, 0, 0, 0.28);
+        --scrim: rgba(0, 0, 0, 0.55);
+
+        /* Accent tint ladder. Every "this is selected / active / focused"
+           surface in the app is one of these five, mixed from the theme's own
+           --accent-blue. The literal rgba(96,165,250,...) these replace was a
+           Tailwind blue that belonged to no theme: it read as a second, wrong
+           accent beside --accent-blue on the SF themes, and broke the
+           monochrome premise of the other two outright. */
+        --accent-wash: color-mix(in srgb, var(--accent-blue) 10%, transparent);
+        --accent-soft: color-mix(in srgb, var(--accent-blue) 16%, transparent);
+        --accent-strong: color-mix(
+          in srgb,
+          var(--accent-blue) 22%,
+          transparent
+        );
+        --accent-line: color-mix(in srgb, var(--accent-blue) 35%, transparent);
+        --accent-ring: 0 0 0 2px
+          color-mix(in srgb, var(--accent-blue) 14%, transparent);
+        /* Selected/hovered scroller row. Mixed into the SOLID level 1 twin
+           rather than laid over it as a film, because rows must stay opaque
+           for the compositor -- see .log-row. This is the single definition
+           for both platforms; desktop and mobile each had their own before. */
+        --surface-1-selected: color-mix(
+          in srgb,
+          var(--accent-blue) 14%,
+          var(--surface-1-solid)
+        );
+
+        /* The same two rungs for the other three semantic accents, so a
+           destructive or a success surface is built the same way a selected
+           one is instead of from a hand-written rgba(). */
+        --work-soft: color-mix(in srgb, var(--accent-work) 16%, transparent);
+        --work-line: color-mix(in srgb, var(--accent-work) 45%, transparent);
+        --break-soft: color-mix(in srgb, var(--accent-break) 16%, transparent);
+        --break-line: color-mix(in srgb, var(--accent-break) 45%, transparent);
+        --warn-soft: color-mix(in srgb, var(--accent-warning) 16%, transparent);
+        --warn-line: color-mix(in srgb, var(--accent-warning) 45%, transparent);
 
         /* Shared Color Scheme Accents */
         --accent-work: #34c759;
@@ -208,8 +337,19 @@
           0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
         --tab-btn-active-border: none;
         --tab-btn-active-outline: none;
-        --tab-btn-bg-hover: rgba(255, 255, 255, 0.08);
-        --tab-btn-bg-active: rgba(255, 255, 255, 0.12);
+        /* Foreground-tinted, not white-tinted: a white film is invisible on
+           SF Light and on E-Ink's paper, which is why the segmented control
+           had no hover state at all on half the themes. */
+        --tab-btn-bg-hover: color-mix(
+          in srgb,
+          var(--text-main) 8%,
+          transparent
+        );
+        --tab-btn-bg-active: color-mix(
+          in srgb,
+          var(--text-main) 12%,
+          transparent
+        );
         --tab-transition: color 0.15s ease, background-color 0.15s ease;
       }
 
@@ -241,8 +381,20 @@
         --btn-log-bg: #1a1a1c;
         --btn-log-border: #444446;
         --btn-log-text: #ffffff;
-        --dropdown-bg: #161618;
-        --modal-bg: #161618;
+        --dropdown-bg: var(--modal-bg);
+        --modal-bg: #1a1a1c;
+        /* This theme's panel IS its page (both #000000), so the chrome level
+           would otherwise collapse into the background and the elevation
+           ladder would have no rungs. Lifting only the pigment keeps the
+           recipe identical and gives the bars the near-black lift the theme
+           uses everywhere else. */
+        --tint-chrome: #1a1a1c;
+        /* No saturate: this theme is monochrome by construction, so boosting
+           chroma on the sampled backdrop has nothing to act on and would only
+           colour-cast the greys. A lighter blur for the same reason -- there
+           is no colour bleed here to hide. */
+        --surface-blur: blur(18px);
+        --hairline-color: color-mix(in srgb, var(--text-main) 20%, transparent);
         --track-bg: rgba(255, 255, 255, 0.08);
         --segmented-bg: rgba(255, 255, 255, 0.1);
         --segmented-active-bg: #333333;
@@ -286,8 +438,30 @@
         --btn-log-bg: #ffffff;
         --btn-log-border: #111111;
         --btn-log-text: #111111;
-        --dropdown-bg: #ffffff;
+        --dropdown-bg: var(--modal-bg);
         --modal-bg: #ffffff;
+        /* ---- No glass on this theme --------------------------------------
+           E-Ink's material is paper: opaque stock, a full-weight black rule
+           for an edge, and a hard offset shadow instead of a soft one. Frosted
+           translucency is not a thing that exists in it, so all three levels
+           resolve opaque and the blur resolves to none. Every rule in the app
+           still reaches this theme through the same tokens -- the material is
+           swapped underneath them rather than the rules being special-cased,
+           which is the whole point of the system. */
+        --surface-blur: none;
+        --surface-1: var(--element-bg);
+        --surface-1-solid: var(--element-bg);
+        --surface-2: var(--panel-bg);
+        --surface-2-solid: var(--panel-bg);
+        --surface-3: var(--modal-bg);
+        --surface-3-solid: var(--modal-bg);
+        --hairline-color: #111111;
+        --hairline: 1px solid #111111;
+        --hairline-strong: 2px solid #111111;
+        --elev-1: 3px 3px 0 #111111;
+        --elev-2: 4px 4px 0 #111111;
+        --elev-3: 4px -4px 0 #111111;
+        --scrim: rgba(17, 17, 17, 0.35);
         --track-bg: rgba(0, 0, 0, 0.1);
         --segmented-bg: #e8e8e8;
         --segmented-active-bg: #ffffff;
@@ -390,8 +564,11 @@
         --btn-log-bg: rgba(10, 132, 255, 0.15);
         --btn-log-text: #0a84ff;
         --btn-log-border: rgba(10, 132, 255, 0.3);
-        --dropdown-bg: #2c2c2e;
-        --modal-bg: #252527;
+        --dropdown-bg: var(--modal-bg);
+        /* Was #252527 as a flat fill. As a 90% film over a dimmed backdrop it
+           has to start one step lighter to land on the same colour, which is
+           also Apple's own elevated-surface grey. */
+        --modal-bg: #2c2c2e;
         --track-bg: rgba(255, 255, 255, 0.1);
         --segmented-bg: rgba(120, 120, 128, 0.24);
         --segmented-active-bg: #2c2c2e;
@@ -427,8 +604,18 @@
         --btn-log-bg: rgba(0, 122, 255, 0.18);
         --btn-log-text: #007aff;
         --btn-log-border: rgba(0, 122, 255, 0.35);
-        --dropdown-bg: #ffffff;
+        --dropdown-bg: var(--modal-bg);
         --modal-bg: #ffffff;
+        /* A light theme needs a heavier hairline than a dark one to read at
+           the same strength -- 14% of near-black on white is fainter than 14%
+           of white on near-black. Shadows go the other way: a soft shadow on
+           a light ground shows far more of itself, so the same weight would
+           read as smudge. */
+        --hairline-color: color-mix(in srgb, var(--text-main) 18%, transparent);
+        --elev-1: 0 4px 12px rgba(0, 0, 0, 0.1);
+        --elev-2: 0 8px 32px rgba(0, 0, 0, 0.12);
+        --elev-3: 0 -4px 32px rgba(0, 0, 0, 0.14);
+        --scrim: rgba(0, 0, 0, 0.4);
         --track-bg: rgba(0, 0, 0, 0.08);
         --segmented-bg: rgba(120, 120, 128, 0.12);
         --segmented-active-bg: #ffffff;
@@ -440,11 +627,13 @@
       /* =========================================================================
           3.3. SF THEMES-SPECIFIC HARMONIZATION OVERRIDES (GEOMETRY & SPACING)
           ========================================================================= */
+      /* Geometry only. The fill and the edge used to be restated here, which
+         is what made these three popovers a different grey on the SF themes
+         than on the other two; they now come from the level 3 material like
+         every other overlay in the app. */
       [data-theme^="sf-"] .tz-presets,
       [data-theme^="sf-"] .goal-presets,
       [data-theme^="sf-"] .theme-presets {
-        background: var(--panel-bg);
-        border: 1px solid var(--border-main);
         border-radius: var(--radius-lg);
         gap: 6px;
         padding: 6px;
@@ -470,8 +659,9 @@
           ========================================================================= */
       .input-standard {
         width: 100%;
-        background: var(--panel-bg);
-        border: 1px solid var(--border-main);
+        /* Level 1. */
+        background: var(--surface-1);
+        border: var(--hairline);
         color: var(--text-main);
         padding: var(--space-3);
         border-radius: var(--radius-md);
@@ -757,26 +947,18 @@
         border-radius: 10px;
       }
 
-      :root[data-theme="sf-dark"] .tab-content:hover::-webkit-scrollbar-thumb,
-      :root[data-theme="vercel-dark"]
-        .tab-content:hover::-webkit-scrollbar-thumb,
-      :root[data-theme="theme-eink"]
-        .tab-content:hover::-webkit-scrollbar-thumb {
-        background: rgba(255, 255, 255, 0.18);
+      /* Foreground-tinted, so one pair of rules covers all four themes -- the
+         previous split gave E-Ink a white thumb on white paper, invisible. */
+      .tab-content:hover::-webkit-scrollbar-thumb {
+        background: color-mix(in srgb, var(--text-main) 18%, transparent);
       }
 
-      :root[data-theme="sf-light"] .tab-content:hover::-webkit-scrollbar-thumb {
-        background: rgba(0, 0, 0, 0.18);
-      }
-
-      :root[data-theme="sf-light"] ::-webkit-scrollbar-thumb:hover {
-        background: rgba(0, 0, 0, 0.3) !important;
-      }
-
-      :root[data-theme="sf-dark"] ::-webkit-scrollbar-thumb:hover,
-      :root[data-theme="vercel-dark"] ::-webkit-scrollbar-thumb:hover,
-      :root[data-theme="theme-eink"] ::-webkit-scrollbar-thumb:hover {
-        background: rgba(255, 255, 255, 0.3) !important;
+      ::-webkit-scrollbar-thumb:hover {
+        background: color-mix(
+          in srgb,
+          var(--text-main) 30%,
+          transparent
+        ) !important;
       }
 
       ::-webkit-calendar-picker-indicator {
@@ -825,8 +1007,12 @@
           ) !important;
         }
 
+        /* Matches the fill the shell's panes paint, so the OS chrome butts
+           against the same colour the app starts with. Both theme-color reads
+           (the pre-paint boot script and syncThemeColorMeta) copy this exact
+           token under this exact media query -- change one, change all three. */
         html {
-          background-color: var(--panel-bg) !important;
+          background-color: var(--surface-under) !important;
           height: 100vh !important;
         }
 
@@ -1179,10 +1365,14 @@
         flex-direction: column;
         gap: 4px;
         padding: 6px;
-        background: var(--element-hover);
-        border: 1px solid var(--border-light);
+        /* Level 3. Was --element-hover, which put this popover a full step
+           off the dropdowns it sits beside. */
+        background: var(--surface-3);
+        -webkit-backdrop-filter: var(--surface-blur);
+        backdrop-filter: var(--surface-blur);
+        border: var(--hairline);
         border-radius: var(--header-el-radius);
-        box-shadow: var(--global-shadow);
+        box-shadow: var(--elev-1);
         transform: translateX(-50%) translateY(4px);
         z-index: var(--z-dropdown);
         transition: opacity 0.15s ease;
@@ -1444,18 +1634,20 @@
         position: relative;
       }
 
-      /* High-cost keyframe pulsing removed to conserve resources */
+      /* High-cost keyframe pulsing removed to conserve resources.
+         The border was rgba(74,222,128,...) -- Tailwind green-400, a third
+         green next to --accent-work and the completed gradient. It is the
+         work accent, so it says so, and the two per-theme border overrides
+         that existed only to undo it are gone: --work-line already resolves
+         to white on Vercel Dark and to black on E-Ink. */
       .progress-rail.goal-completed {
-        border: 1px solid rgba(74, 222, 128, 0.6) !important;
+        border: 1px solid var(--work-line) !important;
       }
 
       .progress-rail.goal-completed #progress-fill {
-        background: linear-gradient(135deg, #4ade80 0%, #0d9488 100%);
-        box-shadow: 0 0 8px rgba(74, 222, 128, 0.35);
-      }
-
-      :root[data-theme="vercel-dark"] .progress-rail.goal-completed {
-        border: 1px solid rgba(255, 255, 255, 0.4) !important;
+        background: var(--segment-completed-bg);
+        box-shadow: 0 0 8px
+          color-mix(in srgb, var(--accent-work) 35%, transparent);
       }
 
       :root[data-theme="vercel-dark"]
@@ -1467,10 +1659,6 @@
           #888888 100%
         ) !important;
         box-shadow: none;
-      }
-
-      :root[data-theme="theme-eink"] .progress-rail.goal-completed {
-        border: 1px solid #111111 !important;
       }
 
       :root[data-theme="theme-eink"]
@@ -1491,8 +1679,17 @@
         top: 0;
         opacity: 0;
         pointer-events: none;
-        background: var(--panel-bg);
-        border: 1px solid var(--border-main);
+        /* Level 3. This used to be four hand-written per-theme blocks --
+           #ffffff / #1c1c1e / #000000 / #ffffff with four different border
+           colours and four different shadows -- which is why the tooltip was
+           the one overlay that matched nothing else in any theme. All four
+           were restating each theme's own panel fill by hand, so the material
+           reproduces them without the duplication, and E-Ink still gets its
+           opaque paper and hard rule through its token overrides. */
+        background: var(--surface-3);
+        -webkit-backdrop-filter: var(--surface-blur);
+        backdrop-filter: var(--surface-blur);
+        border: var(--hairline);
         color: var(--text-main);
         font-size: 0.55rem;
         font-weight: 500;
@@ -1504,38 +1701,9 @@
         transition: opacity 0.1s ease;
         z-index: var(--z-tooltip);
         font-family: var(--font-sans);
-        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+        box-shadow: var(--elev-1);
         transform-origin: bottom center;
         contain: layout paint;
-      }
-
-      :root[data-theme="sf-light"] .app-tooltip {
-        background: #ffffff;
-        color: #1d1d1f;
-        border-color: rgba(0, 0, 0, 0.1);
-        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
-      }
-
-      :root[data-theme="sf-dark"] .app-tooltip {
-        background: #1c1c1e;
-        color: #ffffff;
-        border-color: rgba(255, 255, 255, 0.12);
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.18);
-      }
-
-      :root[data-theme="vercel-dark"] .app-tooltip {
-        background: #000000;
-        color: #ededed;
-        border-color: #333333;
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
-      }
-
-      :root[data-theme="theme-eink"] .app-tooltip {
-        background: #ffffff;
-        color: #111111;
-        border: 1px solid #111111;
-        border-radius: var(--radius-sm);
-        box-shadow: none;
       }
 
       .app-tooltip.visible {
@@ -1787,10 +1955,13 @@
         display: flex;
         gap: 6px;
         padding: 6px;
-        background: var(--element-hover);
-        border: 1px solid var(--border-light);
+        /* Level 3 -- see .tz-presets. */
+        background: var(--surface-3);
+        -webkit-backdrop-filter: var(--surface-blur);
+        backdrop-filter: var(--surface-blur);
+        border: var(--hairline);
         border-radius: var(--header-el-radius);
-        box-shadow: var(--global-shadow);
+        box-shadow: var(--elev-1);
         transform: translateX(-50%) translateY(4px);
         z-index: var(--z-dropdown);
         transition: opacity 0.15s ease;
@@ -1831,8 +2002,9 @@
 
       /* Preset Pills with Active State */
       .preset-pill {
-        background: var(--element-bg);
-        border: 1px solid var(--border-main);
+        /* Level 1. */
+        background: var(--surface-1);
+        border: var(--hairline);
         color: var(--text-muted);
         font-size: 0.75rem;
         font-weight: 600;
@@ -1864,12 +2036,12 @@
       .preset-pill:hover {
         background: var(--element-hover);
         color: var(--accent-blue);
-        border-color: rgba(96, 165, 250, 0.35);
+        border-color: var(--accent-line);
         transform: none;
       }
 
       .preset-pill.active {
-        background: rgba(96, 165, 250, 0.2);
+        background: var(--accent-strong);
         border-color: var(--accent-blue);
         color: var(--accent-blue);
         box-shadow: none;
@@ -2005,7 +2177,7 @@
         color: var(--btn-work-text);
         border: none !important;
         outline: none !important;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        box-shadow: var(--elev-1);
       }
 
       .btn-break {
@@ -2013,7 +2185,7 @@
         color: var(--btn-break-text);
         border: none !important;
         outline: none !important;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        box-shadow: var(--elev-1);
       }
 
       .btn-log {
@@ -2021,7 +2193,7 @@
         color: var(--btn-log-text);
         border: none !important;
         outline: none !important;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        box-shadow: var(--elev-1);
       }
 
       :root[data-theme] .btn-work:active:not(:disabled),
@@ -2215,26 +2387,15 @@
         width: 28px;
         height: 28px;
         padding: 0;
-        /* Opaque: this floats over the logbook, so rows really do pass
-           beneath it and a translucent disc with no blur would show their
-           text through the arrow. It only ever appears once the list has
-           been scrolled, so what it sits on is always rows -- a panel-tinted
-           disc reads as a distinct chip against them in every theme, and the
-           hairline below is what draws its edge. */
-        background: color-mix(
-          in srgb,
-          var(--panel-bg) 72%,
-          var(--chrome-backdrop)
-        );
-        border: 0.5px solid
-          color-mix(in srgb, var(--text-main) 12%, transparent);
+        /* Level 2, blurred. This floats over the logbook and only ever appears
+           once the list has been scrolled, so what passes beneath it is always
+           rows -- the case the blur exists for. */
+        background: var(--surface-2);
+        -webkit-backdrop-filter: var(--surface-blur);
+        backdrop-filter: var(--surface-blur);
+        border: var(--hairline);
         border-radius: 50%;
-        /* Tinting a shadow with --text-main inverts it on the dark themes:
-           --text-main is white there, so "8% of it" is a white glow that
-           rings the button with a halo instead of seating it. --global-shadow
-           is the elevation shadow the rest of the app's floating chrome uses
-           and reads as a shadow in all four themes. */
-        box-shadow: var(--global-shadow);
+        box-shadow: var(--elev-1);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -2277,8 +2438,7 @@
         opacity: 1;
         background: var(--element-hover);
         border-color: var(--accent-blue);
-        box-shadow: 0 4px 14px
-          color-mix(in srgb, var(--accent-blue) 25%, transparent);
+        box-shadow: 0 4px 14px var(--accent-strong);
       }
 
       .scroll-top-btn.visible:hover svg {
@@ -2365,7 +2525,21 @@
         position: sticky;
         top: 0;
         z-index: var(--z-dropdown);
-        background: var(--panel-bg);
+        /* Not an elevation at all -- this is the pane's own header, so it
+           paints the pane's own fill and reads as part of it. It is a SIBLING
+           of #logbook-scroll-viewport rather than its container, so no row
+           ever passes behind it and there is nothing here to blur or to lift
+           off. Giving it a level 2 tint puts a visible lighter band across
+           the top of the pane, which is a seam, not a surface.
+
+           --surface-under is what makes one declaration right on both
+           platforms: the desktop console panel on one, the phone's black page
+           on the other. This used to be --panel-bg plus a per-theme override
+           repainting it --page-bg on the two OLED themes.
+
+           The two things that DO have rows behind them, .sticky-month-header
+           and .scroll-top-btn, hang out over the viewport and are blurred. */
+        background: var(--surface-under);
         display: flex;
         flex-direction: column;
         margin: 0;
@@ -2383,8 +2557,9 @@
       }
 
       .header-icon-btn {
-        background: var(--element-bg);
-        border: 1px solid var(--border-main);
+        /* Level 1. */
+        background: var(--surface-1);
+        border: var(--hairline);
         color: var(--text-muted);
         padding: 0 8px;
         height: 27px;
@@ -2406,12 +2581,12 @@
 
       .header-icon-btn:hover {
         background: var(--element-hover);
-        border-color: rgba(96, 165, 250, 0.35);
+        border-color: var(--accent-line);
         color: var(--accent-blue);
       }
 
       .header-icon-btn.active {
-        background: rgba(96, 165, 250, 0.1);
+        background: var(--accent-wash);
         border-color: var(--accent-blue);
         color: var(--accent-blue);
       }
@@ -2431,17 +2606,24 @@
       .advanced-filters {
         display: none;
         flex-direction: column;
-        background: var(--panel-bg);
+        /* Level 3: this is a drawer that opens over the list, so it is an
+           overlay, not chrome. It was --panel-bg on desktop and a 72%
+           panel/transparent mix on mobile -- the one genuinely see-through
+           surface in the app, and the reason the mobile filter drawer let
+           row text read through it. */
+        background: var(--surface-3);
+        -webkit-backdrop-filter: var(--surface-blur);
+        backdrop-filter: var(--surface-blur);
         padding: 10px;
         border-radius: 1rem;
-        border: 1px solid var(--border-main);
+        border: var(--hairline);
         margin-bottom: 12px;
         gap: 6px;
         position: sticky;
         top: 48px;
         z-index: var(--z-dropdown);
         flex-shrink: 0;
-        box-shadow: var(--panel-shadow);
+        box-shadow: var(--elev-2);
         opacity: 0;
         transform: translateY(-8px);
         transition:
@@ -2562,7 +2744,7 @@
       .filter-input:focus {
         background: var(--element-hover);
         border-color: var(--accent-blue);
-        box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.12);
+        box-shadow: var(--accent-ring);
       }
 
       .filter-select:active,
@@ -2579,8 +2761,9 @@
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        background: var(--element-bg);
-        border: 1px solid var(--border-main);
+        /* Level 1. */
+        background: var(--surface-1);
+        border: var(--hairline);
         padding: 0 8px;
         border-radius: 6px;
         height: 27px;
@@ -2610,7 +2793,7 @@
       }
 
       .filter-checkbox-chip:has(input:checked) {
-        background: rgba(96, 165, 250, 0.12) !important;
+        background: var(--accent-wash) !important;
         border-color: var(--accent-blue) !important;
         color: var(--accent-blue) !important;
       }
@@ -2628,8 +2811,9 @@
       .filter-group-card {
         display: flex;
         align-items: center;
-        background: var(--element-bg);
-        border: 1px solid var(--border-main);
+        /* Level 1. */
+        background: var(--surface-1);
+        border: var(--hairline);
         border-radius: 6px;
         padding: 0 8px;
         gap: 4px;
@@ -2643,7 +2827,7 @@
       .filter-group-card:focus-within {
         border-color: var(--accent-blue);
         background: var(--element-hover);
-        box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.12);
+        box-shadow: var(--accent-ring);
       }
 
       .filter-group-card input.filter-input {
@@ -2747,8 +2931,8 @@
         display: inline-flex;
         align-items: center;
         gap: 6px;
-        background: rgba(96, 165, 250, 0.08);
-        border: 1px solid rgba(96, 165, 250, 0.2);
+        background: var(--accent-wash);
+        border: 0.5px solid var(--accent-line);
         color: var(--accent-blue);
         padding: 5px 10px;
         border-radius: var(--radius-md);
@@ -2764,8 +2948,8 @@
       }
 
       .filter-chip:hover {
-        background: rgba(96, 165, 250, 0.14);
-        border-color: rgba(96, 165, 250, 0.35);
+        background: var(--accent-soft);
+        border-color: var(--accent-line);
       }
 
       .filter-chip-remove {
@@ -2813,17 +2997,13 @@
         left: 50%;
         transform: translateX(-50%) translateY(8px);
         z-index: var(--z-elevated);
-        /* Opaque for the same reason as .scroll-top-btn: the badge hangs
-           below the toolbar over the scrolling list, so rows travel under it
-           continuously -- and like that button it is only ever shown while
-           the list is scrolled, so rows are always what it sits on. */
-        background: color-mix(
-          in srgb,
-          var(--panel-bg) 72%,
-          var(--chrome-backdrop)
-        );
-        border: 0.5px solid
-          color-mix(in srgb, var(--text-main) 12%, transparent);
+        /* Level 2, blurred, for the same reason as .scroll-top-btn: the badge
+           hangs below the toolbar over the scrolling list, so rows travel
+           under it continuously. */
+        background: var(--surface-2);
+        -webkit-backdrop-filter: var(--surface-blur);
+        backdrop-filter: var(--surface-blur);
+        border: var(--hairline);
         color: var(--accent-blue);
         font-weight: 600;
         font-size: var(--text-xs);
@@ -2834,9 +3014,7 @@
         width: fit-content;
         letter-spacing: 0.05em;
         text-align: center;
-        /* See .scroll-top-btn: a --text-main tint makes this a white glow on
-           the dark themes, haloing the pill rather than lifting it. */
-        box-shadow: var(--global-shadow);
+        box-shadow: var(--elev-1);
         opacity: 0;
         visibility: hidden;
         transition:
@@ -2860,8 +3038,14 @@
         height: calc(var(--log-row-pitch) - var(--log-row-gap));
         padding: 0.5rem 1rem;
         border-radius: var(--radius-md);
-        background: var(--element-bg);
-        border: 1px solid var(--border-main);
+        /* Level 1, solid twin. Rows are the one component that lives inside a
+           virtual scroller: an opaque box lets the compositor skip everything
+           behind it, which a translucent one forbids, and with ~25 pooled
+           nodes recycling through a momentum scroll that is the difference
+           worth having. The pixel is identical to the translucent film --
+           nothing renders behind a row but the pane's flat fill. */
+        background: var(--surface-1-solid);
+        border: var(--hairline);
         background-clip: padding-box;
         contain: layout paint;
         position: absolute;
@@ -2888,14 +3072,14 @@
 
       .log-row.kb-selected {
         border-color: var(--accent-blue);
-        background: rgba(96, 165, 250, 0.09);
+        background: var(--surface-1-selected);
         outline: none;
       }
 
       @media (hover: hover) and (pointer: fine) {
         .log-row:hover {
           border-color: var(--accent-blue);
-          background: rgba(96, 165, 250, 0.09);
+          background: var(--surface-1-selected);
           outline: none;
         }
       }
@@ -3012,13 +3196,14 @@
          border under theme-eink (selected #444 over a resting #202020) and
          identical to it for Sick, where --accent-break collapses onto
          --border-main. Selection therefore carries the shared .kb-selected
-         treatment; hover keeps the per-type accent. Values are copied verbatim
-         from .log-row.kb-selected above - keep the two in sync. This rule must
-         stay after the :hover rule: they have equal specificity, so a row that
-         is both hovered and selected resolves on source order. */
+         treatment; hover keeps the per-type accent. Shares the one selection
+         token with .log-row.kb-selected above, so the two can no longer drift.
+         This rule must stay after the :hover rule: they have equal
+         specificity, so a row that is both hovered and selected resolves on
+         source order. */
       .log-row.is-leave-row.kb-selected {
         border-color: var(--accent-blue);
-        background: rgba(96, 165, 250, 0.09);
+        background: var(--surface-1-selected);
         opacity: 1;
       }
 
@@ -3190,8 +3375,9 @@
       }
 
       .icon-btn {
-        background: var(--panel-bg);
-        border: 1px solid var(--border-main);
+        /* Level 1. */
+        background: var(--surface-1);
+        border: var(--hairline);
         color: var(--text-muted);
         border-radius: 6px;
         padding: 5px;
@@ -3333,13 +3519,17 @@
         right: 0;
         left: auto;
         transform: translateY(-0.625rem);
-        background: var(--dropdown-bg);
-        border: 1px solid var(--border-light);
+        /* Level 3. --dropdown-bg is now an alias of the same pigment, so this
+           and .custom-select-panel and .modal-container finally agree. */
+        background: var(--surface-3);
+        -webkit-backdrop-filter: var(--surface-blur);
+        backdrop-filter: var(--surface-blur);
+        border: var(--hairline);
         border-radius: 0.75rem;
         padding: 0.85rem;
         width: 18.5rem;
         /* Expanded width for descriptions */
-        box-shadow: var(--global-shadow);
+        box-shadow: var(--elev-2);
         z-index: var(--z-modal);
         display: none;
         flex-direction: column;
@@ -3487,7 +3677,10 @@
         left: 0;
         right: 0;
         bottom: 0;
-        background-color: rgba(255, 255, 255, 0.1);
+        /* --track-bg is the theme's own unfilled-track colour, already used by
+           the progress rail; this was a white film that vanished on the light
+           themes. */
+        background-color: var(--track-bg);
         transition: 0.2s;
         border-radius: 1.125rem;
         /* Scales dynamically on window resize */
@@ -3511,7 +3704,7 @@
       }
 
       input:checked + .slider-toggle {
-        background-color: rgba(96, 165, 250, 0.2);
+        background-color: var(--accent-strong);
         border-color: var(--accent-blue);
       }
 
@@ -3579,25 +3772,39 @@
          specificity from (0,3,0) to (0,2,0), which still beats .sidebar-footer
          .sq-btn (0,2,0) and .icon-btn (0,1,0) on source order -- these rules sit
          below both -- so the desktop rendering is unchanged. */
+      /* The literal #ff453a here was SF Dark's red hardcoded, so the destroy
+         button stayed the same red on all four themes -- including the two
+         monochrome ones, where it was the only colour on screen. It is the
+         break accent, so it says so, and resolves to white on Vercel Dark and
+         to black on E-Ink like every other accent does. */
       .sq-btn.danger-icon {
-        background: rgba(255, 69, 58, 0.1) !important;
-        border: 1px solid rgba(255, 69, 58, 0.3) !important;
+        background: color-mix(
+          in srgb,
+          var(--accent-break) 10%,
+          transparent
+        ) !important;
+        border: 1px solid
+          color-mix(in srgb, var(--accent-break) 30%, transparent) !important;
         transition: none;
       }
 
       .sq-btn.danger-icon svg {
-        stroke: #ff453a !important;
+        stroke: var(--accent-break) !important;
         opacity: 1 !important;
         transition: none;
       }
 
       .sq-btn.danger-icon:hover {
-        background: rgba(255, 69, 58, 0.2) !important;
-        border-color: #ff453a !important;
+        background: color-mix(
+          in srgb,
+          var(--accent-break) 20%,
+          transparent
+        ) !important;
+        border-color: var(--accent-break) !important;
       }
 
       .sq-btn.danger-icon:hover svg {
-        stroke: #ff453a !important;
+        stroke: var(--accent-break) !important;
         opacity: 1;
         transform: none;
       }
@@ -3757,8 +3964,9 @@
       }
 
       .stat-card {
-        background: var(--element-bg);
-        border: 1px solid var(--border-main);
+        /* Level 1. */
+        background: var(--surface-1);
+        border: var(--hairline);
         border-radius: var(--radius-xl);
         padding: 16px;
         contain: layout paint;
@@ -3907,8 +4115,11 @@
         min-height: 54px;
         height: auto;
         padding: 10px 14px;
-        background: var(--element-bg);
-        border: 1px solid var(--border-main);
+        /* Level 1, solid twin: the Insights list scrolls and a whole week of
+           rows is on screen at once, so these get the same treatment as
+           .log-row for the same reason. */
+        background: var(--surface-1-solid);
+        border: var(--hairline);
         border-radius: var(--radius-md);
         font-variant-numeric: tabular-nums;
         line-height: 1.2;
@@ -3930,8 +4141,7 @@
 
       .breakdown-row.is-today-row {
         border: 1px solid var(--accent-blue);
-        box-shadow: 0 0 10px
-          color-mix(in srgb, var(--accent-blue) 12%, transparent);
+        box-shadow: 0 0 10px var(--accent-wash);
       }
 
       .breakdown-row.is-empty {
@@ -4028,7 +4238,11 @@
         left: 0;
         right: 0;
         bottom: 0;
-        background: rgba(0, 0, 0, 0.58);
+        /* One scrim token for every dimmed backdrop in the app. The light
+           themes set it lighter: a 0.58 black behind a translucent white sheet
+           drags the sheet grey, which is what made the old fixed value work on
+           the dark themes only. */
+        background: var(--scrim);
         z-index: var(--z-overlay);
 
         display: none;
@@ -4040,13 +4254,14 @@
       .modal-container {
         width: 100%;
         max-width: var(--modal-width-sm);
-        background: var(--modal-bg);
-        border: 1px solid var(--border-main);
+        /* Level 3. */
+        background: var(--surface-3);
+        -webkit-backdrop-filter: var(--surface-blur);
+        backdrop-filter: var(--surface-blur);
+        border: var(--hairline);
         border-radius: var(--radius-xl);
         padding: var(--space-5);
-        box-shadow:
-          0 0 0 1px var(--border-light),
-          0 8px 32px rgba(0, 0, 0, 0.24);
+        box-shadow: var(--elev-2);
         position: relative;
         overflow: visible;
       }
@@ -4270,19 +4485,15 @@
         top: max(16px, env(safe-area-inset-top));
         left: 50%;
         height: 44px;
-        /* Opaque: a toast floats over whatever is on screen, so it is one of
-           the few surfaces with no single fill behind it. The sf-light and
-           theme-eink overrides below already opted out of translucency for
-           exactly this reason; this brings the other two into line rather
-           than leaving them see-through once the blur is gone. */
-        background: color-mix(
-          in srgb,
-          var(--panel-bg) 75%,
-          var(--chrome-backdrop)
-        );
+        /* Level 3, blurred. A toast floats over arbitrary content, which is
+           exactly the case the blur exists for -- it is what lets this stay
+           translucent and still be readable. Two of the four themes used to
+           opt out of the material entirely here with a hardcoded #ffffff. */
+        background: var(--surface-3);
+        -webkit-backdrop-filter: var(--surface-blur);
+        backdrop-filter: var(--surface-blur);
         color: var(--text-main);
-        border: 1px solid
-          color-mix(in srgb, var(--border-main) 60%, rgba(255, 255, 255, 0.15));
+        border: var(--hairline);
         padding: 0 16px 0 8px;
         border-radius: 9999px;
         font-weight: 600;
@@ -4292,9 +4503,7 @@
         align-items: center;
         justify-content: center;
         white-space: nowrap;
-        box-shadow:
-          0 6px 20px rgba(0, 0, 0, 0.08),
-          inset 0 1px 0 rgba(255, 255, 255, 0.15);
+        box-shadow: var(--elev-2);
         transition:
           transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1),
           opacity 0.4s ease;
@@ -4307,27 +4516,10 @@
         will-change: transform, opacity;
       }
 
-      :root[data-theme="sf-light"] #undo-toast,
-      :root[data-theme="sf-light"] #sync-toast,
-      :root[data-theme="sf-light"] #goal-toast,
-      :root[data-theme="sf-light"] #app-toast {
-        background: #ffffff;
-        color: #000000;
-        box-shadow:
-          0 6px 20px rgba(0, 0, 0, 0.12),
-          0 0 0 1px rgba(0, 0, 0, 0.05);
-      }
-
-      :root[data-theme="theme-eink"] #undo-toast,
-      :root[data-theme="theme-eink"] #sync-toast,
-      :root[data-theme="theme-eink"] #goal-toast,
-      :root[data-theme="theme-eink"] #app-toast {
-        background: #ffffff;
-        color: #111111;
-        box-shadow:
-          6px 6px 0 #111111,
-          0 0 0 2px #111111;
-      }
+      /* The two per-theme toast overrides that used to sit here (both a
+         hardcoded #ffffff with their own shadow) are gone: --surface-3 already
+         resolves to white on both of those themes, and E-Ink's hard offset
+         shadow now arrives through --elev-2 like every other surface. */
 
       .toast-visible {
         transform: translate(-50%, 0) scale(1) !important;
@@ -4346,48 +4538,37 @@
         transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
       }
 
-      #undo-toast .island-icon {
-        background: rgba(10, 132, 255, 0.15);
-        color: #0a84ff;
+      /* Each island icon is its message's semantic accent, mixed from the
+         active theme rather than from SF Dark's palette written out by hand.
+         The three per-theme glow rules that followed are folded in with it:
+         the glow is the same accent at 40%, so it needs no theme scoping. */
+      #undo-toast .island-icon,
+      #app-toast .island-icon {
+        background: var(--accent-soft);
+        color: var(--accent-blue);
+        box-shadow: 0 0 12px
+          color-mix(in srgb, var(--accent-blue) 40%, transparent);
       }
 
       #sync-toast .island-icon {
-        background: rgba(255, 159, 10, 0.15);
-        color: #ff9f0a;
+        background: var(--warn-soft);
+        color: var(--accent-warning);
+        box-shadow: 0 0 12px
+          color-mix(in srgb, var(--accent-warning) 40%, transparent);
       }
 
       #goal-toast .island-icon {
-        background: rgba(48, 209, 88, 0.15);
-        color: #30d158;
-      }
-
-      #app-toast .island-icon {
-        background: rgba(10, 132, 255, 0.15);
-        color: #0a84ff;
-      }
-
-      :root[data-theme="vercel-dark"] #goal-toast .island-icon,
-      :root[data-theme="sf-dark"] #goal-toast .island-icon {
-        box-shadow: 0 0 12px rgba(48, 209, 88, 0.4);
-      }
-
-      :root[data-theme="vercel-dark"] #sync-toast .island-icon,
-      :root[data-theme="sf-dark"] #sync-toast .island-icon {
-        box-shadow: 0 0 12px rgba(255, 159, 10, 0.4);
-      }
-
-      :root[data-theme="vercel-dark"] #undo-toast .island-icon,
-      :root[data-theme="sf-dark"] #undo-toast .island-icon,
-      :root[data-theme="vercel-dark"] #app-toast .island-icon,
-      :root[data-theme="sf-dark"] #app-toast .island-icon {
-        box-shadow: 0 0 12px rgba(10, 132, 255, 0.4);
+        background: var(--work-soft);
+        color: var(--accent-work);
+        box-shadow: 0 0 12px
+          color-mix(in srgb, var(--accent-work) 40%, transparent);
       }
 
       #undo-btn {
-        background: rgba(10, 132, 255, 0.15);
+        background: var(--accent-soft);
         border: none;
         cursor: pointer;
-        color: #0a84ff;
+        color: var(--accent-blue);
         padding: 4px 12px;
         border-radius: 9999px;
         font-family: var(--number-font);
@@ -4401,39 +4582,42 @@
       }
 
       #undo-btn:hover {
-        background: #0a84ff;
-        color: #ffffff;
+        background: var(--accent-blue);
+        color: var(--panel-bg);
         transform: scale(0.96);
       }
 
-      :root[data-theme="sf-light"] #undo-btn:hover {
-        color: #ffffff;
-      }
-
+      /* E-Ink keeps its solid-ink button -- a 16% film of black on white is a
+         grey chip, not a control, which is the one place the shared ladder
+         does not carry across. The sf-light override that used to sit here is
+         gone: var(--panel-bg) on the base rule is already #ffffff there. */
       :root[data-theme="theme-eink"] #undo-btn {
-        background: #111111;
-        color: #ffffff;
+        background: var(--accent-blue);
+        color: var(--panel-bg);
       }
 
       :root[data-theme="theme-eink"] #undo-btn:hover {
-        background: #444444;
+        background: var(--text-muted);
       }
 
       #goal-toast .goal-tag {
         font-family: var(--number-font);
         font-size: 0.7rem;
         font-weight: 700;
-        background: rgba(48, 209, 88, 0.15);
-        color: #30d158;
+        background: var(--work-soft);
+        color: var(--accent-work);
         padding: 4px 10px;
         border-radius: 9999px;
         letter-spacing: 0.02em;
       }
 
       .toast-close-btn {
-        background: var(--element-bg, rgba(255, 255, 255, 0.08));
-        border: 1px solid var(--border-main, rgba(255, 255, 255, 0.12));
-        color: var(--text-muted, #8e8e93);
+        /* Level 1 inside a level 3 toast. The var() fallbacks here were dead
+           -- these tokens are always defined -- and were white films that
+           would have been invisible on the light themes if they ever fired. */
+        background: var(--surface-1);
+        border: var(--hairline);
+        color: var(--text-muted);
         opacity: 0.85;
         cursor: pointer;
         width: 28px;
@@ -4454,9 +4638,9 @@
       }
 
       .toast-close-btn:hover {
-        background: var(--element-hover, rgba(255, 255, 255, 0.15));
-        border-color: var(--border-light, rgba(255, 255, 255, 0.25));
-        color: var(--text-main, #ffffff);
+        background: var(--element-hover);
+        border-color: var(--border-light);
+        color: var(--text-main);
         opacity: 1;
       }
 
@@ -4692,8 +4876,9 @@
       .leave-dates-list {
         height: 150px;
         overflow-y: auto;
-        background: var(--panel-bg);
-        border: 1px solid var(--border-main);
+        /* Level 1: an inset well inside a level 3 dialog. */
+        background: var(--surface-1);
+        border: var(--hairline);
         padding: var(--space-2);
         border-radius: var(--radius-md);
         margin-bottom: var(--space-4);
@@ -4820,23 +5005,22 @@
         left: 0;
         right: 0;
         z-index: var(--z-sticky);
-        background: var(--modal-bg);
-        border: 1px solid var(--border-light);
+        /* Level 3. */
+        background: var(--surface-3);
+        -webkit-backdrop-filter: var(--surface-blur);
+        backdrop-filter: var(--surface-blur);
+        border: var(--hairline);
         border-radius: var(--radius-md);
         padding: 4px;
         display: flex;
         flex-direction: column;
         gap: 2px;
         min-width: max-content;
-        box-shadow: var(--global-shadow);
+        box-shadow: var(--elev-1);
         opacity: 0;
         pointer-events: none;
         transform: translateY(-4px);
         transition: opacity 0.08s ease;
-      }
-
-      [data-theme="sf-light"] .custom-select-panel {
-        box-shadow: var(--global-shadow);
       }
 
       .custom-select-panel.cs-open {
@@ -4852,7 +5036,7 @@
         max-height: 220px;
         overflow-y: auto;
         -webkit-overflow-scrolling: touch;
-        box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.25);
+        box-shadow: var(--elev-3);
       }
 
       .custom-select-option {
@@ -4939,19 +5123,16 @@
         flex-direction: column;
         gap: 6px;
         padding: 6px;
-        background: var(--element-hover);
-        border: 1px solid var(--border-light);
+        /* Level 3 -- see .tz-presets. */
+        background: var(--surface-3);
+        -webkit-backdrop-filter: var(--surface-blur);
+        backdrop-filter: var(--surface-blur);
+        border: var(--hairline);
         border-radius: var(--header-el-radius);
-        box-shadow: var(--global-shadow);
+        box-shadow: var(--elev-1);
         transform: translateY(4px);
         z-index: var(--z-dropdown);
         transition: opacity 0.15s ease;
-      }
-
-      [data-theme="sf-light"] .tz-presets,
-      [data-theme="sf-light"] .goal-presets,
-      [data-theme="sf-light"] .theme-presets {
-        box-shadow: var(--global-shadow);
       }
 
       .theme-presets::before {
@@ -4975,10 +5156,13 @@
       .cdp-popup {
         position: absolute;
         z-index: var(--z-tooltip);
-        background: var(--panel-bg);
-        border: 1px solid var(--border-light);
+        /* Level 3. */
+        background: var(--surface-3);
+        -webkit-backdrop-filter: var(--surface-blur);
+        backdrop-filter: var(--surface-blur);
+        border: var(--hairline);
         border-radius: var(--radius-md);
-        box-shadow: var(--global-shadow);
+        box-shadow: var(--elev-1);
         padding: 10px;
         width: 230px;
         font-family: var(--font-sans);
@@ -5191,75 +5375,34 @@
           --m-safe-right: env(safe-area-inset-right, 0px);
           --m-gutter: 1rem;
 
-          /* ---- Liquid-glass material tokens ---------------------------
-             Single source of truth for the translucent surface the mobile
-             shell is built from. The state variants further down re-tint
-             THIS surface rather than falling back to the opaque desktop
-             styling, which is what keeps selected / active / semantic
-             states legible without breaking the material. */
-          --glass-surface: color-mix(
-            in srgb,
-            var(--element-bg) 70%,
-            transparent
-          );
-          --glass-hairline: color-mix(
-            in srgb,
-            var(--text-main) 12%,
-            transparent
-          );
+          /* ---- No mobile-only material ---------------------------------
+             This block used to define a parallel --glass-surface /
+             --glass-hairline / --glass-surface-solid system that existed only
+             inside this breakpoint, which is the root of what the phone UI
+             looked inconsistent about: the shell was built from one set of
+             greys and the desktop from another, and the two drifted with
+             every edit. Those three tokens are gone. Everything here now
+             wears --surface-1/2/3, --hairline and --elev-* from the material
+             system at the top of the stylesheet, exactly as the desktop does.
 
-          /* ---- No backdrop-filter, anywhere -----------------------------
-             This shell is styled as translucent "liquid glass", but it
-             renders none of it through a backdrop-filter. That filter is the
-             single most expensive thing a mobile GPU can be asked to do per
-             frame: it reads back the pixels behind the element, runs a
-             separable Gaussian over them and recomposites -- and the result
-             cannot be cached for any element that moves, which on a phone is
-             most of them.
-
-             Two observations make it unnecessary here.
-
-             First, the blur was almost always sampling nothing. Every
-             surface that carried one -- rows, cards, inputs, the bars, the
-             toolbar, the chips -- sits on a single flat fill: .sidebar, the
-             sticky toolbar, #m-sheet or .main-ui, all of which paint one
-             opaque colour. Blurring a uniform region returns that region, so
-             those filters were pure cost for an identical picture. Deleting
-             them is invisible.
-
-             Second, translucency itself is cheap. An rgba() or color-mix()
-             background is an alpha blend during compositing; it is the
-             filter, not the transparency, that costs. So the material's tint
-             survives wherever the fill behind it is uniform, and only the
-             filter goes.
-
-             The handful of surfaces content genuinely does travel beneath --
-             #m-tabbar, the scroll-to-top button, the sticky month badge,
-             toasts, the tooltip -- cannot rely on that, because without a
-             blur a translucent overlay lets text read straight through it.
-             Those are opaque instead, tinted so that their resting
-             appearance is unchanged. Each carries its own note.
-
-             --glass-surface-solid is the opaque twin of --glass-surface, for
-             the two scrollers. Rows are worth flattening rather than merely
-             de-blurring: an opaque row lets the compositor skip whatever is
-             behind it, which a translucent one forbids, and with ~25 pooled
-             rows recycling that is the difference worth having. */
-          --glass-surface-solid: color-mix(
-            in srgb,
-            var(--element-bg) 70%,
-            var(--chrome-backdrop)
-          );
+             The one thing that legitimately differs between the platforms is
+             --surface-under, immediately below -- what the material is
+             resting ON. Because every level is a translucent film, changing
+             only that is enough to make the identical token resolve to the
+             phone's darker surfaces on an OLED page and to the desktop's
+             lighter ones on a tinted panel. */
         }
 
         /* The OLED themes repaint .sidebar, the sticky toolbar and the timer
            pane with --page-bg (see the rule further down), so on a phone the
-           fill behind the chrome is that, not --panel-bg. (0,2,0) beats the
-           :root default. Deliberately scoped inside the breakpoint: on the
-           desktop those panes sit on .console-panel, which is --panel-bg. */
+           fill behind the chrome is that, not --panel-bg. This is THE mobile
+           colour difference, and every other one used to be a downstream
+           workaround for not having stated it once. (0,2,0) beats the :root
+           default. Deliberately scoped inside the breakpoint: on the desktop
+           those panes sit on .console-panel, which is --panel-bg. */
         :root[data-theme="sf-dark"],
         :root[data-theme="vercel-dark"] {
-          --chrome-backdrop: var(--page-bg);
+          --surface-under: var(--page-bg);
         }
 
         /* ---- Full-bleed app frame -------------------------------------- */
@@ -5285,7 +5428,7 @@
           border: 0;
           border-radius: 0;
           box-shadow: none;
-          background: var(--panel-bg);
+          background: var(--surface-under);
         }
 
         /* ---- .main-ui is BOTH the fixed top bar and the Timer pane -------
@@ -5316,7 +5459,7 @@
           padding-bottom: calc(var(--m-tabbar-h) + var(--m-safe-bottom) + 16px);
           overflow-y: auto;
           overscroll-behavior: contain;
-          background: var(--panel-bg);
+          background: var(--surface-under);
           pointer-events: auto;
           padding-left: var(--m-gutter);
           padding-right: var(--m-gutter);
@@ -5340,21 +5483,15 @@
           gap: 0.25rem;
           overflow: hidden;
           border-radius: var(--radius-lg);
-          /* Deliberately opaque: nothing ever passes under this bar. In the
-             content panes .sidebar clears it with a padding-top and clips at
-             that edge; in the timer pane the bar is an in-flow child of the
-             scroller, so it moves with the content rather than over it. The
-             blur this replaces was sampling a flat fill. */
-          background: color-mix(
-            in srgb,
-            var(--panel-bg) 72%,
-            var(--chrome-backdrop)
-          );
-          border: 0.5px solid
-            color-mix(in srgb, var(--text-main) 12%, transparent);
-          /* Same inversion as .scroll-top-btn: --text-main is white on the
-             dark themes, so a tint of it is a glow, not a shadow. */
-          box-shadow: var(--global-shadow);
+          /* Level 2, solid twin. Nothing passes under this bar: in the content
+             panes .sidebar clears it with a padding-top and clips at that
+             edge, and in the timer pane the bar is an in-flow child of the
+             scroller, so it moves WITH the content rather than over it. Same
+             call as .logbook-sticky-toolbar -- the blurred film and this twin
+             are the same pixel, and only one of them costs a GPU pass. */
+          background: var(--surface-2-solid);
+          border: var(--hairline);
+          box-shadow: var(--elev-1);
           pointer-events: auto;
           padding: 4px 8px;
         }
@@ -5632,24 +5769,21 @@
           flex: 1 1 auto;
           min-height: 40px;
           white-space: nowrap;
-          /* Tint kept, filter dropped: these sit directly on #m-sheet, which
-             paints an opaque --modal-bg, so the blur had a uniform region to
-             sample and produced that same region back. */
-          background: var(--glass-surface) !important;
-          border: 0.5px solid var(--glass-hairline) !important;
+          /* Level 1, translucent -- correct rather than merely cheap here:
+             these sit inside #m-sheet, whose fill is level 3, so a film picks
+             the sheet's colour up automatically where a `-solid` twin would
+             have resolved against the page instead and read wrong. */
+          background: var(--surface-1) !important;
+          border: var(--hairline) !important;
           box-shadow: none;
         }
 
         /* The sheet's own surface rule (0,2,0 / 0,3,0) outranks
            .preset-pill.active (0,2,0) on source order, so the selected goal /
-           timezone / theme preset needs its glass variant here too. */
+           timezone / theme preset needs its variant restated here. */
         #m-sheet .preset-pill.active {
           border-color: var(--accent-blue) !important;
-          background: color-mix(
-            in srgb,
-            var(--accent-blue) 20%,
-            var(--glass-surface)
-          ) !important;
+          background: var(--accent-strong) !important;
         }
 
         #m-sheet .footer-icons {
@@ -5671,8 +5805,8 @@
         }
 
         #m-sheet .icon-stack .sq-btn.danger-icon {
-          background: rgba(255, 69, 58, 0.12) !important;
-          border: 0.5px solid rgba(255, 69, 58, 0.35) !important;
+          background: var(--break-soft) !important;
+          border: 0.5px solid var(--break-line) !important;
         }
 
         #m-sheet .icon-stack .sq-btn svg {
@@ -5737,14 +5871,11 @@
         #task-actions-group button {
           touch-action: manipulation;
           -webkit-tap-highlight-color: transparent;
-          /* These carry no background of their own -- the translucent tint
-             comes from .btn-work / .btn-break / .btn-log. Behind them is the
-             timer pane's flat fill, so the blur was sampling one colour and
-             handing it straight back. The tint composites over it exactly as
-             before. */
-          border: 0.5px solid
-            color-mix(in srgb, var(--text-main) 12%, transparent) !important;
-          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+          /* These carry no background of their own -- the tint comes from
+             .btn-work / .btn-break / .btn-log. Only the edge and the lift are
+             set here, from the shared tokens. */
+          border: var(--hairline) !important;
+          box-shadow: var(--elev-1);
         }
 
         .actions button svg {
@@ -5893,21 +6024,14 @@
         }
 
         /* Mobile Advanced Filters Drawer Reflow */
+        /* Geometry only. The fill, edge and shadow used to be restated here as
+           a 72% panel-over-TRANSPARENT mix -- the one surface in the app that
+           was genuinely see-through with no blur behind it, which is why row
+           text read through the open drawer. It now inherits the same level 3
+           material the desktop drawer uses. */
         .advanced-filters {
           padding: 8px;
           gap: 6px;
-          /* The drawer lives in .logbook-sticky-toolbar, which is a sibling
-             of the scroll viewport rather than its container -- nothing
-             scrolls behind it. Its fill is the toolbar's, which is flat, so
-             the tint stands on its own without the filter. */
-          background: color-mix(
-            in srgb,
-            var(--panel-bg) 72%,
-            transparent
-          ) !important;
-          border: 0.5px solid
-            color-mix(in srgb, var(--text-main) 12%, transparent) !important;
-          box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18) !important;
         }
 
         .advanced-filters .filter-row {
@@ -5950,20 +6074,17 @@
           scroll-snap-align: start;
         }
 
+        /* Shape and weight only -- the tint is the shared accent ladder. */
         .filter-chip {
           border-radius: 9999px;
-          /* Chips swipe horizontally, but only across the toolbar's own flat
-             fill -- there is nothing behind them to blur. */
-          background: color-mix(in srgb, var(--accent-blue) 14%, transparent);
-          border: 0.5px solid
-            color-mix(in srgb, var(--accent-blue) 35%, transparent);
           box-shadow: none;
         }
 
-        /* The sticky toolbar must sit above rows but below the fixed top bar. */
+        /* The sticky toolbar must sit above rows but below the fixed top bar.
+           Its fill comes from the shared level 2 rule; only the stacking
+           needs saying here. */
         .logbook-sticky-toolbar {
           z-index: var(--z-dropdown);
-          background: var(--panel-bg);
         }
 
         /* Anchored popovers inside the sheet centre on the viewport and stay
@@ -5989,12 +6110,10 @@
           width: 100%;
           max-width: none;
           border-radius: var(--radius-xl) var(--radius-xl) 0 0 !important;
-          border: 0.5px solid
-            color-mix(in srgb, var(--text-main) 12%, transparent) !important;
+          border: var(--hairline) !important;
           border-bottom: none !important;
           padding: 1.15rem 1rem calc(1.1rem + var(--m-safe-bottom)) !important;
-          background: var(--modal-bg, var(--panel-bg));
-          box-shadow: 0 -4px 32px rgba(0, 0, 0, 0.35);
+          box-shadow: var(--elev-3);
           z-index: calc(var(--z-overlay) - 1);
           max-height: 85svh;
           overflow: visible;
@@ -6057,22 +6176,20 @@
           padding: calc(var(--m-topbar-h) + var(--m-safe-top) + 24px)
             var(--m-gutter) 0;
           box-sizing: border-box;
-          background: var(--panel-bg);
+          background: var(--surface-under);
         }
 
         body[data-mpane="timer"] .sidebar {
           display: none;
         }
 
-        /* OLED dark themes full pitch black background on mobile */
-        :root[data-theme="sf-dark"] body[data-mpane="timer"] .main-ui,
-        :root[data-theme="sf-dark"] .sidebar,
-        :root[data-theme="sf-dark"] .logbook-sticky-toolbar,
-        :root[data-theme="vercel-dark"] body[data-mpane="timer"] .main-ui,
-        :root[data-theme="vercel-dark"] .sidebar,
-        :root[data-theme="vercel-dark"] .logbook-sticky-toolbar {
-          background: var(--page-bg);
-        }
+        /* The per-theme "OLED dark themes full pitch black background on
+           mobile" override that used to sit here -- six selectors repainting
+           these panes with --page-bg -- is gone. These ARE the fill the
+           material rests on, so they paint --surface-under directly, and the
+           one declaration at the top of this breakpoint that points it at
+           --page-bg on the OLED themes now drives both the panes and every
+           surface floating above them from a single place. */
 
         /* The desktop segmented control and the footer tool strip are both
            replaced by shell chrome (#m-tabbar and #m-sheet respectively). */
@@ -6104,37 +6221,24 @@
              any overlay that is added later without the exact markup that JS
              watches for would silently render underneath the bar. */
           z-index: var(--z-sticky);
-          /* Fully opaque, and the opacity is load-bearing rather than a
-             leftover. This is the one surface in the shell that content
-             really does travel beneath -- the scrollers run to the bottom
-             edge of the viewport and clear the bar with an ::after spacer
-             instead of a padding -- so it cannot use the pre-mixed trick the
-             other chrome does; there is no single fill behind it to mix
-             against.
+          /* Level 2, blurred -- and this is the surface the blur is really
+             for. The scrollers run to the bottom edge of the viewport and
+             clear the bar with an ::after spacer rather than a padding, so
+             rows genuinely travel underneath it, continuously, for the whole
+             length of a momentum scroll. Translucent WITHOUT a blur is the
+             one combination to avoid here: row text would read straight
+             through the tabs. With it, the bar behaves the way the native
+             iOS tab bar does.
 
-             That leaves two honest options, because the blur was the only
-             thing making a translucent bar legible: keep paying for a blur
-             the GPU must recompute every frame of every scroll, or stop
-             compositing through the bar at all. Translucent WITHOUT the blur
-             is the one combination to avoid -- row text would read straight
-             through the tabs.
-
-             Keeping the same 72% tint but resolving it against the fill the
-             pane behind it uses reproduces the bar's resting appearance --
-             what it already looked like whenever the list was scrolled short
-             of it -- bit for bit on all four themes. Resolving to the bare
-             pane colour instead would have flattened the SF Dark bar from
-             #141416 to pure black and lost its lift off the page. The only
-             thing that changes here is that content passing behind the bar
-             is now hidden rather than blurred; the hairline below and the
-             active tab's own tint still separate it exactly as before. */
-          background: color-mix(
-            in srgb,
-            var(--panel-bg) 72%,
-            var(--chrome-backdrop)
-          );
-          border-top: 0.5px solid
-            color-mix(in srgb, var(--text-main) 12%, transparent);
+             This is also the only element in the app where the blur is a
+             per-frame cost rather than a cached one. It is one element,
+             ~60px tall, and it buys the effect the whole shell is styled
+             around; every other moving surface (rows, breakdown rows) stays
+             solid precisely so this one can afford it. */
+          background: var(--surface-2);
+          -webkit-backdrop-filter: var(--surface-blur);
+          backdrop-filter: var(--surface-blur);
+          border-top: var(--hairline);
           border-radius: 0;
           box-shadow: none;
           padding-top: 4px;
@@ -6221,7 +6325,7 @@
           position: fixed;
           inset: 0;
           z-index: calc(var(--z-overlay) - 3);
-          background: rgba(0, 0, 0, 0.4);
+          background: var(--scrim);
           opacity: 0;
           pointer-events: none;
           transition: opacity 0.24s ease;
@@ -6241,14 +6345,31 @@
           bottom: 0;
           z-index: calc(var(--z-overlay) - 2);
           max-height: 85svh;
-          background: var(--modal-bg, var(--panel-bg));
-          border-top: 0.5px solid
-            color-mix(in srgb, var(--text-main) 12%, transparent);
+          /* Level 3, and DELIBERATELY the solid twin with no backdrop-filter.
+             This is not a perf call, it is a correctness one: a non-none
+             backdrop-filter makes an element a containing block for its
+             position: fixed descendants, exactly as a transform does. The
+             sheet has two of them -- #adjust-time-popup and
+             #settings-config-popup -- and the
+             `body.m-sheet-open:has(#m-sheet .idle-popup.show) #m-sheet`
+             rule further down exists for the sole purpose of dropping the
+             sheet's transform so those resolve against the viewport instead
+             of against the sheet. Blurring here silently reinstates the very
+             containing block that rule is there to destroy, and the popovers
+             land off-screen below the fold. Verified in Chrome: with the
+             filter on, #settings-config-popup's top goes to 874px on an 874px
+             viewport.
+
+             Nothing is lost visually. The sheet covers the bottom of the
+             screen over its own dimmed backdrop, and --surface-3-solid is the
+             colour the 90% film resolves to over that anyway. */
+          background: var(--surface-3-solid);
+          border-top: var(--hairline);
           border-left: none;
           border-right: none;
           border-bottom: none;
           border-radius: var(--radius-xl) var(--radius-xl) 0 0;
-          box-shadow: 0 -4px 32px rgba(0, 0, 0, 0.28);
+          box-shadow: var(--elev-3);
           transform: translateY(120%);
           visibility: hidden;
           transition:
@@ -6381,23 +6502,24 @@
           width: 24px;
         }
 
-        /* ---- Liquid glass: base surface ---------------------------------
-           This rule is blanket + !important on purpose: the mobile layer has
-           to beat a large opaque desktop layer it does not own, and several
-           of these components are also styled from theme-scoped rules of
-           higher specificity earlier in the sheet.
+        /* ---- Level 1, restated for the phone ------------------------------
+           This rule is blanket + !important on purpose, and it is now the ONLY
+           reason it still exists: several of these components are styled from
+           theme-scoped rules of higher specificity earlier in the sheet that
+           the phone layer has to beat. The material itself is no longer
+           mobile-specific -- these are the same --surface-1 and --hairline the
+           desktop rules already set, so this is a specificity fix rather than
+           a second design.
 
-           The cost of that is that it also flattens component STATE, which
-           the desktop rules express as plain (non-important) declarations.
-           Every such state is therefore re-declared as a tint of this same
-           material in the "state variants" block below. When adding a
-           selector here, check whether the component has an .active /
-           .selected / semantic variant and add the matching variant too --
-           otherwise the state silently disappears on mobile.
+           The cost of !important is that it also flattens component STATE,
+           which the desktop rules express as plain declarations. Every such
+           state is therefore re-declared in the "state variants" block below.
+           When adding a selector here, check whether the component has an
+           .active / .selected / semantic variant and add the matching variant
+           too -- otherwise the state silently disappears on mobile.
 
-           Do NOT add .log-row back to this list. Rows are the one component
-           that scrolls, and they get the solid twin of this surface in the
-           rule immediately below -- see the note there. */
+           Do NOT add .log-row back to this list. Rows take the solid twin in
+           the rule immediately below -- see the note there. */
         .task-card-active,
         .preset-pill:not(.active),
         .goal-inputs,
@@ -6412,31 +6534,20 @@
         .custom-select-trigger,
         .date-picker-group,
         .stat-card {
-          border: 0.5px solid var(--glass-hairline) !important;
-          /* Tint without a filter. Every selector above resolves against one
-             flat fill -- .sidebar, the sticky toolbar, #m-sheet or a modal --
-             so the blur was returning the colour it started from. The state
-             variants below inherit this surface and stay translucent for the
-             same reason. */
-          background: var(--glass-surface) !important;
+          border: var(--hairline) !important;
+          background: var(--surface-1) !important;
         }
 
-        /* Rows wear the same hairline and tint as the rest of the material
-           but resolve it to a solid colour. They are the one component that
-           lives inside a virtual scroller: with ~25 nodes in the pool a
-           backdrop-filter costs the GPU one blur pass per row per frame of a
-           momentum scroll, and none of it can be cached because every row is
-           moving. Nothing renders behind a row to blur in the first place --
-           see --glass-surface-solid, which is the same pixel.
+        /* Rows take the solid twin of level 1 -- same colour, opaque, so the
+           compositor can skip whatever is behind them. Both scrollers build
+           their rows with class="log-row", so this covers the Tasks pane as
+           well as the logbook.
 
-           Both scrollers build their rows with class="log-row", so this
-           covers the Tasks pane as well as the logbook.
-
-           Must stay AFTER the base block and BEFORE the state variants:
-           these are all (0,2,0) and resolve on source order. */
+           Must stay AFTER the base block and BEFORE the state variants: these
+           are all (0,2,0) and resolve on source order. */
         .log-row:not(.is-leave-row) {
-          border: 0.5px solid var(--glass-hairline) !important;
-          background: var(--glass-surface-solid) !important;
+          border: var(--hairline) !important;
+          background: var(--surface-1-solid) !important;
         }
 
         .log-row.is-leave-row {
@@ -6445,52 +6556,42 @@
           background: color-mix(
             in srgb,
             var(--leave-accent) 6%,
-            var(--glass-surface-solid)
+            var(--surface-1-solid)
           ) !important;
         }
 
-        /* ---- Liquid glass: state variants -------------------------------
-           Each rule below is the glass equivalent of a desktop state rule
-           that the base surface above outranks. They keep the hairline
-           weight and whatever surface their base rule established -- blurred
-           for chrome, solid for rows -- and change only the tint and the
-           border colour, so state reads as a shift in the material rather
-           than a different material.
+        /* ---- State variants ---------------------------------------------
+           Each rule below restores a desktop state rule that the blanket
+           level 1 block above outranks. They keep the hairline weight and
+           whatever surface their base rule established -- translucent film
+           for most, solid for rows -- and change only the tint and the border
+           colour, so state reads as a shift in the material rather than a
+           different material. Every tint here is a shared accent token, so
+           these can no longer drift from their desktop equivalents.
 
            Specificity is deliberate in every case -- see the note on each. */
 
         /* .log-row.kb-selected (0,2,0) ties with .log-row:not(.is-leave-row)
            and .log-row.is-leave-row (both 0,2,0), so this must stay AFTER
-           them to win on order. Mixes against the solid row surface for the
-           same reason those do -- a selected row is still a scrolling row. */
+           them to win on order. Uses the same one selection token the desktop
+           rule does -- it already mixes into the solid row surface, which is
+           what a scrolling row needs. */
         .log-row.kb-selected {
           border-color: var(--accent-blue) !important;
-          background: color-mix(
-            in srgb,
-            var(--accent-blue) 16%,
-            var(--glass-surface-solid)
-          ) !important;
+          background: var(--surface-1-selected) !important;
         }
 
         /* Toggled toolbar buttons -- the filter drawer trigger is the only
            thing that tells the user the drawer is open. 0,2,0 over 0,1,0. */
         .header-icon-btn.active {
           border-color: var(--accent-blue) !important;
-          background: color-mix(
-            in srgb,
-            var(--accent-blue) 18%,
-            var(--glass-surface)
-          ) !important;
+          background: var(--accent-soft) !important;
         }
 
         /* Open dropdown trigger. 0,2,0 over 0,1,0. */
         .custom-select-trigger.cs-open {
           border-color: var(--accent-blue) !important;
-          background: color-mix(
-            in srgb,
-            var(--accent-blue) 14%,
-            var(--glass-surface)
-          ) !important;
+          background: var(--accent-soft) !important;
         }
 
         /* Focused standalone filter field. Fields inside .filter-group-card
@@ -6498,11 +6599,7 @@
            on the card, so they are intentionally not covered here. */
         .filter-input:focus {
           border-color: var(--accent-blue) !important;
-          background: color-mix(
-            in srgb,
-            var(--accent-blue) 10%,
-            var(--glass-surface)
-          ) !important;
+          background: var(--accent-wash) !important;
         }
 
         /* Semantic dialog actions. `.modal-container button` (0,1,1) outranks
@@ -6513,55 +6610,23 @@
            These are 0,2,0. .btn-secondary is intentionally absent: the neutral
            base surface is already the correct treatment for it. */
         .modal-container .btn-danger-outline {
-          border-color: color-mix(
-            in srgb,
-            var(--accent-break) 45%,
-            transparent
-          ) !important;
-          background: color-mix(
-            in srgb,
-            var(--accent-break) 16%,
-            var(--glass-surface)
-          ) !important;
+          border-color: var(--break-line) !important;
+          background: var(--break-soft) !important;
         }
 
         .modal-container .btn-warning-outline {
-          border-color: color-mix(
-            in srgb,
-            var(--accent-warning) 45%,
-            transparent
-          ) !important;
-          background: color-mix(
-            in srgb,
-            var(--accent-warning) 16%,
-            var(--glass-surface)
-          ) !important;
+          border-color: var(--warn-line) !important;
+          background: var(--warn-soft) !important;
         }
 
         .modal-container .btn-success-outline {
-          border-color: color-mix(
-            in srgb,
-            var(--accent-work) 45%,
-            transparent
-          ) !important;
-          background: color-mix(
-            in srgb,
-            var(--accent-work) 16%,
-            var(--glass-surface)
-          ) !important;
+          border-color: var(--work-line) !important;
+          background: var(--work-soft) !important;
         }
 
         .modal-container .btn-info-outline {
-          border-color: color-mix(
-            in srgb,
-            var(--accent-blue) 45%,
-            transparent
-          ) !important;
-          background: color-mix(
-            in srgb,
-            var(--accent-blue) 16%,
-            var(--glass-surface)
-          ) !important;
+          border-color: var(--accent-line) !important;
+          background: var(--accent-soft) !important;
         }
 
         /* Geometry only -- deliberately no font-size here.
@@ -6586,12 +6651,14 @@
           font-weight: 600 !important;
         }
 
+        /* Level 1, translucent rather than the old opaque --element-bg: these
+           sit inside a level 3 dialog or sheet, so a film picks that surface
+           up and an opaque fill fought it. */
         .modal-container .input-standard,
         .modal-container .date-picker-group,
         #m-sheet .input-standard {
-          background: var(--element-bg) !important;
-          border: 0.5px solid
-            color-mix(in srgb, var(--text-main) 12%, transparent) !important;
+          background: var(--surface-1) !important;
+          border: var(--hairline) !important;
           outline: none !important;
         }
 
@@ -6667,13 +6734,11 @@
           margin-left: 0 !important;
           margin-right: 0 !important;
           border-radius: var(--radius-xl) var(--radius-xl) 0 0 !important;
-          background: var(--modal-bg, var(--panel-bg));
-          border-top: 0.5px solid
-            color-mix(in srgb, var(--text-main) 12%, transparent) !important;
+          border-top: var(--hairline) !important;
           border-left: none !important;
           border-right: none !important;
           border-bottom: none !important;
-          box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.2) !important;
+          box-shadow: var(--elev-3) !important;
           padding-top: 1.15rem;
           padding-bottom: calc(var(--space-5) + var(--m-safe-bottom));
           max-height: 88svh;
@@ -6698,40 +6763,36 @@
           z-index: 100;
         }
 
-        .modal-container.accent-warning {
-          border-top: 0.5px solid
-            color-mix(in srgb, var(--accent-warning) 85%, transparent) !important;
+        /* Accent-topped dialogs keep only their coloured edge; the fill, the
+           other three borders and the shadow all come from the shared sheet
+           rule above. */
+        .modal-container.accent-warning,
+        .modal-container.accent-danger,
+        .modal-container.accent-info,
+        .modal-container.accent-success {
           border-left: none !important;
           border-right: none !important;
           border-bottom: none !important;
-          box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.22) !important;
+        }
+
+        .modal-container.accent-warning {
+          border-top: 0.5px solid
+            color-mix(in srgb, var(--accent-warning) 85%, transparent) !important;
         }
 
         .modal-container.accent-danger {
           border-top: 0.5px solid
             color-mix(in srgb, var(--accent-break) 85%, transparent) !important;
-          border-left: none !important;
-          border-right: none !important;
-          border-bottom: none !important;
-          box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.22) !important;
         }
 
         .modal-container.accent-info {
           border-top: 0.5px solid
             color-mix(in srgb, var(--accent-blue) 85%, transparent) !important;
-          border-left: none !important;
-          border-right: none !important;
-          border-bottom: none !important;
-          box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.22) !important;
         }
 
         .modal-container.accent-success {
           border-top: 0.5px solid
             color-mix(in srgb, var(--accent-work) 85%, transparent) !important;
-          border-left: none !important;
-          border-right: none !important;
-          border-bottom: none !important;
-          box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.22) !important;
         }
 
         #heatmap-modal {
@@ -6739,15 +6800,18 @@
           justify-content: center !important;
         }
 
+        /* The heatmap is the one dialog that stays a centred card rather than
+           becoming a bottom sheet, so it takes its edge back on all four
+           sides. Fill still comes from .modal-container. */
         #heatmap-container-anim {
           width: max-content !important;
           height: max-content !important;
           max-width: calc(100vw - 32px) !important;
           max-height: 90vh !important;
           border-radius: var(--radius-xl) !important;
-          border: 1px solid var(--border-main) !important;
+          border: var(--hairline) !important;
           padding: 1rem 1.25rem !important;
-          box-shadow: 0 12px 36px rgba(0, 0, 0, 0.28) !important;
+          box-shadow: var(--elev-2) !important;
         }
 
         #heatmap-container-anim::before {
@@ -6772,8 +6836,7 @@
           height: 88svh;
           max-height: 88svh;
           border-radius: var(--radius-xl) var(--radius-xl) 0 0 !important;
-          border: 0.5px solid
-            color-mix(in srgb, var(--text-main) 12%, transparent) !important;
+          border: var(--hairline) !important;
           border-bottom: none !important;
           padding-top: 1.15rem;
         }
@@ -6826,44 +6889,22 @@
           animation: none;
         }
 
-        /* No background override here on purpose. A tooltip floats over
-           arbitrary content, so it has to be opaque once the blur is gone --
-           and every theme already declares an opaque .app-tooltip background
-           equal to its own --panel-bg further up. Dropping the translucent
-           override lets those through instead of restating them. This still
-           matters on touch: the adjust-time preview and the smart-input
-           previews drive .app-tooltip from input and focus, not hover. */
+        /* Radius only. Fill, edge and shadow come from the shared level 3
+           rule -- the touch case matters because the adjust-time preview and
+           the smart-input previews drive .app-tooltip from input and focus,
+           not hover, so this really does appear on a phone. */
         .app-tooltip {
           border-radius: var(--radius-md);
-          border: 0.5px solid
-            color-mix(in srgb, var(--text-main) 12%, transparent) !important;
-          box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2) !important;
         }
 
-        /* Solid, for the same reason rows are: the Insights list scrolls, so
-           a blur here could never be cached, and a whole week of rows is on
-           screen at once. #weekly-breakdown and .tab-content are both
-           background-less, so the only thing behind a row is .sidebar's flat
-           fill -- --glass-surface-solid resolves to the identical pixel.
-           (This was already the same 70% element-bg tint, spelled out.) */
+        /* Radius only; the solid level 1 twin and the hairline are already on
+           the shared .breakdown-row rule. */
         .breakdown-row {
-          border: 0.5px solid
-            color-mix(in srgb, var(--text-main) 12%, transparent) !important;
-          background: var(--glass-surface-solid) !important;
           border-radius: var(--radius-md) !important;
         }
 
         .breakdown-row.is-today-row {
           border: 1px solid var(--accent-blue) !important;
-        }
-
-        #undo-toast,
-        #sync-toast,
-        #goal-toast,
-        #app-toast {
-          border: 0.5px solid
-            color-mix(in srgb, var(--text-main) 12%, transparent) !important;
-          box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12) !important;
         }
       }
 
@@ -7097,21 +7138,33 @@
         /* Tint has to match whatever <html> is actually painted, because that
            is the surface the browser chrome butts up against. The
            `(max-width: 767px) and (display-mode: standalone)` block above
-           repaints html with --panel-bg; every other context leaves it at
-           --page-bg. Using --panel-bg unconditionally (as this used to) put a
-           #1c1c1e status bar against a #000000 page on the phone. */
+           repaints html with --surface-under; every other context leaves it at
+           --page-bg. --surface-under rather than --panel-bg is load-bearing:
+           it is the token the phone's OLED themes redirect to --page-bg, so
+           reading the panel here would put a #1c1c1e status bar back against
+           a #000000 app -- which is the bug this pair of reads already had
+           once, in the other direction. */
         const prop =
           window.matchMedia &&
           window.matchMedia("(max-width: 767px) and (display-mode: standalone)")
             .matches
-            ? "--panel-bg"
+            ? "--surface-under"
             : "--page-bg";
 
+        /* Only reached if the custom properties cannot be resolved this early.
+           --surface-under is listed at its PHONE value, since that is the only
+           context the standalone branch above can be taken in. */
         const FALLBACK = {
-          "sf-light": { "--page-bg": "#f2f2f7", "--panel-bg": "#ffffff" },
-          "sf-dark": { "--page-bg": "#000000", "--panel-bg": "#1c1c1e" },
-          "theme-eink": { "--page-bg": "#e8e8e8", "--panel-bg": "#ffffff" },
-          "vercel-dark": { "--page-bg": "#000000", "--panel-bg": "#000000" },
+          "sf-light": { "--page-bg": "#f2f2f7", "--surface-under": "#ffffff" },
+          "sf-dark": { "--page-bg": "#000000", "--surface-under": "#000000" },
+          "theme-eink": {
+            "--page-bg": "#e8e8e8",
+            "--surface-under": "#ffffff",
+          },
+          "vercel-dark": {
+            "--page-bg": "#000000",
+            "--surface-under": "#000000",
+          },
         };
 
         let color = "";
@@ -9659,9 +9712,6 @@
           position: relative;
           padding: var(--space-4);
           border-radius: var(--radius-xl);
-          box-shadow: none;
-          background: var(--panel-bg);
-          border: 1px solid var(--border-main);
           transform: scale(0.96) translateY(-10px);
           opacity: 0;
           overflow: hidden;
@@ -9677,13 +9727,15 @@
           style="
             position: absolute;
             display: none;
-            background: var(--dropdown-bg);
-            border: 1px solid var(--border-light);
+            background: var(--surface-3);
+            -webkit-backdrop-filter: var(--surface-blur);
+            backdrop-filter: var(--surface-blur);
+            border: var(--hairline);
             border-radius: 8px;
             padding: 8px 12px;
             color: var(--text-main);
             font-size: 0.62rem;
-            box-shadow: var(--global-shadow);
+            box-shadow: var(--elev-1);
             z-index: var(--z-overlay);
             pointer-events: none;
             width: 230px;
@@ -10619,8 +10671,8 @@
                     min-width: 0;
                     display: flex;
                     align-items: center;
-                    background: rgba(255, 255, 255, 0.015);
-                    border: 1px solid var(--border-main);
+                    background: var(--surface-1);
+                    border: var(--hairline);
                     border-radius: 6px;
                     padding: 0 6px;
                     gap: 6px;
@@ -11356,8 +11408,11 @@
             justify-content: center;
           }
 
+          /* --bg-hover is not a token this app defines and never was, so this
+             hover resolved to nothing on every theme. --element-hover is the
+             name the rest of the app uses. */
           .btn-cancel-subtle:hover {
-            background: var(--bg-hover);
+            background: var(--element-hover);
             color: var(--text-main);
           }
         </style>
@@ -11651,8 +11706,8 @@
                     min-width: 0;
                     display: flex;
                     align-items: center;
-                    background: rgba(255, 255, 255, 0.015);
-                    border: 1px solid var(--border-main);
+                    background: var(--surface-1);
+                    border: var(--hairline);
                     border-radius: 6px;
                     padding: 0 6px;
                     gap: 6px;
@@ -12816,10 +12871,10 @@
           undoBtn.id = "adjust-undo-btn";
           undoBtn.textContent = "Undo";
           undoBtn.style.cssText = `
-          background: rgba(10, 132, 255, 0.15);
+          background: var(--accent-soft);
           border: none;
           cursor: pointer;
-          color: #0a84ff;
+          color: var(--accent-blue);
           padding: 4px 10px;
           border-radius: 9999px;
           font-family: var(--number-font);
@@ -29465,12 +29520,12 @@ logic (.value reads, .value sets, change listeners) works unchanged.
           if (!meta) return;
           /* Must resolve to the same surface the pre-paint boot script in
              <head> picked, or the tint would jump the moment the first theme
-             change lands. <html> is painted --panel-bg only under
-             `(max-width: 767px) and (display-mode: standalone)`; everywhere
-             else -- including a phone browser, which is where the mobile shell
-             spends most of its life -- it is --page-bg. Reading --panel-bg
-             unconditionally tinted iOS Safari's chrome #1c1c1e against a
-             #000000 page.
+             change lands -- keep the two token names in step. <html> is
+             painted --surface-under only under `(max-width: 767px) and
+             (display-mode: standalone)`; everywhere else -- including a phone
+             browser, which is where the mobile shell spends most of its life
+             -- it is --page-bg. Reading the panel unconditionally tinted iOS
+             Safari's chrome #1c1c1e against a #000000 page.
 
              This tests the CSS override's own media query verbatim rather than
              combining PHONE_MQ with navigator.standalone: on iOS before 15.4
@@ -29479,7 +29534,9 @@ logic (.value reads, .value sets, change listeners) works unchanged.
              the page again. themeColorIsRead() still honours
              navigator.standalone -- whether the tint is read and which surface
              it should copy are separate questions. */
-          const prop = PANEL_SURFACE_MQ.matches ? "--panel-bg" : "--page-bg";
+          const prop = PANEL_SURFACE_MQ.matches
+            ? "--surface-under"
+            : "--page-bg";
           const bg = getComputedStyle(document.documentElement)
             .getPropertyValue(prop)
             .trim();
