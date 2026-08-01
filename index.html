@@ -2216,9 +2216,11 @@
         height: 28px;
         padding: 0;
         /* Opaque: this floats over the logbook, so rows really do pass
-           beneath it and a translucent pill with no blur would show their
-           text through the arrow. Mixing the old 72% tint against the fill
-           the list sits on keeps its resting colour unchanged. */
+           beneath it and a translucent disc with no blur would show their
+           text through the arrow. It only ever appears once the list has
+           been scrolled, so what it sits on is always rows -- a panel-tinted
+           disc reads as a distinct chip against them in every theme, and the
+           hairline below is what draws its edge. */
         background: color-mix(
           in srgb,
           var(--panel-bg) 72%,
@@ -2227,8 +2229,12 @@
         border: 0.5px solid
           color-mix(in srgb, var(--text-main) 12%, transparent);
         border-radius: 50%;
-        box-shadow: 0 4px 12px
-          color-mix(in srgb, var(--text-main) 8%, transparent);
+        /* Tinting a shadow with --text-main inverts it on the dark themes:
+           --text-main is white there, so "8% of it" is a white glow that
+           rings the button with a halo instead of seating it. --global-shadow
+           is the elevation shadow the rest of the app's floating chrome uses
+           and reads as a shadow in all four themes. */
+        box-shadow: var(--global-shadow);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -2809,7 +2815,8 @@
         z-index: var(--z-elevated);
         /* Opaque for the same reason as .scroll-top-btn: the badge hangs
            below the toolbar over the scrolling list, so rows travel under it
-           continuously. Same 72% tint, resolved against the list's fill. */
+           continuously -- and like that button it is only ever shown while
+           the list is scrolled, so rows are always what it sits on. */
         background: color-mix(
           in srgb,
           var(--panel-bg) 72%,
@@ -2827,9 +2834,9 @@
         width: fit-content;
         letter-spacing: 0.05em;
         text-align: center;
-        box-shadow:
-          0 4px 14px color-mix(in srgb, var(--text-main) 8%, transparent),
-          0 1px 3px rgba(0, 0, 0, 0.04);
+        /* See .scroll-top-btn: a --text-main tint makes this a white glow on
+           the dark themes, haloing the pill rather than lifting it. */
+        box-shadow: var(--global-shadow);
         opacity: 0;
         visibility: hidden;
         transition:
@@ -5345,9 +5352,9 @@
           );
           border: 0.5px solid
             color-mix(in srgb, var(--text-main) 12%, transparent);
-          box-shadow:
-            0 4px 14px color-mix(in srgb, var(--text-main) 8%, transparent),
-            0 1px 3px rgba(0, 0, 0, 0.03);
+          /* Same inversion as .scroll-top-btn: --text-main is white on the
+             dark themes, so a tint of it is a glow, not a shadow. */
+          box-shadow: var(--global-shadow);
           pointer-events: auto;
           padding: 4px 8px;
         }
