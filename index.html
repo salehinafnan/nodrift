@@ -416,7 +416,7 @@
       :root[data-theme="theme-eink"] {
         --page-bg: #e8e8e8;
         --panel-bg: #ffffff;
-        --panel-shadow: 4px 4px 0 #111111;
+        --panel-shadow: none;
         --panel-blur: none;
         --element-bg: #e8e8e8;
         --element-hover: #cccccc;
@@ -441,13 +441,21 @@
         --dropdown-bg: var(--modal-bg);
         --modal-bg: #ffffff;
         /* ---- No glass on this theme --------------------------------------
-           E-Ink's material is paper: opaque stock, a full-weight black rule
-           for an edge, and a hard offset shadow instead of a soft one. Frosted
-           translucency is not a thing that exists in it, so all three levels
-           resolve opaque and the blur resolves to none. Every rule in the app
-           still reaches this theme through the same tokens -- the material is
-           swapped underneath them rather than the rules being special-cased,
-           which is the whole point of the system. */
+           E-Ink's material is paper: opaque stock and a full-weight black rule
+           for an edge. Frosted translucency is not a thing that exists in it,
+           so all three levels resolve opaque and the blur resolves to none.
+           Every rule in the app still reaches this theme through the same
+           tokens -- the material is swapped underneath them rather than the
+           rules being special-cased, which is the whole point of the system.
+
+           Elevation resolves to nothing at all. The hard offset shadow that
+           used to sit here was the one piece of the theme that drew a second
+           edge for every surface that already had one, and at the density this
+           app runs at -- stat cards inside a panel inside a page, each with
+           its own 1px rule -- that reads as clutter rather than as depth. The
+           border alone is what separates paper from paper. Nothing else in the
+           app changes: every surface still asks for var(--elev-N) and simply
+           gets `none` back here. */
         --surface-blur: none;
         --surface-1: var(--element-bg);
         --surface-1-solid: var(--element-bg);
@@ -458,9 +466,9 @@
         --hairline-color: #111111;
         --hairline: 1px solid #111111;
         --hairline-strong: 2px solid #111111;
-        --elev-1: 3px 3px 0 #111111;
-        --elev-2: 4px 4px 0 #111111;
-        --elev-3: 4px -4px 0 #111111;
+        --elev-1: none;
+        --elev-2: none;
+        --elev-3: none;
         --scrim: rgba(17, 17, 17, 0.35);
         --track-bg: rgba(0, 0, 0, 0.1);
         --segmented-bg: #e8e8e8;
@@ -483,14 +491,6 @@
         border: 1px solid #111111;
       }
 
-      @media (min-width: 1150px) {
-        :root[data-theme="theme-eink"] .console-panel,
-        :root[data-theme="theme-eink"] .status-badge,
-        :root[data-theme="theme-eink"] .theme-toggle-btn {
-          box-shadow: 3px 3px 0 #111111;
-        }
-      }
-
       :root[data-theme="theme-eink"] .stat-card {
         border: 1px solid #111111;
       }
@@ -509,8 +509,14 @@
         border: 1px solid #111111 !important;
       }
 
+      /* Solid, like every other button. The dash was meant to read as
+         "secondary", but it is the only dashed edge in the app that is not
+         marking an absence -- leave rows and leave segments use one to mean
+         "nothing happened here" -- so on a control it just looked provisional.
+         The edge itself has to stay: --btn-break-bg is #ffffff on a #ffffff
+         panel, so without a rule the button has no shape. */
       :root[data-theme="theme-eink"] .btn-break {
-        border: 1px dashed #111111 !important;
+        border: 1px solid #111111 !important;
       }
 
       :root[data-theme="theme-eink"] .btn-log {
@@ -2194,6 +2200,18 @@
         border: none !important;
         outline: none !important;
         box-shadow: var(--elev-1);
+      }
+
+      /* The task dock's primary slot shows Start, then Pause, then Resume --
+         three labels of three different widths in one position, so the dock
+         re-laid itself out on every state change and the clock beside it
+         shifted each time. Pin the slot to the widest label ("Resume") and let
+         the shorter ones sit inside it. The width comes back out of the inline
+         padding on the elements, hence the !important. */
+      #task-start-btn,
+      #task-pause-btn {
+        min-width: 104px;
+        padding: 0 16px !important;
       }
 
       :root[data-theme] .btn-work:active:not(:disabled),
@@ -5876,6 +5894,28 @@
              set here, from the shared tokens. */
           border: var(--hairline) !important;
           box-shadow: var(--elev-1);
+        }
+
+        /* The phone runs this dock in a space-between row beside a 2.5rem
+           clock, and there was never enough width for it: at the desktop
+           measurements the pair overhung the card by ~33px, so "Done" was
+           clipped by the panel edge and "Resume" sat flush against the last
+           digit of the running time. Trim both buttons and the gap between
+           them until the group fits inside the card with daylight on the
+           clock side. Still 90x36 and 75x36 -- comfortably above the 44px
+           minimum on the axis that carries the tap. */
+        #task-actions-group {
+          gap: 6px !important;
+        }
+
+        #task-start-btn,
+        #task-pause-btn {
+          min-width: 90px;
+          padding: 0 10px !important;
+        }
+
+        #task-save-btn {
+          padding: 0 10px !important;
         }
 
         .actions button svg {
@@ -19353,6 +19393,42 @@
         );
       }
 
+      /**
+       * Shared visibility rule for the two scroll-to-top actions (logbook and
+       * tasks). The button appears once a list is far enough down to be worth
+       * jumping back from, and leaves again only when the reader heads back up
+       * or arrives at the top. It deliberately does NOT leave when scrolling
+       * merely stops.
+       *
+       * That last part is the whole reason the upward delta is measured
+       * against a dead band instead of against zero. A wheel scroll ends by
+       * simply not firing any more events, so on a desktop the button survived
+       * an idle pause for free and the rule looked correct. A touch scroll ends
+       * differently: momentum decays into a run of events whose scrollTop no
+       * longer moves, and the rubber band settles back a pixel or two on top of
+       * that. Compared against zero, both of those read as "not scrolling
+       * down", so the button vanished the instant a flick finished -- on the
+       * phone it was only ever visible mid-gesture, under the thumb that was
+       * covering it. A couple of pixels is a list settling, not a decision to
+       * go back up.
+       */
+      const SCROLL_TOP_REVEAL_AT = 150;
+      const SCROLL_TOP_UP_DEADBAND = 6;
+      function setScrollTopVisibility(btn, paneVisible, scrollTop, prevTop) {
+        if (!paneVisible || scrollTop <= SCROLL_TOP_REVEAL_AT) {
+          btn.classList.remove("visible");
+          return;
+        }
+        const delta = scrollTop - prevTop;
+        if (delta > 0) {
+          btn.classList.add("visible");
+        } else if (delta < -SCROLL_TOP_UP_DEADBAND) {
+          btn.classList.remove("visible");
+        }
+        // Anything in between is the list coming to rest. Leave the button
+        // exactly as it is.
+      }
+
       // High-performance passive animation frame throttle for scroll calculations
       let scrollAnimationFrameActive = false;
       let lastLogbookScrollTop = 0;
@@ -19384,13 +19460,12 @@
               const btn = DOM.logbookScrollTopBtn;
               if (btn) {
                 const logbookVisible = DOM.tabLogbook.style.display !== "none";
-                const isScrollingDown = safeScrollTop > lastLogbookScrollTop;
-
-                if (logbookVisible && safeScrollTop > 150 && isScrollingDown) {
-                  btn.classList.add("visible");
-                } else if (!isScrollingDown || safeScrollTop <= 150) {
-                  btn.classList.remove("visible");
-                }
+                setScrollTopVisibility(
+                  btn,
+                  logbookVisible,
+                  safeScrollTop,
+                  lastLogbookScrollTop,
+                );
               }
 
               lastLogbookScrollTop = safeScrollTop;
@@ -26033,13 +26108,12 @@
                 if (btn) {
                   const tasksVisible =
                     DOM.tabTasks && DOM.tabTasks.style.display !== "none";
-                  const isScrollingDown = safeScrollTop > lastTaskScrollTop;
-
-                  if (tasksVisible && safeScrollTop > 150 && isScrollingDown) {
-                    btn.classList.add("visible");
-                  } else if (!isScrollingDown || safeScrollTop <= 150) {
-                    btn.classList.remove("visible");
-                  }
+                  setScrollTopVisibility(
+                    btn,
+                    tasksVisible,
+                    safeScrollTop,
+                    lastTaskScrollTop,
+                  );
                 }
 
                 lastTaskScrollTop = safeScrollTop;
@@ -28162,13 +28236,17 @@
           .querySelector(`.tab-btn[data-target="${target}"]`)
           .classList.add("active");
 
-        // Hide or show the scroll-to-top action contextually
+        // Hide or show the scroll-to-top action contextually. Arriving on a
+        // pane is not a scroll, so there is no direction to read here -- only
+        // the threshold, which comes from the same constant the scroll
+        // handlers use so the two cannot drift apart.
         const scrollTopBtn = DOM.logbookScrollTopBtn;
         if (scrollTopBtn) {
           if (
             target === "logbook" &&
             DOM.tabLogbook &&
-            (DOM.logbookScrollViewport || DOM.tabLogbook).scrollTop > 150
+            (DOM.logbookScrollViewport || DOM.tabLogbook).scrollTop >
+              SCROLL_TOP_REVEAL_AT
           ) {
             scrollTopBtn.classList.add("visible");
           } else {
@@ -28181,7 +28259,7 @@
           if (
             target === "tasks" &&
             DOM.taskLogScrollViewport &&
-            DOM.taskLogScrollViewport.scrollTop > 150
+            DOM.taskLogScrollViewport.scrollTop > SCROLL_TOP_REVEAL_AT
           ) {
             taskScrollTopBtn.classList.add("visible");
           } else {
