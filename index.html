@@ -2,9 +2,25 @@
 <html lang="en" data-theme="sf-light">
   <head>
     <meta charset="UTF-8" />
+    <!-- maximum-scale=1 is load-bearing, not a scroll/zoom preference: it is
+         what stops iOS Safari auto-zooming the page when a field under 16px
+         takes focus (and then leaving the viewport scaled, since it never
+         zooms back out). It buys the phone its own type scale -- without it
+         every control has to compute at 16px, two steps above this app's
+         --text-sm, and the fields tower over the UI around them.
+
+         Pinch-to-zoom is NOT disabled. Since iOS 10 Safari deliberately
+         ignores this cap for user-initiated gestures, so only the automatic
+         focus zoom is suppressed. user-scalable=no would disable the gesture
+         for real -- do not add it.
+
+         The cap is the whole guard. If a future WebKit stops honouring it for
+         focus zoom, the symptom is the page scaling up on every field tap;
+         the fix is then --field-text-touch: 16px (one token, in :root), which
+         reverts to sizing the fields past the threshold instead. -->
     <meta
       name="viewport"
-      content="width=device-width, initial-scale=1, viewport-fit=cover"
+      content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover"
     />
     <!-- manifest-src is added so the web app manifest can be inlined as a data:
          URI and the app can stay a single file. Without it the manifest would
@@ -408,6 +424,19 @@
         --text-base: 0.95rem;
         --text-md: 1rem;
         --text-lg: 1.2rem;
+
+        /* One type size for every field on a touch layout, readable or
+           editable: a field that only displays its value has to read the same
+           as the one you type it into, or the two look like different
+           components sitting in the same dialog. Consumed by both touch
+           breakpoints -- phone and tablet -- so they cannot drift apart.
+
+           It is the app's own --text-sm because the viewport meta's
+           maximum-scale=1 already handles iOS focus zoom, so the fields are
+           free to match the UI they sit in rather than the 16px floor iOS
+           would otherwise impose. Raise this to 16px if that cap ever stops
+           working -- see the note on the meta tag. */
+        --field-text-touch: var(--text-sm);
 
         /* Aliases for old names */
         --text-xl: 1.5rem;
@@ -5707,13 +5736,6 @@
           --m-safe-right: env(safe-area-inset-right, 0px);
           --m-gutter: 1rem;
 
-          /* One type size for every field on the phone, readable or editable.
-             The value is forced by iOS -- see the touch layer below -- but the
-             uniformity is a design decision: a field that only displays its
-             value must read the same as the one you type it into, or the two
-             look like different components sitting in the same dialog. */
-          --m-field-text: 16px;
-
           /* ---- No mobile-only material ---------------------------------
              This block used to define a parallel --glass-surface /
              --glass-hairline / --glass-surface-solid system that existed only
@@ -6835,21 +6857,24 @@
         }
 
         /* ---- Touch & input semantics --------------------------------------
-           iOS Safari auto-zooms the page whenever a focused form control
-           computes below 16px, and then leaves the viewport scaled. Every
-           control in this app inherits --text-sm (~11.5px at the 14px root), so
-           all 71 of them would trigger it. !important is deliberate: several
-           controls carry inline font sizes, and a zoom-on-focus is far worse
-           than the type being a step larger.
+           One type size across every field on the phone. This used to be a
+           hardcoded 16px defending against iOS focus zoom; that defence now
+           lives on the viewport meta tag, so the rule is left doing the thing
+           it is actually good at -- normalising a control set that is sized
+           from three different places.
 
-           That sets the phone's field type size, so --m-field-text carries it
-           to the fields this selector cannot reach -- the read-only ones, which
-           are not controls and never focus, but sit beside these and have to
-           match them. */
+           Controls do not inherit font-size, so any input/select/textarea
+           without .input-standard would otherwise fall back to the UA default
+           (~13.3px) rather than this app's scale. !important is what makes the
+           size uniform: seven controls carry inline sizes between 0.7 and
+           0.8rem, and a field is not a place to be a step off the scale.
+           --field-text-touch then carries the same size to the fields this
+           selector cannot reach -- the read-only ones, which are not controls
+           and never focus, but sit beside these and have to match them. */
         input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]),
         select,
         textarea {
-          font-size: var(--m-field-text) !important;
+          font-size: var(--field-text-touch) !important;
         }
 
         /* Comfortable, thumb-sized controls.
@@ -6871,7 +6896,7 @@
            keeps its padding: a block has to space its own text. */
         .input-readout {
           min-height: 44px;
-          font-size: var(--m-field-text);
+          font-size: var(--field-text-touch);
         }
 
         textarea.input-standard {
@@ -7400,11 +7425,13 @@
           padding-bottom: 0.5rem;
         }
 
-        /* Touch affordances still apply here -- there is no cursor on an iPad. */
+        /* Touch affordances still apply here -- there is no cursor on an iPad.
+           Same field type as the phone, from the same token: this was a second
+           hardcoded 16px, and the two had to be kept in step by hand. */
         input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]),
         select,
         textarea {
-          font-size: 16px !important;
+          font-size: var(--field-text-touch) !important;
         }
 
         button,
