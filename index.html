@@ -6607,23 +6607,40 @@
              any overlay that is added later without the exact markup that JS
              watches for would silently render underneath the bar. */
           z-index: var(--z-sticky);
-          /* Level 2, blurred -- and this is the surface the blur is really
-             for. The scrollers run to the bottom edge of the viewport and
-             clear the bar with an ::after spacer rather than a padding, so
-             rows genuinely travel underneath it, continuously, for the whole
-             length of a momentum scroll. Translucent WITHOUT a blur is the
-             one combination to avoid here: row text would read straight
-             through the tabs. With it, the bar behaves the way the native
-             iOS tab bar does.
+          /* Level 2, and the SOLID twin -- deliberately no backdrop-filter,
+             for the same class of reason #m-sheet refuses one (see the long
+             note on its `background`). A backdrop-filter is never just a
+             visual effect; it forces a composited layer, and here that layer
+             sits on the bottom edge of the viewport, which is where iOS
+             Safari decides how to tint its address bar. It cannot resolve a
+             tint through one, so it abandons the page colour and paints its
+             own default material instead.
 
-             This is also the only element in the app where the blur is a
-             per-frame cost rather than a cached one. It is one element,
-             ~60px tall, and it buys the effect the whole shell is styled
-             around; every other moving surface (rows, breakdown rows) stays
-             solid precisely so this one can afford it. */
-          background: var(--surface-2);
-          -webkit-backdrop-filter: var(--surface-blur);
-          backdrop-filter: var(--surface-blur);
+             That default is near-black under a dark colour scheme and light
+             grey under a light one, which is exactly why this looked like a
+             one-theme bug: sf-dark and vercel-dark are #000000 pages, so the
+             fallback matched by luck and nobody could see it. theme-eink was
+             genuinely correct rather than luckily correct -- it is the one
+             theme that sets --surface-blur: none, so its bar had no filter to
+             begin with. sf-light was the only theme where a real #ffffff app
+             met a grey fallback, and it showed as a grey strip under the bar
+             that vanished the moment the sheet covered it -- the sheet being,
+             not coincidentally, the other element that turned its filter off.
+
+             Colour is unchanged. --surface-2-solid is the same 72%
+             --tint-chrome as --surface-2, pre-mixed over --surface-under
+             instead of over transparent, so the bar renders the exact value
+             it already composited to on every theme. What is lost is only the
+             blur of rows passing beneath it: they are now hidden by the bar
+             rather than showing through it. That is the price of a correct
+             address-bar tint on a translucent bottom bar, and it is the same
+             trade the sheet already makes.
+
+             If the glass is ever wanted back, the fix is NOT to restore the
+             filter -- it is to lift the bar off the bottom edge (inset it and
+             let an opaque strip own the last few pixels), so the composited
+             layer is no longer what Safari is trying to read through. */
+          background: var(--surface-2-solid);
           border-top: var(--hairline);
           border-radius: 0;
           box-shadow: none;
@@ -6643,55 +6660,6 @@
         body.m-sheet-open #m-tabbar {
           transform: translateY(calc(100% + 24px + var(--m-safe-bottom)));
           opacity: 0;
-          pointer-events: none;
-        }
-
-        /* ---- iOS Safari bottom-bar sample anchor -------------------------
-           iOS Safari tints its address bar from the colour it resolves at the
-           very bottom edge of the viewport, and it can only resolve an OPAQUE
-           one. #m-tabbar sits on that edge wearing --surface-2, which is a 72%
-           film over a backdrop-filter -- no opaque colour to find -- so Safari
-           gives up and paints its own default material instead.
-
-           That default is near-black under a dark colour scheme and a light
-           grey under a light one. --page-bg is #000000 on sf-dark and
-           vercel-dark, so those two matched the fallback by luck and looked
-           fine; theme-eink genuinely is fine, because it opts out of the
-           material entirely (--surface-blur: none, --surface-2: --panel-bg,
-           both opaque). sf-light was the one theme where a real #ffffff met a
-           grey fallback -- hence a grey strip under a white app, and only
-           while the tab bar was on screen. Opening the sheet fixed it because
-           --surface-3-solid IS opaque, which is the whole tell.
-
-           So: give Safari an opaque hairline to find, in the colour the bar
-           already composites to. --surface-2-solid is that colour by
-           definition -- the same 72% --tint-chrome, pre-mixed over
-           --surface-under instead of over transparent -- so this tracks every
-           theme automatically and is invisible in all of them. No colour is
-           restated here and no theme is special-cased.
-
-           It has to be a sibling of the bar rather than a child: a pseudo
-           inside #m-tabbar would paint within the backdrop-filtered layer,
-           which is the thing Safari cannot see through in the first place.
-
-           Height covers the sampled band with the bar's own 4px bottom padding
-           to spare, so no icon is touched; in standalone it takes the
-           home-indicator strip, which native iOS also paints solid. The bar
-           keeps its blur -- rows still travel under it, blurred, exactly as
-           before, everywhere above these few pixels.
-
-           Below the sheet (--z-overlay - 2) and the modal band on purpose:
-           when either is up it owns the bottom edge with its own opaque fill
-           and should be what Safari resolves. */
-        body.m-shell::after {
-          content: "";
-          position: fixed;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          height: max(3px, var(--m-safe-bottom));
-          background: var(--surface-2-solid);
-          z-index: calc(var(--z-sticky) + 1);
           pointer-events: none;
         }
 
