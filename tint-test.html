@@ -1,0 +1,329 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover"
+    />
+    <!-- Rewritten per-test by the boot script below, BEFORE first paint, exactly
+         as the real app does it. Default is the sf-light app surface. -->
+    <meta name="theme-color" content="#ffffff" />
+    <meta name="color-scheme" content="light" />
+    <title>iOS Safari bottom-bar tint test</title>
+    <style>
+      :root {
+        color-scheme: only light;
+        /* The sf-light values from index.html, so this reproduces the real
+           case rather than an approximation of it.
+             --surface-under  #ffffff   what .console-panel paints
+             --surface-2      72% white what #m-tabbar wears
+             --surface-blur   the exact filter the bar carries          */
+        --surface-under: #ffffff;
+        --surface-2: rgba(255, 255, 255, 0.72);
+        --surface-2-solid: #ffffff;
+        --surface-blur: blur(24px) saturate(180%);
+        --bar-h: 56px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        background: var(--surface-under);
+        font:
+          15px/1.45 -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          sans-serif;
+        color: #1d1d1f;
+      }
+
+      /* Scrollable content, so the page behaves like the real app: Safari's
+         bottom bar only takes its compact form on a scrollable page, and the
+         blur needs something underneath it to actually blur. */
+      main {
+        padding: 16px 16px calc(var(--bar-h) + 220px);
+      }
+
+      h1 {
+        font-size: 17px;
+        margin: 0 0 4px;
+      }
+
+      .sub {
+        color: #636366;
+        font-size: 13px;
+        margin: 0 0 16px;
+      }
+
+      .now {
+        border: 2px solid #007aff;
+        border-radius: 12px;
+        padding: 12px;
+        margin-bottom: 16px;
+      }
+
+      .now .id {
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: #007aff;
+      }
+
+      .now .what {
+        font-weight: 600;
+        margin-top: 4px;
+      }
+
+      .now .why {
+        color: #636366;
+        font-size: 13px;
+        margin-top: 6px;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
+        gap: 8px;
+      }
+
+      a.t {
+        display: block;
+        padding: 10px;
+        border: 1px solid #c7c7cc;
+        border-radius: 10px;
+        text-decoration: none;
+        color: #1d1d1f;
+        background: #f2f2f7;
+      }
+
+      a.t.on {
+        border-color: #007aff;
+        background: #e5f0ff;
+      }
+
+      a.t b {
+        display: block;
+        font-size: 12px;
+        color: #007aff;
+      }
+
+      .stripe {
+        height: 44px;
+        border-radius: 8px;
+        margin: 6px 0;
+        background: linear-gradient(90deg, #ff3b30, #ff9500, #34c759, #007aff);
+      }
+
+      /* ---- the element under test ---------------------------------------- */
+      #bar {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        height: var(--bar-h);
+        z-index: 600;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 18px;
+        font-size: 12px;
+        color: #636366;
+        border-top: 1px solid #c7c7cc;
+        /* background / filter / inset are set per-test by JS */
+      }
+
+      /* The opaque strip used by the inset tests, owning the bottom edge. */
+      #strip {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: var(--surface-under);
+        z-index: 599;
+        display: none;
+      }
+    </style>
+    <script>
+      /* Runs before first paint, like the app's boot script, so theme-color is
+         never sampled stale. */
+      (function () {
+        var TESTS = {
+          1: {
+            what: "No bottom bar at all",
+            why: "Baseline. If the chrome is NOT white here, Safari is ignoring theme-color outright and nothing about the bar matters.",
+            bar: false,
+            tint: "#ffffff",
+          },
+          2: {
+            what: "Opaque bar, flush, no filter",
+            why: "The current shipped fix. Expected white. Confirms the test rig reproduces the working case.",
+            bar: true,
+            bg: "var(--surface-2-solid)",
+            filter: "none",
+            inset: 0,
+            tint: "#ffffff",
+          },
+          3: {
+            what: "Translucent bar, flush, NO filter",
+            why: "Isolates alpha alone. Gray here => translucency is the trigger. White here => alpha is innocent.",
+            bar: true,
+            bg: "var(--surface-2)",
+            filter: "none",
+            inset: 0,
+            tint: "#ffffff",
+          },
+          4: {
+            what: "OPAQUE bar, flush, WITH filter",
+            why: "Isolates backdrop-filter alone. Gray here => the filter is the trigger regardless of alpha. This is the key test.",
+            bar: true,
+            bg: "var(--surface-2-solid)",
+            filter: "var(--surface-blur)",
+            inset: 0,
+            tint: "#ffffff",
+          },
+          5: {
+            what: "Translucent + filter, flush",
+            why: "The original broken bar, reproduced exactly. Expected gray. If this is WHITE, the bug is not in the bar at all.",
+            bar: true,
+            bg: "var(--surface-2)",
+            filter: "var(--surface-blur)",
+            inset: 0,
+            tint: "#ffffff",
+          },
+          6: {
+            what: "Translucent + filter, inset 10px + strip",
+            why: "The floating attempt that failed. Expected gray, to confirm the rig matches what you saw on the real app.",
+            bar: true,
+            bg: "var(--surface-2)",
+            filter: "var(--surface-blur)",
+            inset: 10,
+            tint: "#ffffff",
+          },
+          7: {
+            what: "Translucent + filter, inset 120px + strip",
+            why: "Same thing lifted far higher. White here => distance matters and a bigger gap is the fix. Gray => distance is irrelevant.",
+            bar: true,
+            bg: "var(--surface-2)",
+            filter: "var(--surface-blur)",
+            inset: 120,
+            tint: "#ffffff",
+          },
+          8: {
+            what: "Broken bar, but theme-color = RED",
+            why: "Decisive. RED chrome => Safari honours the tag and the bar merely suppressed it. NOT red => Safari samples the page and ignores the tag.",
+            bar: true,
+            bg: "var(--surface-2)",
+            filter: "var(--surface-blur)",
+            inset: 0,
+            tint: "#ff0000",
+          },
+          9: {
+            what: "Working bar, but theme-color = RED",
+            why: "Pairs with 8. RED => the tag wins when nothing suppresses it. WHITE => the page colour wins and the tag is decorative.",
+            bar: true,
+            bg: "var(--surface-2-solid)",
+            filter: "none",
+            inset: 0,
+            tint: "#ff0000",
+          },
+        };
+
+        var id = (location.search.match(/[?&]t=(\d)/) || [])[1] || "1";
+        if (!TESTS[id]) id = "1";
+        var t = TESTS[id];
+
+        // Before first paint, same reason as the app's boot script.
+        var meta = document.querySelector('meta[name="theme-color"]');
+        if (meta) meta.setAttribute("content", t.tint);
+
+        window.__TEST = { id: id, t: t, all: TESTS };
+      })();
+    </script>
+  </head>
+  <body>
+    <main>
+      <h1>iOS Safari bottom-bar tint test</h1>
+      <p class="sub">
+        Tap a test, let it load, then screenshot the bottom ~200px of the
+        screen. Each tap is a full page load, so no stale tint carries over.
+      </p>
+
+      <div class="now">
+        <div class="id" id="now-id"></div>
+        <div class="what" id="now-what"></div>
+        <div class="why" id="now-why"></div>
+      </div>
+
+      <div class="grid" id="grid"></div>
+
+      <p class="sub" style="margin-top: 18px">
+        The stripes below exist so the blur has something to blur — if a test
+        has a working filter you will see them smear through the bar.
+      </p>
+      <div class="stripe"></div>
+      <div class="stripe"></div>
+      <div class="stripe"></div>
+      <div class="stripe"></div>
+      <div class="stripe"></div>
+      <div class="stripe"></div>
+      <div class="stripe"></div>
+      <div class="stripe"></div>
+    </main>
+
+    <div id="strip"></div>
+    <nav id="bar">
+      <span>Stats</span><span>Tasks</span><span>Timer</span><span>Log</span
+      ><span>More</span>
+    </nav>
+
+    <script>
+      (function () {
+        var T = window.__TEST,
+          t = T.t;
+
+        document.getElementById("now-id").textContent =
+          "Now showing — test " + T.id;
+        document.getElementById("now-what").textContent = t.what;
+        document.getElementById("now-why").textContent = t.why;
+
+        var grid = document.getElementById("grid");
+        Object.keys(T.all).forEach(function (k) {
+          var a = document.createElement("a");
+          a.className = "t" + (k === T.id ? " on" : "");
+          a.href = "?t=" + k;
+          a.innerHTML =
+            "<b>Test " + k + "</b>" + T.all[k].what.replace(/</g, "&lt;");
+          grid.appendChild(a);
+        });
+
+        var bar = document.getElementById("bar");
+        var strip = document.getElementById("strip");
+
+        if (!t.bar) {
+          bar.style.display = "none";
+        } else {
+          bar.style.background = t.bg;
+          bar.style.webkitBackdropFilter = t.filter;
+          bar.style.backdropFilter = t.filter;
+
+          if (t.inset) {
+            bar.style.bottom = t.inset + "px";
+            bar.style.left = "14px";
+            bar.style.right = "14px";
+            bar.style.border = "1px solid #c7c7cc";
+            bar.style.borderRadius = "14px";
+            strip.style.display = "block";
+            strip.style.height = t.inset + "px";
+          }
+        }
+      })();
+    </script>
+  </body>
+</html>
