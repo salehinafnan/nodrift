@@ -6706,6 +6706,28 @@
            on click, but NOT for dialogs the app raises by itself: the idle lock
            (handleWakeUpRecovery) and the tab-conflict modal (checkLeaseState).
            Everything here still clears the fixed chrome at --z-sticky (600). */
+        /* INVARIANT for every viewport-filling overlay in this app: while
+           dismissed it must be out of the render tree entirely -- `display:
+           none` (what .modal-overlay does) or `visibility: hidden` (what
+           #m-sheet does, one rule below). `opacity: 0` alone is NOT enough,
+           and this element is where that was learned.
+
+           opacity: 0 keeps the box painted -- a fully transparent layer, but
+           still a layer, still stretched across `inset: 0`, and still the
+           frontmost thing over the bottom edge of the viewport. iOS Safari 15+
+           tints its address bar from the colour it samples at that edge, and a
+           parked scrim there is exactly the case its sampler cannot resolve:
+           it stops trusting the page and falls back to its default grey
+           material. Hence the reported bug -- the tint was right on load,
+           went grey with the sheet, and then stayed grey after the sheet
+           closed, because the scrim never actually left the bottom edge. Only
+           a reload cleared it. The sheet itself was never the culprit; it has
+           carried `visibility: hidden` all along.
+
+           The delayed `visibility` step is the same two-line idiom #m-sheet
+           uses: hold the box visible for the length of the fade, then drop it
+           the instant the fade lands. Anything new that covers the viewport
+           gets one of these two treatments -- see the note above #m-sheet. */
         #m-sheet-backdrop {
           display: block;
           position: fixed;
@@ -6713,13 +6735,20 @@
           z-index: calc(var(--z-overlay) - 3);
           background: var(--scrim);
           opacity: 0;
+          visibility: hidden;
           pointer-events: none;
-          transition: opacity 0.24s ease;
+          transition:
+            opacity 0.24s ease,
+            visibility 0s linear 0.24s;
         }
 
         body.m-sheet-open #m-sheet-backdrop {
           opacity: 1;
+          visibility: visible;
           pointer-events: auto;
+          transition:
+            opacity 0.24s ease,
+            visibility 0s linear 0s;
         }
 
         #m-sheet {
@@ -7493,7 +7522,14 @@
           transition: none;
         }
 
-        #m-sheet-backdrop {
+        /* Same specificity trap as #m-sheet directly above, for the same
+           reason: body.m-sheet-open #m-sheet-backdrop is (1,1,1) and now
+           carries its own transition, so a bare #m-sheet-backdrop (1,0,0)
+           here would no longer beat it. Both states have to be named.
+           visibility still resolves correctly -- with no transition it just
+           flips instantly in each direction, which is the point. */
+        #m-sheet-backdrop,
+        body.m-sheet-open #m-sheet-backdrop {
           transition: none;
         }
       }
