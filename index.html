@@ -380,6 +380,16 @@
         --emph-fill-max: 45%;
         --emph-ink-shift: 0%;
 
+        /* How far a state moves the whole control toward the foreground. The
+           other two state channels -- the fill level and the edge lift -- both
+           work by adding accent, which is why neither of them could carry a
+           light theme on its own: on white, a fill that is 70% page stays 70%
+           page no matter how the other 30% is tuned. This one moves the colour
+           the control is drawn in, so it reads at the same strength whichever
+           way the theme's ground points. */
+        --emph-shade-hover: 22%;
+        --emph-shade-press: 34%;
+
         /* Shared Color Scheme Accents */
         --accent-work: #34c759;
         --accent-break: #ff3b30;
@@ -772,27 +782,35 @@
            bump at the bottom of this block rather than nine values here. */
         --emph-fill: 20%;
         --emph-1-fill: 28%;
-        /* The tightest cap of the four themes, and the reason is the label.
-           This theme's accents are intrinsically light -- #34c759 on white is
-           1.9:1 no matter what is done to it -- so its label has nowhere to go
-           and stays exactly the accent. A label that cannot move is a fill
-           that must not either: let the gain push this fill and it closes on
-           its own label. The gain goes into the edge instead, which is
-           uncapped and carries this theme's presence by itself.
+        /* ---- Bigger state levels than the dark themes ----------------------
+           Not a preference. A fill on a white ground is mostly white: at 28%
+           the button is seven parts page, so the same increase that visibly
+           lifts a button off SF Dark's black moves almost nothing here. The
+           step has to be larger to travel the same perceptual distance, and
+           saying so on the theme is the correct place to say it -- the ground
+           is the theme's property, and the recipe stays ignorant of it.
 
-           Set at the primary's *hover* level rather than its resting one, so
-           that rest and hover stay distinct underneath it. At 28% they did
-           not, and the most prominent control in the app had no hover at all
-           on this theme -- the cap was quietly eating the only channel that
-           answered. 32% costs the label 1.76:1 -> 1.72:1, which is nothing,
-           and buys back a state.
+           The resting levels above are deliberately untouched. This changes
+           what a hover and a press do, not what the button looks like sitting
+           there, which is the part that was already right.
 
-           The cost that remains is that primary and secondary converge on a
-           touch device, since the secondary's 20% climbs into the same
-           ceiling. Acceptable: this theme distinguishes its actions by hue
-           rather than by weight, and the alternative was a bottle-green
-           label. */
-        --emph-fill-max: 32%;
+           Safe to push this far only because the state now moves the tone as
+           well as the amount of it: the label darkens along with the fill, so
+           contrast against it *rises* through the state rather than falling.
+           Measured on the primary: 1.76:1 at rest, 2.4:1 hovered, 2.7:1
+           pressed. Under the old add-more-accent model these same levels would
+           have driven it the other way, to about 1.2:1. */
+        --emph-hover: 34%;
+        --emph-press: 44%;
+        --emph-1-hover: 44%;
+        --emph-1-press: 56%;
+
+        /* Sits above the largest state level so the cap never eats a state --
+           the bug that left this theme's primary action with no hover at all.
+           It still binds where it was meant to, on the environment gain: a
+           phone at 1.4x would otherwise drive the resting fill past every
+           level the theme chose. */
+        --emph-fill-max: 56%;
         --dropdown-bg: var(--modal-bg);
         --modal-bg: #ffffff;
         /* A light theme needs a heavier hairline than a dark one to read at
@@ -2444,12 +2462,44 @@
       .btn-danger-outline,
       .btn-warning-outline,
       .btn-info-outline {
-        /* The accent stepped away from itself far enough to be legible on its
-           own fill. Every label in the recipe falls back to this; only a theme
-           that fills to solid overrides it with a flat colour. */
-        --emph-ink: color-mix(
+        /* ---- The tone: which accent this state is drawn in -----------------
+           Everything below is built from this rather than from --emph-accent
+           directly, so a state changes one value and the fill, the edge and
+           the label all move together.
+
+           The move is toward --text-main, and that word is doing the work.
+           "More accent" is not a direction -- it was what a state used to
+           mean, and it only looked like one on the dark themes, where more
+           accent happens to also mean brighter and a button lifts off a black
+           page. Run the identical rule on a light theme and the same increase
+           reads as almost nothing, because the fill is seven parts white
+           whatever you do to the other part. The state was never about
+           quantity of accent. It is about distance from the page.
+
+           --text-main is the far end of the page by definition, on every
+           theme, so mixing toward it means lighter on a dark ground and darker
+           on a light one without either being named. And because the label
+           travels with the fill instead of staying put, the control keeps its
+           internal contrast while its separation from the page grows -- which
+           is what makes this safe to push hard.
+
+           It falls out as an exact no-op on E-Ink, where --text-main and the
+           accent are the same #111111: that theme states its states as
+           inversions and does not want a tone shift. Nothing had to be
+           special-cased for it to opt out. */
+        --emph-shade: 0%;
+        --emph-tone: color-mix(
           in srgb,
           var(--emph-accent),
+          var(--text-main) var(--emph-shade)
+        );
+
+        /* The label, taken from the tone so it inherits the state's move, then
+           stepped further away for the contrast mode. Only a theme that fills
+           to solid overrides it with a flat colour. */
+        --emph-ink: color-mix(
+          in srgb,
+          var(--emph-tone),
           var(--text-main)
             min(100%, calc(var(--emph-ink-shift) * var(--emph-gain)))
         );
@@ -2472,14 +2522,14 @@
 
         background: color-mix(
           in srgb,
-          var(--emph-accent)
+          var(--emph-tone)
             min(var(--emph-fill-max), calc(var(--emph-lvl) * var(--emph-gain))),
           transparent
         );
         border: var(--hairline-width) solid
           color-mix(
             in srgb,
-            var(--emph-accent)
+            var(--emph-tone)
               min(
                 100%,
                 calc(
@@ -2564,6 +2614,7 @@
         .btn-info-outline:hover:not(:disabled) {
           --emph-lvl: var(--emph-hover);
           --emph-edge-lift: 1.45;
+          --emph-shade: var(--emph-shade-hover);
           --emph-txt: var(
             --emph-label-hover,
             var(--emph-label, var(--emph-ink))
@@ -2580,10 +2631,8 @@
       .btn-info-outline:active:not(:disabled) {
         --emph-lvl: var(--emph-press);
         --emph-edge-lift: 1.9;
-        --emph-txt: var(
-          --emph-label-press,
-          var(--emph-label, var(--emph-ink))
-        );
+        --emph-shade: var(--emph-shade-press);
+        --emph-txt: var(--emph-label-press, var(--emph-label, var(--emph-ink)));
       }
 
       /* The task dock's primary slot shows Start, then Pause, then Resume --
@@ -6924,7 +6973,7 @@
         .modal-container .btn-info-outline {
           border-color: color-mix(
             in srgb,
-            var(--emph-accent)
+            var(--emph-tone)
               min(
                 100%,
                 calc(
@@ -6935,7 +6984,7 @@
           ) !important;
           background: color-mix(
             in srgb,
-            var(--emph-accent)
+            var(--emph-tone)
               min(
                 var(--emph-fill-max),
                 calc(var(--emph-lvl) * var(--emph-gain))
