@@ -30,6 +30,29 @@
         --foot-h: 14px;
       }
 
+      /* ---- VIVID MODE ----------------------------------------------------
+         Telling #ffffff from #f2f2f7 in a phone screenshot is not something
+         either of us can do reliably, and guessing at it already sent this
+         investigation down one wrong path. So the rows can be switched to a
+         saturated colour instead. If Safari really does continue the page
+         into its own bar, a magenta row passing under a translucent tab bar
+         will tint that bar pink -- which is not a judgement call. */
+      html.vivid .row {
+        background: #ff2d55;
+        border-color: #d81b45;
+        color: #ffffff;
+      }
+      html.vivid .row .d {
+        color: #ffffff;
+      }
+      html.vivid .row .m {
+        color: rgba(255, 255, 255, 0.9);
+      }
+      html.vivid .row .b {
+        color: #7a0022;
+        background: #ffd9e2;
+      }
+
       * {
         box-sizing: border-box;
       }
@@ -324,9 +347,11 @@
         var v = (q.match(/[?&]v=([a-d])/) || [])[1] || "d";
         var h = parseInt((q.match(/[?&]h=(\d+)/) || [])[1], 10);
         if (!(h >= 0 && h <= 60)) h = 14;
+        var vivid = /[?&]c=1/.test(q);
 
         document.documentElement.style.setProperty("--foot-h", h + "px");
-        window.__V = { v: v, h: h, all: V, cur: V[v] };
+        if (vivid) document.documentElement.className = "vivid";
+        window.__V = { v: v, h: h, vivid: vivid, all: V, cur: V[v] };
       })();
     </script>
   </head>
@@ -354,11 +379,26 @@
         </p>
         <div class="heights" id="heights"></div>
 
+        <div class="warn" id="vividbox">
+          <b>Vivid rows</b> — turns the rows magenta so the readout is obvious
+          instead of a subtle grey nobody can judge from a screenshot.
+          <div style="margin-top: 8px">
+            <a class="o" id="vividlink" style="display: inline-block"></a>
+          </div>
+        </div>
+
         <p class="hint">
-          <b>How to judge it:</b> scroll the list until grey rows are passing
-          under the tab bar, then look at the browser bar below. Start with
-          <b>Broken</b> — confirm it goes grey. Only then are the other three
-          worth reading.
+          <b>How to judge it:</b> turn vivid rows ON, then compare
+          <b>Shipped today</b> against <b>Broken</b> — that is the pair that
+          differs on your real app. Scroll magenta rows under the tab bar and
+          look at the browser bar below.
+        </p>
+        <p class="hint">
+          On <b>Broken</b> the rows blur through the glass, so if Safari copies
+          the page the browser bar should go visibly pink. On
+          <b>Shipped today</b> the solid bar hides them, so it should stay
+          neutral. If those two look identical, this mock still is not
+          reproducing your bug and nothing else here counts.
         </p>
 
         <div class="statusbar">
@@ -428,13 +468,18 @@
         document.getElementById("p-h").textContent = cur.head;
         document.getElementById("p-n").textContent = cur.note;
 
+        var c = S.vivid ? "&c=1" : "";
+
         var opts = document.getElementById("opts");
         Object.keys(S.all).forEach(function (k) {
           var a = document.createElement("a");
           a.className = "o" + (k === S.v ? " on" : "");
-          a.href = "?v=" + k + "&h=" + S.h;
+          a.href = "?v=" + k + "&h=" + S.h + c;
           a.innerHTML =
-            "<b>" + S.all[k].name + "</b>" + S.all[k].head.replace(/</g, "&lt;");
+            "<b>" +
+            S.all[k].name +
+            "</b>" +
+            S.all[k].head.replace(/</g, "&lt;");
           opts.appendChild(a);
         });
 
@@ -442,10 +487,17 @@
         [8, 14, 20, 28, 40].forEach(function (n) {
           var a = document.createElement("a");
           a.className = n === S.h ? "on" : "";
-          a.href = "?v=" + S.v + "&h=" + n;
+          a.href = "?v=" + S.v + "&h=" + n + c;
           a.textContent = n + "px";
           hs.appendChild(a);
         });
+
+        var vl = document.getElementById("vividlink");
+        vl.href = "?v=" + S.v + "&h=" + S.h + (S.vivid ? "" : "&c=1");
+        vl.textContent = S.vivid
+          ? "Vivid is ON — tap to turn off"
+          : "Vivid is OFF — tap to turn on";
+        if (S.vivid) vl.className = "o on";
 
         var days = [
           ["Mon", "06/01", "Scheduled Leave", "In Lieu", 1],
