@@ -986,6 +986,20 @@
         min-height: 60px;
       }
 
+      /* A read-only field: the input surface with no input behind it. Pair it
+         with .input-standard so it inherits the same level 1 material, theme
+         scoping and radius as the controls it sits among.
+
+         It is a plain block, not a native control, so it centres nothing on
+         its own -- its first line sits wherever the box padding puts it. Any
+         rule that trades a field's vertical padding for a fixed height has to
+         exclude it (see the touch layer) or the text lands on the top edge. */
+      .input-readout {
+        max-height: 250px;
+        overflow-y: auto;
+        overflow-wrap: break-word;
+      }
+
       .form-group {
         margin-bottom: var(--space-4);
         text-align: left;
@@ -6826,12 +6840,25 @@
           font-size: 16px !important;
         }
 
-        /* Comfortable, thumb-sized controls. */
-        .input-standard,
+        /* Comfortable, thumb-sized controls.
+
+           The vertical padding is dropped in favour of min-height because a
+           native control centres its own text box inside whatever height it
+           is given, so the height alone does the centring. That is only true
+           of real controls -- hence the tag qualifiers. Applied to the bare
+           class it also caught .input-readout, a plain block, which pinned its
+           text to the top edge of a 44px box with nothing above it. */
+        input.input-standard,
         select.input-standard,
         .date-picker-group {
           min-height: 44px;
           padding: 0 var(--space-3);
+        }
+
+        /* Same field height as the controls above, but the box keeps its
+           padding: a block has to space its own text. */
+        .input-readout {
+          min-height: 44px;
         }
 
         textarea.input-standard {
@@ -9738,16 +9765,9 @@
         aria-modal="true"
       >
         <h3 class="modal-header">Shift Note</h3>
-        <div
-          id="note-modal-text"
-          class="input-standard"
-          style="
-            margin-bottom: var(--space-4);
-            max-height: 250px;
-            overflow-y: auto;
-            word-wrap: break-word;
-          "
-        ></div>
+        <div class="form-group">
+          <div id="note-modal-text" class="input-standard input-readout"></div>
+        </div>
         <div class="action-row">
           <button class="btn-secondary" onclick="closeNoteModal()">
             Close
