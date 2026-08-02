@@ -6,24 +6,29 @@
       name="viewport"
       content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover"
     />
-    <!-- Rewritten per-test by the boot script below, BEFORE first paint, exactly
-         as the real app does it. Default is the sf-light app surface. -->
     <meta name="theme-color" content="#ffffff" />
     <meta name="color-scheme" content="light" />
-    <title>iOS Safari bottom-bar tint test</title>
+    <title>nodrift — tab bar mock</title>
     <style>
+      /* The real sf-light values out of index.html, so this is the actual
+         case and not an approximation of it. The grey rows matter most: they
+         are what the translucent bar sits over, and therefore what turned the
+         browser bar grey in the first place. */
       :root {
         color-scheme: only light;
-        /* The sf-light values from index.html, so this reproduces the real
-           case rather than an approximation of it.
-             --surface-under  #ffffff   what .console-panel paints
-             --surface-2      72% white what #m-tabbar wears
-             --surface-blur   the exact filter the bar carries          */
         --surface-under: #ffffff;
+        --element-bg: #ebebf0;
+        --element-hover: #dcdce0;
+        --border-main: #c7c7cc;
+        --text-main: #1d1d1f;
+        --text-muted: #636366;
+        --accent-blue: #007aff;
+        --accent-work: #34c759;
         --surface-2: rgba(255, 255, 255, 0.72);
-        --surface-2-solid: #ffffff;
         --surface-blur: blur(24px) saturate(180%);
-        --bar-h: 56px;
+        --radius-lg: 12px;
+        --tabbar-h: 56px;
+        --foot-h: 14px;
       }
 
       * {
@@ -35,294 +40,411 @@
         margin: 0;
         padding: 0;
         background: var(--surface-under);
+        color: var(--text-main);
         font:
           15px/1.45 -apple-system,
           BlinkMacSystemFont,
           "Segoe UI",
           sans-serif;
-        color: #1d1d1f;
+        -webkit-font-smoothing: antialiased;
       }
 
-      /* Scrollable content, so the page behaves like the real app: Safari's
-         bottom bar only takes its compact form on a scrollable page, and the
-         blur needs something underneath it to actually blur. */
       main {
-        padding: 16px 16px calc(var(--bar-h) + 220px);
+        padding: 12px 14px calc(var(--tabbar-h) + 160px);
       }
 
-      h1 {
-        font-size: 17px;
-        margin: 0 0 4px;
-      }
-
-      .sub {
-        color: #636366;
-        font-size: 13px;
-        margin: 0 0 16px;
-      }
-
-      .now {
-        border: 2px solid #007aff;
-        border-radius: 12px;
+      /* ---- variant switcher ------------------------------------------- */
+      .panel {
+        border: 2px solid var(--accent-blue);
+        border-radius: var(--radius-lg);
         padding: 12px;
-        margin-bottom: 16px;
+        margin-bottom: 14px;
       }
-
-      .now .id {
-        font-size: 12px;
+      .panel .k {
+        font-size: 11px;
         font-weight: 700;
-        letter-spacing: 0.06em;
+        letter-spacing: 0.07em;
         text-transform: uppercase;
-        color: #007aff;
+        color: var(--accent-blue);
       }
-
-      .now .what {
-        font-weight: 600;
-        margin-top: 4px;
+      .panel h2 {
+        font-size: 16px;
+        margin: 4px 0 6px;
       }
-
-      .now .why {
-        color: #636366;
+      .panel p {
+        margin: 0;
         font-size: 13px;
-        margin-top: 6px;
+        color: var(--text-muted);
       }
-
-      .grid {
+      .opts {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
-        gap: 8px;
+        gap: 7px;
+        margin-bottom: 14px;
       }
-
-      a.t {
+      a.o {
         display: block;
-        padding: 10px;
-        border: 1px solid #c7c7cc;
+        padding: 9px 11px;
+        border: 1px solid var(--border-main);
         border-radius: 10px;
+        background: var(--element-bg);
+        color: var(--text-main);
         text-decoration: none;
-        color: #1d1d1f;
-        background: #f2f2f7;
+        font-size: 13px;
       }
-
-      a.t.on {
-        border-color: #007aff;
+      a.o.on {
+        border-color: var(--accent-blue);
         background: #e5f0ff;
       }
-
-      a.t b {
+      a.o b {
         display: block;
+        font-size: 11px;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        color: var(--accent-blue);
+        margin-bottom: 2px;
+      }
+      .heights {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+        margin-bottom: 16px;
+      }
+      .heights a {
+        flex: 1;
+        text-align: center;
+        padding: 8px 4px;
+        border: 1px solid var(--border-main);
+        border-radius: 9px;
+        background: var(--element-bg);
+        color: var(--text-main);
+        text-decoration: none;
+        font-size: 13px;
+      }
+      .heights a.on {
+        border-color: var(--accent-blue);
+        background: #e5f0ff;
+        font-weight: 600;
+      }
+      .hint {
+        font-size: 13px;
+        color: var(--text-muted);
+        margin: 0 0 14px;
+      }
+
+      /* ---- fake app chrome -------------------------------------------- */
+      .statusbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        background: var(--element-bg);
+        border-radius: var(--radius-lg);
+        padding: 12px 14px;
+        margin-bottom: 14px;
+        font-size: 13px;
+      }
+      .statusbar .brand {
+        font-weight: 700;
+      }
+      .statusbar .brand span {
+        color: var(--accent-blue);
+        font-weight: 500;
+      }
+      .statusbar .live {
+        color: var(--accent-work);
         font-size: 12px;
-        color: #007aff;
       }
 
-      .stripe {
-        height: 44px;
-        border-radius: 8px;
-        margin: 6px 0;
-        background: linear-gradient(90deg, #ff3b30, #ff9500, #34c759, #007aff);
+      /* The rows. Deliberately --element-bg grey: this is the surface that
+         passes under the bar and used to drag the browser chrome grey. */
+      .row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        background: var(--element-bg);
+        border: 1px solid var(--border-main);
+        border-radius: var(--radius-lg);
+        padding: 14px;
+        margin-bottom: 9px;
+      }
+      .row .d {
+        font-weight: 600;
+      }
+      .row .m {
+        color: var(--text-muted);
+        font-size: 13px;
+      }
+      .row .b {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--accent-work);
+        background: #d8f5e0;
+        border-radius: 999px;
+        padding: 3px 9px;
+      }
+      .row.alt .b {
+        color: var(--accent-blue);
+        background: #dceaff;
       }
 
-      /* ---- the element under test ---------------------------------------- */
-      #bar {
+      /* ---- the bar under test ------------------------------------------ */
+      #tabbar {
         position: fixed;
         left: 0;
         right: 0;
         bottom: 0;
-        height: var(--bar-h);
+        height: var(--tabbar-h);
         z-index: 600;
         display: flex;
         align-items: center;
+        padding: 4px 12px;
+        border-top: 1px solid var(--border-main);
+        /* background / filter / bottom set per variant by JS */
+      }
+      .tab {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
         justify-content: center;
-        gap: 18px;
-        font-size: 12px;
-        color: #636366;
-        border-top: 1px solid #c7c7cc;
-        /* background / filter / inset are set per-test by JS */
+        gap: 2px;
+        font-size: 10px;
+        color: var(--text-muted);
+        border-radius: 8px;
+        padding: 4px 0;
+      }
+      .tab.on {
+        color: var(--accent-blue);
+        background: var(--element-hover);
+      }
+      .tab svg {
+        width: 22px;
+        height: 22px;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 1.6;
+        stroke-linecap: round;
+        stroke-linejoin: round;
       }
 
-      /* The opaque strip used by the inset tests, owning the bottom edge. */
-      #strip {
+      /* The solid strip. In the proposed variant it sits BEHIND the bar and
+         simply stops content from reaching the last few pixels, so the bar's
+         bottom edge always composites over a known white. */
+      #foot {
         position: fixed;
         left: 0;
         right: 0;
         bottom: 0;
+        height: var(--foot-h);
         background: var(--surface-under);
-        z-index: 599;
+        z-index: 500;
         display: none;
       }
     </style>
     <script>
-      /* Runs before first paint, like the app's boot script, so theme-color is
-         never sampled stale. */
       (function () {
-        var TESTS = {
-          1: {
-            what: "No bottom bar at all",
-            why: "Baseline. If the chrome is NOT white here, Safari is ignoring theme-color outright and nothing about the bar matters.",
-            bar: false,
-            tint: "#ffffff",
-          },
-          2: {
-            what: "Opaque bar, flush, no filter",
-            why: "The current shipped fix. Expected white. Confirms the test rig reproduces the working case.",
-            bar: true,
-            bg: "var(--surface-2-solid)",
+        var V = {
+          a: {
+            name: "Shipped today",
+            head: "Solid bar, no glass",
+            note: "What your app looks like right now. Browser bar is correct, but the material is gone — rows vanish behind a flat panel.",
+            bg: "var(--surface-under)",
             filter: "none",
-            inset: 0,
-            tint: "#ffffff",
+            lift: false,
+            foot: false,
           },
-          3: {
-            what: "Translucent bar, flush, NO filter",
-            why: "Isolates alpha alone. Gray here => translucency is the trigger. White here => alpha is innocent.",
-            bar: true,
-            bg: "var(--surface-2)",
-            filter: "none",
-            inset: 0,
-            tint: "#ffffff",
-          },
-          4: {
-            what: "OPAQUE bar, flush, WITH filter",
-            why: "Isolates backdrop-filter alone. Gray here => the filter is the trigger regardless of alpha. This is the key test.",
-            bar: true,
-            bg: "var(--surface-2-solid)",
-            filter: "var(--surface-blur)",
-            inset: 0,
-            tint: "#ffffff",
-          },
-          5: {
-            what: "Translucent + filter, flush",
-            why: "The original broken bar, reproduced exactly. Expected gray. If this is WHITE, the bug is not in the bar at all.",
-            bar: true,
+          b: {
+            name: "Proposed",
+            head: "Glass bar, flush, solid strip behind it",
+            note: "Identical shape to today — flush, full width, square. Glass is back: rows blur through it. The strip hides them only in the last few pixels, so the bottom edge is always white.",
             bg: "var(--surface-2)",
             filter: "var(--surface-blur)",
-            inset: 0,
-            tint: "#ffffff",
+            lift: false,
+            foot: true,
           },
-          6: {
-            what: "Translucent + filter, inset 10px + strip",
-            why: "The floating attempt that failed. Expected gray, to confirm the rig matches what you saw on the real app.",
-            bar: true,
+          c: {
+            name: "Alternative",
+            head: "Glass bar lifted, solid strip below it",
+            note: "Same idea but the bar sits above the strip instead of over it. This is closer to the floating version you disliked — included only so you can compare.",
             bg: "var(--surface-2)",
             filter: "var(--surface-blur)",
-            inset: 10,
-            tint: "#ffffff",
+            lift: true,
+            foot: true,
           },
-          7: {
-            what: "Translucent + filter, inset 120px + strip",
-            why: "Same thing lifted far higher. White here => distance matters and a bigger gap is the fix. Gray => distance is irrelevant.",
-            bar: true,
+          d: {
+            name: "Broken",
+            head: "Glass bar, no strip",
+            note: "The original bug, for reference. Scroll grey rows under the bar and the browser bar should follow them grey.",
             bg: "var(--surface-2)",
             filter: "var(--surface-blur)",
-            inset: 120,
-            tint: "#ffffff",
-          },
-          8: {
-            what: "Broken bar, but theme-color = RED",
-            why: "Decisive. RED chrome => Safari honours the tag and the bar merely suppressed it. NOT red => Safari samples the page and ignores the tag.",
-            bar: true,
-            bg: "var(--surface-2)",
-            filter: "var(--surface-blur)",
-            inset: 0,
-            tint: "#ff0000",
-          },
-          9: {
-            what: "Working bar, but theme-color = RED",
-            why: "Pairs with 8. RED => the tag wins when nothing suppresses it. WHITE => the page colour wins and the tag is decorative.",
-            bar: true,
-            bg: "var(--surface-2-solid)",
-            filter: "none",
-            inset: 0,
-            tint: "#ff0000",
+            lift: false,
+            foot: false,
           },
         };
 
-        var id = (location.search.match(/[?&]t=(\d)/) || [])[1] || "1";
-        if (!TESTS[id]) id = "1";
-        var t = TESTS[id];
+        var q = location.search;
+        var v = (q.match(/[?&]v=([a-d])/) || [])[1] || "b";
+        var h = parseInt((q.match(/[?&]h=(\d+)/) || [])[1], 10);
+        if (!(h >= 0 && h <= 60)) h = 14;
 
-        // Before first paint, same reason as the app's boot script.
-        var meta = document.querySelector('meta[name="theme-color"]');
-        if (meta) meta.setAttribute("content", t.tint);
-
-        window.__TEST = { id: id, t: t, all: TESTS };
+        document.documentElement.style.setProperty("--foot-h", h + "px");
+        window.__V = { v: v, h: h, all: V, cur: V[v] };
       })();
     </script>
   </head>
   <body>
     <main>
-      <h1>iOS Safari bottom-bar tint test</h1>
-      <p class="sub">
-        Tap a test, let it load, then screenshot the bottom ~200px of the
-        screen. Each tap is a full page load, so no stale tint carries over.
-      </p>
-
-      <div class="now">
-        <div class="id" id="now-id"></div>
-        <div class="what" id="now-what"></div>
-        <div class="why" id="now-why"></div>
+      <div class="panel">
+        <div class="k" id="p-k"></div>
+        <h2 id="p-h"></h2>
+        <p id="p-n"></p>
       </div>
 
-      <div class="grid" id="grid"></div>
+      <div class="opts" id="opts"></div>
 
-      <p class="sub" style="margin-top: 18px">
-        The stripes below exist so the blur has something to blur — if a test
-        has a working filter you will see them smear through the bar.
+      <p class="hint">
+        Strip height — only affects the two variants that use one. If the
+        browser bar still picks up grey, try a taller strip.
       </p>
-      <div class="stripe"></div>
-      <div class="stripe"></div>
-      <div class="stripe"></div>
-      <div class="stripe"></div>
-      <div class="stripe"></div>
-      <div class="stripe"></div>
-      <div class="stripe"></div>
-      <div class="stripe"></div>
+      <div class="heights" id="heights"></div>
+
+      <p class="hint">
+        <b>How to judge it:</b> scroll until the grey rows are passing
+        underneath the tab bar, then look at the browser bar below. It should
+        stay white. Then look at the tab bar itself — you should see the rows
+        softly blurring through it.
+      </p>
+
+      <div class="statusbar">
+        <div class="brand">no<span>drift</span></div>
+        <div class="m">09:41 AM</div>
+        <div class="live">● Active</div>
+      </div>
+
+      <div id="rows"></div>
     </main>
 
-    <div id="strip"></div>
-    <nav id="bar">
-      <span>Stats</span><span>Tasks</span><span>Timer</span><span>Log</span
-      ><span>More</span>
+    <div id="foot"></div>
+
+    <nav id="tabbar">
+      <div class="tab">
+        <svg viewBox="0 0 24 24">
+          <line x1="6" y1="20" x2="6" y2="13" />
+          <line x1="12" y1="20" x2="12" y2="7" />
+          <line x1="18" y1="20" x2="18" y2="10" />
+        </svg>
+        Stats
+      </div>
+      <div class="tab">
+        <svg viewBox="0 0 24 24">
+          <rect x="4" y="5" width="7" height="6" rx="1.5" />
+          <line x1="14" y1="8" x2="20" y2="8" />
+          <polyline points="4,16 6,18 10,14" />
+          <line x1="14" y1="17" x2="20" y2="17" />
+        </svg>
+        Tasks
+      </div>
+      <div class="tab">
+        <svg viewBox="0 0 24 24">
+          <circle cx="12" cy="13" r="7" />
+          <line x1="12" y1="13" x2="15" y2="11" />
+          <line x1="10" y1="3" x2="14" y2="3" />
+        </svg>
+        Timer
+      </div>
+      <div class="tab on">
+        <svg viewBox="0 0 24 24">
+          <rect x="5" y="4" width="14" height="16" rx="2" />
+          <line x1="9" y1="9" x2="15" y2="9" />
+          <line x1="9" y1="13" x2="15" y2="13" />
+        </svg>
+        Log
+      </div>
+      <div class="tab">
+        <svg viewBox="0 0 24 24">
+          <line x1="4" y1="8" x2="20" y2="8" />
+          <line x1="4" y1="16" x2="20" y2="16" />
+          <circle cx="9" cy="8" r="2" />
+          <circle cx="15" cy="16" r="2" />
+        </svg>
+        More
+      </div>
     </nav>
 
     <script>
       (function () {
-        var T = window.__TEST,
-          t = T.t;
+        var S = window.__V,
+          cur = S.cur;
 
-        document.getElementById("now-id").textContent =
-          "Now showing — test " + T.id;
-        document.getElementById("now-what").textContent = t.what;
-        document.getElementById("now-why").textContent = t.why;
+        document.getElementById("p-k").textContent =
+          cur.name + " — option " + S.v.toUpperCase();
+        document.getElementById("p-h").textContent = cur.head;
+        document.getElementById("p-n").textContent = cur.note;
 
-        var grid = document.getElementById("grid");
-        Object.keys(T.all).forEach(function (k) {
+        var opts = document.getElementById("opts");
+        Object.keys(S.all).forEach(function (k) {
           var a = document.createElement("a");
-          a.className = "t" + (k === T.id ? " on" : "");
-          a.href = "?t=" + k;
+          a.className = "o" + (k === S.v ? " on" : "");
+          a.href = "?v=" + k + "&h=" + S.h;
           a.innerHTML =
-            "<b>Test " + k + "</b>" + T.all[k].what.replace(/</g, "&lt;");
-          grid.appendChild(a);
+            "<b>" +
+            S.all[k].name +
+            "</b>" +
+            S.all[k].head.replace(/</g, "&lt;");
+          opts.appendChild(a);
         });
 
-        var bar = document.getElementById("bar");
-        var strip = document.getElementById("strip");
+        var hs = document.getElementById("heights");
+        [8, 14, 20, 28, 40].forEach(function (n) {
+          var a = document.createElement("a");
+          a.className = n === S.h ? "on" : "";
+          a.href = "?v=" + S.v + "&h=" + n;
+          a.textContent = n + "px";
+          hs.appendChild(a);
+        });
 
-        if (!t.bar) {
-          bar.style.display = "none";
-        } else {
-          bar.style.background = t.bg;
-          bar.style.webkitBackdropFilter = t.filter;
-          bar.style.backdropFilter = t.filter;
+        var days = [
+          ["Mon", "06/01", "Scheduled Leave", "In Lieu", 1],
+          ["Tue", "06/02", "8h 12m logged", "Complete", 0],
+          ["Wed", "06/03", "7h 48m logged", "Complete", 0],
+          ["Thu", "06/04", "8h 02m logged", "Complete", 0],
+          ["Fri", "06/05", "6h 30m logged", "Short", 1],
+          ["Mon", "06/08", "8h 15m logged", "Complete", 0],
+          ["Tue", "06/09", "8h 00m logged", "Complete", 0],
+          ["Wed", "06/10", "Scheduled Leave", "In Lieu", 1],
+          ["Thu", "06/11", "7h 55m logged", "Complete", 0],
+          ["Fri", "06/12", "8h 20m logged", "Complete", 0],
+          ["Mon", "06/15", "8h 05m logged", "Complete", 0],
+          ["Tue", "06/16", "7h 40m logged", "Short", 1],
+          ["Wed", "06/17", "8h 10m logged", "Complete", 0],
+          ["Thu", "06/18", "8h 00m logged", "Complete", 0],
+        ];
+        var rows = document.getElementById("rows");
+        days.forEach(function (d) {
+          var el = document.createElement("div");
+          el.className = "row" + (d[4] ? " alt" : "");
+          el.innerHTML =
+            '<div><span class="d">' +
+            d[0] +
+            '</span> <span class="m">(' +
+            d[1] +
+            ")</span></div>" +
+            '<div class="m">' +
+            d[2] +
+            "</div>" +
+            '<div class="b">' +
+            d[3] +
+            "</div>";
+          rows.appendChild(el);
+        });
 
-          if (t.inset) {
-            bar.style.bottom = t.inset + "px";
-            bar.style.left = "14px";
-            bar.style.right = "14px";
-            bar.style.border = "1px solid #c7c7cc";
-            bar.style.borderRadius = "14px";
-            strip.style.display = "block";
-            strip.style.height = t.inset + "px";
-          }
-        }
+        var bar = document.getElementById("tabbar");
+        bar.style.background = cur.bg;
+        bar.style.webkitBackdropFilter = cur.filter;
+        bar.style.backdropFilter = cur.filter;
+        if (cur.lift) bar.style.bottom = S.h + "px";
+        if (cur.foot) document.getElementById("foot").style.display = "block";
       })();
     </script>
   </body>
