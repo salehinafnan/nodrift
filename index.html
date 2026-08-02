@@ -5754,15 +5754,36 @@
              lighter ones on a tinted panel. */
         }
 
-        /* The OLED themes repaint .sidebar, the sticky toolbar and the timer
-           pane with --page-bg (see the rule further down), so on a phone the
-           fill behind the chrome is that, not --panel-bg. This is THE mobile
-           colour difference, and every other one used to be a downstream
-           workaround for not having stated it once. (0,2,0) beats the :root
-           default. Deliberately scoped inside the breakpoint: on the desktop
-           those panes sit on .console-panel, which is --panel-bg. */
-        :root[data-theme="sf-dark"],
-        :root[data-theme="vercel-dark"] {
+        /* On a phone the shell rests on --page-bg, not --panel-bg. This is THE
+           mobile colour difference, and every other one used to be a
+           downstream workaround for not having stated it once. Deliberately
+           scoped inside the breakpoint: on the desktop those panes sit on
+           .console-panel, which is --panel-bg. Beats the :root default on
+           order, at equal specificity.
+
+           This used to name only sf-dark and vercel-dark. It now covers every
+           theme, and the reason is iOS Safari's bottom bar.
+
+           That bar cannot be tinted by the page. Measured on-device: it
+           ignores <meta name="theme-color">, ignores whatever the page paints
+           at the bottom edge (a magenta row blurring through the tab bar left
+           no trace in it), and ignores the canvas colour. It takes one of two
+           fixed materials from `color-scheme` -- a light grey around #f2f2f7,
+           or a dark one.
+
+           So the app meets it instead of fighting it. The dark themes already
+           did, by accident: --page-bg is #000000 on both, close enough to
+           Safari's dark material that nobody ever saw a seam -- which is
+           exactly why this read as an sf-light-only bug for so long. sf-light
+           was the one theme whose surface was a pure #ffffff against that
+           grey. Resting every theme on --page-bg puts sf-light on #f2f2f7,
+           which is both Apple's own system grouped background and the colour
+           Safari's chrome already is.
+
+           --surface-under feeds .console-panel, the panes, the <html> canvas
+           and both theme-color reads, so this one line moves all of them
+           together and no colour is restated anywhere. */
+        :root {
           --surface-under: var(--page-bg);
         }
 
