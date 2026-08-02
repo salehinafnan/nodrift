@@ -203,20 +203,52 @@
         --elev-3: 0 -4px 32px rgba(0, 0, 0, 0.28);
         --scrim: rgba(0, 0, 0, 0.55);
 
+        /* ---- The mix ladder ------------------------------------------------
+           Every tinted surface in this app is the same sentence: some
+           percentage of an accent, over whatever is behind it. These four
+           numbers are the only percentages that sentence is allowed to use.
+
+           They were previously spelled out at each site, and had drifted into
+           three dialects for one idea -- the ladder below said 16/45, the
+           .btn-*-outline family said 10/30 against --panel-bg, and the three
+           primary action buttons said 0.15/0.30 in hand-written rgba, once
+           per theme. Naming them is not tidiness: a literal cannot be moved,
+           and the whole reason the buttons were invisible on a dimmed phone
+           is that nothing in the app had a way to say "press harder". */
+        --mix-wash: 10%;
+        --mix-soft: 16%;
+        --mix-strong: 22%;
+        --mix-line: 45%;
+
         /* Accent tint ladder. Every "this is selected / active / focused"
            surface in the app is one of these five, mixed from the theme's own
            --accent-blue. The literal rgba(96,165,250,...) these replace was a
            Tailwind blue that belonged to no theme: it read as a second, wrong
            accent beside --accent-blue on the SF themes, and broke the
-           monochrome premise of the other two outright. */
-        --accent-wash: color-mix(in srgb, var(--accent-blue) 10%, transparent);
-        --accent-soft: color-mix(in srgb, var(--accent-blue) 16%, transparent);
-        --accent-strong: color-mix(
+           monochrome premise of the other two outright.
+
+           --accent-line was 35% while the other three semantic lines were 45%:
+           blue was simply the odd one out, and now is not. */
+        --accent-wash: color-mix(
           in srgb,
-          var(--accent-blue) 22%,
+          var(--accent-blue) var(--mix-wash),
           transparent
         );
-        --accent-line: color-mix(in srgb, var(--accent-blue) 35%, transparent);
+        --accent-soft: color-mix(
+          in srgb,
+          var(--accent-blue) var(--mix-soft),
+          transparent
+        );
+        --accent-strong: color-mix(
+          in srgb,
+          var(--accent-blue) var(--mix-strong),
+          transparent
+        );
+        --accent-line: color-mix(
+          in srgb,
+          var(--accent-blue) var(--mix-line),
+          transparent
+        );
         --accent-ring: 0 0 0 2px
           color-mix(in srgb, var(--accent-blue) 14%, transparent);
         /* Selected/hovered scroller row. Mixed into the SOLID level 1 twin
@@ -232,12 +264,108 @@
         /* The same two rungs for the other three semantic accents, so a
            destructive or a success surface is built the same way a selected
            one is instead of from a hand-written rgba(). */
-        --work-soft: color-mix(in srgb, var(--accent-work) 16%, transparent);
-        --work-line: color-mix(in srgb, var(--accent-work) 45%, transparent);
-        --break-soft: color-mix(in srgb, var(--accent-break) 16%, transparent);
-        --break-line: color-mix(in srgb, var(--accent-break) 45%, transparent);
-        --warn-soft: color-mix(in srgb, var(--accent-warning) 16%, transparent);
-        --warn-line: color-mix(in srgb, var(--accent-warning) 45%, transparent);
+        --work-soft: color-mix(
+          in srgb,
+          var(--accent-work) var(--mix-soft),
+          transparent
+        );
+        --work-line: color-mix(
+          in srgb,
+          var(--accent-work) var(--mix-line),
+          transparent
+        );
+        --break-soft: color-mix(
+          in srgb,
+          var(--accent-break) var(--mix-soft),
+          transparent
+        );
+        --break-line: color-mix(
+          in srgb,
+          var(--accent-break) var(--mix-line),
+          transparent
+        );
+        --warn-soft: color-mix(
+          in srgb,
+          var(--accent-warning) var(--mix-soft),
+          transparent
+        );
+        --warn-line: color-mix(
+          in srgb,
+          var(--accent-warning) var(--mix-line),
+          transparent
+        );
+
+        /* ---- Emphasis levels (the control layer) ---------------------------
+           A tinted *control* is the ladder plus two things a static surface
+           does not have: states, and prominence. These levels are what the
+           one recipe in section 8 reads.
+
+           They default to the ladder, so on a theme with nothing to say the
+           two layers are the same numbers -- but they are separate names, and
+           that separation is load-bearing: a theme that wants a solid primary
+           button must be able to say so without dragging every selected row
+           and filter chip in the app up to 100% with it. Overriding --emph-*
+           moves controls only; overriding --mix-* moves everything.
+
+           `-1-` is prominence level 1, the primary. How far it sits above a
+           secondary is the theme's call: the SF themes lead with hue and keep
+           the gap small, the two monochrome themes have no hue to lead with
+           and open it all the way to solid-vs-outline. Same recipe either
+           way. Only the spread differs. */
+        --emph-fill: 16%;
+        --emph-hover: 24%;
+        --emph-press: 32%;
+        --emph-edge: 45%;
+
+        --emph-1-fill: 24%;
+        --emph-1-hover: 32%;
+        --emph-1-press: 40%;
+        --emph-1-edge: 45%;
+
+        /* The knob the whole app turns on. Every level above is multiplied by
+           this at the point it is used, so one number moves every control on
+           every theme at once -- and it multiplies rather than replaces, which
+           is the only reason it can. A theme that has set its own levels keeps
+           its proportions; a level deliberately at 0% (E-Ink's unfilled
+           secondary) stays at 0%; 100% cannot overshoot because the recipe
+           clamps. Overriding the levels from a media query instead would not
+           work at all: :root[data-theme="x"] outranks :root, so the themes
+           that most need the bump are exactly the ones it could not reach.
+
+           This is what was missing. Not a number that was too low -- the
+           absence of any way to change one. */
+        --emph-gain: 1;
+
+        /* ---- What keeps the label alive as the fill gets stronger ----------
+           A control whose fill and whose label are the same accent is on a
+           collision course with itself: push the fill toward the accent and
+           it closes on the label. The gain makes that reachable, so both ends
+           of it need stating.
+
+           The cap is how strong a fill is allowed to get. 45% is comfortably
+           short of the point where an accent label stops reading on it. The
+           two monochrome themes are exempt (100%) because they do not rely on
+           this -- they name their primary's label outright, which is what
+           lets them fill all the way to solid.
+
+           The edge is deliberately *not* capped. It carries no text, so it is
+           free to run to full strength -- and it is where most of the gain's
+           benefit lands, because a 1px line at full accent is the part of a
+           control that survives a dimmed screen. That asymmetry is the whole
+           trick: push the edge, hold the fill.
+
+           The shift is how far the label steps away from the accent to stay
+           clear of it, toward the theme's own foreground -- brighter on a dark
+           ground, darker on a light one, correct on both without either being
+           special-cased, because --text-main already knows which way is up.
+
+           SF Light needs much more of it than the others and always did: its
+           accents are intrinsically light (#34c759 on white is 1.9:1 no matter
+           what you do with it), so its label was failing on its own fill at
+           1.76:1 long before any of this. This is that bug, fixed at the
+           layer it belongs to. */
+        --emph-fill-max: 45%;
+        --emph-ink-shift: 20%;
 
         /* Shared Color Scheme Accents */
         --accent-work: #34c759;
@@ -372,15 +500,24 @@
         --accent-break: #ffffff;
         --accent-blue: #ffffff;
         --accent-warning: #ffffff;
-        --btn-work-bg: #ffffff;
-        --btn-work-border: #ffffff;
-        --btn-work-text: #000000;
-        --btn-break-bg: #1a1a1c;
-        --btn-break-border: #444446;
-        --btn-break-text: #ffffff;
-        --btn-log-bg: #1a1a1c;
-        --btn-log-border: #444446;
-        --btn-log-text: #ffffff;
+        /* Monochrome: hue cannot carry the primary/secondary distinction, so
+           prominence does, and the spread runs the full height of the ladder.
+           These are the same colours the theme always had -- 10% of white on
+           black is #1a1a1a, which is the #1a1a1c this used to hardcode, and
+           27% is the old #444446 edge -- but they are levels now, so the
+           contrast media query below can move them. */
+        --emph-fill: 10%;
+        --emph-hover: 13%;
+        --emph-press: 20%;
+        --emph-edge: 27%;
+        --emph-1-fill: 100%;
+        --emph-1-hover: 70%;
+        --emph-1-press: 55%;
+        --emph-1-edge: 100%;
+        --emph-1-label: #000000;
+        /* Exempt from the fill cap: this theme states its primary's label
+           outright, so filling to solid costs it nothing. */
+        --emph-fill-max: 100%;
         --dropdown-bg: var(--modal-bg);
         --modal-bg: #1a1a1c;
         /* This theme's panel IS its page (both #000000), so the chrome level
@@ -408,6 +545,17 @@
         );
         --tab-btn-active-bg: #ededed;
         --tab-btn-active-color: #000000;
+        /* A black shadow on a #000000 page is not a shadow. Elevation on this
+           theme has to come from the lit edge instead of the cast one -- the
+           same inversion every dark UI makes, and the reason a lifted surface
+           here reads as lifted at all. The cast shadow stays for the halo it
+           gives once a surface sits over content rather than over the page. */
+        --elev-1:
+          inset 0 0.5px 0 color-mix(in srgb, var(--text-main) 12%, transparent),
+          0 4px 12px rgba(0, 0, 0, 0.2);
+        --elev-2:
+          inset 0 0.5px 0 color-mix(in srgb, var(--text-main) 14%, transparent),
+          0 8px 32px rgba(0, 0, 0, 0.24);
       }
 
       /* =========================================================================
@@ -429,15 +577,28 @@
         --accent-break: #111111;
         --accent-blue: #111111;
         --accent-warning: #444444;
-        --btn-work-bg: #111111;
-        --btn-work-border: #111111;
-        --btn-work-text: #ffffff;
-        --btn-break-bg: #ffffff;
-        --btn-break-border: #111111;
-        --btn-break-text: #111111;
-        --btn-log-bg: #ffffff;
-        --btn-log-border: #111111;
-        --btn-log-text: #111111;
+        /* Paper. A secondary control is unfilled stock with a full-weight
+           rule; the primary is the rule filled in. Press inverts, which is
+           this theme's own grammar and the one piece of it that is genuinely
+           not a level -- so it is stated as levels that cross: the primary
+           empties out under a finger, the secondary fills in. Both used to
+           live in ~20 lines of ::before blocks that only fired on a mouse. */
+        --emph-fill: 0%;
+        --emph-hover: 100%;
+        --emph-press: 86%;
+        --emph-edge: 100%;
+        --emph-label-hover: #ffffff;
+        --emph-label-press: #ffffff;
+        --emph-1-fill: 100%;
+        --emph-1-hover: 0%;
+        --emph-1-press: 10%;
+        --emph-1-edge: 100%;
+        --emph-1-label: #ffffff;
+        --emph-1-label-hover: #111111;
+        --emph-1-label-press: #111111;
+        /* Every label on this theme is named outright -- there is only one
+           ink here and it is #111111 -- so the cap has nothing to protect. */
+        --emph-fill-max: 100%;
         --dropdown-bg: var(--modal-bg);
         --modal-bg: #ffffff;
         /* ---- No glass on this theme --------------------------------------
@@ -505,31 +666,11 @@
         background: #e8e8e8 !important;
       }
 
-      :root[data-theme="theme-eink"] .btn-work {
-        border: 1px solid #111111 !important;
-      }
-
-      /* Solid, like every other button. The dash was meant to read as
-         "secondary", but it is the only dashed edge in the app that is not
-         marking an absence -- leave rows and leave segments use one to mean
-         "nothing happened here" -- so on a control it just looked provisional.
-         The edge itself has to stay: --btn-break-bg is #ffffff on a #ffffff
-         panel, so without a rule the button has no shape. */
-      :root[data-theme="theme-eink"] .btn-break {
-        border: 1px solid #111111 !important;
-      }
-
-      :root[data-theme="theme-eink"] .btn-log {
-        border: 1px solid #111111 !important;
-      }
-
-      :root[data-theme="vercel-dark"] .btn-break {
-        border: 1px solid var(--btn-break-border) !important;
-      }
-
-      :root[data-theme="vercel-dark"] .btn-log {
-        border: 1px solid var(--btn-log-border) !important;
-      }
+      /* The six !important border patches that used to sit here -- three for
+         E-Ink, two for Vercel -- existed only to put back the edge that
+         `border: none !important` on .btn-work/.btn-break/.btn-log took away.
+         Every control now gets its edge from the recipe, on every theme, so
+         there is nothing left to patch. */
 
       :root[data-theme="vercel-dark"] .progress-segment {
         border-color: var(--border-light);
@@ -561,15 +702,10 @@
         --accent-break: #ff453a;
         --accent-blue: #0a84ff;
         --accent-warning: #ff9f0a;
-        --btn-work-bg: rgba(48, 209, 88, 0.15);
-        --btn-work-border: rgba(48, 209, 88, 0.3);
-        --btn-work-text: #30d158;
-        --btn-break-bg: rgba(255, 69, 58, 0.15);
-        --btn-break-border: rgba(255, 69, 58, 0.3);
-        --btn-break-text: #ff453a;
-        --btn-log-bg: rgba(10, 132, 255, 0.15);
-        --btn-log-text: #0a84ff;
-        --btn-log-border: rgba(10, 132, 255, 0.3);
+        /* No --emph-* overrides. This theme leads with hue, which is what the
+           shared levels are tuned for, so it takes them as they come -- the
+           nine literals that used to sit here were the defaults restated by
+           hand at 0.15/0.30, one rgba per button per state. */
         --dropdown-bg: var(--modal-bg);
         /* Was #252527 as a flat fill. As a 90% film over a dimmed backdrop it
            has to start one step lighter to land on the same colour, which is
@@ -580,6 +716,15 @@
         --segmented-active-bg: #2c2c2e;
         --segmented-active-shadow: var(--global-shadow);
         --segmented-border: rgba(255, 255, 255, 0.05);
+        /* Same reason as Vercel Dark: this theme's page is #000000 too, so the
+           cast shadow has nothing to fall on until a surface is over content.
+           The rim is what does the lifting against the page itself. */
+        --elev-1:
+          inset 0 0.5px 0 color-mix(in srgb, var(--text-main) 10%, transparent),
+          0 4px 12px rgba(0, 0, 0, 0.2);
+        --elev-2:
+          inset 0 0.5px 0 color-mix(in srgb, var(--text-main) 12%, transparent),
+          0 8px 32px rgba(0, 0, 0, 0.24);
       }
 
       /* =========================================================================
@@ -601,15 +746,20 @@
         --accent-break: #ff3b30;
         --accent-blue: #007aff;
         --accent-warning: #ff9500;
-        --btn-work-bg: rgba(52, 199, 89, 0.18);
-        --btn-work-border: rgba(52, 199, 89, 0.35);
-        --btn-work-text: #34c759;
-        --btn-break-bg: rgba(255, 59, 48, 0.18);
-        --btn-break-border: rgba(255, 59, 48, 0.35);
-        --btn-break-text: #ff3b30;
-        --btn-log-bg: rgba(0, 122, 255, 0.18);
-        --btn-log-text: #007aff;
-        --btn-log-border: rgba(0, 122, 255, 0.35);
+        /* Same as SF Dark: shared levels, no overrides. A light ground needs
+           slightly more pigment to read at the same strength, which is the
+           one real difference the old literals encoded (0.18 against 0.15) --
+           it belongs on the axis, not on the buttons, so it is a two-line
+           bump at the bottom of this block rather than nine values here. */
+        --emph-fill: 20%;
+        --emph-1-fill: 28%;
+        /* The one theme that needs a real ink shift. Its accents are lighter
+           than its ground can support as text -- #34c759 on white is 1.9:1 --
+           so the label has to travel much further toward the foreground than
+           it does on a dark theme, where the accent is already the bright
+           thing in the room. This is the number that fixes a green label that
+           was sitting on a green fill at 1.76:1. */
+        --emph-ink-shift: 50%;
         --dropdown-bg: var(--modal-bg);
         --modal-bg: #ffffff;
         /* A light theme needs a heavier hairline than a dark one to read at
@@ -628,6 +778,51 @@
         --segmented-active-shadow:
           0 1px 4px rgba(0, 0, 0, 0.14), 0 0 0 0.5px rgba(0, 0, 0, 0.06);
         --segmented-border: transparent;
+      }
+
+      /* =========================================================================
+          3.25. THE ENVIRONMENT AXIS
+          =========================================================================
+         A theme describes a room. This describes the conditions the room is
+         being looked at in, which the theme cannot know and the designer
+         cannot see. Both feed the same levels.
+
+         This is the half of the problem the app had no vocabulary for. Every
+         percentage in it was authored on a bright desktop display, and there
+         was no expression anywhere of the idea that a phone at low brightness
+         with Reduce White Point on is not that display. Contrast ratio does
+         not capture it either: a 15% fill on black is ~8.8:1 against its own
+         label and still disappears, because at two nits the fill is under the
+         glass's own reflected glare and the button loses its shape entirely.
+         Ratio assumes the panel actually reproduces both ends. */
+
+      /* No hover pointer. The resting state is then the *only* state a control
+         is seen in for almost its whole life -- the hover rung, where a good
+         part of this app's contrast was parked, is unreachable on a phone.
+         Rest has to carry that weight itself.
+
+         Controls only. The ladder that tints rows and chips is deliberately
+         left where it is: those surfaces read against a label, not against a
+         2px edge, and pushing them here would repaint the entire phone UI to
+         fix a button. */
+      @media (hover: none) {
+        :root {
+          --emph-gain: 1.4;
+        }
+      }
+
+      /* iOS Increase Contrast / Windows equivalent. The app had no handling
+         for this at all -- an explicit, system-level request for more contrast
+         that changed nothing. Both layers move here, because the user asked
+         about the interface and not about its buttons. */
+      @media (prefers-contrast: more) {
+        :root {
+          --mix-wash: 18%;
+          --mix-soft: 28%;
+          --mix-strong: 38%;
+          --mix-line: 70%;
+          --emph-gain: 2.2;
+        }
       }
 
       /* =========================================================================
@@ -703,7 +898,10 @@
 
       @keyframes calc-flash {
         0% {
-          background-color: rgba(10, 132, 255, 0.15);
+          /* SF Dark's blue at 0.15 was hardcoded here, so the flash was the
+             wrong colour on three of the four themes -- and a colour flash on
+             E-Ink, which has no colour. It is the ladder's soft rung now. */
+          background-color: var(--accent-soft);
         }
 
         100% {
@@ -854,41 +1052,13 @@
         background: var(--element-hover);
       }
 
-      .btn-danger-outline {
-        background: color-mix(
-          in srgb,
-          var(--accent-break) 10%,
-          var(--panel-bg)
-        );
-        color: var(--accent-break);
-        border: 1px solid
-          color-mix(in srgb, var(--accent-break) 30%, var(--panel-bg));
-      }
-
-      .btn-warning-outline {
-        background: color-mix(
-          in srgb,
-          var(--accent-warning) 10%,
-          var(--panel-bg)
-        );
-        color: var(--accent-warning);
-        border: 1px solid
-          color-mix(in srgb, var(--accent-warning) 30%, var(--panel-bg));
-      }
-
-      .btn-success-outline {
-        background: color-mix(in srgb, var(--accent-work) 10%, var(--panel-bg));
-        color: var(--accent-work);
-        border: 1px solid
-          color-mix(in srgb, var(--accent-work) 30%, var(--panel-bg));
-      }
-
-      .btn-info-outline {
-        background: color-mix(in srgb, var(--accent-blue) 10%, var(--panel-bg));
-        color: var(--accent-blue);
-        border: 1px solid
-          color-mix(in srgb, var(--accent-blue) 30%, var(--panel-bg));
-      }
+      /* .btn-danger-outline / .btn-warning-outline / .btn-success-outline /
+         .btn-info-outline are built by the emphasis recipe in section 8.1,
+         alongside the three dock actions. They used to state the recipe a
+         second time here at 10%/30% against --panel-bg -- which was also
+         wrong about its own background, since these appear inside dialogs
+         and were mixing against the panel behind the dialog rather than
+         against the surface they actually sit on. */
 
       .ui-icon {
         width: 1.2em;
@@ -2128,9 +2298,15 @@
         font-weight: 600;
         letter-spacing: none;
         border-radius: var(--radius-xl);
+        /* Must list the fill and the edge. This selector is (0,1,1) and the
+           emphasis recipe is (0,1,0), so whatever is named here is the whole
+           transition these buttons get -- and the recipe expresses its states
+           as fill and edge levels, not as the opacity fade this used to
+           animate. Without them the dock's hover and press would snap. */
         transition:
-          color 0.15s ease,
-          opacity 0.15s ease;
+          background-color 0.15s ease,
+          border-color 0.15s ease,
+          color 0.15s ease;
       }
 
       button {
@@ -2164,9 +2340,16 @@
           opacity: 1;
         }
 
-        button:not(.btn-work):not(.btn-break):not(.btn-log):hover:not(
-            :disabled
-          ) {
+        /* The generic hover fade, for buttons that are not on the emphasis
+           recipe. The four .btn-*-outline classes joined that exclusion list
+           when they joined the recipe: a control that expresses hover as a
+           fill level must not also be dimmed bodily, or the two states fight
+           and the label goes quiet on approach. */
+        button:not(.btn-work):not(.btn-break):not(.btn-log):not(
+            .btn-success-outline
+          ):not(.btn-danger-outline):not(.btn-warning-outline):not(
+            .btn-info-outline
+          ):hover:not(:disabled) {
           opacity: 0.85;
         }
       }
@@ -2178,28 +2361,160 @@
       #start-btn {
         grid-column: 1 / -1;
       }
-      .btn-work {
-        background: var(--btn-work-bg);
-        color: var(--btn-work-text);
-        border: none !important;
+      /* =========================================================================
+          8.1 THE EMPHASIS RECIPE
+          =========================================================================
+         One rule for every tinted control in the app. A control names its
+         accent; the recipe turns that into a fill, an edge, and a label using
+         the levels from section 1. Nothing here is per-theme, and nothing here
+         is per-button beyond the accent itself.
+
+         What this replaces is worth stating, because it is the whole point.
+         The three primary buttons used to carry 36 hand-written literals
+         across four themes, plus ~200 lines of per-theme ::before films, plus
+         `border: none !important` -- which deleted the edge every other
+         surface in this app has, and left six `border-color` hover rules
+         underneath it that could never match anything. The .btn-*-outline
+         family said the same thing again in a third dialect. All of it was
+         one sentence spelled four ways.
+
+         The edge is not decoration. On a phone at low brightness with Reduce
+         White Point on, a 15% fill is within a nit or two of the page behind
+         it and the button has no shape at all -- the label floats. The edge is
+         the highest-contrast part of the control and it is what survives that.
+
+         States move the *level*, not the opacity of the element, and not a
+         film stacked behind it. That is what makes them work on a finger:
+         the old ::before lived inside @media (hover: hover), so a touch device
+         got no press state at all. */
+      .btn-work,
+      .btn-break,
+      .btn-log,
+      .btn-success-outline,
+      .btn-danger-outline,
+      .btn-warning-outline,
+      .btn-info-outline {
+        /* The accent stepped away from itself far enough to be legible on its
+           own fill. Every label in the recipe falls back to this; only a theme
+           that fills to solid overrides it with a flat colour. */
+        --emph-ink: color-mix(
+          in srgb,
+          var(--emph-accent),
+          var(--text-main)
+            min(100%, calc(var(--emph-ink-shift) * var(--emph-gain)))
+        );
+
+        /* The two things a state changes. Everything else is derived. */
+        --emph-lvl: var(--emph-fill);
+        --emph-txt: var(--emph-label, var(--emph-ink));
+
+        background: color-mix(
+          in srgb,
+          var(--emph-accent)
+            min(var(--emph-fill-max), calc(var(--emph-lvl) * var(--emph-gain))),
+          transparent
+        );
+        border: 1px solid
+          color-mix(
+            in srgb,
+            var(--emph-accent)
+              min(100%, calc(var(--emph-edge) * var(--emph-gain))),
+            transparent
+          );
+        color: var(--emph-txt);
         outline: none !important;
         box-shadow: var(--elev-1);
+        transition:
+          background-color 0.15s ease,
+          border-color 0.15s ease,
+          color 0.15s ease,
+          transform 0.2s cubic-bezier(0.25, 1, 0.5, 1);
+      }
+
+      .btn-work {
+        --emph-accent: var(--accent-work);
       }
 
       .btn-break {
-        background: var(--btn-break-bg);
-        color: var(--btn-break-text);
-        border: none !important;
-        outline: none !important;
-        box-shadow: var(--elev-1);
+        --emph-accent: var(--accent-break);
       }
 
       .btn-log {
-        background: var(--btn-log-bg);
-        color: var(--btn-log-text);
-        border: none !important;
-        outline: none !important;
-        box-shadow: var(--elev-1);
+        --emph-accent: var(--accent-blue);
+      }
+
+      .btn-success-outline {
+        --emph-accent: var(--accent-work);
+      }
+
+      .btn-danger-outline {
+        --emph-accent: var(--accent-break);
+      }
+
+      .btn-warning-outline {
+        --emph-accent: var(--accent-warning);
+      }
+
+      .btn-info-outline {
+        --emph-accent: var(--accent-blue);
+      }
+
+      /* Prominence level 1. The dock's leading action -- Work, and Resume when
+         the pause button swaps its class -- is the primary; Break and End
+         Shift are not. Every theme agreed on that hierarchy and each one
+         expressed it privately; here it is stated once and the themes supply
+         only how far apart the two levels sit.
+
+         Re-points the same four names the recipe reads, so the recipe itself
+         never learns that prominence exists. */
+      .btn-work {
+        --emph-fill: var(--emph-1-fill);
+        --emph-hover: var(--emph-1-hover);
+        --emph-press: var(--emph-1-press);
+        --emph-edge: var(--emph-1-edge);
+        --emph-label: var(--emph-1-label, var(--emph-ink));
+        --emph-label-hover: var(
+          --emph-1-label-hover,
+          var(--emph-1-label, var(--emph-ink))
+        );
+        --emph-label-press: var(
+          --emph-1-label-press,
+          var(--emph-1-label, var(--emph-ink))
+        );
+      }
+
+      /* The two state rungs. Press is deliberately outside the hover query --
+         a finger can press but can never hover, and splitting those two is
+         exactly the bug that used to leave the E-Ink dock inverting its label
+         onto an uninverted fill. */
+      @media (hover: hover) {
+        .btn-work:hover:not(:disabled),
+        .btn-break:hover:not(:disabled),
+        .btn-log:hover:not(:disabled),
+        .btn-success-outline:hover:not(:disabled),
+        .btn-danger-outline:hover:not(:disabled),
+        .btn-warning-outline:hover:not(:disabled),
+        .btn-info-outline:hover:not(:disabled) {
+          --emph-lvl: var(--emph-hover);
+          --emph-txt: var(
+            --emph-label-hover,
+            var(--emph-label, var(--emph-accent))
+          );
+        }
+      }
+
+      .btn-work:active:not(:disabled),
+      .btn-break:active:not(:disabled),
+      .btn-log:active:not(:disabled),
+      .btn-success-outline:active:not(:disabled),
+      .btn-danger-outline:active:not(:disabled),
+      .btn-warning-outline:active:not(:disabled),
+      .btn-info-outline:active:not(:disabled) {
+        --emph-lvl: var(--emph-press);
+        --emph-txt: var(
+          --emph-label-press,
+          var(--emph-label, var(--emph-accent))
+        );
       }
 
       /* The task dock's primary slot shows Start, then Pause, then Resume --
@@ -2222,205 +2537,22 @@
         opacity: 1;
       }
 
-      /* ── SF DARK THEME: Translucent Neon Glow Alpha Opacity Changes ── */
-      :root[data-theme="sf-dark"] .btn-work::before {
-        background: rgba(48, 209, 88, 0.25);
-      }
+      /* The four per-theme ::before blocks that used to occupy this space --
+         sf-dark, sf-light, vercel-dark and theme-eink, ~200 lines of hover and
+         press fills stated once per button per theme -- are gone. They existed
+         because the resting fill was a literal and therefore immovable: the
+         only way to change a button under a pointer was to stack a second
+         coloured layer behind it.
 
-      :root[data-theme="sf-dark"] .btn-work:hover:not(:disabled) {
-        border-color: rgba(48, 209, 88, 0.4);
-      }
+         Two consequences, both bad, both now fixed by the fill being a level.
+         The films were revealed by `button:hover::before` inside
+         @media (hover: hover), so on a phone no primary action had a press
+         state at all. And the E-Ink inversion needed its label flip stated
+         four separate times to stay in sync with its fill -- the two halves of
+         one state, kept together by hand.
 
-      :root[data-theme="sf-dark"] .btn-work:active:not(:disabled)::before {
-        background: rgba(48, 209, 88, 0.35);
-      }
-
-      :root[data-theme="sf-dark"] .btn-work:active:not(:disabled) {
-        border-color: rgba(48, 209, 88, 0.5);
-      }
-
-      :root[data-theme="sf-dark"] .btn-break::before {
-        background: rgba(255, 69, 58, 0.25);
-      }
-
-      :root[data-theme="sf-dark"] .btn-break:hover:not(:disabled) {
-        border-color: rgba(255, 69, 58, 0.4);
-      }
-
-      :root[data-theme="sf-dark"] .btn-break:active:not(:disabled)::before {
-        background: rgba(255, 69, 58, 0.35);
-      }
-
-      :root[data-theme="sf-dark"] .btn-break:active:not(:disabled) {
-        border-color: rgba(255, 69, 58, 0.5);
-      }
-
-      :root[data-theme="sf-dark"] .btn-log::before {
-        background: rgba(10, 132, 255, 0.25);
-      }
-
-      :root[data-theme="sf-dark"] .btn-log:hover:not(:disabled) {
-        border-color: rgba(10, 132, 255, 0.4);
-      }
-
-      :root[data-theme="sf-dark"] .btn-log:active:not(:disabled)::before {
-        background: rgba(10, 132, 255, 0.35);
-      }
-
-      :root[data-theme="sf-dark"] .btn-log:active:not(:disabled) {
-        border-color: rgba(10, 132, 255, 0.5);
-      }
-
-      /* ── SF LIGHT THEME: Translucent Contrast Preservation ── */
-      :root[data-theme="sf-light"] .btn-work::before {
-        background: rgba(52, 199, 89, 0.28);
-      }
-
-      :root[data-theme="sf-light"] .btn-work:hover:not(:disabled) {
-        border-color: rgba(52, 199, 89, 0.45);
-      }
-
-      :root[data-theme="sf-light"] .btn-work:active:not(:disabled)::before {
-        background: rgba(52, 199, 89, 0.38);
-      }
-
-      :root[data-theme="sf-light"] .btn-work:active:not(:disabled) {
-        border-color: rgba(52, 199, 89, 0.55);
-      }
-
-      :root[data-theme="sf-light"] .btn-break::before {
-        background: rgba(255, 59, 48, 0.28);
-      }
-
-      :root[data-theme="sf-light"] .btn-break:hover:not(:disabled) {
-        border-color: rgba(255, 59, 48, 0.45);
-      }
-
-      :root[data-theme="sf-light"] .btn-break:active:not(:disabled)::before {
-        background: rgba(255, 59, 48, 0.38);
-      }
-
-      :root[data-theme="sf-light"] .btn-break:active:not(:disabled) {
-        border-color: rgba(255, 59, 48, 0.55);
-      }
-
-      :root[data-theme="sf-light"] .btn-log::before {
-        background: rgba(0, 122, 255, 0.28);
-      }
-
-      :root[data-theme="sf-light"] .btn-log:hover:not(:disabled) {
-        border-color: rgba(0, 122, 255, 0.45);
-      }
-
-      :root[data-theme="sf-light"] .btn-log:active:not(:disabled)::before {
-        background: rgba(0, 122, 255, 0.38);
-      }
-
-      :root[data-theme="sf-light"] .btn-log:active:not(:disabled) {
-        border-color: rgba(0, 122, 255, 0.55);
-      }
-
-      /* ── VERCEL DARK THEME: Pure Contrast States ── */
-      :root[data-theme="vercel-dark"] .btn-work::before {
-        background: #b3b3b3;
-      }
-
-      :root[data-theme="vercel-dark"] .btn-work:active:not(:disabled)::before {
-        background: #8c8c8c;
-      }
-
-      :root[data-theme="vercel-dark"] .btn-break::before {
-        background: #222222;
-      }
-
-      :root[data-theme="vercel-dark"] .btn-break:active:not(:disabled)::before {
-        background: #333333;
-      }
-
-      :root[data-theme="vercel-dark"] .btn-log::before {
-        background: #222222;
-      }
-
-      :root[data-theme="vercel-dark"] .btn-log:active:not(:disabled)::before {
-        background: #333333;
-      }
-
-      /* ── E-INK BRUTALIST THEME: Inverse Hovers ── */
-
-      /* The inversion is TWO declarations that have to travel together: the
-         ::before fills the button with the opposite colour, and a colour rule
-         flips the label to match. Splitting them is what broke the phone.
-
-         The fill is revealed by `button:hover::before` inside
-         @media (hover: hover), so on a touch device it never fires -- but
-         these colour rules used to sit unwrapped, and a tap leaves :hover
-         stuck until you tap somewhere else. The label inverted while the fill
-         did not: #ffffff text on the #ffffff --btn-break-bg, which is the
-         Pause/Resume button in the task dock rendering as an empty box.
-
-         So each flip is now stated twice, in the same place its fill is
-         stated: :active out here, matching the unwrapped
-         button:active::before, and :hover behind the hover query below. A
-         pointer gets both; a finger gets only the press, which is the one it
-         can actually perform. The :active pass is not merely a guard against
-         the stuck state either -- there was no colour rule for it at all, so a
-         press inverted the fill and left the label behind, putting #111111 on
-         #333333 for the whole touch. */
-
-      :root[data-theme="theme-eink"] .btn-work::before {
-        background: #ffffff;
-      }
-
-      :root[data-theme="theme-eink"] .btn-work:active:not(:disabled) {
-        color: #111111;
-      }
-
-      :root[data-theme="theme-eink"] .btn-work:active:not(:disabled)::before {
-        background: #e8e8e8;
-      }
-
-      :root[data-theme="theme-eink"] .btn-break::before {
-        background: #111111;
-      }
-
-      :root[data-theme="theme-eink"] .btn-break:active:not(:disabled) {
-        color: #ffffff;
-      }
-
-      :root[data-theme="theme-eink"] .btn-break:active:not(:disabled)::before {
-        background: #333333;
-      }
-
-      :root[data-theme="theme-eink"] .btn-log::before {
-        background: #111111;
-      }
-
-      :root[data-theme="theme-eink"] .btn-log:active:not(:disabled) {
-        color: #ffffff;
-      }
-
-      :root[data-theme="theme-eink"] .btn-log:active:not(:disabled)::before {
-        background: #333333;
-      }
-
-      /* Equal specificity to the :active rules above and later in source, so
-         on a desktop click both match and these win. Deliberate, and harmless:
-         every pair resolves to the same colour. The press only changes which
-         fill sits under it. */
-      @media (hover: hover) {
-        :root[data-theme="theme-eink"] .btn-work:hover:not(:disabled) {
-          color: #111111;
-        }
-
-        :root[data-theme="theme-eink"] .btn-break:hover:not(:disabled) {
-          color: #ffffff;
-        }
-
-        :root[data-theme="theme-eink"] .btn-log:hover:not(:disabled) {
-          color: #ffffff;
-        }
-      }
-
+         Each theme now says what its levels are, once, in its own token block
+         at the top of this file. The recipe reads them. */
       /* =========================================================================
           9. SIDEBAR LAYOUT & TABS
           ========================================================================= */
@@ -3421,14 +3553,19 @@
         gap: 10px;
       }
 
+      /* The last two survivors of the hand-written dialect. The info banner was
+         still carrying rgba(118, 185, 248) -- the Tailwind blue that belongs to
+         no theme in this app, and that the accent ladder was built to retire --
+         while the success banner had SF Dark's green hardcoded onto all four
+         themes. A banner is a tinted surface like any other: wash and line. */
       .warning-banner.info {
-        background: rgba(118, 185, 248, 0.06);
-        border: 1px solid rgba(118, 185, 248, 0.2);
+        background: var(--accent-wash);
+        border: 1px solid var(--accent-line);
       }
 
       .warning-banner.success {
-        background: rgba(48, 209, 88, 0.06);
-        border: 1px solid rgba(48, 209, 88, 0.2);
+        background: var(--work-soft);
+        border: 1px solid var(--work-line);
       }
 
       .icon-btn {
@@ -3985,14 +4122,13 @@
         justify-content: center;
       }
 
-      .adjust-apply-btn:hover:not(:disabled) {
-        opacity: 0.82;
-      }
-
-      .adjust-apply-btn:active:not(:disabled) {
-        opacity: 0.65;
-      }
-
+      /* No opacity fade on hover or press. This button carries btn-work /
+         btn-break / btn-log from JS, so it is on the emphasis recipe and gets
+         its states as fill levels like every other control -- fading the whole
+         element to 0.65 on press dimmed its label along with its fill, which
+         is the one part of a control that should never get quieter when you
+         touch it. :disabled keeps its fade: that one means "not available",
+         and dimming everything is exactly right for it. */
       .adjust-apply-btn:disabled {
         opacity: 0.35;
         cursor: not-allowed;
@@ -5928,10 +6064,13 @@
         #task-actions-group button {
           touch-action: manipulation;
           -webkit-tap-highlight-color: transparent;
-          /* These carry no background of their own -- the tint comes from
-             .btn-work / .btn-break / .btn-log. Only the edge and the lift are
-             set here, from the shared tokens. */
-          border: var(--hairline) !important;
+          /* The neutral hairline this used to force on is gone. It was the
+             right instinct -- these buttons had no edge and needed one -- but
+             it reached for the wrong token: a 14%-of-foreground grey rule,
+             which says nothing about which button it is wrapped around, and
+             which at (0,1,1) !important sat on top of the accent edge the
+             recipe now supplies. Both dock groups are .btn-work/.btn-break/
+             .btn-log, so they get that edge on every theme. */
           box-shadow: var(--elev-1);
         }
 
@@ -6686,30 +6825,42 @@
         }
 
         /* Semantic dialog actions. `.modal-container button` (0,1,1) outranks
-           the .btn-*-outline classes (0,1,0), so without these every action
-           button in every dialog renders as the same neutral pill -- Cancel
-           becomes indistinguishable from a destructive Confirm, and the idle
-           dialog's three outcomes become indistinguishable from each other.
-           These are 0,2,0. .btn-secondary is intentionally absent: the neutral
-           base surface is already the correct treatment for it. */
-        .modal-container .btn-danger-outline {
-          border-color: var(--break-line) !important;
-          background: var(--break-soft) !important;
-        }
+           the emphasis recipe (0,1,0), so without this every action button in
+           every dialog renders as the same neutral pill -- Cancel becomes
+           indistinguishable from a destructive Confirm, and the idle dialog's
+           three outcomes become indistinguishable from each other. This is
+           0,2,0. .btn-secondary is intentionally absent: the neutral base
+           surface is already the correct treatment for it.
 
-        .modal-container .btn-warning-outline {
-          border-color: var(--warn-line) !important;
-          background: var(--warn-soft) !important;
-        }
-
-        .modal-container .btn-success-outline {
-          border-color: var(--work-line) !important;
-          background: var(--work-soft) !important;
-        }
-
+           One rule where there were four, because it does not name a colour:
+           --emph-accent is already on the element, put there by the recipe,
+           and --emph-lvl is whatever rung the element's current state has
+           selected -- so press still works through the override instead of
+           being frozen by it, which the four hardcoded --*-soft fills did.
+           The three dock actions are included: they were being flattened to
+           the neutral pill here too, on the phone, in the adjust popover. */
+        .modal-container .btn-work,
+        .modal-container .btn-break,
+        .modal-container .btn-log,
+        .modal-container .btn-danger-outline,
+        .modal-container .btn-warning-outline,
+        .modal-container .btn-success-outline,
         .modal-container .btn-info-outline {
-          border-color: var(--accent-line) !important;
-          background: var(--accent-soft) !important;
+          border-color: color-mix(
+            in srgb,
+            var(--emph-accent)
+              min(100%, calc(var(--emph-edge) * var(--emph-gain))),
+            transparent
+          ) !important;
+          background: color-mix(
+            in srgb,
+            var(--emph-accent)
+              min(
+                var(--emph-fill-max),
+                calc(var(--emph-lvl) * var(--emph-gain))
+              ),
+            transparent
+          ) !important;
         }
 
         /* Geometry only -- deliberately no font-size here.
