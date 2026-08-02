@@ -5707,6 +5707,13 @@
           --m-safe-right: env(safe-area-inset-right, 0px);
           --m-gutter: 1rem;
 
+          /* One type size for every field on the phone, readable or editable.
+             The value is forced by iOS -- see the touch layer below -- but the
+             uniformity is a design decision: a field that only displays its
+             value must read the same as the one you type it into, or the two
+             look like different components sitting in the same dialog. */
+          --m-field-text: 16px;
+
           /* ---- No mobile-only material ---------------------------------
              This block used to define a parallel --glass-surface /
              --glass-hairline / --glass-surface-solid system that existed only
@@ -6833,11 +6840,16 @@
            control in this app inherits --text-sm (~11.5px at the 14px root), so
            all 71 of them would trigger it. !important is deliberate: several
            controls carry inline font sizes, and a zoom-on-focus is far worse
-           than the type being a step larger. */
+           than the type being a step larger.
+
+           That sets the phone's field type size, so --m-field-text carries it
+           to the fields this selector cannot reach -- the read-only ones, which
+           are not controls and never focus, but sit beside these and have to
+           match them. */
         input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]),
         select,
         textarea {
-          font-size: 16px !important;
+          font-size: var(--m-field-text) !important;
         }
 
         /* Comfortable, thumb-sized controls.
@@ -6855,10 +6867,11 @@
           padding: 0 var(--space-3);
         }
 
-        /* Same field height as the controls above, but the box keeps its
-           padding: a block has to space its own text. */
+        /* Same field height and type size as the controls above, but the box
+           keeps its padding: a block has to space its own text. */
         .input-readout {
           min-height: 44px;
+          font-size: var(--m-field-text);
         }
 
         textarea.input-standard {
