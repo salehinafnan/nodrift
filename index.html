@@ -7602,25 +7602,36 @@
         if (schemeMeta)
           schemeMeta.setAttribute("content", isDark ? "dark" : "light");
 
-        /* Tint has to match whatever <html> is actually painted, because that
-           is the surface the browser chrome butts up against. The
-           `(max-width: 767px) and (display-mode: standalone)` block above
-           repaints html with --surface-under; every other context leaves it at
-           --page-bg. --surface-under rather than --panel-bg is load-bearing:
-           it is the token the phone's OLED themes redirect to --page-bg, so
-           reading the panel here would put a #1c1c1e status bar back against
-           a #000000 app -- which is the bug this pair of reads already had
-           once, in the other direction. */
+        /* Tint has to match the surface the browser chrome actually butts up
+           against -- which on a phone is NOT <html>. .console-panel is sized
+           100svh at this breakpoint and painted --surface-under, so it covers
+           html/body edge to edge on every pane; whatever they are painted is
+           never on screen. That is true in a phone browser exactly as it is in
+           a standalone window, which is why the gate is width alone.
+
+           Gating on `and (display-mode: standalone)` is what put a #f2f2f7
+           address bar under the white Logbook pane on sf-light: a phone
+           browser fell through to --page-bg, and on the light themes --page-bg
+           (#f2f2f7 / #e8e8e8) is a step darker than the --panel-bg #ffffff the
+           panel paints. It only ever looked right on the OLED themes, where
+           the two tokens happen to coincide at #000000.
+
+           --surface-under rather than --panel-bg is still load-bearing, and is
+           what makes the wider gate safe: the phone breakpoint redirects it to
+           --page-bg on sf-dark/vercel-dark, so the OLED themes keep resolving
+           #000000 here. Reading the panel directly would put a #1c1c1e status
+           bar back against a #000000 app -- the same bug in the other
+           direction, which this pair of reads has already had once. */
         const prop =
-          window.matchMedia &&
-          window.matchMedia("(max-width: 767px) and (display-mode: standalone)")
-            .matches
+          window.matchMedia && window.matchMedia("(max-width: 767px)").matches
             ? "--surface-under"
             : "--page-bg";
 
         /* Only reached if the custom properties cannot be resolved this early.
-           --surface-under is listed at its PHONE value, since that is the only
-           context the standalone branch above can be taken in. */
+           --surface-under is listed at its PHONE value, since the branch above
+           can only select it inside the phone breakpoint -- which is also the
+           only place the sf-dark/vercel-dark redirect to --page-bg applies,
+           hence #000000 rather than the #1c1c1e panel on sf-dark. */
         const FALLBACK = {
           "sf-light": { "--page-bg": "#f2f2f7", "--surface-under": "#ffffff" },
           "sf-dark": { "--page-bg": "#000000", "--surface-under": "#000000" },
@@ -29545,14 +29556,14 @@ logic (.value reads, .value sets, change listeners) works unchanged.
             ? window.matchMedia("(display-mode: standalone)")
             : null;
 
-        // Mirrors the one stylesheet block that repaints <html> with
-        // --panel-bg instead of --page-bg. Kept as a single query so it cannot
-        // drift out of step with that selector -- see syncThemeColorMeta().
-        const PANEL_SURFACE_MQ =
+        // The breakpoint at which .console-panel becomes a 100svh full-bleed
+        // frame painted --surface-under, hiding html/body behind it. That is
+        // the surface the OS chrome meets, so it is the one the tint copies --
+        // see syncThemeColorMeta(). Width alone, deliberately: the panel is
+        // full-bleed in a phone browser and in a standalone window alike.
+        const PHONE_SURFACE_MQ =
           typeof window.matchMedia === "function"
-            ? window.matchMedia(
-                "(max-width: 767px) and (display-mode: standalone)",
-              )
+            ? window.matchMedia("(max-width: 767px)")
             : { matches: false };
 
         /**
@@ -29578,21 +29589,31 @@ logic (.value reads, .value sets, change listeners) works unchanged.
           if (!meta) return;
           /* Must resolve to the same surface the pre-paint boot script in
              <head> picked, or the tint would jump the moment the first theme
-             change lands -- keep the two token names in step. <html> is
-             painted --surface-under only under `(max-width: 767px) and
-             (display-mode: standalone)`; everywhere else -- including a phone
-             browser, which is where the mobile shell spends most of its life
-             -- it is --page-bg. Reading the panel unconditionally tinted iOS
-             Safari's chrome #1c1c1e against a #000000 page.
+             change lands -- keep the two reads in step.
 
-             This tests the CSS override's own media query verbatim rather than
-             combining PHONE_MQ with navigator.standalone: on iOS before 15.4
-             navigator.standalone is true while `display-mode: standalone` does
-             not match, so the two would disagree and the tint would drift off
-             the page again. themeColorIsRead() still honours
+             Inside the phone breakpoint the answer is --surface-under, because
+             .console-panel is 100svh and painted with it, so it -- not <html>
+             -- is what the OS chrome butts against on every pane. This used to
+             also require `display-mode: standalone`, on the theory that only
+             the standalone block repaints <html>; but <html> is covered either
+             way, and the extra clause dropped a phone browser to --page-bg,
+             which on the light themes is a step darker than the panel
+             (#f2f2f7 vs #ffffff). That is the grey address bar under the white
+             Logbook pane. The OLED themes hid it by having both tokens at
+             #000000.
+
+             --surface-under, never --panel-bg: the breakpoint redirects it to
+             --page-bg on sf-dark/vercel-dark, so those still resolve #000000
+             here. Reading the panel unconditionally tinted iOS Safari's chrome
+             #1c1c1e against a #000000 page -- the same bug, mirrored.
+
+             Width alone also sidesteps a trap the old query had to work
+             around: on iOS before 15.4 navigator.standalone is true while
+             `display-mode: standalone` does not match, so any gate combining
+             the two disagrees with itself. themeColorIsRead() still honours
              navigator.standalone -- whether the tint is read and which surface
              it should copy are separate questions. */
-          const prop = PANEL_SURFACE_MQ.matches
+          const prop = PHONE_SURFACE_MQ.matches
             ? "--surface-under"
             : "--page-bg";
           const bg = getComputedStyle(document.documentElement)
