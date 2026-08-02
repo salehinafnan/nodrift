@@ -191,8 +191,14 @@
            themes at once -- it is always "a little of the foreground", never a
            grey that happens to suit one background. */
         --hairline-color: color-mix(in srgb, var(--text-main) 14%, transparent);
-        --hairline: 0.5px solid var(--hairline-color);
-        --hairline-strong: 0.5px solid
+        /* Split out from the shorthand so a rule can use the app's edge weight
+           without also taking its colour. The emphasis recipe needs exactly
+           that -- an accent-tinted edge at hairline weight -- and hardcoding
+           1px there put a heavier rule around the three most prominent
+           controls in the app than around anything else on screen. */
+        --hairline-width: 0.5px;
+        --hairline: var(--hairline-width) solid var(--hairline-color);
+        --hairline-strong: var(--hairline-width) solid
           color-mix(in srgb, var(--text-main) 28%, transparent);
 
         /* Elevation shadows. Deliberately neutral black rather than a tint of
@@ -359,13 +365,20 @@
            ground, darker on a light one, correct on both without either being
            special-cased, because --text-main already knows which way is up.
 
-           SF Light needs much more of it than the others and always did: its
-           accents are intrinsically light (#34c759 on white is 1.9:1 no matter
-           what you do with it), so its label was failing on its own fill at
-           1.76:1 long before any of this. This is that bug, fixed at the
-           layer it belongs to. */
+           The shift is zero everywhere except under an explicit request for
+           more contrast. Pulling an accent label toward the foreground buys
+           contrast by spending the colour, and on a light theme it spends all
+           of it -- SF Light's vivid green label turns a dark bottle green,
+           which is legible and looks wrong. That is a bad trade to make on
+           somebody's behalf. Under prefers-contrast the user has asked for
+           exactly that trade, so there it engages.
+
+           Which leaves the cap doing the work by itself the rest of the time,
+           and it is sized per theme to suit the label it is protecting: a
+           theme whose label never moves cannot let its fill move far either.
+           SF Light's is the tightest for that reason -- see its block. */
         --emph-fill-max: 45%;
-        --emph-ink-shift: 20%;
+        --emph-ink-shift: 0%;
 
         /* Shared Color Scheme Accents */
         --accent-work: #34c759;
@@ -625,7 +638,13 @@
         --surface-3: var(--modal-bg);
         --surface-3-solid: var(--modal-bg);
         --hairline-color: #111111;
-        --hairline: 1px solid #111111;
+        /* The one theme that draws a full-weight rule rather than a hairline,
+           and the reason every edge on it is 1px. Now that the width is a
+           token, the emphasis recipe picks that up here without being told
+           about this theme -- which is what the three !important border
+           patches that used to live further down were doing by hand. */
+        --hairline-width: 1px;
+        --hairline: var(--hairline-width) solid #111111;
         --hairline-strong: 2px solid #111111;
         --elev-1: none;
         --elev-2: none;
@@ -753,13 +772,20 @@
            bump at the bottom of this block rather than nine values here. */
         --emph-fill: 20%;
         --emph-1-fill: 28%;
-        /* The one theme that needs a real ink shift. Its accents are lighter
-           than its ground can support as text -- #34c759 on white is 1.9:1 --
-           so the label has to travel much further toward the foreground than
-           it does on a dark theme, where the accent is already the bright
-           thing in the room. This is the number that fixes a green label that
-           was sitting on a green fill at 1.76:1. */
-        --emph-ink-shift: 50%;
+        /* The tightest cap of the four themes, and the reason is the label.
+           This theme's accents are intrinsically light -- #34c759 on white is
+           1.9:1 no matter what is done to it -- so its label has nowhere to go
+           and stays exactly the accent. A label that cannot move is a fill
+           that must not either: let the gain push this fill and it closes on
+           its own label. So it is pinned at the primary's resting level and
+           the gain goes entirely into the edge instead, which is uncapped and
+           carries the theme's presence on a dimmed screen by itself.
+
+           The cost is that primary and secondary converge on a touch device
+           here, since the secondary's 20% is allowed to climb to the same 28%.
+           Acceptable: this theme distinguishes its actions by hue, not by
+           weight, and the alternative was a dark bottle-green label. */
+        --emph-fill-max: 28%;
         --dropdown-bg: var(--modal-bg);
         --modal-bg: #ffffff;
         /* A light theme needs a heavier hairline than a dark one to read at
@@ -822,6 +848,23 @@
           --mix-strong: 38%;
           --mix-line: 70%;
           --emph-gain: 2.2;
+          /* The one place the label is allowed to leave its accent. Everywhere
+             else this is 0% and the label is exactly the accent, because the
+             contrast it buys is paid for in colour. Here the user has asked
+             for that trade at the OS level, so it is theirs to have. */
+          --emph-ink-shift: 22%;
+        }
+
+        /* Stated at (0,2,0) so it outranks the theme's own block rather than
+           losing to it, which is the same specificity trap the gain exists to
+           step around -- but this one is a single value on a single theme, so
+           naming it directly is clearer than another multiplier. SF Light
+           needs the most of it: its label has the furthest to travel and its
+           fill, capped tight for exactly that reason, can now be let off the
+           leash a little because the label is finally moving with it. */
+        :root[data-theme="sf-light"] {
+          --emph-ink-shift: 26%;
+          --emph-fill-max: 45%;
         }
       }
 
@@ -2414,7 +2457,7 @@
             min(var(--emph-fill-max), calc(var(--emph-lvl) * var(--emph-gain))),
           transparent
         );
-        border: 1px solid
+        border: var(--hairline-width) solid
           color-mix(
             in srgb,
             var(--emph-accent)
@@ -3072,16 +3115,20 @@
         transform: scale(0.92);
       }
 
+      /* The colour on the next four lines used to be Tailwind's green and red
+         rather than the theme's -- the same off-system palette the accent
+         ladder was built to retire, and the reason a save hover looked like a
+         different app's green on three of the four themes. */
       .preset-action-btn.btn-save:hover {
         color: var(--accent-work);
-        border-color: rgba(74, 222, 128, 0.3);
-        background: rgba(74, 222, 128, 0.06);
+        border-color: var(--work-line);
+        background: var(--work-soft);
       }
 
       .preset-action-btn.btn-delete:hover {
         color: var(--accent-break);
-        border-color: rgba(248, 113, 113, 0.3);
-        background: rgba(248, 113, 113, 0.06);
+        border-color: var(--break-line);
+        background: var(--break-soft);
       }
 
       .clear-filter-btn {
@@ -3471,16 +3518,19 @@
         min-width: 60px;
       }
 
+      /* Both tags took their colour from Tailwind rather than from the theme,
+         so on E-Ink -- a monochrome theme -- they were the only two coloured
+         objects on the screen. Ladder rungs now, like every other tinted pill. */
       .tag-over {
-        background: rgba(74, 222, 128, 0.1);
+        background: var(--work-soft);
         color: var(--accent-work);
-        border: 1px solid rgba(74, 222, 128, 0.2);
+        border: var(--hairline-width) solid var(--work-line);
       }
 
       .tag-under {
-        background: rgba(245, 158, 11, 0.1);
+        background: var(--warn-soft);
         color: var(--accent-warning);
-        border: 1px solid rgba(245, 158, 11, 0.2);
+        border: var(--hairline-width) solid var(--warn-line);
       }
 
       .icon-actions {
@@ -3560,12 +3610,12 @@
          themes. A banner is a tinted surface like any other: wash and line. */
       .warning-banner.info {
         background: var(--accent-wash);
-        border: 1px solid var(--accent-line);
+        border: var(--hairline-width) solid var(--accent-line);
       }
 
       .warning-banner.success {
         background: var(--work-soft);
-        border: 1px solid var(--work-line);
+        border: var(--hairline-width) solid var(--work-line);
       }
 
       .icon-btn {
