@@ -10,10 +10,9 @@
     <meta name="color-scheme" content="light" />
     <title>nodrift — tab bar mock</title>
     <style>
-      /* The real sf-light values out of index.html, so this is the actual
-         case and not an approximation of it. The grey rows matter most: they
-         are what the translucent bar sits over, and therefore what turned the
-         browser bar grey in the first place. */
+      /* sf-light values copied out of index.html. The grey --element-bg rows
+         are the load-bearing part: they are what passes under the translucent
+         bar and dragged the browser chrome grey. */
       :root {
         color-scheme: only light;
         --surface-under: #ffffff;
@@ -35,10 +34,20 @@
         box-sizing: border-box;
       }
 
+      /* ---- THE FIX TO THE RIG -------------------------------------------
+         The previous version let the document scroll, which collapses
+         Safari's bottom bar to a bare pill -- a state the real app never
+         reaches. index.html locks the shell at 100svh with overflow: hidden
+         and scrolls an inner element instead, so the browser bar stays
+         expanded for the whole session. Reproduced exactly here. */
       html,
       body {
+        height: 100%;
+        height: 100svh;
         margin: 0;
         padding: 0;
+        overflow: hidden;
+        overscroll-behavior: none;
         background: var(--surface-under);
         color: var(--text-main);
         font:
@@ -49,8 +58,29 @@
         -webkit-font-smoothing: antialiased;
       }
 
-      main {
-        padding: 12px 14px calc(var(--tabbar-h) + 160px);
+      /* Mirrors .console-panel: full-bleed, painted --surface-under. */
+      #shell {
+        position: fixed;
+        inset: 0;
+        background: var(--surface-under);
+      }
+
+      /* Mirrors the app's panes: runs to the very bottom edge of the
+         viewport, so rows genuinely travel underneath the bar rather than
+         stopping above it. The ::after spacer is how index.html clears the
+         bar too. */
+      #scroller {
+        position: absolute;
+        inset: 0;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior: contain;
+        padding: 12px 14px 0;
+      }
+      #scroller::after {
+        content: "";
+        display: block;
+        height: calc(var(--tabbar-h) + 40px);
       }
 
       /* ---- variant switcher ------------------------------------------- */
@@ -58,7 +88,7 @@
         border: 2px solid var(--accent-blue);
         border-radius: var(--radius-lg);
         padding: 12px;
-        margin-bottom: 14px;
+        margin-bottom: 12px;
       }
       .panel .k {
         font-size: 11px;
@@ -79,7 +109,7 @@
       .opts {
         display: grid;
         gap: 7px;
-        margin-bottom: 14px;
+        margin-bottom: 12px;
       }
       a.o {
         display: block;
@@ -107,7 +137,7 @@
         display: flex;
         gap: 6px;
         flex-wrap: wrap;
-        margin-bottom: 16px;
+        margin-bottom: 12px;
       }
       .heights a {
         flex: 1;
@@ -128,7 +158,18 @@
       .hint {
         font-size: 13px;
         color: var(--text-muted);
-        margin: 0 0 14px;
+        margin: 0 0 12px;
+      }
+      .hint b {
+        color: var(--text-main);
+      }
+      .warn {
+        border: 1px solid var(--accent-work);
+        background: #eafaf0;
+        border-radius: 10px;
+        padding: 10px 11px;
+        font-size: 13px;
+        margin-bottom: 12px;
       }
 
       /* ---- fake app chrome -------------------------------------------- */
@@ -140,7 +181,7 @@
         background: var(--element-bg);
         border-radius: var(--radius-lg);
         padding: 12px 14px;
-        margin-bottom: 14px;
+        margin-bottom: 12px;
         font-size: 13px;
       }
       .statusbar .brand {
@@ -155,8 +196,6 @@
         font-size: 12px;
       }
 
-      /* The rows. Deliberately --element-bg grey: this is the surface that
-         passes under the bar and used to drag the browser chrome grey. */
       .row {
         display: flex;
         align-items: center;
@@ -228,9 +267,7 @@
         stroke-linejoin: round;
       }
 
-      /* The solid strip. In the proposed variant it sits BEHIND the bar and
-         simply stops content from reaching the last few pixels, so the bar's
-         bottom edge always composites over a known white. */
+      /* The solid strip that owns the last few pixels. */
       #foot {
         position: fixed;
         left: 0;
@@ -248,7 +285,7 @@
           a: {
             name: "Shipped today",
             head: "Solid bar, no glass",
-            note: "What your app looks like right now. Browser bar is correct, but the material is gone — rows vanish behind a flat panel.",
+            note: "What your app looks like right now. Browser bar correct, material gone — rows vanish behind a flat panel.",
             bg: "var(--surface-under)",
             filter: "none",
             lift: false,
@@ -257,7 +294,7 @@
           b: {
             name: "Proposed",
             head: "Glass bar, flush, solid strip behind it",
-            note: "Identical shape to today — flush, full width, square. Glass is back: rows blur through it. The strip hides them only in the last few pixels, so the bottom edge is always white.",
+            note: "Identical shape to today — flush, full width, square. Glass back: rows blur through it. The strip hides them only in the last few pixels, so the bottom edge stays white.",
             bg: "var(--surface-2)",
             filter: "var(--surface-blur)",
             lift: false,
@@ -266,16 +303,16 @@
           c: {
             name: "Alternative",
             head: "Glass bar lifted, solid strip below it",
-            note: "Same idea but the bar sits above the strip instead of over it. This is closer to the floating version you disliked — included only so you can compare.",
+            note: "Same idea, bar sits above the strip instead of over it. Closer to the floating version you disliked — here only to compare.",
             bg: "var(--surface-2)",
             filter: "var(--surface-blur)",
             lift: true,
             foot: true,
           },
           d: {
-            name: "Broken",
+            name: "Broken (control)",
             head: "Glass bar, no strip",
-            note: "The original bug, for reference. Scroll grey rows under the bar and the browser bar should follow them grey.",
+            note: "The original bug. This one MUST go grey — if it stays white the rig still is not reproducing and nothing else here counts.",
             bg: "var(--surface-2)",
             filter: "var(--surface-blur)",
             lift: false,
@@ -284,7 +321,7 @@
         };
 
         var q = location.search;
-        var v = (q.match(/[?&]v=([a-d])/) || [])[1] || "b";
+        var v = (q.match(/[?&]v=([a-d])/) || [])[1] || "d";
         var h = parseInt((q.match(/[?&]h=(\d+)/) || [])[1], 10);
         if (!(h >= 0 && h <= 60)) h = 14;
 
@@ -294,36 +331,45 @@
     </script>
   </head>
   <body>
-    <main>
-      <div class="panel">
-        <div class="k" id="p-k"></div>
-        <h2 id="p-h"></h2>
-        <p id="p-n"></p>
+    <div id="shell">
+      <div id="scroller">
+        <div class="panel">
+          <div class="k" id="p-k"></div>
+          <h2 id="p-h"></h2>
+          <p id="p-n"></p>
+        </div>
+
+        <div class="warn">
+          <b>Check this first:</b> the browser bar below should keep all its
+          buttons (back, reload, dots) the whole time, even while you scroll.
+          The page itself is locked and cannot scroll — only the list moves,
+          exactly like the real app. If the bar ever collapses to just the
+          address pill, tell me and stop.
+        </div>
+
+        <div class="opts" id="opts"></div>
+
+        <p class="hint">
+          Strip height — affects the Proposed and Alternative options only.
+        </p>
+        <div class="heights" id="heights"></div>
+
+        <p class="hint">
+          <b>How to judge it:</b> scroll the list until grey rows are passing
+          under the tab bar, then look at the browser bar below. Start with
+          <b>Broken</b> — confirm it goes grey. Only then are the other three
+          worth reading.
+        </p>
+
+        <div class="statusbar">
+          <div class="brand">no<span>drift</span></div>
+          <div class="m">09:41 AM</div>
+          <div class="live">● Active</div>
+        </div>
+
+        <div id="rows"></div>
       </div>
-
-      <div class="opts" id="opts"></div>
-
-      <p class="hint">
-        Strip height — only affects the two variants that use one. If the
-        browser bar still picks up grey, try a taller strip.
-      </p>
-      <div class="heights" id="heights"></div>
-
-      <p class="hint">
-        <b>How to judge it:</b> scroll until the grey rows are passing
-        underneath the tab bar, then look at the browser bar below. It should
-        stay white. Then look at the tab bar itself — you should see the rows
-        softly blurring through it.
-      </p>
-
-      <div class="statusbar">
-        <div class="brand">no<span>drift</span></div>
-        <div class="m">09:41 AM</div>
-        <div class="live">● Active</div>
-      </div>
-
-      <div id="rows"></div>
-    </main>
+    </div>
 
     <div id="foot"></div>
 
@@ -388,10 +434,7 @@
           a.className = "o" + (k === S.v ? " on" : "");
           a.href = "?v=" + k + "&h=" + S.h;
           a.innerHTML =
-            "<b>" +
-            S.all[k].name +
-            "</b>" +
-            S.all[k].head.replace(/</g, "&lt;");
+            "<b>" + S.all[k].name + "</b>" + S.all[k].head.replace(/</g, "&lt;");
           opts.appendChild(a);
         });
 
@@ -419,6 +462,10 @@
           ["Tue", "06/16", "7h 40m logged", "Short", 1],
           ["Wed", "06/17", "8h 10m logged", "Complete", 0],
           ["Thu", "06/18", "8h 00m logged", "Complete", 0],
+          ["Fri", "06/19", "8h 06m logged", "Complete", 0],
+          ["Mon", "06/22", "7h 52m logged", "Complete", 0],
+          ["Tue", "06/23", "8h 18m logged", "Complete", 0],
+          ["Wed", "06/24", "8h 01m logged", "Complete", 0],
         ];
         var rows = document.getElementById("rows");
         days.forEach(function (d) {
