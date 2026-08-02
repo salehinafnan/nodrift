@@ -777,15 +777,22 @@
            1.9:1 no matter what is done to it -- so its label has nowhere to go
            and stays exactly the accent. A label that cannot move is a fill
            that must not either: let the gain push this fill and it closes on
-           its own label. So it is pinned at the primary's resting level and
-           the gain goes entirely into the edge instead, which is uncapped and
-           carries the theme's presence on a dimmed screen by itself.
+           its own label. The gain goes into the edge instead, which is
+           uncapped and carries this theme's presence by itself.
 
-           The cost is that primary and secondary converge on a touch device
-           here, since the secondary's 20% is allowed to climb to the same 28%.
-           Acceptable: this theme distinguishes its actions by hue, not by
-           weight, and the alternative was a dark bottle-green label. */
-        --emph-fill-max: 28%;
+           Set at the primary's *hover* level rather than its resting one, so
+           that rest and hover stay distinct underneath it. At 28% they did
+           not, and the most prominent control in the app had no hover at all
+           on this theme -- the cap was quietly eating the only channel that
+           answered. 32% costs the label 1.76:1 -> 1.72:1, which is nothing,
+           and buys back a state.
+
+           The cost that remains is that primary and secondary converge on a
+           touch device, since the secondary's 20% climbs into the same
+           ceiling. Acceptable: this theme distinguishes its actions by hue
+           rather than by weight, and the alternative was a bottle-green
+           label. */
+        --emph-fill-max: 32%;
         --dropdown-bg: var(--modal-bg);
         --modal-bg: #ffffff;
         /* A light theme needs a heavier hairline than a dark one to read at
@@ -2447,8 +2454,20 @@
             min(100%, calc(var(--emph-ink-shift) * var(--emph-gain)))
         );
 
-        /* The two things a state changes. Everything else is derived. */
+        /* What a state changes. The fill was the only one of these for a
+           while, and that was a bug waiting for a capped theme to find: on SF
+           Light the fill is pinned at 28% to protect the label, so a hover
+           that could only move the fill moved nothing at all and the primary
+           action had no states whatsoever.
+
+           A control has two channels and both answer now. The edge lift is a
+           multiplier rather than a level so it needs nothing from the themes:
+           it scales whatever edge a theme already chose and clamps at full, so
+           E-Ink and Vercel's primary -- both already at 100% -- simply stay
+           there and let their fills do the talking, which is what those themes
+           were always doing anyway. */
         --emph-lvl: var(--emph-fill);
+        --emph-edge-lift: 1;
         --emph-txt: var(--emph-label, var(--emph-ink));
 
         background: color-mix(
@@ -2461,7 +2480,12 @@
           color-mix(
             in srgb,
             var(--emph-accent)
-              min(100%, calc(var(--emph-edge) * var(--emph-gain))),
+              min(
+                100%,
+                calc(
+                  var(--emph-edge) * var(--emph-gain) * var(--emph-edge-lift)
+                )
+              ),
             transparent
           );
         color: var(--emph-txt);
@@ -2539,9 +2563,10 @@
         .btn-warning-outline:hover:not(:disabled),
         .btn-info-outline:hover:not(:disabled) {
           --emph-lvl: var(--emph-hover);
+          --emph-edge-lift: 1.45;
           --emph-txt: var(
             --emph-label-hover,
-            var(--emph-label, var(--emph-accent))
+            var(--emph-label, var(--emph-ink))
           );
         }
       }
@@ -2554,9 +2579,10 @@
       .btn-warning-outline:active:not(:disabled),
       .btn-info-outline:active:not(:disabled) {
         --emph-lvl: var(--emph-press);
+        --emph-edge-lift: 1.9;
         --emph-txt: var(
           --emph-label-press,
-          var(--emph-label, var(--emph-accent))
+          var(--emph-label, var(--emph-ink))
         );
       }
 
@@ -6899,7 +6925,12 @@
           border-color: color-mix(
             in srgb,
             var(--emph-accent)
-              min(100%, calc(var(--emph-edge) * var(--emph-gain))),
+              min(
+                100%,
+                calc(
+                  var(--emph-edge) * var(--emph-gain) * var(--emph-edge-lift)
+                )
+              ),
             transparent
           ) !important;
           background: color-mix(
