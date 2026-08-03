@@ -177,30 +177,85 @@
         --tint-chrome: var(--panel-bg);
         --tint-overlay: var(--modal-bg);
 
-        --surface-1: color-mix(in srgb, var(--tint-content) 70%, transparent);
+        /* ---- Film weight ---------------------------------------------------
+           How much pigment each level lays down, and therefore how much of the
+           backdrop survives it. These are the material's only intensity knob:
+           blur decides how LEGIBLE what shows through is, film decides how MUCH
+           shows through at all. Tuning the blur alone can never make a surface
+           read as more transparent -- it only smears the same small fraction of
+           backdrop that the film was already letting past.
+
+           Named rather than spelled into the six mixes below so the translucent
+           level and its opaque twin cannot drift apart: they are meant to be
+           the same colour, one composited against the page and one baked flat,
+           which only holds while both read the same number. Retuning the whole
+           app's glass is these three lines and nothing else.
+
+           They sit deliberately near Apple's own materials, which are far more
+           transparent than a first pass usually guesses -- roughly half pigment
+           and half backdrop for chrome, not the 85-90% most web implementations
+           land on.
+
+           These two are now AT the floor, not approaching it. Below about 50%
+           the film stops being the dominant layer, foreground text starts
+           competing with whatever is scrolling underneath it, and the fix stops
+           being "more blur" -- there is no radius that rescues a film thin
+           enough to lose the contrast war. If more depth is wanted from here,
+           it has to come from the tint pigment or the elevation shadow, not
+           from these two numbers. */
+        --film-1: 50%;
+        --film-2: 52%;
+        /* Overlays run denser than chrome because they sit on a dimmed scrim
+           rather than on content: at chrome's weight a light sheet turns grey
+           and a dark one loses its lift off the page. Dialogs and the settings
+           sheet also hold the densest text in the app, so this rung stays the
+           conservative one -- it has more room left than the two above it, and
+           is the right place to spend if the glass still reads too quiet. */
+        --film-3: 72%;
+
+        --surface-1: color-mix(
+          in srgb,
+          var(--tint-content) var(--film-1),
+          transparent
+        );
         --surface-1-solid: color-mix(
           in srgb,
-          var(--tint-content) 70%,
+          var(--tint-content) var(--film-1),
           var(--surface-under)
         );
-        --surface-2: color-mix(in srgb, var(--tint-chrome) 72%, transparent);
+        --surface-2: color-mix(
+          in srgb,
+          var(--tint-chrome) var(--film-2),
+          transparent
+        );
         --surface-2-solid: color-mix(
           in srgb,
-          var(--tint-chrome) 72%,
+          var(--tint-chrome) var(--film-2),
           var(--surface-under)
         );
-        /* Overlays run denser than chrome because they sit on a dimmed scrim
-           rather than on content: at chrome's 72% a light sheet turns grey and
-           a dark one loses its lift off the page. 90% keeps every dialog the
-           colour it already was and spends the translucency on the edge. */
-        --surface-3: color-mix(in srgb, var(--tint-overlay) 90%, transparent);
+        --surface-3: color-mix(
+          in srgb,
+          var(--tint-overlay) var(--film-3),
+          transparent
+        );
+        /* Level 3's twin is the one with no consumer at the moment -- the sheet
+           that used to take it is glass now. Kept because the ladder is an API:
+           all three levels offer both forms, and a level that silently lacks
+           its opaque twin is a trap for the next surface that needs one. */
         --surface-3-solid: var(--tint-overlay);
 
         /* Saturation, not just blur: pushing the sampled backdrop past 100%
            is what stops colour read through glass from going muddy, and is
            the difference between this reading as a material and reading as a
-           translucent rectangle. */
-        --surface-blur: blur(24px) saturate(180%);
+           translucent rectangle.
+
+           The radius is paired to the film above and has to move with it. A
+           thinner film shows more of the backdrop, which means more of it is
+           still recognisable as text and edges rather than as a wash -- so the
+           radius rises to dissolve it. That pairing is the whole trick: the
+           backdrop stays clearly present underneath without ever resolving
+           into something the eye tries to read. */
+        --surface-blur: blur(38px) saturate(210%);
 
         /* One hairline for the whole app. Tinting it from --text-main rather
            than from a border variable is what keeps it correct on all four
@@ -603,8 +658,9 @@
         /* No saturate: this theme is monochrome by construction, so boosting
            chroma on the sampled backdrop has nothing to act on and would only
            colour-cast the greys. A lighter blur for the same reason -- there
-           is no colour bleed here to hide. */
-        --surface-blur: blur(18px);
+           is no colour bleed here to hide. Scaled with the base radius so the
+           one theme that tunes this stays in the same proportion to it. */
+        --surface-blur: blur(28px);
         /* Halved from 20% when --hairline-width went 0.5px -> 1px, so the edge
            holds the weight this theme was tuned for. See the token. */
         --hairline-color: color-mix(in srgb, var(--text-main) 11%, transparent);
@@ -6869,7 +6925,9 @@
           bottom: calc(-1 * var(--m-chrome-bleed));
           z-index: calc(var(--z-overlay) - 2);
           max-height: calc(85svh + var(--m-chrome-bleed));
-          /* Level 3, and DELIBERATELY the solid twin with no backdrop-filter.
+          /* Level 3, but painted by ::before rather than here -- see that rule.
+
+             #m-sheet itself must stay free of backdrop-filter, permanently.
              This is not a perf call, it is a correctness one: a non-none
              backdrop-filter makes an element a containing block for its
              position: fixed descendants, exactly as a transform does. The
@@ -6878,20 +6936,16 @@
              `body.m-sheet-open:has(#m-sheet .idle-popup.show) #m-sheet`
              rule further down exists for the sole purpose of dropping the
              sheet's transform so those resolve against the viewport instead
-             of against the sheet. Blurring here silently reinstates the very
+             of against the sheet. A filter here silently reinstates the very
              containing block that rule is there to destroy, and the popovers
              land off-screen below the fold. Verified in Chrome: with the
-             filter on, #settings-config-popup's top goes to 874px on an 874px
-             viewport.
+             filter on the sheet, #settings-config-popup's top goes to 874px
+             on an 874px viewport.
 
-             Nothing is lost visually. The sheet covers the bottom of the
-             screen over its own dimmed backdrop -- the same --scrim the
-             modals sit on -- and --surface-3-solid lands within a few levels
-             of what the 90% film resolves to over that, which is below the
-             threshold where it reads as anything. The film has no fixed
-             value to match exactly anyway: it drifts with whatever shows
-             through the scrim. */
-          background: var(--surface-3-solid);
+             Transparent rather than a fill, because the fill now lives one
+             layer down. Leaving a colour here would sit between the pseudo
+             element and the page and there would be nothing left to blur. */
+          background: transparent;
           border-top: var(--hairline);
           border-left: none;
           border-right: none;
@@ -6907,6 +6961,49 @@
             var(--space-3) + var(--m-safe-bottom) + var(--m-chrome-bleed)
           );
           box-sizing: border-box;
+        }
+
+        /* The sheet's glass, held one layer below its content.
+
+           This is the general escape hatch for putting a backdrop-filter on an
+           element that owns position: fixed descendants, and it is why the
+           sheet can finally be glass at all. The popovers are children of
+           #m-sheet, which makes them SIBLINGS of this pseudo element and never
+           its descendants -- so it can carry any filter it likes without
+           becoming a containing block for anything. Reach for this pattern
+           rather than dropping the filter, and never move one back up onto
+           #m-sheet.
+
+           z-index: -1 puts it under the sheet's content but still above the
+           sheet's own (transparent) background, which is what leaves the page
+           and the scrim as its backdrop instead of the sheet's own fill.
+           #m-sheet already establishes a stacking context in both of its
+           states -- positioned with an explicit z-index, transformed or not --
+           so the negative index cannot escape it.
+
+           Not a flex item despite the flex parent: absolutely positioned
+           children are taken out of flow before flex layout ever sees them.
+
+           The negative top inset is the border width, so this covers the
+           sheet's border BOX rather than its padding box and the fill reaches
+           under the semi-transparent hairline exactly the way a normal
+           background would. Every other side is flush -- the sheet has no
+           left, right or bottom border. */
+        #m-sheet::before {
+          content: "";
+          position: absolute;
+          inset: calc(-1 * var(--hairline-width)) 0 0 0;
+          z-index: -1;
+          /* Inherited, never restated: the fill and the sheet must round
+             identically, and two literals will drift the first time one of
+             them is touched. */
+          border-radius: inherit;
+          background: var(--surface-3);
+          -webkit-backdrop-filter: var(--surface-blur);
+          backdrop-filter: var(--surface-blur);
+          /* Decorative. It sits under the content anyway, but this keeps it
+             out of hit-testing even if the stacking order is ever changed. */
+          pointer-events: none;
         }
 
         body.m-sheet-open #m-sheet {
