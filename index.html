@@ -140,29 +140,42 @@
            hardcoding one per level PER PLATFORM is the drift this replaces --
            there were seven different recipes for what is one material.
 
-           Every level also publishes a `-solid` twin: the same film already
-           composited against --surface-under. It is the identical pixel, and it
-           exists for the two places translucency is the wrong tool -- virtual
-           scroller rows, where an opaque box lets the compositor skip whatever
-           is behind it, and any surface whose backdrop is a flat fill, where a
-           blur would cost a GPU pass to return the colour it started from.
+           NO TRANSLUCENCY, NO BLUR. Every level is an opaque fill, and there
+           is no backdrop-filter anywhere in this app. Do not reintroduce
+           either -- not on a new component, and not by restoring the token
+           that used to carry the blur.
 
-           BLUR POLICY. Levels 2 and 3 carry --surface-blur, which is real
-           backdrop-filter -- content genuinely travels under them and the blur
-           is what keeps a translucent overlay legible without it. Level 1 never
-           does: it is worn by the ~25 pooled nodes of a virtual scroller and by
-           every button and input in the app, and a blur there is one full-frame
-           readback per element per frame of a momentum scroll, uncacheable
-           because the rows are moving. Translucency itself is nearly free (an
-           alpha blend at composite time) -- it is the filter that costs -- so
-           level 1 keeps the material's tint and pays none of it. Do not add a
-           backdrop-filter to a level 1 selector.
+           This was a frosted-glass material until it was removed wholesale.
+           Two production bugs came out of it, both on iOS Safari, and both
+           expensive to find because the mechanism was invisible in the CSS:
+
+             - a translucent tab bar on the bottom edge made the browser's own
+               address bar mismatch the app on the light themes, since what
+               showed through the bar was whatever happened to be scrolling
+               under it;
+             - `backdrop-filter` on .modal-container, which the phone layer
+               also turns into a scroll container, hit a WebKit mis-clip and
+               sheared the controls along the top edge of every dialog. Only
+               E-Ink escaped, because it was the one theme already opting out
+               of the material.
+
+           A blurred layer is never only a visual effect. It forces compositing,
+           it makes the element a containing block for `position: fixed`
+           descendants exactly as a transform does, and it interacts badly with
+           overflow and with browser chrome. The effect was subtle enough that
+           nobody would have missed it; the failure modes were not.
+
+           Each level still publishes a `-solid` twin. The two names now resolve
+           to the same colour and both are kept so the ~200 call sites did not
+           have to be rewritten to say the same thing: read `-solid` as "opaque
+           on purpose" where it appears (virtual scroller rows, which want the
+           compositor to skip whatever is behind them) and the bare name
+           everywhere else.
 
            Themes override these tokens rather than the rules that use them.
-           E-Ink resolves all three levels to opaque paper and --surface-blur to
-           none, because frosted glass is not a material that theme has; Vercel
-           Dark lifts its chrome pigment off pure black and drops the saturate.
-           Both still travel through exactly the same rules.
+           E-Ink resolves all three levels to opaque paper; Vercel Dark lifts
+           its chrome pigment off pure black. Both still travel through exactly
+           the same rules.
            ===================================================================== */
 
         /* The fill behind floating chrome, and what a `-solid` twin resolves
@@ -177,30 +190,26 @@
         --tint-chrome: var(--panel-bg);
         --tint-overlay: var(--modal-bg);
 
-        --surface-1: color-mix(in srgb, var(--tint-content) 70%, transparent);
+        /* Each level is its pigment already composited against the surface it
+           rests on -- the colour the old translucent film resolved to over a
+           plain backdrop, now stated once and opaque. Levels 1 and 2 keep the
+           mix so a theme can still retint them from --tint-*; level 3 is the
+           overlay pigment outright, because a dialog sits on a dimmed scrim
+           and was always meant to read as its own colour. */
+        --surface-1: var(--surface-1-solid);
         --surface-1-solid: color-mix(
           in srgb,
           var(--tint-content) 70%,
           var(--surface-under)
         );
-        --surface-2: color-mix(in srgb, var(--tint-chrome) 72%, transparent);
+        --surface-2: var(--surface-2-solid);
         --surface-2-solid: color-mix(
           in srgb,
           var(--tint-chrome) 72%,
           var(--surface-under)
         );
-        /* Overlays run denser than chrome because they sit on a dimmed scrim
-           rather than on content: at chrome's 72% a light sheet turns grey and
-           a dark one loses its lift off the page. 90% keeps every dialog the
-           colour it already was and spends the translucency on the edge. */
-        --surface-3: color-mix(in srgb, var(--tint-overlay) 90%, transparent);
+        --surface-3: var(--surface-3-solid);
         --surface-3-solid: var(--tint-overlay);
-
-        /* Saturation, not just blur: pushing the sampled backdrop past 100%
-           is what stops colour read through glass from going muddy, and is
-           the difference between this reading as a material and reading as a
-           translucent rectangle. */
-        --surface-blur: blur(24px) saturate(180%);
 
         /* One hairline for the whole app. Tinting it from --text-main rather
            than from a border variable is what keeps it correct on all four
@@ -540,7 +549,6 @@
         --page-bg: #000000;
         --panel-bg: #000000;
         --panel-shadow: none;
-        --panel-blur: none;
         --element-bg: #1c1c1e;
         --element-hover: #2c2c2e;
         --element-bg-light: #1c1c1e;
@@ -578,11 +586,6 @@
            recipe identical and gives the bars the near-black lift the theme
            uses everywhere else. */
         --tint-chrome: #1a1a1c;
-        /* No saturate: this theme is monochrome by construction, so boosting
-           chroma on the sampled backdrop has nothing to act on and would only
-           colour-cast the greys. A lighter blur for the same reason -- there
-           is no colour bleed here to hide. */
-        --surface-blur: blur(18px);
         --hairline-color: color-mix(in srgb, var(--text-main) 20%, transparent);
         --track-bg: rgba(255, 255, 255, 0.08);
         --segmented-bg: rgba(255, 255, 255, 0.1);
@@ -617,7 +620,6 @@
         --page-bg: #e8e8e8;
         --panel-bg: #ffffff;
         --panel-shadow: none;
-        --panel-blur: none;
         --element-bg: #e8e8e8;
         --element-hover: #cccccc;
         --element-bg-light: #ffffff;
@@ -653,13 +655,14 @@
         --emph-fill-max: 100%;
         --dropdown-bg: var(--modal-bg);
         --modal-bg: #ffffff;
-        /* ---- No glass on this theme --------------------------------------
+        /* ---- Paper, not pigment-on-a-surface -----------------------------
            E-Ink's material is paper: opaque stock and a full-weight black rule
-           for an edge. Frosted translucency is not a thing that exists in it,
-           so all three levels resolve opaque and the blur resolves to none.
-           Every rule in the app still reaches this theme through the same
-           tokens -- the material is swapped underneath them rather than the
-           rules being special-cased, which is the whole point of the system.
+           for an edge. It resolves the levels to flat theme colours rather
+           than to a mix over --surface-under, which is what the other themes
+           now do -- so these lines stay, even though nothing in the app is
+           translucent any more. Every rule still reaches this theme through
+           the same tokens; the material is swapped underneath them rather than
+           the rules being special-cased, which is the whole point.
 
            Elevation resolves to nothing at all. The hard offset shadow that
            used to sit here was the one piece of the theme that drew a second
@@ -669,7 +672,6 @@
            border alone is what separates paper from paper. Nothing else in the
            app changes: every surface still asks for var(--elev-N) and simply
            gets `none` back here. */
-        --surface-blur: none;
         --surface-1: var(--element-bg);
         --surface-1-solid: var(--element-bg);
         --surface-2: var(--panel-bg);
@@ -748,7 +750,6 @@
         --page-bg: #000000;
         --panel-bg: #1c1c1e;
         --panel-shadow: none;
-        --panel-blur: none;
         --element-bg: #2c2c2e;
         --element-hover: #3a3a3c;
         --element-bg-light: #2c2c2e;
@@ -792,7 +793,6 @@
         --page-bg: #f2f2f7;
         --panel-bg: #ffffff;
         --panel-shadow: none;
-        --panel-blur: none;
         --element-bg: #ebebf0;
         --element-hover: #dcdce0;
         --element-bg-light: #ffffff;
@@ -1655,8 +1655,6 @@
         /* Level 3. Was --element-hover, which put this popover a full step
            off the dropdowns it sits beside. */
         background: var(--surface-3);
-        -webkit-backdrop-filter: var(--surface-blur);
-        backdrop-filter: var(--surface-blur);
         border: var(--hairline);
         border-radius: var(--header-el-radius);
         box-shadow: var(--elev-1);
@@ -1974,8 +1972,6 @@
            reproduces them without the duplication, and E-Ink still gets its
            opaque paper and hard rule through its token overrides. */
         background: var(--surface-3);
-        -webkit-backdrop-filter: var(--surface-blur);
-        backdrop-filter: var(--surface-blur);
         border: var(--hairline);
         color: var(--text-main);
         font-size: 0.55rem;
@@ -2244,8 +2240,6 @@
         padding: 6px;
         /* Level 3 -- see .tz-presets. */
         background: var(--surface-3);
-        -webkit-backdrop-filter: var(--surface-blur);
-        backdrop-filter: var(--surface-blur);
         border: var(--hairline);
         border-radius: var(--header-el-radius);
         box-shadow: var(--elev-1);
@@ -2741,8 +2735,6 @@
            once the list has been scrolled, so what passes beneath it is always
            rows -- the case the blur exists for. */
         background: var(--surface-2);
-        -webkit-backdrop-filter: var(--surface-blur);
-        backdrop-filter: var(--surface-blur);
         border: var(--hairline);
         border-radius: 50%;
         box-shadow: var(--elev-1);
@@ -2962,8 +2954,6 @@
            surface in the app, and the reason the mobile filter drawer let
            row text read through it. */
         background: var(--surface-3);
-        -webkit-backdrop-filter: var(--surface-blur);
-        backdrop-filter: var(--surface-blur);
         padding: 10px;
         border-radius: 1rem;
         border: var(--hairline);
@@ -3355,8 +3345,6 @@
            hangs below the toolbar over the scrolling list, so rows travel
            under it continuously. */
         background: var(--surface-2);
-        -webkit-backdrop-filter: var(--surface-blur);
-        backdrop-filter: var(--surface-blur);
         border: var(--hairline);
         color: var(--accent-blue);
         font-weight: 600;
@@ -3884,8 +3872,6 @@
         /* Level 3. --dropdown-bg is now an alias of the same pigment, so this
            and .custom-select-panel and .modal-container finally agree. */
         background: var(--surface-3);
-        -webkit-backdrop-filter: var(--surface-blur);
-        backdrop-filter: var(--surface-blur);
         border: var(--hairline);
         border-radius: 0.75rem;
         padding: 0.85rem;
@@ -4617,8 +4603,6 @@
         max-width: var(--modal-width-sm);
         /* Level 3. */
         background: var(--surface-3);
-        -webkit-backdrop-filter: var(--surface-blur);
-        backdrop-filter: var(--surface-blur);
         border: var(--hairline);
         border-radius: var(--radius-xl);
         padding: var(--space-5);
@@ -4851,8 +4835,6 @@
            translucent and still be readable. Two of the four themes used to
            opt out of the material entirely here with a hardcoded #ffffff. */
         background: var(--surface-3);
-        -webkit-backdrop-filter: var(--surface-blur);
-        backdrop-filter: var(--surface-blur);
         color: var(--text-main);
         border: var(--hairline);
         padding: 0 16px 0 8px;
@@ -5368,8 +5350,6 @@
         z-index: var(--z-sticky);
         /* Level 3. */
         background: var(--surface-3);
-        -webkit-backdrop-filter: var(--surface-blur);
-        backdrop-filter: var(--surface-blur);
         border: var(--hairline);
         border-radius: var(--radius-md);
         padding: 4px;
@@ -5486,8 +5466,6 @@
         padding: 6px;
         /* Level 3 -- see .tz-presets. */
         background: var(--surface-3);
-        -webkit-backdrop-filter: var(--surface-blur);
-        backdrop-filter: var(--surface-blur);
         border: var(--hairline);
         border-radius: var(--header-el-radius);
         box-shadow: var(--elev-1);
@@ -5519,8 +5497,6 @@
         z-index: var(--z-tooltip);
         /* Level 3. */
         background: var(--surface-3);
-        -webkit-backdrop-filter: var(--surface-blur);
-        backdrop-filter: var(--surface-blur);
         border: var(--hairline);
         border-radius: var(--radius-md);
         box-shadow: var(--elev-1);
@@ -5735,24 +5711,6 @@
           --m-safe-left: env(safe-area-inset-left, 0px);
           --m-safe-right: env(safe-area-inset-right, 0px);
           --m-gutter: 1rem;
-
-          /* How far the bottom chrome runs PAST the bottom of the viewport.
-             Nothing is drawn down there and none of it is ever seen -- the
-             point is only that the boxes do not end where the viewport does.
-
-             iOS Safari does not put `position: fixed; bottom: 0` and a
-             `height: 100svh` body at exactly the same pixel under
-             viewport-fit=cover, so a box that stops dead at bottom: 0 can
-             leave a hairline of whatever is behind it along the very bottom
-             edge. It went unnoticed while body was --page-bg, because the
-             sliver was grey against grey; once body was corrected to
-             --surface-under it started showing as a bright line.
-
-             Every element that owns the bottom edge takes this: #m-tabbar and
-             #m-sheet. Each one adds the bleed to its own bottom padding as
-             well, so the box grows downward only and nothing inside it
-             moves. */
-          --m-chrome-bleed: 24px;
 
           /* ---- No mobile-only material ---------------------------------
              This block used to define a parallel --glass-surface /
@@ -6657,54 +6615,32 @@
           position: fixed;
           left: 0;
           right: 0;
-          /* Runs past the bottom of the viewport rather than stopping on it --
-             see --m-chrome-bleed. The bleed is added to the height and to the
-             bottom padding as well, so the box only grows downward: the top
-             edge, the hairline on it, and every tab inside sit exactly where
-             they did. The visible bar is still --m-tabbar-h tall. */
-          bottom: calc(-1 * var(--m-chrome-bleed));
-          height: calc(
-            var(--m-tabbar-h) + var(--m-safe-bottom) + var(--m-chrome-bleed)
-          );
+          bottom: 0;
+          height: calc(var(--m-tabbar-h) + var(--m-safe-bottom));
           /* Below the modal band (--z-overlay, 1000) and below the sheet
              (--z-overlay - 2). Ordering is what keeps overlays on top; it
              must not depend on a class being applied in time by JS, because
              any overlay that is added later without the exact markup that JS
              watches for would silently render underneath the bar. */
           z-index: var(--z-sticky);
-          /* Level 2, blurred -- and this is the surface the blur is really
-             for. The scrollers run to the bottom edge of the viewport and
-             clear the bar with an ::after spacer rather than a padding, so
-             rows genuinely travel underneath it, continuously, for the whole
-             length of a momentum scroll. Translucent WITHOUT a blur is the
-             one combination to avoid here: row text would read straight
-             through the tabs. With it, the bar behaves the way the native
-             iOS tab bar does.
+          /* Level 2, opaque. The scrollers run to the bottom edge of the
+             viewport and clear the bar with an ::after spacer rather than a
+             padding, so rows travel underneath it for the whole length of a
+             momentum scroll -- and are hidden by it, not read through it.
 
-             This bar was briefly made solid to chase a grey strip that showed
-             under it in iOS Safari on sf-light. That was the wrong element
-             entirely: the strip is the canvas behind Safari's address bar, and
-             it comes from <html>'s own background -- see the note on the `html`
-             rule in this breakpoint. Measured on-device with a magenta test
-             row blurring through this exact bar, Safari's chrome did not pick
-             up a trace of it, which rules the bar out as the source. The blur
-             is free to stay.
-
-             This is also the only element in the app where the blur is a
-             per-frame cost rather than a cached one. It is one element,
-             ~60px tall, and it buys the effect the whole shell is styled
-             around; every other moving surface (rows, breakdown rows) stays
-             solid precisely so this one can afford it. */
+             This used to be the app's one blurred surface, and translucent
+             chrome on the bottom edge is specifically what must not come
+             back: on the light themes it let whatever was scrolling under it
+             show through, and iOS Safari's address bar sat directly against
+             that. Opaque is the fix and also the cheaper option -- this was
+             the only element paying a per-frame GPU readback rather than a
+             cached one. See the material note at the top of the sheet. */
           background: var(--surface-2);
-          -webkit-backdrop-filter: var(--surface-blur);
-          backdrop-filter: var(--surface-blur);
           border-top: var(--hairline);
           border-radius: 0;
           box-shadow: none;
           padding-top: 4px;
-          padding-bottom: calc(
-            4px + var(--m-safe-bottom) + var(--m-chrome-bleed)
-          );
+          padding-bottom: calc(4px + var(--m-safe-bottom));
           padding-left: max(12px, env(safe-area-inset-left, 0px));
           padding-right: max(12px, env(safe-area-inset-right, 0px));
           overflow: hidden;
@@ -6833,37 +6769,22 @@
           position: fixed;
           left: 0;
           right: 0;
-          /* Same bleed as #m-tabbar, and this is the one that shows: while the
-             sheet is open the bar has already slid away, so the sheet is what
-             owns the bottom edge. Its height is content-driven, so moving the
-             bottom down by the bleed and adding the same amount to the bottom
-             padding leaves the top edge -- and the whole sheet -- exactly
-             where it was. */
-          bottom: calc(-1 * var(--m-chrome-bleed));
+          bottom: 0;
           z-index: calc(var(--z-overlay) - 2);
-          max-height: calc(85svh + var(--m-chrome-bleed));
-          /* Level 3, and DELIBERATELY the solid twin with no backdrop-filter.
-             This is not a perf call, it is a correctness one: a non-none
-             backdrop-filter makes an element a containing block for its
-             position: fixed descendants, exactly as a transform does. The
-             sheet has two of them -- #adjust-time-popup and
+          max-height: 85svh;
+          /* Level 3, opaque like everything else now. This element carries a
+             standing warning that outlived the glass, so it is kept: a
+             non-none backdrop-filter OR filter here makes the sheet a
+             containing block for its position: fixed descendants, exactly as
+             a transform does. It has two -- #adjust-time-popup and
              #settings-config-popup -- and the
-             `body.m-sheet-open:has(#m-sheet .idle-popup.show) #m-sheet`
-             rule further down exists for the sole purpose of dropping the
-             sheet's transform so those resolve against the viewport instead
-             of against the sheet. Blurring here silently reinstates the very
-             containing block that rule is there to destroy, and the popovers
-             land off-screen below the fold. Verified in Chrome: with the
-             filter on, #settings-config-popup's top goes to 874px on an 874px
-             viewport.
-
-             Nothing is lost visually. The sheet covers the bottom of the
-             screen over its own dimmed backdrop -- the same --scrim the
-             modals sit on -- and --surface-3-solid lands within a few levels
-             of what the 90% film resolves to over that, which is below the
-             threshold where it reads as anything. The film has no fixed
-             value to match exactly anyway: it drifts with whatever shows
-             through the scrim. */
+             `body.m-sheet-open:has(#m-sheet .idle-popup.show) #m-sheet` rule
+             further down exists for the sole purpose of dropping the sheet's
+             transform so those resolve against the viewport instead. Adding
+             any filter here silently reinstates the containing block that
+             rule is there to destroy, and the popovers land off-screen below
+             the fold. Verified in Chrome: with a filter on,
+             #settings-config-popup's top went to 874px on an 874px viewport. */
           background: var(--surface-3-solid);
           border-top: var(--hairline);
           border-left: none;
@@ -6876,9 +6797,7 @@
           transition:
             transform 0.28s cubic-bezier(0.32, 0.72, 0, 1),
             visibility 0s linear 0.28s;
-          padding-bottom: calc(
-            var(--space-3) + var(--m-safe-bottom) + var(--m-chrome-bleed)
-          );
+          padding-bottom: calc(var(--space-3) + var(--m-safe-bottom));
           box-sizing: border-box;
         }
 
@@ -10283,8 +10202,6 @@
             position: absolute;
             display: none;
             background: var(--surface-3);
-            -webkit-backdrop-filter: var(--surface-blur);
-            backdrop-filter: var(--surface-blur);
             border: var(--hairline);
             border-radius: 8px;
             padding: 8px 12px;
