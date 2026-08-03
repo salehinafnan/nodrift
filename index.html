@@ -5805,6 +5805,17 @@
           overflow: hidden;
           /* Stop iOS rubber-banding the whole document behind the shell. */
           overscroll-behavior: none;
+          /* Same surface the shell paints, for the same reason <html> takes it
+             just above -- and this is the half that was missed. The base rule
+             leaves body at --page-bg, which on sf-light is the #f2f2f7 that
+             shows under iOS Safari's address bar; the phone override reset
+             body's padding, height and overflow but never its fill, so the one
+             --page-bg surface still reaching the bottom of the shell was this
+             one. Nothing visible changes inside the app -- .console-panel
+             covers body edge to edge -- so this only affects what the browser
+             chrome meets. Dark themes are unaffected: --surface-under is
+             already --page-bg there. */
+          background: var(--surface-under);
         }
 
         .console-panel {
