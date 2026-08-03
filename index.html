@@ -15361,6 +15361,7 @@
        */
       function renewLease(force = false) {
         if (isTabConflict) return;
+        if (isFactoryResetting) return; // Reboot pending; the lease is being released, not renewed.
         // Ensure localStorage lease is always updated so fallback logic and stale detections work
 
         const now = Date.now();
@@ -23471,6 +23472,78 @@
       }
 
       /**
+       * Every localStorage key the app owns. Listed inside the function rather
+       * than at module scope because several of these constants are declared
+       * further down the file, so the array can only be built at call time.
+       */
+      function purgeFactoryKeys() {
+        const keys = [
+          STATE_KEY,
+          LOG_KEY,
+          GOAL_H_KEY,
+          GOAL_M_KEY,
+          GOAL_S_KEY,
+          TZ_KEY,
+          THEME_KEY,
+          PRESET_VALUES_KEY,
+          LEAVE_DATES_KEY,
+          VIEWS_KEY, // Saved custom filter views
+          FILTERS_PREF_KEY, // Active filter preferences
+          TASK_STATE_KEY,
+          TASK_LOGS_KEY,
+          "production_snapshots_v1", // Rollback snapshots — full copies of the logbook
+          "production_logs_emergency_backup", // Mirror of the logbook, and the sole store on file://
+        ];
+        keys.forEach((k) => {
+          try {
+            localStorage.removeItem(k);
+          } catch (e) {
+            console.warn(`Factory reset could not remove "${k}"`, e);
+          }
+        });
+      }
+
+      /**
+       * Empties both IndexedDB object stores.
+       *
+       * saveLogs([]) only prunes logs_chunked. The legacy "logs" store still
+       * holds an "all_logs" record for anyone whose migration never finished,
+       * and loadLogsFromDB checks that record FIRST on boot — so a reset that
+       * skipped it would hand the whole logbook straight back on the reload
+       * below. Always resolves: a reset must never hang on storage.
+       */
+      function clearAllDatabaseStores() {
+        if (window.location.protocol === "file:") return Promise.resolve();
+
+        return dbPromise
+          .then(
+            (db) =>
+              new Promise((resolve) => {
+                const bail = setTimeout(resolve, 3000);
+                const finish = () => {
+                  clearTimeout(bail);
+                  resolve();
+                };
+                try {
+                  const tx = db.transaction(
+                    ["logs", "logs_chunked"],
+                    "readwrite",
+                  );
+                  tx.objectStore("logs").clear();
+                  tx.objectStore("logs_chunked").clear();
+                  tx.oncomplete = finish;
+                  tx.onerror = finish;
+                  tx.onabort = finish;
+                } catch (e) {
+                  console.warn("Could not clear database stores", e);
+                  finish();
+                }
+              }),
+          )
+          .catch(() => {}); // No database to clear (blocked, unsupported, file://)
+      }
+
+      /**
        * Reboots the app from a clean slate after a factory reset. A plain
        * reload is the strongest cache bypass scripts get (reload(true) is
        * dead in every current engine), so anything that could serve a stale
@@ -23480,6 +23553,29 @@
        * worker is ever added.
        */
       function hardReloadApp(delayMs = 800) {
+        const reboot = () => {
+          // Runtime keys, dropped last so no heartbeat can recreate them. The
+          // unload handlers normally release the lease, but beforeunload is
+          // unreliable on iOS; a surviving fresh lease carries our sessionStorage
+          // ownerId with the previous tabId, which boots straight into the
+          // "Multiple Tabs Detected" screen instead of the wiped app.
+          try {
+            localStorage.removeItem(LEASE_KEY);
+            localStorage.removeItem(STAGING_KEY);
+          } catch (e) {}
+          try {
+            location.reload();
+          } catch (e) {
+            window.location.href = window.location.href;
+          }
+        };
+
+        // Scheduled up front and never cancelled: the data is already gone, so
+        // the reboot cannot be left waiting on optional teardown that hangs.
+        // The teardown below is best-effort and resolves in milliseconds when
+        // there is anything to tear down at all.
+        setTimeout(reboot, delayMs);
+
         const teardown = [];
         try {
           if (window.caches && typeof caches.keys === "function") {
@@ -23503,17 +23599,7 @@
           console.warn("Cache teardown unavailable in this context", e);
         }
 
-        Promise.all(teardown.map((p) => p.catch(() => {})))
-          .catch(() => {})
-          .then(() => {
-            setTimeout(() => {
-              try {
-                location.reload();
-              } catch (e) {
-                window.location.href = window.location.href;
-              }
-            }, delayMs);
-          });
+        teardown.forEach((p) => p.catch(() => {}));
       }
 
       /**
@@ -23527,18 +23613,7 @@
             isFactoryResetting = true;
             if (window.dirtyChunks) window.dirtyChunks.add("ALL");
 
-            localStorage.removeItem(STATE_KEY);
-            localStorage.removeItem(GOAL_H_KEY);
-            localStorage.removeItem(GOAL_M_KEY);
-            localStorage.removeItem(GOAL_S_KEY);
-            localStorage.removeItem(PRESET_VALUES_KEY);
-            localStorage.removeItem(LEAVE_DATES_KEY);
-            localStorage.removeItem(VIEWS_KEY); // Clears saved custom filter views
-            localStorage.removeItem(FILTERS_PREF_KEY); // Clears active filters preferences
-            localStorage.removeItem(TASK_STATE_KEY);
-            localStorage.removeItem(TASK_LOGS_KEY);
-            localStorage.removeItem(THEME_KEY);
-            localStorage.removeItem(TZ_KEY);
+            purgeFactoryKeys();
 
             _leaveDatesRaw = null;
             _leaveDatesParsed = [];
@@ -23549,15 +23624,8 @@
             _cachedIdleThresholdMs = 3600000;
 
             saveLogs([])
+              .then(clearAllDatabaseStores)
               .then(() => {
-                // saveLogs writes on its way out: it mirrors the (now empty)
-                // logbook into the emergency backup and takes a rollback
-                // snapshot that still holds the pre-wipe logs. Clear both, or
-                // the reboot below would restore a Restore Snapshot entry
-                // containing everything the user just deleted.
-                localStorage.removeItem("production_snapshots_v1");
-                localStorage.removeItem("production_logs_emergency_backup");
-
                 // The data is already gone by this point, so a hiccup while
                 // repainting must not cost us the reboot below — the reload is
                 // what actually returns the user to a coherent UI.
@@ -23581,16 +23649,26 @@
                   console.warn("Post-wipe repaint failed; reloading anyway", e);
                 }
 
+                // Second pass. Everything above legitimately re-persists a
+                // default on its way to a clean UI — saveLogs re-mirrors the
+                // empty logbook, autoPopulateDailyGoal rewrites the goal,
+                // clearFilters and loadSavedFilterViews reseed their prefs. The
+                // reboot recreates all of it from scratch anyway, so the app
+                // gets to reopen on genuinely empty storage.
+                purgeFactoryKeys();
+
                 showAppToast("All data wiped. Reloading…");
                 hardReloadApp();
               })
               .catch((err) => {
-                // The wipe never completed, so lift the write freeze and leave
-                // the tab usable instead of stranding it in a read-only state.
+                // The logbook write failed, so settings are gone but the logs
+                // are not. Deliberately no reload: rebooting would present a
+                // half-wiped install as a finished one. Lift the write freeze
+                // instead so the tab stays usable and the wipe can be retried.
                 isFactoryResetting = false;
                 console.error("Factory reset aborted", err);
                 showAppToast(
-                  "Wipe failed. Nothing was reloaded — please try again.",
+                  "Wipe incomplete — your logs could not be deleted. Please try again.",
                   "error",
                 );
               });
@@ -23612,6 +23690,9 @@
        */
       async function checkMidnightReset(now = new Date()) {
         if (window.isRollingOver) return;
+        // A reset is mid-reboot; a rollover here would write a shift back into
+        // the logbook that was just emptied.
+        if (isFactoryResetting) return;
         window.isRollingOver = true;
         try {
           const currentEpochMin = Math.floor(now.getTime() / 60000);
