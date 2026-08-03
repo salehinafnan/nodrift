@@ -5736,6 +5736,24 @@
           --m-safe-right: env(safe-area-inset-right, 0px);
           --m-gutter: 1rem;
 
+          /* How far the bottom chrome runs PAST the bottom of the viewport.
+             Nothing is drawn down there and none of it is ever seen -- the
+             point is only that the boxes do not end where the viewport does.
+
+             iOS Safari does not put `position: fixed; bottom: 0` and a
+             `height: 100svh` body at exactly the same pixel under
+             viewport-fit=cover, so a box that stops dead at bottom: 0 can
+             leave a hairline of whatever is behind it along the very bottom
+             edge. It went unnoticed while body was --page-bg, because the
+             sliver was grey against grey; once body was corrected to
+             --surface-under it started showing as a bright line.
+
+             Every element that owns the bottom edge takes this: #m-tabbar and
+             #m-sheet. Each one adds the bleed to its own bottom padding as
+             well, so the box grows downward only and nothing inside it
+             moves. */
+          --m-chrome-bleed: 24px;
+
           /* ---- No mobile-only material ---------------------------------
              This block used to define a parallel --glass-surface /
              --glass-hairline / --glass-surface-solid system that existed only
@@ -6639,8 +6657,15 @@
           position: fixed;
           left: 0;
           right: 0;
-          bottom: 0;
-          height: calc(var(--m-tabbar-h) + var(--m-safe-bottom));
+          /* Runs past the bottom of the viewport rather than stopping on it --
+             see --m-chrome-bleed. The bleed is added to the height and to the
+             bottom padding as well, so the box only grows downward: the top
+             edge, the hairline on it, and every tab inside sit exactly where
+             they did. The visible bar is still --m-tabbar-h tall. */
+          bottom: calc(-1 * var(--m-chrome-bleed));
+          height: calc(
+            var(--m-tabbar-h) + var(--m-safe-bottom) + var(--m-chrome-bleed)
+          );
           /* Below the modal band (--z-overlay, 1000) and below the sheet
              (--z-overlay - 2). Ordering is what keeps overlays on top; it
              must not depend on a class being applied in time by JS, because
@@ -6677,7 +6702,9 @@
           border-radius: 0;
           box-shadow: none;
           padding-top: 4px;
-          padding-bottom: calc(4px + var(--m-safe-bottom));
+          padding-bottom: calc(
+            4px + var(--m-safe-bottom) + var(--m-chrome-bleed)
+          );
           padding-left: max(12px, env(safe-area-inset-left, 0px));
           padding-right: max(12px, env(safe-area-inset-right, 0px));
           overflow: hidden;
@@ -6806,9 +6833,15 @@
           position: fixed;
           left: 0;
           right: 0;
-          bottom: 0;
+          /* Same bleed as #m-tabbar, and this is the one that shows: while the
+             sheet is open the bar has already slid away, so the sheet is what
+             owns the bottom edge. Its height is content-driven, so moving the
+             bottom down by the bleed and adding the same amount to the bottom
+             padding leaves the top edge -- and the whole sheet -- exactly
+             where it was. */
+          bottom: calc(-1 * var(--m-chrome-bleed));
           z-index: calc(var(--z-overlay) - 2);
-          max-height: 85svh;
+          max-height: calc(85svh + var(--m-chrome-bleed));
           /* Level 3, and DELIBERATELY the solid twin with no backdrop-filter.
              This is not a perf call, it is a correctness one: a non-none
              backdrop-filter makes an element a containing block for its
@@ -6843,7 +6876,9 @@
           transition:
             transform 0.28s cubic-bezier(0.32, 0.72, 0, 1),
             visibility 0s linear 0.28s;
-          padding-bottom: calc(var(--space-3) + var(--m-safe-bottom));
+          padding-bottom: calc(
+            var(--space-3) + var(--m-safe-bottom) + var(--m-chrome-bleed)
+          );
           box-sizing: border-box;
         }
 
