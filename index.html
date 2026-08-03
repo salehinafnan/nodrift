@@ -9334,9 +9334,11 @@
           <h4>Factory Reset</h4>
           <p>
             The <strong>Wipe</strong> button (red trash icon) permanently
-            deletes all logs, saved views, leave entries, and app settings. This
-            action is irreversible. Always export a JSON backup before using
-            this option.
+            deletes all logs, saved views, leave entries, rollback snapshots,
+            and app settings. Once everything is gone the app reloads itself
+            automatically, so you land on a genuinely fresh install without
+            refreshing by hand. This action is irreversible. Always export a
+            JSON backup before using this option.
           </p>
         </div>
       </div>
@@ -13914,6 +13916,14 @@
       const THEME_KEY = "production_theme_pref";
       const PRESET_VALUES_KEY = "production_custom_presets_v2";
       const LEAVE_DATES_KEY = "production_leave_dates_v1";
+
+      // Latches for the duration of a factory reset (see clearAllData). Every
+      // persistence path checks it so nothing can re-seed localStorage between
+      // the wipe and the reboot that follows it — otherwise beforeunload's
+      // final saveState(true) would hand the fresh install a STATE_KEY the
+      // wipe had just removed. Declared up here so the guards are safe to read
+      // from any code that runs during boot.
+      let isFactoryResetting = false;
 
       // Parsed-value cache keyed on the raw serialized string. Because the key
       // is the stored text itself, this self-invalidates no matter which code
@@ -23461,13 +23471,60 @@
       }
 
       /**
+       * Reboots the app from a clean slate after a factory reset. A plain
+       * reload is the strongest cache bypass scripts get (reload(true) is
+       * dead in every current engine), so anything that could serve a stale
+       * shell is torn down first: Cache Storage entries and any service
+       * worker registration. Both are absent today and unreachable on
+       * file://, hence the feature checks — this keeps the reset honest if a
+       * worker is ever added.
+       */
+      function hardReloadApp(delayMs = 800) {
+        const teardown = [];
+        try {
+          if (window.caches && typeof caches.keys === "function") {
+            teardown.push(
+              caches
+                .keys()
+                .then((keys) => Promise.all(keys.map((k) => caches.delete(k)))),
+            );
+          }
+          if (
+            navigator.serviceWorker &&
+            typeof navigator.serviceWorker.getRegistrations === "function"
+          ) {
+            teardown.push(
+              navigator.serviceWorker
+                .getRegistrations()
+                .then((regs) => Promise.all(regs.map((r) => r.unregister()))),
+            );
+          }
+        } catch (e) {
+          console.warn("Cache teardown unavailable in this context", e);
+        }
+
+        Promise.all(teardown.map((p) => p.catch(() => {})))
+          .catch(() => {})
+          .then(() => {
+            setTimeout(() => {
+              try {
+                location.reload();
+              } catch (e) {
+                window.location.href = window.location.href;
+              }
+            }, delayMs);
+          });
+      }
+
+      /**
        * Triggers destructive cleanup operations to factory state.
        */
       function clearAllData() {
         openConfirmModal(
           "Factory Reset",
-          "Are you sure you want to permanently delete ALL logs and settings? This is irreversible.",
+          "Are you sure you want to permanently delete ALL logs and settings? The app will reload itself once everything is gone. This is irreversible.",
           () => {
+            isFactoryResetting = true;
             if (window.dirtyChunks) window.dirtyChunks.add("ALL");
 
             localStorage.removeItem(STATE_KEY);
@@ -23491,23 +23548,52 @@
             cachedTaskLogs = [];
             _cachedIdleThresholdMs = 3600000;
 
-            saveLogs([]).then(() => {
-              resetTaskUI();
-              clearFilters();
-              clearTaskFilters();
-              loadSavedFilterViews();
-              renderPresets();
-              // THEME_KEY was just removed above; applySystemTheme() adopts
-              // the OS scheme without writing it back, so a wiped install
-              // keeps following the system exactly like a fresh one.
-              applySystemTheme();
-              selectPresetTZ("America/Los_Angeles");
-              resetSession(true);
-              syncSettingsUI();
+            saveLogs([])
+              .then(() => {
+                // saveLogs writes on its way out: it mirrors the (now empty)
+                // logbook into the emergency backup and takes a rollback
+                // snapshot that still holds the pre-wipe logs. Clear both, or
+                // the reboot below would restore a Restore Snapshot entry
+                // containing everything the user just deleted.
+                localStorage.removeItem("production_snapshots_v1");
+                localStorage.removeItem("production_logs_emergency_backup");
 
-              if (typeof renderTaskLogbook === "function") renderTaskLogbook();
-              showAppToast("All data wiped");
-            });
+                // The data is already gone by this point, so a hiccup while
+                // repainting must not cost us the reboot below — the reload is
+                // what actually returns the user to a coherent UI.
+                try {
+                  resetTaskUI();
+                  clearFilters();
+                  clearTaskFilters();
+                  loadSavedFilterViews();
+                  renderPresets();
+                  // THEME_KEY was just removed above; applySystemTheme()
+                  // adopts the OS scheme without writing it back, so a wiped
+                  // install keeps following the system like a fresh one.
+                  applySystemTheme();
+                  selectPresetTZ("America/Los_Angeles");
+                  resetSession(true);
+                  syncSettingsUI();
+
+                  if (typeof renderTaskLogbook === "function")
+                    renderTaskLogbook();
+                } catch (e) {
+                  console.warn("Post-wipe repaint failed; reloading anyway", e);
+                }
+
+                showAppToast("All data wiped. Reloading…");
+                hardReloadApp();
+              })
+              .catch((err) => {
+                // The wipe never completed, so lift the write freeze and leave
+                // the tab usable instead of stranding it in a read-only state.
+                isFactoryResetting = false;
+                console.error("Factory reset aborted", err);
+                showAppToast(
+                  "Wipe failed. Nothing was reloaded — please try again.",
+                  "error",
+                );
+              });
           },
           true,
         );
@@ -25345,6 +25431,7 @@
 
       // Creates daily backup snapshots
       function triggerAutoSnapshot() {
+        if (isFactoryResetting) return;
         try {
           const todayStr = getPSTDate();
           let snapshots = [];
@@ -25716,6 +25803,7 @@
       }
 
       function saveTaskState() {
+        if (isFactoryResetting) return;
         try {
           localStorage.setItem(TASK_STATE_KEY, JSON.stringify(taskState));
         } catch (e) {
@@ -25725,6 +25813,7 @@
       }
 
       function saveTaskLogs() {
+        if (isFactoryResetting) return;
         try {
           localStorage.setItem(TASK_LOGS_KEY, JSON.stringify(cachedTaskLogs));
         } catch (e) {
@@ -28502,6 +28591,7 @@
       let idleSaveHandle = null;
       function saveState(forceSync = false) {
         if (isTabConflict) return; // Prevent uninitialized or evicted tabs from writing stale state!
+        if (isFactoryResetting) return; // A wipe is reloading; never re-seed the keys it removed.
 
         if (state.currentMode !== null && !state.idleLock) {
           state.lastHeartbeatWall = Date.now();
