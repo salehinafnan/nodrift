@@ -9336,9 +9336,10 @@
             The <strong>Wipe</strong> button (red trash icon) permanently
             deletes all logs, saved views, leave entries, rollback snapshots,
             and app settings. Once everything is gone the app reloads itself
-            automatically, so you land on a genuinely fresh install without
-            refreshing by hand. This action is irreversible. Always export a
-            JSON backup before using this option.
+            automatically — along with any other tabs you have open, so none of
+            them can write their copy of the data back — and you land on a
+            genuinely fresh install without refreshing by hand. This action is
+            irreversible. Always export a JSON backup before using this option.
           </p>
         </div>
       </div>
@@ -13925,6 +13926,12 @@
       // from any code that runs during boot.
       let isFactoryResetting = false;
 
+      // Set only in tabs that DIDN'T start the wipe, so it can hard-block
+      // database writes the way isFactoryResetting cannot — the wiping tab has
+      // to stay able to write its own empty logbook.
+      let isRemoteFactoryReset = false;
+      let remoteResetTimer = null;
+
       // Parsed-value cache keyed on the raw serialized string. Because the key
       // is the stored text itself, this self-invalidates no matter which code
       // path writes LEAVE_DATES_KEY (saveLeaveDates, backup import, full reset),
@@ -14810,6 +14817,10 @@
       ) {
         if (targetChunks.size === 0) return Promise.resolve();
         if (window.location.protocol === "file:") return Promise.resolve();
+        // Another tab is wiping the install; this tab's copy of the logbook is
+        // exactly what must not reach the database. Resolve rather than reject
+        // so callers unwind normally in the moment before the reboot.
+        if (isRemoteFactoryReset) return Promise.resolve();
 
         try {
           const db = await dbPromise;
@@ -15155,6 +15166,38 @@
                 saveLogs(pendingData);
               }
             });
+        } else if (e.data.type === "factory_reset") {
+          if (e.data.phase === "aborted") {
+            // The wipe failed over there and nothing was deleted, so thaw this
+            // tab instead of leaving it frozen until the safety net fires.
+            if (remoteResetTimer) {
+              clearTimeout(remoteResetTimer);
+              remoteResetTimer = null;
+            }
+            isRemoteFactoryReset = false;
+            isFactoryResetting = false;
+            return;
+          }
+
+          // Another tab is wiping the install. This tab still holds the full
+          // pre-wipe logbook in memory and is about to be told the database
+          // changed — which would send it down loadLogsFromDB's legacy
+          // migration path, re-chunking those logs straight back in behind the
+          // wipe. Freeze every persistence path here, drop anything queued,
+          // and reboot into the clean install alongside the tab that wiped.
+          isRemoteFactoryReset = true;
+          isFactoryResetting = true;
+          _pendingWriteAfterReload = null;
+
+          if (remoteResetTimer) clearTimeout(remoteResetTimer);
+          if (e.data.phase === "complete") {
+            hardReloadApp(300, false);
+          } else {
+            showAppToast("Data wiped in another tab. Reloading…");
+            // The wiping tab announces completion; this only covers it dying
+            // mid-wipe, so the tab reboots instead of staying frozen forever.
+            remoteResetTimer = setTimeout(() => hardReloadApp(0, false), 10000);
+          }
         }
       };
 
@@ -15793,10 +15836,14 @@
 
         // FIX 3: INSTANT SYNCHRONOUS EMERGENCY BACKUP
         try {
-          localStorage.setItem(
-            "production_logs_emergency_backup",
-            JSON.stringify(logs),
-          );
+          // Skipped while another tab is wiping: on file:// this mirror is the
+          // only store there is, so writing it would undo that wipe outright.
+          if (!isRemoteFactoryReset) {
+            localStorage.setItem(
+              "production_logs_emergency_backup",
+              JSON.stringify(logs),
+            );
+          }
         } catch (e) {
           if (window.location.protocol === "file:") {
             window.storageWriteError = true;
@@ -23552,16 +23599,21 @@
        * file://, hence the feature checks — this keeps the reset honest if a
        * worker is ever added.
        */
-      function hardReloadApp(delayMs = 800) {
+      function hardReloadApp(delayMs = 800, releaseLease = true) {
         const reboot = () => {
           // Runtime keys, dropped last so no heartbeat can recreate them. The
           // unload handlers normally release the lease, but beforeunload is
           // unreliable on iOS; a surviving fresh lease carries our sessionStorage
           // ownerId with the previous tabId, which boots straight into the
-          // "Multiple Tabs Detected" screen instead of the wiped app.
+          // "Multiple Tabs Detected" screen instead of the wiped app. Only the
+          // tab that ran the wipe does this — it is the lease holder; a tab
+          // rebooting on someone else's reset would be clearing a lease that
+          // isn't its own.
           try {
-            localStorage.removeItem(LEASE_KEY);
-            localStorage.removeItem(STAGING_KEY);
+            if (releaseLease) {
+              localStorage.removeItem(LEASE_KEY);
+              localStorage.removeItem(STAGING_KEY);
+            }
           } catch (e) {}
           try {
             location.reload();
@@ -23611,6 +23663,16 @@
           "Are you sure you want to permanently delete ALL logs and settings? The app will reload itself once everything is gone. This is irreversible.",
           () => {
             isFactoryResetting = true;
+
+            // Sent before saveLogs so it lands ahead of the database_mutated
+            // broadcast that write emits — that message is what would otherwise
+            // push another tab into rewriting its stale logs behind the wipe.
+            tabSyncChannel.postMessage({
+              type: "factory_reset",
+              phase: "begin",
+              fromTabId: myTabId,
+            });
+
             if (window.dirtyChunks) window.dirtyChunks.add("ALL");
 
             purgeFactoryKeys();
@@ -23657,6 +23719,14 @@
                 // gets to reopen on genuinely empty storage.
                 purgeFactoryKeys();
 
+                // Storage is empty and settled — the other tabs can stop
+                // holding still and reboot into the clean install too.
+                tabSyncChannel.postMessage({
+                  type: "factory_reset",
+                  phase: "complete",
+                  fromTabId: myTabId,
+                });
+
                 showAppToast("All data wiped. Reloading…");
                 hardReloadApp();
               })
@@ -23666,6 +23736,11 @@
                 // half-wiped install as a finished one. Lift the write freeze
                 // instead so the tab stays usable and the wipe can be retried.
                 isFactoryResetting = false;
+                tabSyncChannel.postMessage({
+                  type: "factory_reset",
+                  phase: "aborted",
+                  fromTabId: myTabId,
+                });
                 console.error("Factory reset aborted", err);
                 showAppToast(
                   "Wipe incomplete — your logs could not be deleted. Please try again.",
