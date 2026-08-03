@@ -206,16 +206,38 @@
            than from a border variable is what keeps it correct on all four
            themes at once -- it is always "a little of the foreground", never a
            grey that happens to suit one background. */
-        --hairline-color: color-mix(in srgb, var(--text-main) 14%, transparent);
-        /* Split out from the shorthand so a rule can use the app's edge weight
+        --hairline-color: color-mix(in srgb, var(--text-main) 8%, transparent);
+        /* A whole pixel, never a fraction.
+
+           A sub-pixel border-width has to be mapped onto the device pixel grid
+           one edge at a time, and WebKit resolves that mapping from the
+           element's own fractional position. On a 3x iPhone a 0.5px edge on a
+           flex-centred, rounded box therefore rounds DOWN to zero on whichever
+           side lands unluckily, and that border silently disappears. It read as
+           a clipped control: the date field in Leaves and the dialog close
+           button both lost their top edge on every theme except E-ink, which
+           was immune for the single reason that it had already overridden this
+           token to 1px. Desktop Blink does not reproduce it, so devtools device
+           mode shows nothing wrong.
+
+           The delicacy 0.5px was buying is bought back with alpha instead --
+           every theme's --hairline-color below is now about half the percentage
+           it used to carry, so a 1px edge lands at the same optical weight
+           while being a whole physical pixel the compositor cannot round away.
+
+           Take the width from this token for any border you add, and do not
+           write a fractional border-width anywhere. Fractional box-SHADOW
+           offsets and spreads are a different thing and remain safe -- WebKit
+           rasterises shadows without the per-edge rounding step -- so the
+           several deliberate 0.5px inset highlights in this sheet stay.
+
+           Split out from the shorthand so a rule can use the app's edge weight
            without also taking its colour. The emphasis recipe needs exactly
-           that -- an accent-tinted edge at hairline weight -- and hardcoding
-           1px there put a heavier rule around the three most prominent
-           controls in the app than around anything else on screen. */
-        --hairline-width: 0.5px;
+           that -- an accent-tinted edge at hairline weight. */
+        --hairline-width: 1px;
         --hairline: var(--hairline-width) solid var(--hairline-color);
         --hairline-strong: var(--hairline-width) solid
-          color-mix(in srgb, var(--text-main) 28%, transparent);
+          color-mix(in srgb, var(--text-main) 15%, transparent);
 
         /* Elevation shadows. Deliberately neutral black rather than a tint of
            --text-main: on the dark themes --text-main is white, so a tint of it
@@ -583,7 +605,9 @@
            colour-cast the greys. A lighter blur for the same reason -- there
            is no colour bleed here to hide. */
         --surface-blur: blur(18px);
-        --hairline-color: color-mix(in srgb, var(--text-main) 20%, transparent);
+        /* Halved from 20% when --hairline-width went 0.5px -> 1px, so the edge
+           holds the weight this theme was tuned for. See the token. */
+        --hairline-color: color-mix(in srgb, var(--text-main) 11%, transparent);
         --track-bg: rgba(255, 255, 255, 0.08);
         --segmented-bg: rgba(255, 255, 255, 0.1);
         --segmented-active-bg: #333333;
@@ -843,11 +867,14 @@
         --dropdown-bg: var(--modal-bg);
         --modal-bg: #ffffff;
         /* A light theme needs a heavier hairline than a dark one to read at
-           the same strength -- 14% of near-black on white is fainter than 14%
+           the same strength -- 8% of near-black on white is fainter than 8%
            of white on near-black. Shadows go the other way: a soft shadow on
            a light ground shows far more of itself, so the same weight would
-           read as smudge. */
-        --hairline-color: color-mix(in srgb, var(--text-main) 18%, transparent);
+           read as smudge.
+
+           Halved from 18% when --hairline-width went 0.5px -> 1px, keeping the
+           same one-step lift over the base. See the token. */
+        --hairline-color: color-mix(in srgb, var(--text-main) 10%, transparent);
         --elev-1: 0 4px 12px rgba(0, 0, 0, 0.1);
         --elev-2: 0 8px 32px rgba(0, 0, 0, 0.12);
         --elev-3: 0 -4px 32px rgba(0, 0, 0, 0.14);
@@ -3286,7 +3313,7 @@
         align-items: center;
         gap: 6px;
         background: var(--accent-wash);
-        border: 0.5px solid var(--accent-line);
+        border: var(--hairline-width) solid var(--accent-line);
         color: var(--accent-blue);
         padding: 5px 10px;
         border-radius: var(--radius-md);
@@ -6225,7 +6252,7 @@
 
         #m-sheet .icon-stack .sq-btn.danger-icon {
           background: var(--break-soft) !important;
-          border: 0.5px solid var(--break-line) !important;
+          border: var(--hairline-width) solid var(--break-line) !important;
         }
 
         #m-sheet .icon-stack .sq-btn svg {
@@ -7318,22 +7345,22 @@
         }
 
         .modal-container.accent-warning {
-          border-top: 0.5px solid
+          border-top: var(--hairline-width) solid
             color-mix(in srgb, var(--accent-warning) 85%, transparent) !important;
         }
 
         .modal-container.accent-danger {
-          border-top: 0.5px solid
+          border-top: var(--hairline-width) solid
             color-mix(in srgb, var(--accent-break) 85%, transparent) !important;
         }
 
         .modal-container.accent-info {
-          border-top: 0.5px solid
+          border-top: var(--hairline-width) solid
             color-mix(in srgb, var(--accent-blue) 85%, transparent) !important;
         }
 
         .modal-container.accent-success {
-          border-top: 0.5px solid
+          border-top: var(--hairline-width) solid
             color-mix(in srgb, var(--accent-work) 85%, transparent) !important;
         }
 
