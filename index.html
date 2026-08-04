@@ -7080,6 +7080,34 @@
             visibility 0s linear 0s;
         }
 
+        /* Two scrims are one too many.
+
+           The sheet no longer closes when a tool raises a dialog -- it stays
+           open underneath, which is the whole point of the stack. But that
+           leaves both dimmers lit at once: .modal-overlay lays --scrim across
+           the viewport at 1000, and this backdrop is already laying the same
+           --scrim at 997. Stacked they compound rather than add, so 0.32 twice
+           reads as ~0.54, and the page behind goes near-black while the dialog
+           on top looks no different. Only one layer should dim.
+
+           The modal's is the one to keep, because it is the higher of the two
+           and therefore also dims the sheet -- which is exactly the recession
+           a stacked layer wants. This one stands aside and fades back in on
+           its own 0.24s once the dialog leaves.
+
+           Reading [style*="flex"] leans on the same inline-display contract
+           getVisibleModal() has always relied on: .modal-overlay is display:
+           none in the stylesheet, and every opener in the app sets
+           style.display = "flex" on the element directly. Deriving the state
+           from what is actually rendered means it cannot drift out of sync the
+           way a body class toggled by fifteen separate close functions would.
+           The 150ms display:none timeout on the close path is a feature here,
+           not a race -- it holds this backdrop down until the dialog has
+           finished fading, so the two never cross. */
+        body.m-sheet-open:has(.modal-overlay[style*="flex"]) #m-sheet-backdrop {
+          opacity: 0;
+        }
+
         #m-sheet {
           display: flex;
           flex-direction: column;
@@ -30052,6 +30080,47 @@ logic (.value reads, .value sets, change listeners) works unchanged.
           else openSheet();
         }
 
+        /**
+         * Returns focus to the tool that raised a dialog, once that dialog is
+         * dismissed. Without this, closing a modal that was opened from the
+         * sheet drops focus to <body> -- the modal's own close button was the
+         * last focused thing and it has just gone display: none -- which strands
+         * keyboard and screen-reader users outside a sheet that is still open
+         * and still the thing on screen.
+         *
+         * Watching the modal's style attribute is what keeps this contained.
+         * The alternative is threading a completion callback through fifteen
+         * separate close functions, none of which know a sheet exists or have
+         * any business learning. Here it is one element, one attribute, and the
+         * observer disconnects itself the first time it fires.
+         */
+        function restoreFocusOnDismiss(modal, trigger) {
+          if (!modal || !trigger || typeof MutationObserver !== "function")
+            return;
+
+          const observer = new MutationObserver(function () {
+            // Same inline-display contract getVisibleModal() reads. The close
+            // path sets opacity first and display: none 150ms later, so this
+            // fires on the second write, after the fade rather than during it.
+            const shown =
+              modal.style.display === "flex" || modal.style.display === "block";
+            if (shown) return;
+            observer.disconnect();
+
+            // The sheet can be gone by now -- Escape twice, or a drag on the
+            // grabber while the dialog was up. Focusing a control inside a
+            // dismissed sheet would scroll the page to a thing nobody can see,
+            // so only restore into a sheet that is still open.
+            if (!document.body.classList.contains("m-sheet-open")) return;
+            if (document.contains(trigger)) trigger.focus();
+          });
+
+          observer.observe(modal, {
+            attributes: true,
+            attributeFilter: ["style"],
+          });
+        }
+
         /* ---- pane routing -------------------------------------------------- */
 
         /**
@@ -30348,23 +30417,54 @@ logic (.value reads, .value sets, change listeners) works unchanged.
             });
           }
 
-          // Tools that open a modal or complete an action must dismiss the sheet,
-          // otherwise it stays stacked underneath the modal. The two tools that
-          // open an in-sheet popover are excluded, as are the preset pills in the
-          // goal / timezone / appearance sections, which are adjustments rather
-          // than navigation.
+          // A tool click either raises a dialog or completes an action, and the
+          // sheet's fate differs between the two.
+          //
+          // It used to close on every tool click, on the reasoning that a sheet
+          // left sitting under a modal was a mistake. It is not a mistake, it is
+          // a stack -- and the layering was already built for one: #m-sheet sits
+          // at --z-overlay - 2 precisely so the modal band at --z-overlay can
+          // cover it. Closing it cost the user their place on every trip to the
+          // heatmap, the guide or the leave editor, and made dismissing a dialog
+          // mean "back to nothing" rather than "back to where I was".
+          //
+          // So the test is the outcome, not the button. Inline onclick handlers
+          // fire in the target phase and this listener is on an ancestor, so by
+          // the time it runs the tool's own handler has already run and any
+          // dialog it opened is already displayed. If one is up, the sheet stays
+          // put and becomes the layer beneath it. If none is, the click did
+          // something self-contained -- wrote a backup, opened a file picker --
+          // and dismissing the sheet is the acknowledgement that it happened.
+          //
+          // Classifying by outcome also means a tool added later needs no edit
+          // here. It gets sorted by what it does, not by an ID on a list that
+          // somebody has to remember to extend.
           const sheetBody = el("m-sheet-body");
           if (sheetBody) {
             sheetBody.addEventListener("click", function (e) {
               const btn = e.target.closest("button");
               if (!btn) return;
               if (e.target.closest(".idle-popup")) return;
+              // These two open an in-sheet popover rather than a dialog. They
+              // live inside the sheet, so dismissing it would take them with it.
               if (
                 btn.id === "adjust-time-btn" ||
                 btn.id === "settings-config-btn"
               )
                 return;
+              // Preset pills in the goal / timezone / appearance sections are
+              // adjustments rather than navigation; only the tools row is in
+              // scope here.
               if (!btn.closest('.m-sheet-slot[data-slot="tools"]')) return;
+
+              const raised =
+                typeof getVisibleModal === "function"
+                  ? getVisibleModal()
+                  : null;
+              if (raised) {
+                restoreFocusOnDismiss(raised, btn);
+                return;
+              }
               closeSheet();
             });
           }
@@ -30372,13 +30472,23 @@ logic (.value reads, .value sets, change listeners) works unchanged.
           const backdrop = el("m-sheet-backdrop");
           if (backdrop) backdrop.addEventListener("click", closeSheet);
 
+          // Escape pops one layer, never the whole stack. With a dialog open
+          // over the sheet the topmost thing is the dialog, so this stands down
+          // and lets the app-wide handler take it; a second press then finds no
+          // dialog and closes the sheet.
+          //
+          // The ordering this relies on is load-bearing and not obvious. The
+          // app-wide Escape handler is bound on window, this one on document,
+          // and bubbling reaches document first -- which is the only reason
+          // getVisibleModal() here still sees a dialog the window handler is
+          // about to close. Rebinding either one to the other target inverts
+          // that, and a single press would collapse both layers at once.
           document.addEventListener("keydown", function (e) {
-            if (
-              e.key === "Escape" &&
-              document.body.classList.contains("m-sheet-open")
-            ) {
-              closeSheet();
-            }
+            if (e.key !== "Escape") return;
+            if (!document.body.classList.contains("m-sheet-open")) return;
+            if (typeof getVisibleModal === "function" && getVisibleModal())
+              return;
+            closeSheet();
           });
 
           // Breakpoint crossings happen live on iPad Split View and on desktop
