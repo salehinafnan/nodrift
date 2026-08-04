@@ -215,10 +215,30 @@
            being "more blur" -- there is no radius that rescues a film thin
            enough to lose the contrast war. If more depth is wanted from here,
            it has to come from the tint pigment or the elevation shadow, not
-           from these two numbers. */
+           from these two numbers.
+
+           A caveat worth carrying: 50% is a judgement, not a law. Apple's own
+           thin materials go well below it, but they compensate with a vibrancy
+           layer -- text on a material gets its own blend mode that keeps it
+           legible over a busy backdrop. CSS has no equivalent and
+           mix-blend-mode is not a working substitute at this scale, so this app
+           is genuinely more constrained than the thing it is imitating. That
+           gap is the reason for the floor, not the number itself. */
         --film-1: 50%;
-        --film-2: 52%;
-        /* Only four points above chrome, and that gap is now the whole of the
+        /* Level with content rather than above it, and deliberately so. Chrome
+           carries the least type in the app -- a tab bar of four icons and
+           short labels -- while level 1 carries inputs, cards and rows. It has
+           no business holding more pigment than they do, and the two points it
+           used to hold were never argued for.
+
+           This is also the only rung where thinning buys anything visible.
+           Film only reveals a backdrop where there IS one: level 1 sits mostly
+           on flat panels, so its number is really a colour knob, while the tab
+           bar is the one surface with a whole scrolling list travelling under
+           it. If the glass ever needs to read more transparent again, this is
+           the line to move, and the only one. */
+        --film-2: 50%;
+        /* Six points above the other two now, and that gap is the whole of the
            difference between the rungs.
 
            This used to be 90%, then 72%, on the reasoning that overlays sit on
@@ -681,7 +701,6 @@
         --panel-blur: none;
         --element-bg: #1c1c1e;
         --element-hover: #2c2c2e;
-        --element-bg-light: #1c1c1e;
         --border-main: #2c2c2e;
         --border-light: #3a3a3c;
         --text-main: #ededed;
@@ -764,7 +783,6 @@
         --panel-blur: none;
         --element-bg: #e8e8e8;
         --element-hover: #cccccc;
-        --element-bg-light: #ffffff;
         --border-main: #111111;
         --border-light: #888888;
         --text-main: #111111;
@@ -895,7 +913,6 @@
         --panel-blur: none;
         --element-bg: #2c2c2e;
         --element-hover: #3a3a3c;
-        --element-bg-light: #2c2c2e;
         --border-main: #38383a;
         --border-light: #48484a;
         --text-main: #ffffff;
@@ -939,7 +956,6 @@
         --panel-blur: none;
         --element-bg: #ebebf0;
         --element-hover: #dcdce0;
-        --element-bg-light: #ffffff;
         --border-main: #c7c7cc;
         --border-light: #aeaeb2;
         --text-main: #1d1d1f;
@@ -4108,11 +4124,33 @@
         font-weight: 500;
       }
 
-      .settings-help-strip {
-        background: var(--element-bg-light, var(--element-bg));
-        border: 1px solid var(--border-main);
+      /* The settings popup's card. One component, four instances -- tracking
+         mode, tracking behaviour, the intelligent-mode group, and the help
+         strip below -- and until now the recipe was written out four separate
+         times, three of them as inline style attributes on the markup. That is
+         how all four ended up opaque: they were never reachable from the
+         material ladder, so every pass that retuned the glass went straight
+         past them, and they sat as four solid slabs inside a level 3 popup
+         that had been glass for some time.
+
+         Level 1 inside level 3, the same relationship .modal-close-btn and
+         .leave-list-item have with the dialogs they sit in. No blur of their
+         own -- the popup underneath has already blurred the page, and a
+         translucent card laid over that inherits the result.
+
+         They also drop --element-bg-light for the ladder's own pigment. That
+         token only differs from --element-bg on the two light themes, where it
+         was pinning these cards to pure white; against a white sheet that made
+         them invisible except for their borders, which is the opposite of what
+         a raised card is for. */
+      .settings-card {
+        background: var(--surface-1);
+        border: var(--hairline);
         border-radius: var(--radius-md);
         padding: 6px 10px;
+      }
+
+      .settings-help-strip {
         height: 2.8rem;
         box-sizing: border-box;
         display: flex;
@@ -4427,7 +4465,13 @@
       .adjust-smart-input {
         width: 100%;
         box-sizing: border-box;
-        background: var(--element-bg-light, var(--element-bg));
+        /* Level 1 inside the level 3 adjust-time popup. Borderless on purpose
+           -- the popup frames it -- which is legal at this level; what was not
+           legal was the opaque fill. Last holdout of --element-bg-light, and
+           converted with the settings cards rather than after them: leaving one
+           consumer behind is how a retired pigment quietly survives and the
+           drift starts again. */
+        background: var(--surface-1);
         border-radius: var(--radius-md);
         border: none;
         color: var(--text-main);
@@ -13084,14 +13128,7 @@
                   </button>
                 </div>
                 <!-- Card 1: Tracking Mode -->
-                <div
-                  style="
-                    background: var(--element-bg-light, var(--element-bg));
-                    border: 1px solid var(--border-main);
-                    border-radius: var(--radius-md);
-                    padding: 5px;
-                  "
-                >
+                <div class="settings-card" style="padding: 5px">
                   <div class="segmented-control" style="height: 28px">
                     <button
                       id="mode-simple"
@@ -13115,14 +13152,7 @@
                 </div>
 
                 <!-- Card 2: Tracking Behavior -->
-                <div
-                  style="
-                    background: var(--element-bg-light, var(--element-bg));
-                    border: 1px solid var(--border-main);
-                    border-radius: var(--radius-md);
-                    padding: 6px 10px;
-                  "
-                >
+                <div class="settings-card">
                   <div class="settings-row">
                     <span class="settings-label">Auto-populate daily goal</span>
                     <label class="switch">
@@ -13142,11 +13172,8 @@
                   <div class="collapsible-content">
                     <!-- Unified Card 3: Intelligent Mode Options -->
                     <div
+                      class="settings-card"
                       style="
-                        background: var(--element-bg-light, var(--element-bg));
-                        border: 1px solid var(--border-main);
-                        border-radius: var(--radius-md);
-                        padding: 6px 10px;
                         display: flex;
                         flex-direction: column;
                         gap: 6px;
@@ -13327,7 +13354,7 @@
                 </div>
 
                 <!-- Card 4: Help Description Strip (Fixed Height for CPU efficiency) -->
-                <div class="settings-help-strip">
+                <div class="settings-card settings-help-strip">
                   <svg
                     class="settings-help-icon"
                     viewBox="0 0 24 24"
