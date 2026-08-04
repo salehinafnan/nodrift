@@ -205,13 +205,28 @@
            from these two numbers. */
         --film-1: 50%;
         --film-2: 52%;
-        /* Overlays run denser than chrome because they sit on a dimmed scrim
-           rather than on content: at chrome's weight a light sheet turns grey
-           and a dark one loses its lift off the page. Dialogs and the settings
-           sheet also hold the densest text in the app, so this rung stays the
-           conservative one -- it has more room left than the two above it, and
-           is the right place to spend if the glass still reads too quiet. */
-        --film-3: 72%;
+        /* Only four points above chrome, and that gap is now the whole of the
+           difference between the rungs.
+
+           This used to be 90%, then 72%, on the reasoning that overlays sit on
+           a dimmed scrim rather than on content and so need more pigment to
+           keep a light sheet from turning grey. The reasoning was sound and the
+           number was still wrong, because it was being applied ON TOP of the
+           scrim rather than instead of it. A level 3 surface is the only one in
+           the app whose backdrop is dimmed before the glass ever samples it, so
+           a heavy film there dims the same thing twice: at 72% over a 55% scrim
+           roughly an eighth of the real backdrop survived to the eye, against
+           roughly a half under the tab bar. That is why the settings sheet read
+           flat while the bar read like glass -- not the radius, and not this
+           number alone.
+
+           The separation an overlay needs is the scrim's job. It is already
+           doing it, on its own layer, where it does not have to fight the
+           material. This rung keeps four points over chrome purely for text
+           density -- dialogs and the sheet hold the densest type in the app --
+           and nothing for lift. If a light sheet ever does read grey, the fix
+           is the scrim, not this. */
+        --film-3: 56%;
 
         --surface-1: color-mix(
           in srgb,
@@ -249,13 +264,20 @@
            the difference between this reading as a material and reading as a
            translucent rectangle.
 
-           The radius is paired to the film above and has to move with it. A
-           thinner film shows more of the backdrop, which means more of it is
-           still recognisable as text and edges rather than as a wash -- so the
-           radius rises to dissolve it. That pairing is the whole trick: the
-           backdrop stays clearly present underneath without ever resolving
-           into something the eye tries to read. */
-        --surface-blur: blur(38px) saturate(210%);
+           The radius has a ceiling, and it is set by the size of the things
+           behind the glass, not by taste. A blur wider than the shapes it
+           samples averages them into each other until nothing is left to
+           recognise -- no row edges, no card corners, no motion when the list
+           scrolls -- and the surface reads as a flat tint no matter how thin
+           the film above it gets. This sat at 38px against ~56px log rows,
+           which is exactly that failure: the material was erasing the evidence
+           that there was anything underneath it.
+
+           20px keeps the backdrop recognisable as shape and movement while
+           still being far too soft to read as text, which is the whole effect.
+           Treat the tallest thing that scrolls under a glass surface as the
+           limit -- comfortably under it, never near it. */
+        --surface-blur: blur(20px) saturate(210%);
 
         /* One hairline for the whole app. Tinting it from --text-main rather
            than from a border variable is what keeps it correct on all four
@@ -300,7 +322,19 @@
         --elev-1: 0 4px 12px rgba(0, 0, 0, 0.2);
         --elev-2: 0 8px 32px rgba(0, 0, 0, 0.24);
         --elev-3: 0 -4px 32px rgba(0, 0, 0, 0.28);
-        --scrim: rgba(0, 0, 0, 0.55);
+        /* The dimmed layer behind every overlay, and the other half of what
+           --film-3 is balanced against. It is now the ONLY thing separating a
+           dialog from the page, which is why it can afford to be lighter than
+           it was: at 0.55 it dimmed the backdrop so far that the level 3 glass
+           above it had nothing left worth showing through, and both layers were
+           spending themselves on the same job. Lightened to 0.32 so the sheet
+           and the dialogs sample a page that is still recognisably there.
+
+           This is the knob for overlay separation. If a light theme's sheet
+           ever reads grey, raise it here rather than thickening --film-3 --
+           thickening the film hides the backdrop, which is the thing the glass
+           exists to show. */
+        --scrim: rgba(0, 0, 0, 0.32);
 
         /* ---- The mix ladder ------------------------------------------------
            Every tinted surface in this app is the same sentence: some
@@ -660,7 +694,7 @@
            colour-cast the greys. A lighter blur for the same reason -- there
            is no colour bleed here to hide. Scaled with the base radius so the
            one theme that tunes this stays in the same proportion to it. */
-        --surface-blur: blur(28px);
+        --surface-blur: blur(16px);
         /* Halved from 20% when --hairline-width went 0.5px -> 1px, so the edge
            holds the weight this theme was tuned for. See the token. */
         --hairline-color: color-mix(in srgb, var(--text-main) 11%, transparent);
@@ -934,7 +968,11 @@
         --elev-1: 0 4px 12px rgba(0, 0, 0, 0.1);
         --elev-2: 0 8px 32px rgba(0, 0, 0, 0.12);
         --elev-3: 0 -4px 32px rgba(0, 0, 0, 0.14);
-        --scrim: rgba(0, 0, 0, 0.4);
+        /* Lighter than the dark themes' scrim, same as before: black at any
+           weight costs a light theme more, because it is dimming a page that
+           was near-white to begin with. Scaled down with the base for the
+           reason given there. */
+        --scrim: rgba(0, 0, 0, 0.28);
         --track-bg: rgba(0, 0, 0, 0.08);
         --segmented-bg: rgba(120, 120, 128, 0.12);
         --segmented-active-bg: #ffffff;
