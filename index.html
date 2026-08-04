@@ -158,11 +158,24 @@
            level 1 keeps the material's tint and pays none of it. Do not add a
            backdrop-filter to a level 1 selector.
 
-           Themes override these tokens rather than the rules that use them.
-           E-Ink resolves all three levels to opaque paper and --surface-blur to
-           none, because frosted glass is not a material that theme has; Vercel
-           Dark lifts its chrome pigment off pure black and drops the saturate.
-           Both still travel through exactly the same rules.
+           Themes override these tokens rather than the rules that use them,
+           and they override as little as possible. The three glass themes --
+           SF Light, SF Dark, Vercel Dark -- now share every value that
+           describes the MATERIAL: one film per level, one blur radius, one
+           scrim. What a theme is still allowed to change is its PALETTE, and
+           Vercel Dark changes exactly one thing on that basis: it lifts its
+           chrome pigment off pure black, because its panel and its page are
+           the same colour and the rung would otherwise have no height.
+
+           That line is worth holding. A per-theme radius or a per-theme scrim
+           does not read as a tuned theme, it reads as a different app, and it
+           is the kind of drift that starts with one justified exception.
+
+           E-Ink is the one real exception, and it is a clean one: it does not
+           tune the glass, it declines it. All three levels resolve to opaque
+           paper and --surface-blur to none, because frosted glass is not a
+           material that theme has. It still travels through exactly the same
+           rules to get there.
            ===================================================================== */
 
         /* The fill behind floating chrome, and what a `-solid` twin resolves
@@ -273,11 +286,18 @@
            which is exactly that failure: the material was erasing the evidence
            that there was anything underneath it.
 
-           20px keeps the backdrop recognisable as shape and movement while
+           16px keeps the backdrop recognisable as shape and movement while
            still being far too soft to read as text, which is the whole effect.
            Treat the tallest thing that scrolls under a glass surface as the
-           limit -- comfortably under it, never near it. */
-        --surface-blur: blur(20px) saturate(210%);
+           limit -- comfortably under it, never near it. At a ~56px row that
+           puts the useful band somewhere under a third of the row, and this
+           sits there.
+
+           ONE value for all three glass themes. There is no per-theme radius:
+           a material that blurs differently depending on the palette is two
+           materials, and the app only has one. E-Ink is not an exception to
+           that -- it opts out of glass entirely rather than tuning it. */
+        --surface-blur: blur(16px) saturate(210%);
 
         /* One hairline for the whole app. Tinting it from --text-main rather
            than from a border variable is what keeps it correct on all four
@@ -618,7 +638,14 @@
         --button-height: 3.2rem;
         --tab-nav-gap: 2px;
         --tab-nav-padding: 2px;
-        --tab-nav-border: 1px solid var(--border-main);
+        /* The track's own fill and edge. The edge was already a token; the
+           fill was written as a literal at each of the three tracks that use
+           this set (.tab-nav, .adjust-segmented-control, .help-tab-nav), which
+           is the asymmetry that let them drift off the material ladder while
+           still claiming to share a recipe. Both are tokens now, and both
+           resolve to level 1 -- a track is a well, and a well is content. */
+        --tab-nav-bg: var(--surface-1);
+        --tab-nav-border: var(--hairline);
         --tab-nav-height: var(--header-el-height);
         --tab-btn-radius: calc(var(--radius-md) - 2px);
         --tab-btn-color: var(--text-muted);
@@ -689,12 +716,15 @@
            recipe identical and gives the bars the near-black lift the theme
            uses everywhere else. */
         --tint-chrome: #1a1a1c;
-        /* No saturate: this theme is monochrome by construction, so boosting
-           chroma on the sampled backdrop has nothing to act on and would only
-           colour-cast the greys. A lighter blur for the same reason -- there
-           is no colour bleed here to hide. Scaled with the base radius so the
-           one theme that tunes this stays in the same proportion to it. */
-        --surface-blur: blur(16px);
+        /* --surface-blur is deliberately NOT overridden here. This theme used
+           to run its own radius and drop the saturate, on the reasoning that a
+           monochrome palette has no chroma to boost and no colour bleed to
+           hide. Both halves were true and neither was worth a fork: saturate()
+           on a grey returns the same grey, so the base value was already a
+           no-op here, and a second radius bought nothing but a material that
+           behaved differently depending on which theme was loaded. The pigment
+           above is a palette fact and stays. The blur is a material fact and
+           belongs to the material. */
         /* Halved from 20% when --hairline-width went 0.5px -> 1px, so the edge
            holds the weight this theme was tuned for. See the token. */
         --hairline-color: color-mix(in srgb, var(--text-main) 11%, transparent);
@@ -968,11 +998,14 @@
         --elev-1: 0 4px 12px rgba(0, 0, 0, 0.1);
         --elev-2: 0 8px 32px rgba(0, 0, 0, 0.12);
         --elev-3: 0 -4px 32px rgba(0, 0, 0, 0.14);
-        /* Lighter than the dark themes' scrim, same as before: black at any
-           weight costs a light theme more, because it is dimming a page that
-           was near-white to begin with. Scaled down with the base for the
-           reason given there. */
-        --scrim: rgba(0, 0, 0, 0.28);
+        /* --scrim is deliberately NOT overridden here. It used to sit a few
+           points lighter on the reasoning that black costs a light theme more,
+           since it is dimming a page that was near-white to begin with. That
+           was written when the scrim was 0.55 and genuinely heavy; at 0.32 the
+           gap it was correcting for is smaller than the inconsistency it
+           created, and an overlay that dims the page by a different amount
+           depending on the theme is the same drift the film tokens exist to
+           prevent. One scrim, one glass, three themes. */
         --track-bg: rgba(0, 0, 0, 0.08);
         --segmented-bg: rgba(120, 120, 128, 0.12);
         --segmented-active-bg: #ffffff;
@@ -1192,8 +1225,20 @@
         right: 1rem;
         width: 28px;
         height: 28px;
-        background: var(--element-bg);
-        border: 1px solid var(--border-main);
+        /* Level 1, and the reason this matters more here than anywhere else:
+           a close button only ever sits ON a level 3 surface -- every modal in
+           the app, plus the sheet. An opaque fill there does not read as a
+           button on glass, it reads as a hole punched through it, which is
+           exactly what it looked like.
+
+           It does not take a blur, and must not: level 1 never does. It does
+           not need one either. The glass underneath has already blurred the
+           backdrop, and a translucent chip laid over that inherits the result
+           for free. That is the whole trick behind the settings sheet's icon
+           buttons, which is why those looked right while this one did not --
+           they were on the ladder and this was not. */
+        background: var(--surface-1);
+        border: var(--hairline);
         color: var(--text-muted);
         border-radius: var(--radius-md);
         display: flex;
@@ -1563,8 +1608,9 @@
       .status-badge {
         display: flex;
         align-items: center;
-        background: var(--element-bg);
-        border: 1px solid var(--border-main);
+        /* Level 1. */
+        background: var(--surface-1);
+        border: var(--hairline);
         height: var(--header-el-height);
         padding: 0 1rem;
         border-radius: var(--header-el-radius);
@@ -1575,8 +1621,9 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        background: var(--element-bg);
-        border: 1px solid var(--border-main);
+        /* Level 1. */
+        background: var(--surface-1);
+        border: var(--hairline);
         height: var(--header-el-height);
         width: auto;
         padding: 0 10px;
@@ -1915,8 +1962,9 @@
       input[type="number"].filter-input {
         -moz-appearance: textfield;
         appearance: textfield;
-        background: var(--element-bg);
-        border: 1px solid var(--border-main);
+        /* Level 1. */
+        background: var(--surface-1);
+        border: var(--hairline);
         color: var(--text-main);
         padding: 0.3rem 0.5rem;
         border-radius: 0.5rem;
@@ -2931,7 +2979,7 @@
         display: flex;
         gap: var(--tab-nav-gap);
         margin-bottom: 12px;
-        background: var(--element-bg);
+        background: var(--tab-nav-bg);
         padding: var(--tab-nav-padding);
         border-radius: var(--header-el-radius);
         border: var(--tab-nav-border);
@@ -3186,8 +3234,9 @@
 
       .filter-select,
       .filter-input {
-        background: var(--element-bg);
-        border: 1px solid var(--border-main);
+        /* Level 1. */
+        background: var(--surface-1);
+        border: var(--hairline);
         color: var(--text-main);
         padding: 4px 10px;
         border-radius: 6px;
@@ -3330,8 +3379,9 @@
         align-items: center;
         justify-content: center;
         cursor: pointer;
-        background: var(--element-bg);
-        border: 1px solid var(--border-main);
+        /* Level 1. */
+        background: var(--surface-1);
+        border: var(--hairline);
         color: var(--text-muted);
         transition:
           background-color 0.15s ease,
@@ -3964,8 +4014,10 @@
       .sidebar-footer .sq-btn {
         width: clamp(28px, 2.4vw, 38px);
         height: clamp(28px, 2.4vw, 38px);
-        background: var(--element-bg);
-        border: 1px solid var(--border-main);
+        /* Level 1. The phone's copy of these buttons, inside the sheet, was
+           already on the ladder -- this is the desktop half catching up. */
+        background: var(--surface-1);
+        border: var(--hairline);
         border-radius: var(--radius-sm);
         display: flex;
         align-items: center;
@@ -4308,11 +4360,11 @@
       /* Segmented control for switching target (Work / Break) */
       .adjust-segmented-control {
         display: flex;
-        background: var(--element-bg);
-        padding: var(--tab-nav-padding, 2px);
-        border-radius: var(--header-el-radius, var(--radius-md));
-        border: var(--tab-nav-border, 1px solid var(--border-main));
-        gap: var(--tab-nav-gap, 2px);
+        background: var(--tab-nav-bg);
+        padding: var(--tab-nav-padding);
+        border-radius: var(--header-el-radius);
+        border: var(--tab-nav-border);
+        gap: var(--tab-nav-gap);
         align-items: stretch;
         width: 100%;
       }
@@ -4720,10 +4772,11 @@
         left: 0;
         right: 0;
         bottom: 0;
-        /* One scrim token for every dimmed backdrop in the app. The light
-           themes set it lighter: a 0.58 black behind a translucent white sheet
-           drags the sheet grey, which is what made the old fixed value work on
-           the dark themes only. */
+        /* One scrim token for every dimmed backdrop in the app, and the same
+           value on all three glass themes -- see the token for why the light
+           theme no longer forks it. E-Ink still does, because there the scrim
+           is separating paper from paper rather than dimming a backdrop
+           something is meant to show through. */
         background: var(--scrim);
         z-index: var(--z-overlay);
 
@@ -4771,15 +4824,47 @@
         flex-direction: column;
       }
 
+      /* Help Modal search field. Geometry only -- the material comes from
+         .input-standard, which is where it should come from.
+
+         The height used to be --header-el-height (38px), borrowed from the
+         header. That was a category error as much as a size one: this field is
+         not header chrome, it is a filter sitting above the content it
+         filters, and at 38px it carried the same visual weight as the tab row
+         underneath and competed with it. 32px reads as secondary, which is
+         what it is.
+
+         No height on the phone: the breakpoint's min-height: 44px touch target
+         beats this automatically, since min-height always wins over height. */
+      .help-search {
+        position: relative;
+        width: 100%;
+        margin-bottom: var(--space-3);
+      }
+
+      #help-search-input {
+        height: 32px;
+        padding-left: 2.2rem;
+        font-size: var(--text-sm);
+      }
+
+      .help-search .help-search-icon {
+        position: absolute;
+        left: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        pointer-events: none;
+      }
+
       /* Help Modal specific tab layouts */
       .help-tab-nav {
         display: flex;
-        gap: var(--tab-nav-gap, 2px);
+        gap: var(--tab-nav-gap);
         margin-bottom: var(--space-4);
-        background: var(--element-bg);
-        padding: var(--tab-nav-padding, 2px);
-        border-radius: var(--header-el-radius, var(--radius-md));
-        border: var(--tab-nav-border, 1px solid var(--border-main));
+        background: var(--tab-nav-bg);
+        padding: var(--tab-nav-padding);
+        border-radius: var(--header-el-radius);
+        border: var(--tab-nav-border);
         overflow-x: auto;
         scrollbar-width: none;
         flex-shrink: 0;
@@ -4883,8 +4968,9 @@
       .date-picker-group {
         display: flex;
         align-items: center;
-        background: var(--element-bg);
-        border: 1px solid var(--border-main);
+        /* Level 1. */
+        background: var(--surface-1);
+        border: var(--hairline);
         border-radius: var(--radius-md);
         padding: 0 var(--space-3);
         height: 38px;
@@ -5373,8 +5459,9 @@
         display: flex;
         justify-content: space-between;
         align-items: center;
-        background: var(--element-bg);
-        border: 1px solid var(--border-main);
+        /* Level 1 inside a level 3 dialog -- same case as .modal-close-btn. */
+        background: var(--surface-1);
+        border: var(--hairline);
         padding: var(--space-1) var(--space-3);
         border-radius: var(--radius-sm);
         font-size: var(--text-sm);
@@ -5422,8 +5509,9 @@
         align-items: center;
         justify-content: space-between;
         gap: 6px;
-        background: var(--element-bg);
-        border: 1px solid var(--border-main);
+        /* Level 1. */
+        background: var(--surface-1);
+        border: var(--hairline);
         color: var(--text-muted);
         font-family: var(--font-sans);
         cursor: pointer;
@@ -7206,7 +7294,20 @@
            too -- otherwise the state silently disappears on mobile.
 
            Do NOT add .log-row back to this list. Rows take the solid twin in
-           the rule immediately below -- see the note there. */
+           the rule immediately below -- see the note there.
+
+           `.modal-container button` is a blanket inside a blanket, and it
+           catches things that are not standalone controls. .help-tab-btn is
+           the case that showed: it is a SEGMENT of a segmented control, and a
+           segment does not own an edge -- the track around it does. Giving
+           each tab its own hairline drew a second border a few pixels inside
+           the nav's own, the two never lined up, and the row read as a strip
+           of loose chips rather than one control. Excluded here so the base
+           rule's `border: none` survives on the phone.
+
+           Any future child of a track belongs in that :not() for the same
+           reason. The test is not "is it a button", it is "does it sit inside
+           something that already draws its outline". */
         .task-card-active,
         .preset-pill:not(.active),
         .goal-inputs,
@@ -7215,7 +7316,7 @@
         #task-note-input:not(.task-input-running),
         .goal-inputs button:not(.active),
         #m-sheet-close,
-        .modal-container button,
+        .modal-container button:not(.help-tab-btn),
         .input-standard:not(.task-input-running),
         .filter-input,
         .custom-select-trigger,
@@ -7577,6 +7678,27 @@
           scroll-snap-align: start;
           padding-left: 0.9rem;
           padding-right: 0.9rem;
+        }
+
+        /* The guide is the one long-form reading surface in the app, and on a
+           phone it was giving up 10px of every line to furniture: a 6px
+           scrollbar gutter plus the 4px inset that was reserved to clear it.
+           On a ~360px screen that is a whole word per line.
+
+           Both go, and the text gets the width. Nothing is lost -- the pane
+           still scrolls, and a visible thumb was never how anyone discovered
+           that on a touch screen. This is the same trade the logbook, the stat
+           strips and the filter chips already make at this breakpoint. */
+        .help-tab-content {
+          padding-right: 0;
+        }
+
+        .help-tab-content.active {
+          scrollbar-width: none;
+        }
+
+        .help-tab-content.active::-webkit-scrollbar {
+          display: none;
         }
 
         /* The heatmap already ships an inline overflow-x:auto wrapper around its
@@ -8509,23 +8631,16 @@
         </h3>
 
         <!-- Help Search Input -->
-        <div
-          style="margin-bottom: var(--space-3); position: relative; width: 100%"
-        >
+        <div class="help-search">
           <input
             type="text"
             id="help-search-input"
             class="input-standard"
             placeholder="Search help guide, commands, or shortcuts..."
-            style="
-              padding-left: 2.2rem;
-              font-size: var(--text-sm);
-              height: var(--header-el-height);
-              box-sizing: border-box;
-            "
             oninput="window.searchHelpContent(this.value)"
           />
           <svg
+            class="help-search-icon"
             viewBox="0 0 24 24"
             width="14"
             height="14"
@@ -8534,13 +8649,6 @@
             stroke-width="1.8"
             stroke-linecap="round"
             stroke-linejoin="round"
-            style="
-              position: absolute;
-              left: 12px;
-              top: 50%;
-              transform: translateY(-50%);
-              pointer-events: none;
-            "
           >
             <g data-sprite="sprite-026"></g>
           </svg>
@@ -10501,11 +10609,49 @@
             color: var(--text-main);
           }
 
+          /* Level 3 -- the same material .tz-presets, .goal-presets and
+             .theme-presets take. This is the identical component to all three
+             (a hover-revealed preset popover with a dead-zone bridge) and it
+             was the only one written as an inline style attribute, which is
+             precisely why it never joined the ladder: it carried an opaque
+             --dropdown-bg and no blur, so it read as a solid card floating
+             over the heatmap while every other dropdown in the app read as
+             glass.
+
+             The lesson is worth more than the fix. An inline style cannot be
+             themed, cannot be overridden without !important, and is invisible
+             to every audit that greps the stylesheet for a token -- the hover
+             rule below needed three !importants purely to out-specify this
+             one, and they are gone now that the material lives in CSS. If a
+             surface needs a fill, it needs a rule. */
+          #heatmap-year-presets {
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            opacity: 0;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            padding: 6px;
+            background: var(--surface-3);
+            -webkit-backdrop-filter: var(--surface-blur);
+            backdrop-filter: var(--surface-blur);
+            border: var(--hairline);
+            border-radius: var(--radius-md);
+            box-shadow: var(--elev-1);
+            transform: translateX(-50%) translateY(4px);
+            z-index: var(--z-dropdown);
+            transition:
+              opacity 0.2s ease,
+              transform 0.2s ease;
+          }
+
           .heatmap-year-container:hover #heatmap-year-presets,
           .heatmap-year-container:focus-within #heatmap-year-presets {
-            opacity: 1 !important;
-            pointer-events: auto !important;
-            transform: translateX(-50%) translateY(8px) !important;
+            opacity: 1;
+            pointer-events: auto;
+            transform: translateX(-50%) translateY(8px);
           }
 
           #heatmap-year-presets::before {
@@ -10578,29 +10724,7 @@
                   <g data-sprite="sprite-013"></g>
                 </svg>
               </div>
-              <div
-                id="heatmap-year-presets"
-                style="
-                  position: absolute;
-                  top: 100%;
-                  left: 50%;
-                  opacity: 0;
-                  pointer-events: none;
-                  display: flex;
-                  flex-direction: column;
-                  gap: 4px;
-                  padding: 6px;
-                  background: var(--dropdown-bg);
-                  border: 1px solid var(--border-light);
-                  border-radius: var(--radius-md);
-                  box-shadow: none;
-                  transform: translateX(-50%) translateY(4px);
-
-                  transition:
-                    opacity 0.2s ease,
-                    transform 0.2s ease;
-                "
-              >
+              <div id="heatmap-year-presets">
                 <!-- populated dynamically -->
               </div>
             </div>
@@ -12027,8 +12151,9 @@
         <style>
           /* Task Tab Refinements */
           .task-card-active {
-            background: var(--element-bg);
-            border: 1px solid var(--border-main);
+            /* Level 1. */
+            background: var(--surface-1);
+            border: var(--hairline);
             border-radius: var(--radius-xl);
             padding: var(--space-3) var(--space-4);
             margin-bottom: var(--space-3);
@@ -12059,8 +12184,9 @@
           }
 
           .task-group-card {
-            background: var(--element-bg);
-            border: 1px solid var(--border-main);
+            /* Level 1. */
+            background: var(--surface-1);
+            border: var(--hairline);
             border-radius: var(--radius-lg);
             overflow: hidden;
             margin-bottom: 12px;
