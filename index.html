@@ -3733,20 +3733,20 @@
         background: rgba(128, 128, 128, 0.08);
       }
 
-      .adjust-seg-btn.active[data-target="work"] {
+      .adjust-seg-btn.active {
         background: var(--tab-btn-active-bg, var(--panel-bg));
-        color: var(--accent-work);
+        color: var(--text-main);
         box-shadow: var(--tab-btn-active-shadow);
         border: var(--tab-btn-active-border, none);
         outline: var(--tab-btn-active-outline, none);
       }
 
+      .adjust-seg-btn.active[data-target="work"] {
+        color: var(--accent-work);
+      }
+
       .adjust-seg-btn.active[data-target="break"] {
-        background: var(--tab-btn-active-bg, var(--panel-bg));
         color: var(--accent-break);
-        box-shadow: var(--tab-btn-active-shadow);
-        border: var(--tab-btn-active-border, none);
-        outline: var(--tab-btn-active-outline, none);
       }
 
       :root[data-theme="theme-eink"] .adjust-seg-btn.active,
@@ -4798,6 +4798,167 @@
         border: none;
         border-top: 1px solid var(--border-main);
         margin: var(--space-4) 0 var(--space-3) 0;
+      }
+
+      /* Leave Balances Layout Classes (DRY) */
+      .leave-balance-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: var(--surface-1);
+        border: var(--hairline);
+        padding: 8px 12px;
+        border-radius: var(--radius-sm);
+      }
+      .leave-balance-type {
+        font-size: var(--text-sm);
+        font-weight: 600;
+        color: var(--text-main);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .leave-balance-stats {
+        display: flex;
+        gap: 16px;
+        width: 140px;
+        justify-content: flex-end;
+        align-items: center;
+        font-variant-numeric: tabular-nums;
+        font-size: var(--text-sm);
+      }
+      .leave-allowance-input {
+        width: 40px;
+        height: 26px;
+        background: var(--element-hover);
+        border: 1px solid transparent;
+        border-radius: 4px;
+        color: var(--text-main);
+        font-family: var(--font-sans) !important;
+        font-size: var(--text-sm);
+        font-weight: 600;
+        text-align: center;
+        outline: none;
+        transition:
+          border-color 0.2s,
+          background 0.2s;
+        -moz-appearance: textfield;
+        appearance: textfield;
+      }
+      .leave-allowance-input:focus {
+        border-color: var(--accent-blue);
+        background: var(--surface-1);
+      }
+      .leave-allowance-input::-webkit-outer-spin-button,
+      .leave-allowance-input::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        appearance: none;
+        margin: 0;
+      }
+      .leave-stat-taken {
+        width: 40px;
+        text-align: center;
+        color: var(--text-muted);
+        font-weight: 600;
+      }
+      .leave-stat-left {
+        width: 40px;
+        text-align: center;
+        font-weight: 600;
+      }
+      .leave-stat-left.positive {
+        color: var(--accent-work);
+      }
+      .leave-stat-left.warning {
+        color: var(--accent-warning);
+      }
+      .leave-stat-left.negative {
+        color: var(--accent-break);
+      }
+      .leave-modal-title {
+        white-space: nowrap;
+        font-size: 1rem;
+        margin-bottom: 12px;
+      }
+      .leave-segmented-control {
+        margin-bottom: var(--space-4);
+      }
+      .leave-balance-view {
+        display: none;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .leave-balance-header-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 0 12px;
+        margin-bottom: 4px;
+      }
+      .leave-balance-col-headers {
+        display: flex;
+        gap: 16px;
+        width: 140px;
+        justify-content: flex-end;
+      }
+      .leave-balance-col-label {
+        margin: 0;
+        width: 40px;
+        text-align: center;
+      }
+      .leave-balance-list {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        max-height: 280px;
+        overflow-y: auto;
+      }
+      .leave-balance-warning {
+        display: flex;
+        margin-top: 8px;
+        margin-bottom: 0;
+      }
+      .leave-balance-warning-icon {
+        width: 16px;
+        height: 16px;
+        flex-shrink: 0;
+        margin-top: 2px;
+      }
+      .leave-balance-warning-text {
+        font-size: 11px;
+        line-height: 1.4;
+        color: var(--text-muted);
+      }
+      .leave-balance-badge {
+        margin: 0;
+      }
+      .leave-balance-delete-btn {
+        background: transparent;
+        border: none;
+        color: var(--text-muted);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+        width: 20px;
+        height: 20px;
+        border-radius: var(--radius-sm);
+        flex-shrink: 0;
+        transition: color 0.15s ease;
+      }
+      .leave-balance-delete-btn:hover {
+        color: var(--accent-break);
+      }
+      .btn-dashed {
+        border-style: dashed !important;
+        border-width: 1px !important;
+        border-color: var(--border-light) !important;
+        color: var(--text-muted) !important;
+        border-radius: var(--radius-sm) !important;
+      }
+      .btn-dashed:hover {
+        border-color: var(--text-main) !important;
+        color: var(--text-main) !important;
       }
 
       /* =========================================================================
@@ -6262,7 +6423,8 @@
         #task-note-input:not(.task-input-running),
         .goal-inputs button:not(.active),
         #m-sheet-close,
-        .modal-container button:not(.help-tab-btn),
+        .modal-container
+          button:not(.help-tab-btn):not(.adjust-seg-btn):not(.btn-dashed),
         .input-standard:not(.task-input-running),
         .filter-input,
         .custom-select-trigger,
@@ -9121,7 +9283,7 @@
             <line x1="6" y1="6" x2="18" y2="18"></line>
           </svg>
         </button>
-        <h3 class="modal-header" style="white-space: nowrap; font-size: 1rem">
+        <h3 class="modal-header leave-modal-title">
           <svg
             viewBox="0 0 24 24"
             class="ui-icon"
@@ -9136,140 +9298,217 @@
           Leaves & Holidays
         </h3>
 
-        <!-- Date Picker Row -->
-        <div class="form-group">
-          <label class="form-label" for="leave-date-input"
-            >Select Leave Date</label
+        <!-- NEW: Segmented Control -->
+        <div class="adjust-segmented-control leave-segmented-control">
+          <button
+            id="leave-tab-btn-log"
+            class="adjust-seg-btn active"
+            onclick="switchLeaveTab('log')"
           >
-          <div class="date-picker-group">
-            <input
-              type="text"
-              id="leave-date-input"
-              class="input-standard"
-              placeholder="05/16/26"
-              onfocus="this.select()"
-              onkeydown="if (event.key === 'Enter') this.blur();"
-            />
-            <!-- Hidden native input triggered by button click -->
-            <input
-              type="text"
-              readonly
-              id="leave-date-picker"
-              style="
-                position: absolute;
-                opacity: 0.01;
-                width: 1px;
-                height: 1px;
-                pointer-events: none;
-              "
-            />
-            <button
-              type="button"
-              class="preset-pill"
-              onclick="safeShowPicker('leave-date-picker')"
-              title="Open Calendar"
-            >
-              <svg
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                fill="none"
-                style="
-                  width: 14px;
-                  height: 14px;
-                  stroke-width: 2;
-                  flex-shrink: 0;
-                "
-              >
-                <g data-sprite="sprite-008"></g>
-              </svg>
-            </button>
-          </div>
+            Log Leave
+          </button>
+          <button
+            id="leave-tab-btn-balance"
+            class="adjust-seg-btn"
+            onclick="switchLeaveTab('balance')"
+          >
+            Balances
+          </button>
         </div>
 
-        <!-- Leave Classification dropdown -->
-        <div class="form-group">
-          <label class="form-label" for="leave-type-select">Leave Type</label>
-          <div class="custom-select">
-            <select id="leave-type-select" style="display: none">
-              <option value="Casual">Casual</option>
-              <option value="Sick">Sick</option>
-              <option value="Public Holiday">Public Holiday</option>
-              <option value="In Lieu">In Lieu</option>
-            </select>
-            <button
-              type="button"
-              class="custom-select-trigger cs-md"
-              data-for="leave-type-select"
-              aria-haspopup="listbox"
+        <!-- TAB 1: LOG & HISTORY -->
+        <div id="leave-view-log">
+          <!-- Date Picker Row -->
+          <div class="form-group">
+            <label class="form-label" for="leave-date-input"
+              >Select Leave Date</label
             >
-              <span class="cs-trigger-val">Casual</span>
-              <svg
-                class="cs-chevron"
-                viewBox="0 0 24 24"
-                width="14"
-                height="14"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="1.8"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <polyline points="6 9 12 15 18 9"></polyline>
-              </svg>
-            </button>
-            <div class="custom-select-panel" role="listbox">
+            <div class="date-picker-group">
+              <input
+                type="text"
+                id="leave-date-input"
+                class="input-standard"
+                placeholder="05/16/26"
+                onfocus="this.select()"
+                onkeydown="if (event.key === 'Enter') this.blur();"
+              />
+              <!-- Hidden native input triggered by button click -->
+              <input
+                type="text"
+                readonly
+                id="leave-date-picker"
+                style="
+                  position: absolute;
+                  opacity: 0.01;
+                  width: 1px;
+                  height: 1px;
+                  pointer-events: none;
+                "
+              />
               <button
                 type="button"
-                class="custom-select-option cs-selected"
-                data-value="Casual"
+                class="preset-pill"
+                onclick="safeShowPicker('leave-date-picker')"
+                title="Open Calendar"
               >
-                Casual
-              </button>
-              <button
-                type="button"
-                class="custom-select-option"
-                data-value="Sick"
-              >
-                Sick
-              </button>
-              <button
-                type="button"
-                class="custom-select-option"
-                data-value="Public Holiday"
-              >
-                Public Holiday
-              </button>
-              <button
-                type="button"
-                class="custom-select-option"
-                data-value="In Lieu"
-              >
-                In Lieu
+                <svg
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  fill="none"
+                  style="
+                    width: 14px;
+                    height: 14px;
+                    stroke-width: 2;
+                    flex-shrink: 0;
+                  "
+                >
+                  <g data-sprite="sprite-008"></g>
+                </svg>
               </button>
             </div>
           </div>
+
+          <!-- Leave Classification dropdown -->
+          <div class="form-group">
+            <label class="form-label" for="leave-type-select">Leave Type</label>
+            <div class="custom-select">
+              <select id="leave-type-select" style="display: none">
+                <!-- Populated dynamically by JS -->
+              </select>
+              <button
+                type="button"
+                class="custom-select-trigger cs-md"
+                data-for="leave-type-select"
+                aria-haspopup="listbox"
+              >
+                <span class="cs-trigger-val">Select Type...</span>
+                <svg
+                  class="cs-chevron"
+                  viewBox="0 0 24 24"
+                  width="14"
+                  height="14"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+              </button>
+              <div class="custom-select-panel" role="listbox">
+                <!-- Populated dynamically by JS -->
+              </div>
+            </div>
+          </div>
+
+          <button
+            class="btn-info-outline"
+            style="
+              width: 100%;
+              height: 38px;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              margin-top: var(--space-3);
+            "
+            onclick="addLeaveDate()"
+          >
+            Add Leave Entry
+          </button>
+          <hr class="leave-section-sep" />
+          <span class="form-label">Active Leave Dates</span>
+          <div id="leave-dates-list" class="leave-dates-list"></div>
         </div>
 
-        <button
-          class="btn-info-outline"
-          style="
-            width: 100%;
-            height: 38px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-top: var(--space-3);
-          "
-          onclick="addLeaveDate()"
-        >
-          Add Leave Entry
-        </button>
-        <hr class="leave-section-sep" />
-        <span class="form-label">Active Leave Dates</span>
-        <div id="leave-dates-list" class="leave-dates-list"></div>
-        <div class="action-row">
+        <!-- TAB 2: BALANCES -->
+        <div id="leave-view-balance" class="leave-balance-view">
+          <div class="leave-balance-header-row">
+            <span class="form-label leave-balance-badge">Leave Type</span>
+            <div class="leave-balance-col-headers">
+              <span
+                class="form-label leave-balance-col-label"
+                title="Total Allowance"
+                >Total</span
+              >
+              <span
+                class="form-label leave-balance-col-label"
+                title="Days Taken"
+                >Used</span
+              >
+              <span
+                class="form-label leave-balance-col-label"
+                title="Remaining Balance"
+                >Left</span
+              >
+            </div>
+          </div>
+
+          <div id="leave-balances-list" class="leave-balance-list">
+            <!-- Populated by JS -->
+          </div>
+
+          <button
+            class="btn-secondary btn-dashed"
+            style="
+              width: 100%;
+              margin-top: 8px;
+              height: 38px;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+            "
+            onclick="openAddLeaveTypeModal()"
+          >
+            + Add Leave Type
+          </button>
+        </div>
+
+        <div class="action-row" style="margin-top: var(--space-4)">
           <button class="btn-secondary" onclick="closeLeaveModal()">
             Close
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Add Leave Type Modal -->
+    <div id="add-leave-type-modal" class="modal-overlay">
+      <div
+        class="modal-container modal-width-sm accent-info"
+        role="dialog"
+        aria-modal="true"
+      >
+        <button
+          class="modal-close-btn"
+          aria-label="Close"
+          onclick="closeAddLeaveTypeModal()"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+        <h3 class="modal-header">Add Leave Type</h3>
+        <div class="form-group">
+          <label class="form-label" for="new-leave-type-input"
+            >Leave Type Name</label
+          >
+          <input
+            type="text"
+            id="new-leave-type-input"
+            class="input-standard"
+            placeholder="e.g., Maternity, Bereavement"
+            onfocus="this.select()"
+            onkeydown="if (event.key === 'Enter') this.blur();"
+          />
+        </div>
+        <div class="action-row">
+          <button class="btn-secondary" onclick="closeAddLeaveTypeModal()">
+            Cancel
+          </button>
+          <button class="btn-info-outline" onclick="saveAddLeaveTypeModal()">
+            Add Type
           </button>
         </div>
       </div>
@@ -17087,25 +17326,22 @@
 
       // Single source of truth for leave-type colouring. Frozen constants so
       // per-row lookups during a render allocate nothing.
-      const _LEAVE_VISUALS = {
-        Sick: { badgeClass: "badge-leave-sick", rowClass: "is-leave-sick" },
-        Casual: {
-          badgeClass: "badge-leave-casual",
-          rowClass: "is-leave-casual",
-        },
-        "Public Holiday": {
-          badgeClass: "badge-leave-holiday",
-          rowClass: "is-leave-holiday",
-        },
-        "In Lieu": {
-          badgeClass: "badge-leave-holiday",
-          rowClass: "is-leave-holiday",
-        },
-        Leave: { badgeClass: "", rowClass: "" },
-      };
-
       function getLeaveVisuals(type) {
-        return _LEAVE_VISUALS[type] || _LEAVE_VISUALS.Leave;
+        if (!type) return { badgeClass: "", rowClass: "" };
+        const t = type.toLowerCase();
+        if (t.includes("sick"))
+          return { badgeClass: "badge-leave-sick", rowClass: "is-leave-sick" };
+        if (t.includes("casual"))
+          return {
+            badgeClass: "badge-leave-casual",
+            rowClass: "is-leave-casual",
+          };
+        if (t.includes("holiday") || t.includes("annual") || t.includes("lieu"))
+          return {
+            badgeClass: "badge-leave-holiday",
+            rowClass: "is-leave-holiday",
+          };
+        return { badgeClass: "", rowClass: "" };
       }
 
       function getRowTemplate() {
@@ -21646,6 +21882,9 @@
           leaves: safeGetLocalStorage(LEAVE_DATES_KEY)
             ? JSON.parse(safeGetLocalStorage(LEAVE_DATES_KEY))
             : null,
+          leaveAllowances: safeGetLocalStorage(LEAVE_ALLOWANCES_KEY)
+            ? JSON.parse(safeGetLocalStorage(LEAVE_ALLOWANCES_KEY))
+            : null,
           views: safeGetLocalStorage(VIEWS_KEY)
             ? JSON.parse(safeGetLocalStorage(VIEWS_KEY))
             : null,
@@ -22024,6 +22263,14 @@
               typeof data.leaves === "string"
                 ? data.leaves
                 : JSON.stringify(data.leaves),
+            );
+          }
+          if (data.leaveAllowances) {
+            localStorage.setItem(
+              LEAVE_ALLOWANCES_KEY,
+              typeof data.leaveAllowances === "string"
+                ? data.leaveAllowances
+                : JSON.stringify(data.leaveAllowances),
             );
           }
           if (data.views) {
@@ -23120,6 +23367,7 @@
           "tab-conflict-modal",
           "conflict-wizard-modal",
           "heatmap-modal",
+          "add-leave-type-modal",
         ];
         for (const id of modalIds) {
           const el = document.getElementById(id);
@@ -23147,6 +23395,8 @@
         if (typeof closeEditTaskModal === "function") closeEditTaskModal();
         if (typeof closeHeatmapModal === "function") closeHeatmapModal();
         if (typeof closePresetModal === "function") closePresetModal();
+        if (typeof closeAddLeaveTypeModal === "function")
+          closeAddLeaveTypeModal();
 
         // Both helpers are idempotent, so the previous contains("show") guards are redundant.
         if (typeof window.closeSettingsPopup === "function")
@@ -23225,11 +23475,23 @@
             } else if (modalId === "preset-modal") {
               savePresetModal();
             } else if (modalId === "leave-modal") {
-              addLeaveDate();
+              const logTabBtn = document.getElementById("leave-tab-btn-log");
+              if (!logTabBtn || logTabBtn.classList.contains("active")) {
+                addLeaveDate();
+              } else if (
+                document.activeElement &&
+                document.activeElement.classList.contains(
+                  "leave-allowance-input",
+                )
+              ) {
+                document.activeElement.blur();
+              }
             } else if (modalId === "idle-modal") {
               resolveIdle("work");
             } else if (modalId === "note-modal") {
               closeNoteModal();
+            } else if (modalId === "add-leave-type-modal") {
+              saveAddLeaveTypeModal();
             } else if (modalId === "help-modal") {
               closeHelpModal();
             }
@@ -24622,6 +24884,9 @@
 
         const helpMod = DOM.helpModal;
         if (event.target == helpMod) closeHelpModal();
+
+        const addLeaveTypeMod = document.getElementById("add-leave-type-modal");
+        if (event.target == addLeaveTypeMod) closeAddLeaveTypeModal();
       };
 
       // --- MICRO-TASK TIMER LOGIC ---
@@ -25611,7 +25876,216 @@
         editingPresetIndex = -1;
       };
 
+      const LEAVE_ALLOWANCES_KEY = "production_leave_allowances_v1";
+      const DEFAULT_ALLOWANCES = {
+        Casual: 14,
+        "Sick (IPD)": 7,
+        "Sick (OPD)": 7,
+        Annual: 0,
+        "In Lieu": 0,
+      };
+
+      window.switchLeaveTab = function (tab) {
+        const btnLog = document.getElementById("leave-tab-btn-log");
+        const btnBalance = document.getElementById("leave-tab-btn-balance");
+        const viewLog = document.getElementById("leave-view-log");
+        const viewBalance = document.getElementById("leave-view-balance");
+
+        if (tab === "log") {
+          btnLog.classList.add("active");
+          btnBalance.classList.remove("active");
+          viewLog.style.display = "block";
+          viewBalance.style.display = "none";
+        } else {
+          btnLog.classList.remove("active");
+          btnBalance.classList.add("active");
+          viewLog.style.display = "none";
+          viewBalance.style.display = "flex";
+          renderLeaveBalances();
+        }
+      };
+
+      function getLeaveAllowances() {
+        try {
+          const saved = safeGetLocalStorage(LEAVE_ALLOWANCES_KEY);
+          if (saved) return { ...DEFAULT_ALLOWANCES, ...JSON.parse(saved) };
+        } catch (e) {
+          console.warn("Failed to parse leave allowances", e);
+        }
+        return { ...DEFAULT_ALLOWANCES };
+      }
+
+      window.updateLeaveAllowance = function (type, value) {
+        const allowances = getLeaveAllowances();
+        allowances[type] = parseInt(value, 10) || 0;
+        localStorage.setItem(LEAVE_ALLOWANCES_KEY, JSON.stringify(allowances));
+        renderLeaveBalances();
+      };
+
+      window.openAddLeaveTypeModal = function () {
+        const input = document.getElementById("new-leave-type-input");
+        if (input) input.value = "";
+        const modal = document.getElementById("add-leave-type-modal");
+        if (modal) {
+          modal.style.display = "flex";
+          setTimeout(() => input && input.focus(), 100);
+        }
+      };
+
+      window.closeAddLeaveTypeModal = function () {
+        const modal = document.getElementById("add-leave-type-modal");
+        if (modal) modal.style.display = "none";
+      };
+
+      window.saveAddLeaveTypeModal = function () {
+        const input = document.getElementById("new-leave-type-input");
+        if (!input) return;
+        const name = input.value;
+        if (!name || !name.trim()) {
+          showAppToast("Please enter a leave type name", "warning");
+          return;
+        }
+        const cleanName = name.trim();
+
+        const allowances = getLeaveAllowances();
+        if (allowances[cleanName] !== undefined) {
+          showAppToast("Leave type already exists", "warning");
+          return;
+        }
+
+        allowances[cleanName] = 0;
+        localStorage.setItem(LEAVE_ALLOWANCES_KEY, JSON.stringify(allowances));
+        renderLeaveBalances();
+        renderLeaveTypeDropdown();
+        showAppToast(`Added leave type: ${cleanName}`);
+        closeAddLeaveTypeModal();
+      };
+
+      window.deleteLeaveType = function (type) {
+        openConfirmModal(
+          "Delete Leave Type",
+          `Are you sure you want to delete "${type}"? Existing logged leaves of this type will remain in your history but won't be tracked in balances.`,
+          () => {
+            const allowances = getLeaveAllowances();
+            delete allowances[type];
+            localStorage.setItem(
+              LEAVE_ALLOWANCES_KEY,
+              JSON.stringify(allowances),
+            );
+            renderLeaveBalances();
+            renderLeaveTypeDropdown();
+            showAppToast(`Deleted leave type: ${type}`);
+          },
+        );
+      };
+
+      window.renderLeaveTypeDropdown = function () {
+        const select = document.getElementById("leave-type-select");
+        const wrapper = select ? select.closest(".custom-select") : null;
+        const panel = wrapper
+          ? wrapper.querySelector(".custom-select-panel")
+          : null;
+        const triggerVal = wrapper
+          ? wrapper.querySelector(".cs-trigger-val")
+          : null;
+
+        if (!select || !panel) return;
+
+        const allowances = getLeaveAllowances();
+        const types = Object.keys(allowances);
+
+        select.innerHTML = "";
+        panel.innerHTML = "";
+
+        types.forEach((type, idx) => {
+          const opt = document.createElement("option");
+          opt.value = type;
+          opt.textContent = type;
+          select.appendChild(opt);
+
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className =
+            "custom-select-option" + (idx === 0 ? " cs-selected" : "");
+          btn.dataset.value = type;
+          btn.textContent = type;
+          panel.appendChild(btn);
+        });
+
+        if (types.length > 0) {
+          select.value = types[0];
+          if (triggerVal) triggerVal.textContent = types[0];
+        } else {
+          if (triggerVal) triggerVal.textContent = "No Types Available";
+        }
+      };
+
+      window.renderLeaveBalances = function () {
+        const container = document.getElementById("leave-balances-list");
+        if (!container) return;
+
+        const allowances = getLeaveAllowances();
+        const allLeaves = getLeaveDates();
+        const currentYear = (
+          typeof getPSTDateObj === "function" ? getPSTDateObj() : new Date()
+        ).getFullYear();
+
+        const takenCounts = {};
+        Object.keys(allowances).forEach((t) => (takenCounts[t] = 0));
+
+        allLeaves.forEach((leave) => {
+          const type = typeof leave === "string" ? "Leave" : leave.type;
+          const dateStr = typeof leave === "string" ? leave : leave.date;
+
+          if (dateStr && dateStr.includes("/")) {
+            const parts = dateStr.split("/");
+            const y =
+              parts[2].length === 2
+                ? 2000 + parseInt(parts[2], 10)
+                : parseInt(parts[2], 10);
+            if (y === currentYear && allowances[type] !== undefined) {
+              takenCounts[type] = (takenCounts[type] || 0) + 1;
+            }
+          }
+        });
+
+        let html = "";
+        Object.keys(allowances).forEach((type) => {
+          const total = allowances[type];
+          const taken = takenCounts[type] || 0;
+          const left = total - taken;
+
+          let leftClass = "positive";
+          if (left <= 2 && left > 0) leftClass = "warning";
+          if (left <= 0) leftClass = "negative";
+
+          const badgeClass = getLeaveVisuals(type).badgeClass || "badge-leave";
+
+          html += `
+            <div class="leave-balance-row">
+              <div class="leave-balance-type">
+                <button class="leave-balance-delete-btn" onclick="deleteLeaveType(${JSON.stringify(type).replace(/"/g, "&quot;")})" title="Delete Type">
+                  <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${getSprite("sprite-004")}</svg>
+                </button>
+                <span class="badge ${badgeClass} leave-balance-badge">${escapeHTML(type)}</span>
+              </div>
+              <div class="leave-balance-stats">
+                <input type="number" class="leave-allowance-input" value="${total}" min="0" max="365" 
+                       onchange="updateLeaveAllowance(${JSON.stringify(type).replace(/"/g, "&quot;")}, this.value)" 
+                       onfocus="this.select()" />
+                <span class="leave-stat-taken">${taken}</span>
+                <span class="leave-stat-left ${leftClass}">${left}</span>
+              </div>
+            </div>
+          `;
+        });
+
+        container.innerHTML = html;
+      };
+
       window.openLeaveModal = function () {
+        switchLeaveTab("log");
+        renderLeaveTypeDropdown();
         DOM.leaveModal.style.display = "flex";
         renderLeaveDatesList();
         setTimeout(() => {
@@ -25630,6 +26104,11 @@
         let val = input.value.trim();
         const typeSelect = DOM.leaveTypeSelect;
         const leaveType = typeSelect ? typeSelect.value : "Casual";
+
+        if (!leaveType) {
+          showAppToast("Please add or select a leave type first", "warning");
+          return;
+        }
 
         if (!val) {
           showAppToast("Please select a valid date", "warning");
@@ -25680,6 +26159,14 @@
 
         saveLeaveDates(currentLeaves);
         renderLeaveDatesList();
+        if (
+          document.getElementById("leave-tab-btn-balance") &&
+          document
+            .getElementById("leave-tab-btn-balance")
+            .classList.contains("active")
+        ) {
+          renderLeaveBalances();
+        }
 
         // Invalidates cached insights key to force a visual update
         insightsCacheKey = null;
@@ -25701,6 +26188,14 @@
         });
         saveLeaveDates(currentLeaves);
         renderLeaveDatesList();
+        if (
+          document.getElementById("leave-tab-btn-balance") &&
+          document
+            .getElementById("leave-tab-btn-balance")
+            .classList.contains("active")
+        ) {
+          renderLeaveBalances();
+        }
 
         // Invalidates cached insights key to force a visual update
         insightsCacheKey = null;
@@ -25734,11 +26229,10 @@
           const safeDate = escapeHTML(date);
           const safeType = escapeHTML(type);
 
-          let badgeClass = "badge-leave";
-          if (type === "Sick") badgeClass = "badge-leave badge-leave-sick";
-          if (type === "Casual") badgeClass = "badge-leave badge-leave-casual";
-          if (type === "Public Holiday" || type === "In Lieu")
-            badgeClass = "badge-leave badge-leave-holiday";
+          const visuals = getLeaveVisuals(type);
+          const badgeClass = visuals.badgeClass
+            ? "badge-leave " + visuals.badgeClass
+            : "badge-leave";
 
           html += `
             <div class="leave-list-item">
