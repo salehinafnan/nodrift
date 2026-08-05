@@ -6266,7 +6266,10 @@
           /* Same bleed as #m-tabbar, and this is the one that shows: */
           bottom: calc(-1 * var(--m-chrome-bleed));
           z-index: calc(var(--z-overlay) - 2);
-          max-height: calc(85svh + var(--m-chrome-bleed));
+          max-height: calc(
+            85svh + var(--m-chrome-bleed) - var(--m-kb-inset, 0px)
+          );
+          margin-bottom: var(--m-kb-inset, 0px);
           /* Level 3, but painted by ::before rather than here -- see that rule. #m-sheet itself must stay free of backdrop-filter, permanently. */
           background: transparent;
           border-top: var(--hairline);
@@ -6605,7 +6608,7 @@
           box-shadow: var(--elev-3) !important;
           padding-top: 1.15rem;
           padding-bottom: calc(var(--space-5) + var(--m-safe-bottom));
-          max-height: 88svh;
+          max-height: calc(88svh - var(--m-kb-inset, 0px));
           overflow-y: auto;
           overscroll-behavior: contain;
           -webkit-overflow-scrolling: touch;
@@ -26123,9 +26126,6 @@
         renderLeaveTypeDropdown();
         DOM.leaveModal.style.display = "flex";
         renderLeaveDatesList();
-        setTimeout(() => {
-          DOM.leaveDateInput.focus();
-        }, 100);
       };
 
       window.closeLeaveModal = function () {
