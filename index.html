@@ -17542,10 +17542,12 @@
         let leaveBadgeClass = "badge-leave";
         if (leaveRecord && typeof leaveRecord !== "string") {
           leaveType = leaveRecord.type || "Leave";
-          if (leaveType === "Sick") leaveBadgeClass = "badge-leave-sick";
-          if (leaveType === "Casual") leaveBadgeClass = "badge-leave-casual";
-          if (leaveType === "Public Holiday" || leaveType === "In Lieu")
-            leaveBadgeClass = "badge-leave-holiday";
+          const visuals =
+            typeof getLeaveVisuals === "function"
+              ? getLeaveVisuals(leaveType)
+              : null;
+          leaveBadgeClass =
+            visuals && visuals.badgeClass ? visuals.badgeClass : "badge-leave";
         }
 
         const progressPercent =
@@ -22588,6 +22590,7 @@
           THEME_KEY,
           PRESET_VALUES_KEY,
           LEAVE_DATES_KEY,
+          LEAVE_ALLOWANCES_KEY,
           VIEWS_KEY, // Saved custom filter views
           FILTERS_PREF_KEY, // Active filter preferences
           TASK_STATE_KEY,
@@ -25908,18 +25911,41 @@
       function getLeaveAllowances() {
         try {
           const saved = safeGetLocalStorage(LEAVE_ALLOWANCES_KEY);
-          if (saved) return { ...DEFAULT_ALLOWANCES, ...JSON.parse(saved) };
+          if (saved) return JSON.parse(saved);
         } catch (e) {
           console.warn("Failed to parse leave allowances", e);
         }
         return { ...DEFAULT_ALLOWANCES };
       }
 
-      window.updateLeaveAllowance = function (type, value) {
+      window.updateLeaveAllowance = function (type, value, inputEl) {
         const allowances = getLeaveAllowances();
-        allowances[type] = parseInt(value, 10) || 0;
+        const total = parseInt(value, 10) || 0;
+        allowances[type] = total;
         localStorage.setItem(LEAVE_ALLOWANCES_KEY, JSON.stringify(allowances));
-        renderLeaveBalances();
+
+        if (inputEl) {
+          const row = inputEl.closest(".leave-balance-row");
+          if (row) {
+            const takenEl = row.querySelector(".leave-stat-taken");
+            const leftEl = row.querySelector(".leave-stat-left");
+            if (takenEl && leftEl) {
+              const taken = parseInt(takenEl.textContent, 10) || 0;
+              const left = total - taken;
+
+              let leftClass = "positive";
+              if (left <= 2 && left > 0) leftClass = "warning";
+              if (left < 0 || (left === 0 && total > 0)) leftClass = "negative";
+              if (left === 0 && total === 0) leftClass = "";
+
+              leftEl.textContent = left;
+              leftEl.className =
+                "leave-stat-left" + (leftClass ? " " + leftClass : "");
+            }
+          }
+        } else {
+          renderLeaveBalances();
+        }
       };
 
       window.openAddLeaveTypeModal = function () {
@@ -25994,10 +26020,16 @@
         const allowances = getLeaveAllowances();
         const types = Object.keys(allowances);
 
+        const previousValue = select.value;
+        const valueToSelect =
+          previousValue && types.includes(previousValue)
+            ? previousValue
+            : types[0] || "";
+
         select.innerHTML = "";
         panel.innerHTML = "";
 
-        types.forEach((type, idx) => {
+        types.forEach((type) => {
           const opt = document.createElement("option");
           opt.value = type;
           opt.textContent = type;
@@ -26006,15 +26038,16 @@
           const btn = document.createElement("button");
           btn.type = "button";
           btn.className =
-            "custom-select-option" + (idx === 0 ? " cs-selected" : "");
+            "custom-select-option" +
+            (type === valueToSelect ? " cs-selected" : "");
           btn.dataset.value = type;
           btn.textContent = type;
           panel.appendChild(btn);
         });
 
         if (types.length > 0) {
-          select.value = types[0];
-          if (triggerVal) triggerVal.textContent = types[0];
+          select.value = valueToSelect;
+          if (triggerVal) triggerVal.textContent = valueToSelect;
         } else {
           if (triggerVal) triggerVal.textContent = "No Types Available";
         }
@@ -26057,7 +26090,8 @@
 
           let leftClass = "positive";
           if (left <= 2 && left > 0) leftClass = "warning";
-          if (left <= 0) leftClass = "negative";
+          if (left < 0 || (left === 0 && total > 0)) leftClass = "negative";
+          if (left === 0 && total === 0) leftClass = "";
 
           const badgeClass = getLeaveVisuals(type).badgeClass || "badge-leave";
 
@@ -26071,7 +26105,8 @@
               </div>
               <div class="leave-balance-stats">
                 <input type="number" class="leave-allowance-input" value="${total}" min="0" max="365" 
-                       onchange="updateLeaveAllowance(${JSON.stringify(type).replace(/"/g, "&quot;")}, this.value)" 
+                       oninput="updateLeaveAllowance(${JSON.stringify(type).replace(/"/g, "&quot;")}, this.value, this)" 
+                       onchange="updateLeaveAllowance(${JSON.stringify(type).replace(/"/g, "&quot;")}, this.value, this)" 
                        onfocus="this.select()" />
                 <span class="leave-stat-taken">${taken}</span>
                 <span class="leave-stat-left ${leftClass}">${left}</span>
