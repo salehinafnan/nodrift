@@ -13451,10 +13451,11 @@
       const _sharedFinishDate = new Date();
 
       /**
-       * Executes getDotSVG logic.
+       * Returns the dynamic favicon SVG for the current timer state.
        */
-      function getDotSVG(color, opacity = 1) {
-        return `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><circle cx='12' cy='12' r='10' fill='${encodeURIComponent(color)}' fill-opacity='${opacity}' /></svg>`;
+      function getFaviconSVG(color) {
+        const c = encodeURIComponent(color);
+        return `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1024 1024'><rect width='1024' height='1024' rx='224' fill='%23000000'/><circle cx='512' cy='512' r='380' fill='none' stroke='${c}' stroke-width='2' opacity='0.2'/><circle cx='512' cy='512' r='300' fill='none' stroke='${c}' stroke-width='4' opacity='0.4'/><path d='M512 212V512L724 724' fill='none' stroke='${c}' stroke-width='6' stroke-linecap='square'/><path d='M512 212A300 300 0 0 1 724 300' fill='none' stroke='${c}' stroke-width='2' stroke-dasharray='10,10'/><circle cx='512' cy='512' r='10' fill='${c}'/><line x1='512' y1='112' x2='512' y2='162' stroke='${c}' stroke-width='2'/><line x1='912' y1='512' x2='862' y2='512' stroke='${c}' stroke-width='2'/><line x1='512' y1='912' x2='512' y2='862' stroke='${c}' stroke-width='2'/><line x1='112' y1='512' x2='162' y2='512' stroke='${c}' stroke-width='2'/></svg>`;
       }
 
       // High-performance background Web Worker ticker to keep loop active continuously when backgrounded
@@ -15810,16 +15811,16 @@
         const breakSeconds = getCurrentBreakSeconds();
 
         let activeTitle = "nodrift";
-        let iconColor = "#f59e0b";
+        let iconColor = "#ffffff";
         let slashColor = "var(--accent-blue)";
 
         if (state.idleLock) {
           if (state.idleType === "system") {
             activeTitle = "Idle (System)";
-            iconColor = "#94a3b8";
+            iconColor = "#ffffff";
           } else {
             activeTitle = "Idle (User)";
-            iconColor = "#94a3b8";
+            iconColor = "#ffffff";
           }
         } else if (state.currentMode === "work") {
           activeTitle = `${formatCoarseDuration(workSeconds)} • Working`;
@@ -15869,7 +15870,7 @@
         const faviconKey = iconColor;
         if (faviconKey !== lastFaviconKey) {
           lastFaviconKey = faviconKey;
-          if (faviconLink) faviconLink.href = getDotSVG(iconColor, 1);
+          if (faviconLink) faviconLink.href = getFaviconSVG(iconColor);
         }
 
         updateProgress(workSeconds, nowMs);
