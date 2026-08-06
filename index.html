@@ -831,6 +831,19 @@
         margin-inline: auto;
       }
 
+      .empty-state-wrapper {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: 100%;
+        text-align: center;
+        gap: var(--space-4);
+        padding: var(--space-6);
+        box-sizing: border-box;
+      }
+
       .action-row {
         display: flex;
         gap: var(--space-3);
@@ -19226,11 +19239,11 @@
             rowNodesPool.length = 0;
           }
         } else {
-          DOM.logContainer.style.height = "auto";
+          DOM.logContainer.style.height = "100%";
           DOM.logContainer.style.contain = "none";
           rowNodesPool.length = 0;
           DOM.logContainer.innerHTML = `
-            <div style="padding: 80px 24px; display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; text-align: center; gap: 16px;">
+            <div class="empty-state-wrapper">
               <svg viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" style="width: 56px; height: 56px; opacity: 0.5;">
                 <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
                 <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
@@ -25352,11 +25365,11 @@
             taskRowNodesPool.length = 0;
           }
         } else {
-          container.style.height = "auto";
+          container.style.height = "100%";
           container.style.contain = "none";
           taskRowNodesPool.length = 0;
           container.innerHTML = `
-            <div style="padding: 80px 24px; display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; text-align: center; gap: 16px;">
+            <div class="empty-state-wrapper">
               <svg viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" style="width: 56px; height: 56px; opacity: 0.5;">
                 <polyline points="9 11 12 14 22 4"></polyline>
                 <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
