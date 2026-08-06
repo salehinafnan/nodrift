@@ -913,35 +913,16 @@
           ========================================================================= */
       * {
         box-sizing: border-box;
+        /* Globally hide scrollbars for Firefox & IE/Edge */
+        scrollbar-width: none !important;
+        -ms-overflow-style: none !important;
       }
 
+      /* Globally hide scrollbars for Chrome/Safari/Webkit */
       ::-webkit-scrollbar {
-        width: 6px;
-        height: 6px;
-      }
-
-      ::-webkit-scrollbar-track {
-        background: transparent;
-        border-radius: 4px;
-      }
-
-      ::-webkit-scrollbar-thumb {
-        background: transparent;
-        border-radius: 10px;
-      }
-
-      /* Foreground-tinted, so one pair of rules covers all four themes -- the
-         previous split gave E-Ink a white thumb on white paper, invisible. */
-      .tab-content:hover::-webkit-scrollbar-thumb {
-        background: color-mix(in srgb, var(--text-main) 18%, transparent);
-      }
-
-      ::-webkit-scrollbar-thumb:hover {
-        background: color-mix(
-          in srgb,
-          var(--text-main) 30%,
-          transparent
-        ) !important;
+        display: none !important;
+        width: 0 !important;
+        height: 0 !important;
       }
 
       ::-webkit-calendar-picker-indicator {
@@ -2428,21 +2409,14 @@
 
       .tab-content,
       #logbook-scroll-viewport,
-      #task-log-scroll-viewport {
+      #task-log-scroll-viewport,
+      #main-ui {
         flex: 1;
         overflow-y: auto;
         overflow-x: hidden;
-        -ms-overflow-style: none;
-        scrollbar-width: none;
         content-visibility: auto;
         contain-intrinsic-size: 0 500px;
         overflow-anchor: none;
-      }
-
-      .tab-content::-webkit-scrollbar,
-      #logbook-scroll-viewport::-webkit-scrollbar,
-      #task-log-scroll-viewport::-webkit-scrollbar {
-        display: none;
       }
 
       .logbook-sticky-toolbar {
@@ -3969,12 +3943,6 @@
         flex-direction: column;
         gap: 6px;
         padding-bottom: 12px;
-        scrollbar-width: none;
-        -ms-overflow-style: none;
-      }
-
-      #weekly-breakdown::-webkit-scrollbar {
-        display: none;
       }
 
       .breakdown-row {
@@ -4185,13 +4153,8 @@
         border-radius: var(--header-el-radius);
         border: var(--tab-nav-border);
         overflow-x: auto;
-        scrollbar-width: none;
         flex-shrink: 0;
         align-items: stretch;
-      }
-
-      .help-tab-nav::-webkit-scrollbar {
-        display: none;
       }
 
       .help-tab-btn {
@@ -5951,14 +5914,8 @@
           min-width: 0;
           overflow-x: auto;
           overflow-y: hidden;
-          scrollbar-width: none;
           -webkit-overflow-scrolling: touch;
           transition: flex-shrink 0.3s ease;
-        }
-
-        .log-stats-group::-webkit-scrollbar,
-        .task-stats-group::-webkit-scrollbar {
-          display: none;
         }
 
         /* Prevent header text from pushing layout */
@@ -6016,15 +5973,9 @@
           flex-wrap: nowrap;
           overflow-x: auto;
           overflow-y: hidden;
-          scrollbar-width: none;
           -webkit-overflow-scrolling: touch;
           overscroll-behavior-x: contain;
           scroll-snap-type: x proximity;
-        }
-
-        #filter-chips-container::-webkit-scrollbar,
-        #task-filter-chips-container::-webkit-scrollbar {
-          display: none;
         }
 
         #filter-chips-container > *,
@@ -6741,14 +6692,6 @@
         /* The guide is the one long-form reading surface in the app, and on a phone it was giving up 10px of every line to furniture: */
         .help-tab-content {
           padding-right: 0;
-        }
-
-        .help-tab-content.active {
-          scrollbar-width: none;
-        }
-
-        .help-tab-content.active::-webkit-scrollbar {
-          display: none;
         }
 
         /* The heatmap already ships an inline overflow-x:auto wrapper around its 52-week grid and auto-scrolls to today, so it only needs touch polish: */
@@ -12086,7 +12029,7 @@
               <div
                 id="settings-config-popup"
                 class="idle-popup"
-                style="gap: 0.35rem; scrollbar-width: none"
+                style="gap: 0.35rem"
               >
                 <div class="idle-popup-header">
                   <span class="idle-popup-title">Settings</span>
