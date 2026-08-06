@@ -6218,7 +6218,7 @@
           bottom: calc(-1 * var(--m-chrome-bleed));
           z-index: calc(var(--z-overlay) - 2);
           max-height: calc(
-            85svh + var(--m-chrome-bleed) - var(--m-kb-inset, 0px)
+            var(--vv-height, 100svh) * 0.85 + var(--m-chrome-bleed)
           );
           margin-bottom: var(--m-kb-inset, 0px);
           /* Level 3, but painted by ::before rather than here -- see that rule. #m-sheet itself must stay free of backdrop-filter, permanently. */
@@ -6544,6 +6544,9 @@
           justify-content: center;
           padding: 0;
           overscroll-behavior: contain;
+          top: var(--vv-top, 0px) !important;
+          height: var(--vv-height, 100%) !important;
+          bottom: auto !important;
         }
 
         .modal-container {
@@ -6559,12 +6562,12 @@
           box-shadow: var(--elev-3) !important;
           padding-top: 1.15rem;
           padding-bottom: calc(var(--space-5) + var(--m-safe-bottom));
-          max-height: calc(88svh - var(--m-kb-inset, 0px));
+          max-height: 88%;
           overflow-y: auto;
           overscroll-behavior: contain;
           -webkit-overflow-scrolling: touch;
           animation: m-sheet-rise 0.3s cubic-bezier(0.32, 0.72, 0, 1);
-          margin-bottom: var(--m-kb-inset, 0px);
+          margin-bottom: 0 !important;
         }
 
         .modal-container::before {
@@ -28992,6 +28995,9 @@
           delete document.body.dataset.mpane;
           // Leaving a stale keyboard inset behind would offset desktop modals.
           document.documentElement.style.setProperty("--m-kb-inset", "0px");
+          document.documentElement.style.setProperty("--m-kb-height", "0px");
+          document.documentElement.style.setProperty("--vv-top", "0px");
+          document.documentElement.style.setProperty("--vv-height", "100vh");
           returnNodes();
           // Desktop always shows both panes, but the tab content that was last
           // selected must stay selected, so replay it through switchTab().
@@ -29015,8 +29021,22 @@
           const vv = window.visualViewport;
           if (!vv) {
             document.documentElement.style.setProperty("--m-kb-inset", "0px");
+            document.documentElement.style.setProperty("--m-kb-height", "0px");
+            document.documentElement.style.setProperty("--vv-top", "0px");
+            document.documentElement.style.setProperty("--vv-height", "100vh");
             return;
           }
+
+          document.documentElement.style.setProperty(
+            "--vv-top",
+            vv.offsetTop + "px",
+          );
+          document.documentElement.style.setProperty(
+            "--vv-height",
+            vv.height + "px",
+          );
+          const kbHeightFull = Math.max(0, window.innerHeight - vv.height);
+          const fullInset = kbHeightFull > 120 ? Math.round(kbHeightFull) : 0;
           const occluded = Math.max(
             0,
             window.innerHeight - vv.height - vv.offsetTop,
@@ -29026,6 +29046,10 @@
           document.documentElement.style.setProperty(
             "--m-kb-inset",
             inset + "px",
+          );
+          document.documentElement.style.setProperty(
+            "--m-kb-height",
+            fullInset + "px",
           );
         }
 
