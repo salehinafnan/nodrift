@@ -29415,6 +29415,10 @@
                   if (hasScrolledParent(target, container)) return;
                   if (container.scrollTop > 5) return;
 
+                  // Enforce drag-to-dismiss only from the top grabber area (top 48px of the sheet)
+                  const rect = container.getBoundingClientRect();
+                  if (e.touches[0].clientY - rect.top > 48) return;
+
                   startY = e.touches[0].clientY;
                   currentDeltaY = 0;
                   isDragging = true;
