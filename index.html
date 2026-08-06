@@ -27870,15 +27870,23 @@
         let touchStartX = 0;
         let touchStartY = 0;
         let lastInsightsTap = 0;
+        let lastTapX = 0;
+        let lastTapY = 0;
+        let activeTouchId = null;
 
         if (!DOM.weeklyBreakdown) return;
 
         DOM.weeklyBreakdown.addEventListener(
           "touchstart",
           (e) => {
-            if (e.touches.length !== 1) return;
-            touchStartX = e.changedTouches[0].screenX;
-            touchStartY = e.changedTouches[0].screenY;
+            if (e.touches.length !== 1) {
+              activeTouchId = null;
+              return;
+            }
+            const touch = e.changedTouches[0];
+            activeTouchId = touch.identifier;
+            touchStartX = touch.screenX;
+            touchStartY = touch.screenY;
           },
           { passive: true },
         );
@@ -27886,24 +27894,23 @@
         DOM.weeklyBreakdown.addEventListener(
           "touchend",
           (e) => {
-            if (e.changedTouches.length !== 1) return;
-            const touchEndX = e.changedTouches[0].screenX;
-            const touchEndY = e.changedTouches[0].screenY;
+            if (activeTouchId === null) return;
+
+            let touch = null;
+            for (let i = 0; i < e.changedTouches.length; i++) {
+              if (e.changedTouches[i].identifier === activeTouchId) {
+                touch = e.changedTouches[i];
+                break;
+              }
+            }
+            if (!touch) return;
+            activeTouchId = null;
+
+            const touchEndX = touch.screenX;
+            const touchEndY = touch.screenY;
             const deltaX = touchEndX - touchStartX;
             const deltaY = touchEndY - touchStartY;
             const touchTime = Date.now();
-
-            // Double tap detection (threshold 350ms, minimal movement)
-            if (
-              touchTime - lastInsightsTap < 350 &&
-              Math.abs(deltaX) < 20 &&
-              Math.abs(deltaY) < 20
-            ) {
-              window.jumpToCurrentWeek();
-              lastInsightsTap = 0;
-              return;
-            }
-            lastInsightsTap = touchTime;
 
             // Horizontal Swipe detection (threshold 60px X, max 40px Y deviation)
             if (Math.abs(deltaX) > 60 && Math.abs(deltaY) < 40) {
@@ -27918,6 +27925,26 @@
                   window.changeWeekOffset(-1);
                 }
               }
+              lastInsightsTap = 0;
+              return;
+            }
+
+            // Double tap detection (threshold 350ms, minimal movement, spatial proximity)
+            if (Math.abs(deltaX) < 20 && Math.abs(deltaY) < 20) {
+              if (
+                touchTime - lastInsightsTap < 350 &&
+                Math.abs(touchEndX - lastTapX) < 40 &&
+                Math.abs(touchEndY - lastTapY) < 40
+              ) {
+                window.jumpToCurrentWeek();
+                lastInsightsTap = 0;
+              } else {
+                lastInsightsTap = touchTime;
+                lastTapX = touchEndX;
+                lastTapY = touchEndY;
+              }
+            } else {
+              lastInsightsTap = 0;
             }
           },
           { passive: true },
