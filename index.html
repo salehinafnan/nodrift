@@ -2431,6 +2431,12 @@
         overflow-anchor: none;
       }
 
+      #logbook-scroll-viewport,
+      #task-log-scroll-viewport {
+        display: flex;
+        flex-direction: column;
+      }
+
       .logbook-sticky-toolbar {
         position: sticky;
         top: 0;
@@ -5839,6 +5845,7 @@
         #task-log-scroll-viewport::after {
           content: "";
           display: block;
+          flex-shrink: 0;
           height: calc(
             var(--m-tabbar-h) + var(--m-safe-bottom) + 8px
           ) !important;
@@ -19230,6 +19237,7 @@
 
         if (virtualScrollLogs.length > 0) {
           DOM.logContainer.style.height = `${Math.ceil(virtualScrollLogs.length * itemHeight)}px`;
+          DOM.logContainer.style.flex = "none";
           DOM.logContainer.style.contain = "strict";
           if (
             DOM.logContainer.firstChild &&
@@ -19239,7 +19247,8 @@
             rowNodesPool.length = 0;
           }
         } else {
-          DOM.logContainer.style.height = "100%";
+          DOM.logContainer.style.height = "auto";
+          DOM.logContainer.style.flex = "1";
           DOM.logContainer.style.contain = "none";
           rowNodesPool.length = 0;
           DOM.logContainer.innerHTML = `
@@ -25359,13 +25368,15 @@
 
         if (virtualScrollTasks.length > 0) {
           container.style.height = `${Math.ceil(virtualScrollTasks.length * itemHeight)}px`;
+          container.style.flex = "none";
           container.style.contain = "strict";
           if (container.firstChild && !container.firstChild._dom) {
             container.innerHTML = "";
             taskRowNodesPool.length = 0;
           }
         } else {
-          container.style.height = "100%";
+          container.style.height = "auto";
+          container.style.flex = "1";
           container.style.contain = "none";
           taskRowNodesPool.length = 0;
           container.innerHTML = `
