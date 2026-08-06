@@ -19231,7 +19231,7 @@
           rowNodesPool.length = 0;
           DOM.logContainer.innerHTML = `
             <div style="padding: 80px 24px; display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; text-align: center; gap: 16px;">
-              <svg viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width: 56px; height: 56px; opacity: 0.5;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" style="width: 56px; height: 56px; opacity: 0.5;">
                 <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
                 <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
                 <path d="M9 14h6"></path>
@@ -25355,8 +25355,18 @@
           container.style.height = "auto";
           container.style.contain = "none";
           taskRowNodesPool.length = 0;
-          container.innerHTML =
-            '<div style="text-align: center; color: var(--text-muted); font-size: 0.85rem; margin-top: 20px;">No tasks logged yet.</div>';
+          container.innerHTML = `
+            <div style="padding: 80px 24px; display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; text-align: center; gap: 16px;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" style="width: 56px; height: 56px; opacity: 0.5;">
+                <polyline points="9 11 12 14 22 4"></polyline>
+                <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+              </svg>
+              <div style="display: flex; flex-direction: column; gap: 6px;">
+                <h3 style="font-size: 1rem; font-weight: 600; margin: 0; color: var(--text-main);">No tasks logged yet</h3>
+                <p style="font-size: 0.85rem; max-width: 260px; margin: 0; line-height: 1.5; color: var(--text-muted);">Add a task to start organizing your work and track your progress.</p>
+              </div>
+            </div>
+          `;
         }
 
         renderVirtualTaskItems();
