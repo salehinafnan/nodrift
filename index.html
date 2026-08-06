@@ -27865,6 +27865,65 @@
         );
       };
 
+      // Touch interactions for Insights Weekly Breakdown (Swipe & Double Tap)
+      (function initInsightsTouchGestures() {
+        let touchStartX = 0;
+        let touchStartY = 0;
+        let lastInsightsTap = 0;
+
+        if (!DOM.weeklyBreakdown) return;
+
+        DOM.weeklyBreakdown.addEventListener(
+          "touchstart",
+          (e) => {
+            if (e.touches.length !== 1) return;
+            touchStartX = e.changedTouches[0].screenX;
+            touchStartY = e.changedTouches[0].screenY;
+          },
+          { passive: true },
+        );
+
+        DOM.weeklyBreakdown.addEventListener(
+          "touchend",
+          (e) => {
+            if (e.changedTouches.length !== 1) return;
+            const touchEndX = e.changedTouches[0].screenX;
+            const touchEndY = e.changedTouches[0].screenY;
+            const deltaX = touchEndX - touchStartX;
+            const deltaY = touchEndY - touchStartY;
+            const touchTime = Date.now();
+
+            // Double tap detection (threshold 350ms, minimal movement)
+            if (
+              touchTime - lastInsightsTap < 350 &&
+              Math.abs(deltaX) < 20 &&
+              Math.abs(deltaY) < 20
+            ) {
+              window.jumpToCurrentWeek();
+              lastInsightsTap = 0;
+              return;
+            }
+            lastInsightsTap = touchTime;
+
+            // Horizontal Swipe detection (threshold 60px X, max 40px Y deviation)
+            if (Math.abs(deltaX) > 60 && Math.abs(deltaY) < 40) {
+              if (deltaX < 0) {
+                // Swiped Left -> go to Next
+                if (typeof window.changeWeekOffset === "function") {
+                  window.changeWeekOffset(1);
+                }
+              } else {
+                // Swiped Right -> go to Prev
+                if (typeof window.changeWeekOffset === "function") {
+                  window.changeWeekOffset(-1);
+                }
+              }
+            }
+          },
+          { passive: true },
+        );
+      })();
+
       /**
        * Executes toggleFilters logic.
        */
