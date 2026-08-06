@@ -13848,6 +13848,13 @@
         day: "2-digit",
       });
 
+      const exportNameDateFormatter = new Intl.DateTimeFormat("en-CA", {
+        timeZone: "America/Los_Angeles",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+      });
+
       const pstDateObjFormatter = new Intl.DateTimeFormat("en-US", {
         timeZone: "America/Los_Angeles",
         year: "numeric",
@@ -21821,7 +21828,7 @@
 
         const a = document.createElement("a");
         a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
-        a.download = `Production_Report.csv`;
+        a.download = `nodrift-logs-${exportNameDateFormatter.format(new Date())}.csv`;
         a.click();
         requestAnimationFrame(() => URL.revokeObjectURL(a.href));
         showAppToast("Exported logs as CSV");
@@ -21864,13 +21871,7 @@
             type: "application/json",
           }),
         );
-        const backupDateFormatter = new Intl.DateTimeFormat("en-CA", {
-          timeZone: "America/Los_Angeles",
-          year: "numeric",
-          month: "2-digit",
-          day: "2-digit",
-        });
-        a.download = `nodrift-backup-${backupDateFormatter.format(new Date())}.json`;
+        a.download = `nodrift-backup-${exportNameDateFormatter.format(new Date())}.json`;
         a.click();
         requestAnimationFrame(() => URL.revokeObjectURL(a.href));
         showAppToast("JSON Backup created");
@@ -25612,7 +25613,7 @@
 
         const a = document.createElement("a");
         a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
-        a.download = `Tasks_Report_${getPSTDate().replace(/\//g, "-")}.csv`;
+        a.download = `nodrift-tasks-${exportNameDateFormatter.format(new Date())}.csv`;
         a.click();
         requestAnimationFrame(() => URL.revokeObjectURL(a.href));
         showAppToast("Exported tasks as CSV");
