@@ -21864,7 +21864,13 @@
             type: "application/json",
           }),
         );
-        a.download = `Backup_${getPSTDate().replace(/\//g, "-")}.json`;
+        const backupDateFormatter = new Intl.DateTimeFormat("en-CA", {
+          timeZone: "America/Los_Angeles",
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+        });
+        a.download = `nodrift-backup-${backupDateFormatter.format(new Date())}.json`;
         a.click();
         requestAnimationFrame(() => URL.revokeObjectURL(a.href));
         showAppToast("JSON Backup created");
