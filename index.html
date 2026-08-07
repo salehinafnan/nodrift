@@ -6426,9 +6426,30 @@
             visibility 0s linear 0s;
         }
 
-        /* Two scrims are one too many. */
-        body.m-sheet-open:has(.modal-overlay[style*="flex"]) #m-sheet-backdrop {
-          opacity: 0;
+        /* Two scrims are one too many, so while a dialog is raised the sheet's
+           own scrim stands down and the dialog's scrim covers for it.
+
+           `background`, not `opacity`, and that is the entire point of this
+           rule. opacity is transitioned on this element -- 0.24s, for the
+           sheet's own open and close -- so handing the scrim over by opacity
+           ramps it out over a quarter second and ramps it back in over
+           another, while the dialog's scrim switches in a single frame. The
+           two never line up, and every frame where they disagree is a visible
+           brightness pulse behind the sheet. `background` is deliberately not
+           in the transition list above, so it swaps in the same frame the
+           dialog does, in both directions, and the total dimming behind the
+           sheet stays constant through every open and every dismissal.
+
+           The state is read from body[data-modal-raised], which the modal
+           registry publishes. It must never again be re-derived from the
+           markup here: this rule used to match
+           .modal-overlay[style*="flex"], a substring test against an
+           attribute JS happens to write, which silently missed the
+           display:block that isModalVisible() has always accepted and could
+           not tell "still display:flex" apart from "still on screen" for any
+           dialog that animates on the way out. */
+        body.m-sheet-open[data-modal-raised] #m-sheet-backdrop {
+          background: transparent;
         }
 
         #m-sheet {
@@ -6797,6 +6818,23 @@
           justify-content: center;
           padding: 0;
           overscroll-behavior: contain;
+          /* Scrims are binary on this breakpoint, and that is an invariant
+             rather than a preference. #m-sheet-backdrop hands its scrim to
+             whichever dialog is raised over it and takes it back on
+             dismissal, and that handoff is only seamless while the dialog's
+             scrim arrives and leaves in one frame. Fade an overlay out
+             instead and there is a stretch with no scrim from either side,
+             which reads as the page flashing bright behind the sheet and then
+             darkening again on its own once the dialog is already gone.
+
+             Animate the panel -- .modal-container rises, below -- never the
+             scrim that carries it. !important because dialogs style
+             themselves by id (#heatmap-modal sets an opacity transition for
+             the centred-card layout up above), and an id outranks this class
+             no matter which is written first; it is the same reason every
+             .modal-container declaration that follows carries it. */
+          opacity: 1 !important;
+          transition: none !important;
         }
 
         .modal-container {
@@ -20353,9 +20391,23 @@
         if (!modal) return;
         modal.classList.remove("is-open");
         clearTimeout(_heatmapHideTimer);
+
+        /* The dialog has to stay display:flex until its fade finishes, and how
+           long that is belongs to the stylesheet -- see computedTransitionMs().
+           On phone there is no fade at all (scrims are binary there so the
+           sheet's scrim handoff stays seamless), the answer is 0, and hiding
+           has to happen in this same frame: a timer of any length would keep
+           the dialog counted as raised after it had visually gone, which is
+           the gap that used to strand #m-sheet-backdrop and flash the page
+           bright behind the Settings & Tools sheet. */
+        const exitMs = computedTransitionMs(modal);
+        if (exitMs <= 0) {
+          modal.style.display = "none";
+          return;
+        }
         _heatmapHideTimer = setTimeout(() => {
           modal.style.display = "none";
-        }, 150);
+        }, exitMs);
       }
 
       function renderInsights() {
@@ -23798,6 +23850,82 @@
         );
       }
 
+      /* How long an element's exit animation actually lasts, in ms, as the
+         stylesheet computes it right now: the longest duration-plus-delay
+         across every transitioned property, or 0 when nothing is transitioned.
+
+         Any dialog that fades out has to keep display:flex until its fade
+         finishes, and the wait must be read from CSS rather than written as a
+         number beside it. A literal is a copy of a value that lives in the
+         stylesheet, and the two drift the moment a breakpoint changes one of
+         them -- which is not hypothetical here: the phone layer removes the
+         overlay transition outright, because scrims must be binary for the
+         sheet's scrim handoff to stay seamless. A hardcoded delay would leave
+         such a dialog nominally raised for a further 150ms after it had
+         visually gone, stranding the sheet's scrim for exactly that long.
+
+         0 is therefore a meaningful answer and not a fallback: it means "there
+         is no animation to wait for", and the caller must hide in the same
+         frame instead of scheduling a timer at all. */
+      function computedTransitionMs(el) {
+        if (!el || typeof getComputedStyle !== "function") return 0;
+        const cs = getComputedStyle(el);
+        const toMs = (list) =>
+          String(list || "")
+            .split(",")
+            .map((part) => {
+              const raw = part.trim();
+              const n = parseFloat(raw);
+              if (!isFinite(n)) return 0;
+              /* Order matters: "ms" has to be tested before "s", or every
+                 millisecond value is read as seconds and scaled 1000x. */
+              return raw.endsWith("ms") ? n : n * 1000;
+            });
+
+        const durations = toMs(cs.transitionDuration);
+        const delays = toMs(cs.transitionDelay);
+        let longest = 0;
+        for (let i = 0; i < durations.length; i++) {
+          /* A negative delay starts the transition part-way through, so it
+             shortens the wait -- but never past zero. */
+          longest = Math.max(longest, durations[i] + (delays[i] || 0));
+        }
+        return longest > 0 ? longest : 0;
+      }
+
+      /* Publishes "is any dialog raised" onto <body> as data-modal-raised, so
+         the stylesheet can respond to dialog state instead of guessing at it.
+
+         CSS cannot ask whether an element is displayed, and the phone shell's
+         scrim handoff needs precisely that answer: #m-sheet-backdrop stands
+         its own scrim down the frame a dialog appears and puts it back the
+         frame one leaves. The rule that used to ask matched
+         .modal-overlay[style*="flex"] -- a substring test against an attribute
+         this code happens to write -- which missed the display:block that
+         isModalVisible() has always accepted, and which for any dialog that
+         animates out went on matching for the whole exit animation, long after
+         the dialog itself was invisible. Publishing the state rather than
+         inferring it retires both failures, for every dialog at once.
+
+         Queried from the DOM rather than walked from MODAL_IDS deliberately:
+         MODAL_IDS is the keyboard layer's arbitration order and carries
+         intentional omissions, whereas every scrim-bearing overlay in the
+         document is a .modal-overlay by construction, so an overlay added to
+         the markup later is covered with nothing to remember. */
+      function syncModalRaisedFlag() {
+        const body = document.body;
+        if (!body) return;
+        const raised = Array.prototype.some.call(
+          document.querySelectorAll(".modal-overlay"),
+          isModalVisible,
+        );
+        /* Writing an unchanged attribute would still be a mutation record for
+           anything observing <body>, so compare before touching it. */
+        if (raised === (body.dataset.modalRaised !== undefined)) return;
+        if (raised) body.dataset.modalRaised = "";
+        else delete body.dataset.modalRaised;
+      }
+
       /* Modal open-order registry.
 
          Dialogs stack: the confirm prompt opens over the leave modal, and the
@@ -23827,19 +23955,46 @@
           }
         };
 
+        /* Two audiences, one observer. Open-order stamping is only meaningful
+           for the dialogs the keyboard layer arbitrates between, so it stays
+           keyed to MODAL_IDS; the raised flag has to cover every overlay that
+           paints a scrim. The observer watches the union and dispatches to
+           whichever applies.
+
+           MutationObserver callbacks are delivered at the microtask checkpoint
+           of the task that changed the attribute -- before the next paint --
+           so the flag, and therefore the scrim swap it drives, always lands in
+           the same frame as the display change that caused it. That is what
+           keeps the handoff seamless; a rAF or a timeout here would reintroduce
+           exactly the one-frame gap this replaced. */
+        const ordered = new Set();
+
         const observer = new MutationObserver((records) => {
-          for (const record of records) stamp(record.target);
+          for (const record of records) {
+            if (ordered.has(record.target)) stamp(record.target);
+          }
+          syncModalRaisedFlag();
         });
 
-        MODAL_IDS.forEach((id) => {
-          const el = document.getElementById(id);
-          if (!el) return;
-          stamp(el); // Capture anything already open at install time.
+        const watch = (el) =>
           observer.observe(el, {
             attributes: true,
             attributeFilter: ["style"],
           });
+
+        MODAL_IDS.forEach((id) => {
+          const el = document.getElementById(id);
+          if (!el) return;
+          ordered.add(el);
+          stamp(el); // Capture anything already open at install time.
+          watch(el);
         });
+
+        document.querySelectorAll(".modal-overlay").forEach((el) => {
+          if (!ordered.has(el)) watch(el);
+        });
+
+        syncModalRaisedFlag(); // Capture anything already open, as above.
       })();
 
       /* Returns the dialog currently on top: the most recently opened visible
