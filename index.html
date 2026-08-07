@@ -104,13 +104,28 @@
         --tint-chrome: var(--panel-bg);
         --tint-overlay: var(--modal-bg);
 
-        /* Film weight How much pigment each level lays down, and therefore how much of the backdrop survives it. */
-        --film-1: 50%;
-        /* Level with content rather than above it, and deliberately so. */
-        --film-2: 32%;
-        /* Six points above the other two now, and that gap is the whole of the difference between the rungs. */
-        --film-3: 45%;
+        /* Film weight How much pigment each level lays down, and therefore how
+           much of the backdrop survives it.
 
+           Every weight reads --film-all before its own default, so ONE
+           declaration pins the whole ladder to a single weight:
+           `--film-all: 100%` is the opaque material. A rung added later
+           inherits that opt-out for free as long as it is written this way,
+           which is the entire reason for the indirection -- E-Ink used to
+           restate all six surface tokens by hand, and a seventh would have
+           silently come out translucent. Only the environment axis (3.25)
+           and a theme opting out via that axis may set --film-all. */
+        --film-1: var(--film-all, 50%);
+        /* Level with content rather than above it, and deliberately so. */
+        --film-2: var(--film-all, 32%);
+        /* --film-3 is the one rung whose weight differs between the two
+           materials, so the axis sets it rather than this block. */
+
+        /* The ladder. One recipe per rung, stated once: a level lays its film
+           over whatever is behind it, and its `-solid` twin lays the SAME film
+           over --surface-under, so the pair is one colour and only the
+           compositing differs. Levels are derived here and nowhere else -- to
+           move a level, change its tint or its film, never its surface. */
         --surface-1: color-mix(
           in srgb,
           var(--tint-content) var(--film-1),
@@ -131,22 +146,19 @@
           var(--tint-chrome) var(--film-2),
           var(--surface-under)
         );
-        --surface-3-solid: var(--tint-overlay);
-        --surface-3: var(--surface-3-solid);
+        --surface-3: color-mix(
+          in srgb,
+          var(--tint-overlay) var(--film-3),
+          transparent
+        );
+        --surface-3-solid: color-mix(
+          in srgb,
+          var(--tint-overlay) var(--film-3),
+          var(--surface-under)
+        );
 
-        /* No blur on desktop for software-rendered GPU performance and solid UI clarity.
-
-           Contract: a glass surface is a FILL (--surface-1/2/3) and this BLUR,
-           and the two are one material. Any rule that retires the fill must
-           retire the blur in the same breath. A live backdrop-filter over a
-           transparent box is not inert -- it still re-blurs and re-tints its
-           backdrop, printing the element's own box wherever its children do
-           not cover it. `background: none` on its own is therefore never a
-           complete reset. Setting THIS token to `none` on a subtree is: it
-           retires the material for every call site inside that subtree at
-           once, and keeps doing so if the material ever grows a third
-           property. That is also how E-Ink opts out of glass wholesale. */
-        --surface-blur: none;
+        /* --surface-blur is NOT declared here. It is half of the material and
+           is chosen with the other half, by the environment axis in 3.25. */
 
         /* One hairline for the whole app. */
         --hairline-color: color-mix(in srgb, var(--text-main) 8%, transparent);
@@ -464,14 +476,9 @@
         --emph-fill-max: 100%;
         --dropdown-bg: var(--modal-bg);
         --modal-bg: #ffffff;
-        /* No glass on this theme E-Ink's material is paper: opaque stock and a full-weight black rule for an edge. */
-        --surface-blur: none;
-        --surface-1: var(--element-bg);
-        --surface-1-solid: var(--element-bg);
-        --surface-2: var(--panel-bg);
-        --surface-2-solid: var(--panel-bg);
-        --surface-3: var(--modal-bg);
-        --surface-3-solid: var(--modal-bg);
+        /* No glass on this theme -- E-Ink's material is paper. The opt-out
+           itself lives on the material axis (3.25) with the two materials it
+           is choosing between, not here; this block sets pigment only. */
         --hairline-color: #111111;
         /* The one theme that draws a full-weight rule rather than a hairline, and the reason every edge on it is 1px. */
         --hairline-width: 1px;
@@ -596,7 +603,9 @@
         --emph-fill-max: 56%;
         --dropdown-bg: var(--modal-bg);
         --modal-bg: #ffffff;
-        --film-2: 40%;
+        /* Restated through --film-all like every other weight, so a theme
+           override can never be the one rung that ignores the opt-out. */
+        --film-2: var(--film-all, 40%);
         /* A light theme needs a heavier hairline than a dark one to read at the same strength. */
         --hairline-color: color-mix(in srgb, var(--text-main) 10%, transparent);
         --elev-1: 0 4px 12px rgba(0, 0, 0, 0.1);
@@ -615,6 +624,80 @@
           3.25. THE ENVIRONMENT AXIS
           A theme describes a room.
           ========================================================================= */
+
+      /* -------------------------------------------------------------------
+         MATERIAL
+
+         A surface is a film of pigment (--film-N) and, behind it, either a
+         blur or nothing (--surface-blur). Those are not two settings; they
+         are one material, and a half-applied one is a bug rather than a
+         compromise -- a live blur behind a film that is already at full
+         strength still re-tints its backdrop, and prints the element's own
+         box wherever its children do not cover it.
+
+         So both halves are chosen HERE and only here. Nothing else in the
+         stylesheet may declare --film-N, --film-all or --surface-blur; a
+         component that wants to opt a subtree out sets --surface-blur: none
+         on it, which is the one reset that cannot go half done.
+
+         There are exactly two materials.
+         ------------------------------------------------------------------- */
+
+      /* OPAQUE -- the default, and every viewport wider than a phone.
+
+         Blur is a depth cue, and it only pays for itself where layers
+         actually overlap. On a large viewport the panes sit side by side and
+         a popover's backdrop is flat --panel-bg, so a blur would cost
+         compositing to show depth that is not there -- and cost it on
+         software-rendered GPUs, where this app is expected to stay fluid.
+         Level 3 goes to full strength for the same reason: a modal on a
+         desktop has nothing worth seeing through to.
+
+         Levels 1 and 2 keep their films in BOTH materials. They sit on an
+         opaque panel, so they read solid here without being solid, and the
+         ladder stays one ladder. Level 3 is the only rung that moves. */
+      :root {
+        --film-3: var(--film-all, 100%);
+        --surface-blur: none;
+      }
+
+      /* GLASS -- the phone only.
+
+         Here the shell IS a stack: the tab bar, the settings sheet and every
+         modal sit over one full-bleed pane, so what is behind a surface
+         carries real information, and the blurred surfaces are few and small.
+         Level 3 drops to a film for the same reason.
+
+         This breakpoint is PHONE_BREAKPOINT_PX. CSS cannot read a custom
+         property in a media condition, so the literal is repeated across the
+         phone blocks by necessity -- keep them in step. */
+      @media (max-width: 767px) {
+        :root {
+          --film-3: var(--film-all, 45%);
+          --surface-blur: blur(10px) saturate(190%) brightness(115%);
+        }
+
+        /* The OLED themes repaint the shell's frame with --page-bg, so on a
+           phone that -- not --panel-bg -- is what their solid twins resolve
+           against. Lives with the material because it is what the material is
+           composited over; syncThemeColorMeta() reads it for the same reason. */
+        :root[data-theme="sf-dark"],
+        :root[data-theme="vercel-dark"] {
+          --surface-under: var(--page-bg);
+        }
+      }
+
+      /* Themes that opt out of glass wholesale, in every environment.
+
+         E-Ink's material is paper: opaque stock, and a full-weight black rule
+         for an edge. One weight for the whole ladder plus no blur IS the
+         opaque material -- which is why the opt-out is two lines here rather
+         than a private restatement of every surface token inside the theme's
+         own block. Add a theme to this selector; do not copy the values. */
+      :root[data-theme="theme-eink"] {
+        --film-all: 100%;
+        --surface-blur: none;
+      }
 
       /* No hover pointer. */
       @media (hover: none) {
@@ -5398,7 +5481,17 @@
 
       /* =========================================================================
           MOBILE APP SHELL
-          Everything from here down is scoped to (max-width: 1023px) or narrower and therefore cannot affect the desktop layout.
+
+          Three blocks, and the boundaries are worth knowing before editing
+          here: the phone shell at (max-width: 767px) -- PHONE_BREAKPOINT_PX,
+          and the same breakpoint the material axis in 3.25 switches on -- a
+          tablet layout at (min-width: 768px) and (max-width: 1149px), and a
+          reduced-motion block for the phone. Nothing here is scoped to 1023px,
+          and the tablet band runs past it.
+
+          The one rule outside all three is directly below, and it is the rule
+          that keeps this section off the desktop: the phone chrome is display:
+          none by default and each block opts its own back in.
           ========================================================================= */
 
       #m-tabbar,
@@ -5410,13 +5503,9 @@
 
       @media (max-width: 767px) {
         :root {
-          /* Mobile Frosted Glass Material System */
-          --surface-blur: blur(10px) saturate(190%) brightness(115%);
-          --surface-3: color-mix(
-            in srgb,
-            var(--tint-overlay) var(--film-3),
-            transparent
-          );
+          /* No material tokens here. The glass this shell is drawn in is
+             chosen on the material axis (3.25), which owns --film-N and
+             --surface-blur for both environments; this block owns metrics. */
 
           /* Fixed chrome metrics. --m-topbar-h is enforced as a hard height on
              .status-bar below, so JS never has to measure it. */
@@ -5434,13 +5523,9 @@
           /* No mobile-only material This block used to define a parallel --glass-surface / --glass-hairline / --glass-surface-solid system that existed. */
         }
 
-        /* The OLED themes repaint .sidebar, the sticky toolbar and the timer pane with --page-bg (see the rule further down). */
-        :root[data-theme="sf-dark"],
-        :root[data-theme="vercel-dark"] {
-          --surface-under: var(--page-bg);
-        }
-
-        /* The canvas, and on a phone browser this is what the OS chrome actually butts against -- not the tab bar, and not <meta theme-color>. */
+        /* The canvas, and on a phone browser this is what the OS chrome actually butts against -- not the tab bar, and not <meta theme-color>.
+           --surface-under is repointed at --page-bg for the OLED themes on the
+           material axis (3.25), since it is what their surfaces composite over. */
         html {
           background-color: var(--surface-under);
         }
@@ -7019,7 +7104,10 @@
         if (schemeMeta)
           schemeMeta.setAttribute("content", isDark ? "dark" : "light");
 
-        /* Tint has to match the surface the browser chrome actually butts up against -- which on a phone is NOT <html>. */
+        /* Tint has to match the surface the browser chrome actually butts up against -- which on a phone is NOT <html>.
+           This is the one place the phone breakpoint has to be a literal: the
+           boot script runs pre-paint, before PHONE_BREAKPOINT_PX exists. If
+           that constant ever moves, move this with it. */
         const prop =
           window.matchMedia && window.matchMedia("(max-width: 767px)").matches
             ? "--surface-under"
@@ -29820,11 +29908,10 @@
             : null;
 
         // The breakpoint at which .console-panel becomes a 100svh full-bleed frame painted
-        // --surface-under, hiding html/body behind it.
-        const PHONE_SURFACE_MQ =
-          typeof window.matchMedia === "function"
-            ? window.matchMedia("(max-width: 767px)")
-            : { matches: false };
+        // --surface-under, hiding html/body behind it. Same breakpoint the
+        // shell and the material axis switch on, so it reads the one query
+        // rather than restating the literal and drifting from it.
+        const PHONE_SURFACE_MQ = PHONE_MQ;
 
         /* theme-color is consulted by mobile browser chrome and by standalone PWA windows, and by nothing else. */
         function themeColorIsRead() {
