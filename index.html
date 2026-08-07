@@ -134,7 +134,18 @@
         --surface-3-solid: var(--tint-overlay);
         --surface-3: var(--surface-3-solid);
 
-        /* No blur on desktop for software-rendered GPU performance and solid UI clarity. */
+        /* No blur on desktop for software-rendered GPU performance and solid UI clarity.
+
+           Contract: a glass surface is a FILL (--surface-1/2/3) and this BLUR,
+           and the two are one material. Any rule that retires the fill must
+           retire the blur in the same breath. A live backdrop-filter over a
+           transparent box is not inert -- it still re-blurs and re-tints its
+           backdrop, printing the element's own box wherever its children do
+           not cover it. `background: none` on its own is therefore never a
+           complete reset. Setting THIS token to `none` on a subtree is: it
+           retires the material for every call site inside that subtree at
+           once, and keeps doing so if the material ever grows a third
+           property. That is also how E-Ink opts out of glass wholesale. */
         --surface-blur: none;
 
         /* One hairline for the whole app. */
@@ -5701,9 +5712,29 @@
           display: none;
         }
 
+        /* De-popovered controls. On the desktop these three are hover
+           popovers; the shell relocates them into the sheet as always-open
+           inline rows, so the whole popover has to be retired -- including the
+           half of it that is invisible until it is not.
+
+           Level 3 glass is a fill plus --surface-blur (see the token). This
+           list cleared the fill and left the blur, so each row kept a live
+           backdrop-filter over a transparent box: it re-blurred, saturated and
+           brightened the sheet behind it and printed its own box in every strip
+           its pills did not cover -- a band in each gap between the segments.
+           Desktop never showed it (--surface-blur is `none` there) and neither
+           did E-Ink (it pins the same), which is what made a material bug look
+           like a bug in the three glass themes.
+
+           Retiring the material at its token is the reset that cannot go half
+           done, and it covers the row's descendants too. The explicit `none`
+           below covers the other direction -- a call site that ever states a
+           filter literally instead of reading the token. Any control the shell
+           starts relocating belongs in THIS list, not in a partial copy of it. */
         #m-sheet .goal-presets,
         #m-sheet .tz-presets,
         #m-sheet .theme-presets {
+          --surface-blur: none;
           position: static;
           opacity: 1;
           pointer-events: auto;
@@ -5714,9 +5745,23 @@
           gap: 0.4rem;
           margin-top: 0.5rem;
           background: none;
+          -webkit-backdrop-filter: none;
+          backdrop-filter: none;
           border: 0;
           box-shadow: none;
           padding: 0;
+        }
+
+        /* The other half of the popover that outlives relocation. These are
+           10px dead-zone bridges, there so a mouse can cross the gap from the
+           trigger to the popover without dismissing it. In the sheet there is
+           no trigger and no gap, and with the row now `position: static` they
+           resolve against #m-sheet itself -- three full-width invisible boxes
+           straddling its top edge, eating backdrop taps that should close it. */
+        #m-sheet .goal-presets::before,
+        #m-sheet .tz-presets::before,
+        #m-sheet .theme-presets::before {
+          display: none;
         }
 
         #m-sheet .theme-presets {
