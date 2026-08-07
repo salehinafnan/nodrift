@@ -118,8 +118,8 @@
         --film-1: var(--film-all, 50%);
         /* Level with content rather than above it, and deliberately so. */
         --film-2: var(--film-all, 32%);
-        /* --film-3 is the one rung whose weight differs between the two
-           materials, so the axis sets it rather than this block. */
+        /* Rung 3 carries two weights at once. See --surface-3 below. */
+        --film-3-glass: var(--film-all, 45%);
 
         /* The ladder. One recipe per rung, stated once: a level lays its film
            over whatever is behind it, and its `-solid` twin lays the SAME film
@@ -146,19 +146,43 @@
           var(--tint-chrome) var(--film-2),
           var(--surface-under)
         );
-        --surface-3: color-mix(
+        /* Rung 3 is the one rung that exists in TWO materials at the same
+           time, because whether an overlay can afford a film depends on what
+           is behind it rather than on how high it is (see THE BACKDROP AXIS
+           in 3.25). Both materials are FINISHED here, and the axis selects
+           one of them; nothing below this block ever re-derives a surface.
+
+           That is a correctness rule, not a style preference. A custom
+           property substitutes its var()s where it is DECLARED, not where it
+           is used, so an inherited --surface-3 has already baked in whatever
+           film was in scope at :root. Restating the film further down the
+           tree cannot change it -- it only looks as though it should, which
+           is the most expensive kind of wrong, and the only way to make it
+           work is to paste this color-mix() next to every override until one
+           of the copies drifts. Two named materials and a one-token
+           selection retire that whole failure mode. */
+        --surface-3-glass: color-mix(
           in srgb,
-          var(--tint-overlay) var(--film-3),
+          var(--tint-overlay) var(--film-3-glass),
+          transparent
+        );
+        --surface-3-opaque: color-mix(
+          in srgb,
+          var(--tint-overlay) 100%,
           transparent
         );
         --surface-3-solid: color-mix(
           in srgb,
-          var(--tint-overlay) var(--film-3),
+          var(--tint-overlay) 100%,
           var(--surface-under)
         );
+        /* The default material for the rung. THE BACKDROP AXIS overrides this
+           one declaration and nothing else. */
+        --surface-3: var(--surface-3-opaque);
 
-        /* --surface-blur is NOT declared here. It is half of the material and
-           is chosen with the other half, by the environment axis in 3.25. */
+        /* --blur-N is NOT declared here. It is half of the material and is
+           chosen with the other half, by the material axis in 3.25 -- which
+           also decides, on the backdrop axis, which surfaces may have it. */
 
         /* One hairline for the whole app. */
         --hairline-color: color-mix(in srgb, var(--text-main) 8%, transparent);
@@ -172,7 +196,7 @@
         --elev-1: 0 4px 12px rgba(0, 0, 0, 0.2);
         --elev-2: 0 8px 32px rgba(0, 0, 0, 0.24);
         --elev-3: 0 -4px 32px rgba(0, 0, 0, 0.28);
-        /* The dimmed layer behind every overlay, and the other half of what --film-3 is balanced against. */
+        /* The dimmed layer behind every overlay, and the other half of what --film-3-glass is balanced against. */
         --scrim: rgba(0, 0, 0, 0.32);
 
         /* The mix ladder Every tinted surface in this app is the same sentence: some percentage of an accent, over whatever is behind it. */
@@ -413,7 +437,7 @@
         --modal-bg: #1a1a1c;
         /* This theme's panel IS its page (both #000000). */
         --tint-chrome: #1a1a1c;
-        /* --surface-blur is deliberately NOT overridden here. */
+        /* --blur-N is deliberately NOT overridden here. */
         /* Halved from 20% when --hairline-width went 0.5px -> 1px, so the edge
            holds the weight this theme was tuned for. See the token. */
         --hairline-color: color-mix(in srgb, var(--text-main) 11%, transparent);
@@ -629,19 +653,39 @@
          MATERIAL
 
          A surface is a film of pigment (--film-N) and, behind it, either a
-         blur or nothing (--surface-blur). Those are not two settings; they
-         are one material, and a half-applied one is a bug rather than a
-         compromise -- a live blur behind a film that is already at full
-         strength still re-tints its backdrop, and prints the element's own
-         box wherever its children do not cover it.
+         blur or nothing (--blur-N). Those are not two settings; they are one
+         material, and a half-applied one is a bug rather than a compromise --
+         a live blur behind a film that is already at full strength still
+         re-tints its backdrop, and prints the element's own box wherever its
+         children do not cover it.
 
-         So both halves are chosen HERE and only here. Nothing else in the
-         stylesheet may declare --film-N, --film-all or --surface-blur; a
-         component that wants to opt a subtree out sets --surface-blur: none
-         on it, which is the one reset that cannot go half done.
+         The blur is PER RUNG, for the same reason the film is. It used to be
+         a single global --surface-blur shared by the whole ladder, and that
+         is a rung coupling rather than a shorthand: the tab bar (level 2,
+         ambient chrome that content is meant to scroll under) and a dialog
+         (level 3, an overlay that must occlude) were pinned to one setting,
+         so neither could move without dragging the other. Every component
+         that needed to differ opted out by hand, and those hand opt-outs are
+         where the leaks were. --blur-2 and --blur-3 travel with --film-2 and
+         --film-3-glass, so a rung is one material end to end and moves as one.
 
-         There are exactly two materials.
+         Both halves of every rung are chosen HERE and only here. Nothing
+         else in the stylesheet may declare --film-N, --film-all, --blur-N or
+         --blur-all.
          ------------------------------------------------------------------- */
+
+      :root {
+        /* The glass recipe, stated once so the rungs that use it cannot
+           drift apart. It reads --blur-all before its own default for the
+           same reason every --film-N reads --film-all: ONE declaration
+           retires the material for a whole theme, and a rung added later
+           inherits that opt-out for free instead of being the one rung that
+           quietly stayed blurred. */
+        --glass-blur: var(
+          --blur-all,
+          blur(10px) saturate(190%) brightness(115%)
+        );
+      }
 
       /* OPAQUE -- the default, and every viewport wider than a phone.
 
@@ -657,8 +701,8 @@
          opaque panel, so they read solid here without being solid, and the
          ladder stays one ladder. Level 3 is the only rung that moves. */
       :root {
-        --film-3: var(--film-all, 100%);
-        --surface-blur: none;
+        --blur-2: none;
+        --blur-3: none;
       }
 
       /* GLASS -- the phone only.
@@ -666,15 +710,133 @@
          Here the shell IS a stack: the tab bar, the settings sheet and every
          modal sit over one full-bleed pane, so what is behind a surface
          carries real information, and the blurred surfaces are few and small.
-         Level 3 drops to a film for the same reason.
+
+         Level 2 takes glass unconditionally. That rung is ambient chrome --
+         the tab bar -- and it is pinned over a scrolling list on purpose:
+         seeing content move under it is the point, and nothing on it has to
+         stay readable against what passes beneath.
+
+         Level 3 does NOT take glass here. That rung is overlays, which exist
+         to occlude, and whether it can afford a film depends on what is
+         behind it rather than on how high it is. See THE BACKDROP AXIS,
+         directly below, which is the only place level 3 glass is handed out.
 
          This breakpoint is PHONE_BREAKPOINT_PX. CSS cannot read a custom
          property in a media condition, so the literal is repeated across the
          phone blocks by necessity -- keep them in step. */
       @media (max-width: 767px) {
         :root {
-          --film-3: var(--film-all, 45%);
-          --surface-blur: blur(10px) saturate(190%) brightness(115%);
+          --blur-2: var(--glass-blur);
+        }
+
+        /* -----------------------------------------------------------------
+           THE BACKDROP AXIS -- what is behind a surface, not how high it is
+
+           --film-3-glass is balanced against --scrim (see the token): a level 3
+           film is weighted to finish a job the scrim has already half done.
+           Elevation alone does not say whether that scrim is there. A dialog
+           has one. The menu that opens INSIDE that dialog does not -- it
+           covers undimmed foreground, opaque white text and full-chroma
+           badges, with a film that was never weighted for it, and a
+           backdrop-filter whose saturate() and brightness() make that
+           foreground MORE prominent on the way through, not less.
+
+           That was one bug with one cause, and it was reachable from every
+           popover in the app: menus, tooltips, the date picker, the filter
+           drawer, the toast. Fixing them one at a time fixes none of them,
+           because the next popover starts from the same wrong default.
+
+           So the material is GRANTED BY THE SCRIM, never claimed by the rung.
+           Read forwards, that is this app's own invariant -- "two scrims are
+           one too many" (see #m-sheet-backdrop) -- which means one scrim, one
+           pane: a scrim buys exactly one pane of glass, and the pane spends
+           it.
+
+           Three rules, and they compose rather than enumerate:
+
+             1. DEFAULT (in the OPAQUE block above) -- pessimistic. Level 3 is
+                opaque. A surface that does not know what is behind it gets
+                the material that works over anything. This is the rule that
+                makes the fix permanent rather than current: a popover added
+                next year is correct without being listed anywhere, including
+                a body-level portal (.cdp-popup, .app-tooltip, #toast) that no
+                descendant selector could ever have reached.
+
+             2. SPEND -- a universal reset, so that glass can never inherit
+                past the one element it was granted to. It is written BEFORE
+                the grant and deliberately has no selector list of its own;
+                the note on the rule explains why that matters more than it
+                looks like it should.
+
+             3. GRANT -- the panes a scrim is actually painted for, and only
+                those. Adding one means adding a scrim first and then adding
+                it here, in that order. No scrim, no entry.
+
+           A consequence worth naming, because rules 2 and 3 make it
+           structural rather than lucky: NO ELEMENT CARRYING A
+           BACKDROP-FILTER CAN CONTAIN ANOTHER. Nesting them is its own set
+           of problems -- the inner filter samples the outer's backdrop root
+           instead of the page, so it can blur its ancestor's content but
+           never dim it, and brightness() compounds across the nesting. That
+           is now unreachable by construction.
+           ----------------------------------------------------------------- */
+
+        /* 2. SPEND -- written before the grant it protects, and written as a
+           universal reset rather than as a second list.
+
+           An earlier version of this axis revoked glass with an explicit
+           `.modal-container *, #m-tabbar *`, which is a second list that has
+           to be kept in step with the first by hand. It was not: a pane was
+           added to the grant, the matching revoke was not, and every popover
+           inside that pane inherited glass again. The lists were the bug.
+
+           `*` has no list to drift from. It reasserts the default material on
+           every element in the document, so a grant applies to exactly the
+           element it names and can never reach that element's subtree -- the
+           reset is already sitting on every descendant, at lower specificity
+           than the grant and higher than inheritance. Add a pane to the grant
+           below and its confinement comes with it, for free, permanently.
+
+           Cost is one inherited-value entry per element for three properties,
+           which is what a `*` reset costs anywhere; the alternative was a
+           class of bug that ships silently. */
+        * {
+          --surface-3: var(--surface-3-opaque);
+          --blur-2: none;
+          --blur-3: none;
+        }
+
+        /* 3. GRANT -- the panes a scrim is actually painted for, and only
+           those. This app paints exactly two scrims: .modal-overlay, behind
+           .modal-container, and #m-sheet-backdrop, behind #m-sheet. If a
+           surface cannot be traced to one of those two, it does not belong
+           in this list, however much it looks like a pane.
+
+           #m-sheet is named rather than #m-sheet::before because a
+           pseudo-element inherits from its originating element: the sheet's
+           fill picks the material up through inheritance, while the sheet's
+           real children are caught by the reset above. One selector, both
+           halves.
+
+           --surface-grant is a sentinel and is never read by CSS. The
+           development-time check at the end of the document finds this rule
+           through it, so the list of licensed panes it enforces is THIS list
+           and cannot be a stale copy of it. */
+        .modal-container,
+        #m-sheet {
+          --surface-grant: glass;
+          --surface-3: var(--surface-3-glass);
+          --blur-3: var(--glass-blur);
+        }
+
+        /* Level 2's grant. Ambient chrome, not an overlay: it has no scrim
+           and needs none, because content is meant to be seen moving under
+           it and nothing on it has to stay readable against what passes
+           beneath. It is listed separately for exactly that reason -- it is
+           not an exception to the backdrop rule, it is a different rung. */
+        #m-tabbar {
+          --surface-grant: chrome;
+          --blur-2: var(--glass-blur);
         }
 
         /* The OLED themes repaint the shell's frame with --page-bg, so on a
@@ -693,10 +855,17 @@
          for an edge. One weight for the whole ladder plus no blur IS the
          opaque material -- which is why the opt-out is two lines here rather
          than a private restatement of every surface token inside the theme's
-         own block. Add a theme to this selector; do not copy the values. */
+         own block. Add a theme to this selector; do not copy the values.
+
+         --blur-all is what makes the second line hold against the grant
+         above. The grant sets --blur-3 on the element itself, which outranks
+         anything inherited from :root, so an opt-out written as
+         `--blur-3: none` here would be silently overridden on exactly the two
+         panes that matter. Retiring the RECIPE instead reaches them, the same
+         way --film-all reaches --film-3-glass through var()'s fallback. */
       :root[data-theme="theme-eink"] {
         --film-all: 100%;
-        --surface-blur: none;
+        --blur-all: none;
       }
 
       /* No hover pointer. */
@@ -1431,8 +1600,8 @@
         /* Level 3. Was --element-hover, which put this popover a full step
            off the dropdowns it sits beside. */
         background: var(--surface-3);
-        -webkit-backdrop-filter: var(--surface-blur);
-        backdrop-filter: var(--surface-blur);
+        -webkit-backdrop-filter: var(--blur-3);
+        backdrop-filter: var(--blur-3);
         border: var(--hairline);
         border-radius: var(--header-el-radius);
         box-shadow: var(--elev-1);
@@ -1740,8 +1909,8 @@
         pointer-events: none;
         /* Level 3. */
         background: var(--surface-3);
-        -webkit-backdrop-filter: var(--surface-blur);
-        backdrop-filter: var(--surface-blur);
+        -webkit-backdrop-filter: var(--blur-3);
+        backdrop-filter: var(--blur-3);
         border: var(--hairline);
         color: var(--text-main);
         font-size: 0.55rem;
@@ -2009,8 +2178,8 @@
         padding: 6px;
         /* Level 3 -- see .tz-presets. */
         background: var(--surface-3);
-        -webkit-backdrop-filter: var(--surface-blur);
-        backdrop-filter: var(--surface-blur);
+        -webkit-backdrop-filter: var(--blur-3);
+        backdrop-filter: var(--blur-3);
         border: var(--hairline);
         border-radius: var(--header-el-radius);
         box-shadow: var(--elev-1);
@@ -2406,10 +2575,12 @@
         width: 28px;
         height: 28px;
         padding: 0;
-        /* Level 2, solid. */
+        /* Level 2, SOLID -- and therefore no backdrop-filter. An opaque
+           fill can never show what is behind it, so the filter here bought
+           nothing and cost a promoted layer, a backdrop root and a live
+           blur every frame the button was on screen. Half-applied material;
+           see the material block in 3.25. */
         background: var(--surface-2-solid);
-        -webkit-backdrop-filter: var(--surface-blur);
-        backdrop-filter: var(--surface-blur);
         border: var(--hairline);
         border-radius: 50%;
         box-shadow: var(--elev-1);
@@ -2610,8 +2781,8 @@
         flex-direction: column;
         /* Level 3: this is a drawer that opens over the list, so it is an overlay, not chrome. */
         background: var(--surface-3);
-        -webkit-backdrop-filter: var(--surface-blur);
-        backdrop-filter: var(--surface-blur);
+        -webkit-backdrop-filter: var(--blur-3);
+        backdrop-filter: var(--blur-3);
         padding: 10px;
         border-radius: 1rem;
         border: var(--hairline);
@@ -2998,10 +3169,10 @@
         left: 50%;
         transform: translateX(-50%) translateY(8px);
         z-index: var(--z-elevated);
-        /* Level 2, solid. */
+        /* Level 2, SOLID -- no backdrop-filter, for the reason given on
+           .scroll-top-btn. This one rode a virtualised list, so the wasted
+           blur was being recomposited on every scroll frame. */
         background: var(--surface-2-solid);
-        -webkit-backdrop-filter: var(--surface-blur);
-        backdrop-filter: var(--surface-blur);
         border: var(--hairline);
         color: var(--accent-blue);
         font-weight: 600;
@@ -3497,8 +3668,8 @@
         /* Level 3. --dropdown-bg is now an alias of the same pigment, so this
            and .custom-select-panel and .modal-container finally agree. */
         background: var(--surface-3);
-        -webkit-backdrop-filter: var(--surface-blur);
-        backdrop-filter: var(--surface-blur);
+        -webkit-backdrop-filter: var(--blur-3);
+        backdrop-filter: var(--blur-3);
         border: var(--hairline);
         border-radius: 0.75rem;
         padding: 0.85rem;
@@ -3923,8 +4094,80 @@
           border-color 0.3s ease;
       }
 
-      #weekly-progress-card {
-        contain: layout;
+      /* =====================================================================
+         POPOVER ESCAPE
+
+         An in-page popover is absolutely positioned and paints outside its
+         trigger's box, so it needs two things from every ancestor between it
+         and the page: no clip, and no stacking context. `contain` takes both
+         away in one word. `paint` clips the popover to the host's box, and
+         `layout` makes the host a stacking context -- which pins the popover
+         to the HOST's paint order no matter what --z-dropdown says, because a
+         z-index only ranks a box against its siblings inside its own context.
+
+         Half-fixing it is worse than not fixing it. #weekly-progress-card
+         used to answer the clipping by dropping to `contain: layout`, which
+         let the menu out of the box but left it pinned, so the next card
+         painted over it -- and since level 1 is a 50% film on a phone, the
+         menu ghosted THROUGH the card that covered it rather than simply
+         vanishing. A stacking bug wearing a transparency bug's clothes.
+
+         The condition below is STRUCTURAL -- does this host own a popover at
+         all -- and not temporal -- is one open right now. The temporal
+         version is the tempting one, because it looks like it pays for
+         containment except in the moment it cannot afford it. It is also
+         wrong, twice over:
+
+           It has to name the open state, and the open state is a detail of
+           each popover's own show rule (these containers open on :hover as
+           well as :focus-within, and iOS resolves a tap as :hover). That is
+           the same condition written in two places, which is the drift this
+           file has already been bitten by twice.
+
+           And it buys nothing worth having. Containment on a handful of stat
+           cards is not what makes this app fast; the virtualised list is, and
+           .log-row and #task-log-container keep theirs because nothing opens a
+           popover inside them. One card that owns a menu gives up containment
+           permanently, and the cost of that is not measurable.
+
+         Two lists, both complete, both stable:
+
+           HOSTS -- every selector in this stylesheet that declares `contain`.
+           Grep for it; if a selector is there and not here, it is a trap.
+           #task-log-container is the one deliberate omission: `contain: strict`
+           includes size containment, which cannot be dropped without a
+           reflow, and nothing opens a popover inside it. The development-time
+           check at the end of the document reports it as I4 if that changes.
+
+           ROOTS -- every element that owns an in-page popover. A new popover
+           joins this list and inherits the whole behaviour: it never needs a
+           z-index, a containment override, or a rule of its own.
+
+         :is() rather than :where() on the host list on purpose -- this has to
+         outrank the `contain` declaration it is suspending, and :where() is
+         specificity zero.
+         ===================================================================== */
+      :is(
+          #bst-clock,
+          .progress-rail,
+          .log-row,
+          .stat-card,
+          .breakdown-row,
+          .timer-val
+        ):has(
+          .view-container,
+          .tz-container,
+          .goal-container,
+          .theme-container,
+          .heatmap-year-container,
+          .custom-select,
+          .idle-popup
+        ) {
+        contain: none;
+        /* Raised only as far as the rung the popover itself sits on, so a host
+           can never outrank the sheet, a modal or a toast. */
+        position: relative;
+        z-index: var(--z-dropdown);
       }
 
       .view-container {
@@ -4193,8 +4436,8 @@
         max-width: var(--modal-width-sm);
         /* Level 3. */
         background: var(--surface-3);
-        -webkit-backdrop-filter: var(--surface-blur);
-        backdrop-filter: var(--surface-blur);
+        -webkit-backdrop-filter: var(--blur-3);
+        backdrop-filter: var(--blur-3);
         border: var(--hairline);
         border-radius: var(--radius-xl);
         padding: var(--space-5);
@@ -4481,8 +4724,8 @@
         height: 44px;
         /* Level 3, blurred. */
         background: var(--surface-3);
-        -webkit-backdrop-filter: var(--surface-blur);
-        backdrop-filter: var(--surface-blur);
+        -webkit-backdrop-filter: var(--blur-3);
+        backdrop-filter: var(--blur-3);
         color: var(--text-main);
         border: var(--hairline);
         padding: 0 16px 0 8px;
@@ -5174,8 +5417,8 @@
         z-index: var(--z-sticky);
         /* Level 3. */
         background: var(--surface-3);
-        -webkit-backdrop-filter: var(--surface-blur);
-        backdrop-filter: var(--surface-blur);
+        -webkit-backdrop-filter: var(--blur-3);
+        backdrop-filter: var(--blur-3);
         border: var(--hairline);
         border-radius: var(--radius-md);
         padding: 4px;
@@ -5183,7 +5426,23 @@
         flex-direction: column;
         gap: 2px;
         min-width: max-content;
-        box-shadow: var(--elev-1);
+        /* Geometry that belongs to the panel, not to one of its two drop
+           directions. The cap and the scrolling used to live on .cs-drop-up
+           alone, which left the far commoner drop-down path uncapped and on
+           --elev-1, the weakest shadow in the app -- and the phone layer then
+           took .custom-select-option to a 44px touch row, so an eight-item
+           menu grew past 350px with the least edge separation of the three
+           popover variants. A menu that runs off the screen is the same bug
+           in either direction, so the cap is stated once, here.
+
+           Only the shadow is per-direction: it points away from the surface
+           the panel covers, so --elev-2 (downward) is the base and .cs-drop-up
+           swaps in --elev-3 (upward). */
+        max-height: min(45svh, 320px);
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        -webkit-overflow-scrolling: touch;
+        box-shadow: var(--elev-2);
         opacity: 0;
         pointer-events: none;
         transform: translate3d(0, -4px, 0);
@@ -5200,9 +5459,8 @@
       #settings-config-popup .custom-select-panel {
         top: auto;
         bottom: calc(100% + 4px);
-        max-height: 220px;
-        overflow-y: auto;
-        -webkit-overflow-scrolling: touch;
+        /* Direction only. The cap, the scrolling and the fill are on the base
+           rule so the two directions cannot drift apart. */
         box-shadow: var(--elev-3);
       }
 
@@ -5292,8 +5550,8 @@
         padding: 6px;
         /* Level 3 -- see .tz-presets. */
         background: var(--surface-3);
-        -webkit-backdrop-filter: var(--surface-blur);
-        backdrop-filter: var(--surface-blur);
+        -webkit-backdrop-filter: var(--blur-3);
+        backdrop-filter: var(--blur-3);
         border: var(--hairline);
         border-radius: var(--header-el-radius);
         box-shadow: var(--elev-1);
@@ -5325,8 +5583,8 @@
         z-index: var(--z-tooltip);
         /* Level 3. */
         background: var(--surface-3);
-        -webkit-backdrop-filter: var(--surface-blur);
-        backdrop-filter: var(--surface-blur);
+        -webkit-backdrop-filter: var(--blur-3);
+        backdrop-filter: var(--blur-3);
         border: var(--hairline);
         border-radius: var(--radius-md);
         box-shadow: var(--elev-1);
@@ -5540,8 +5798,9 @@
       @media (max-width: 767px) {
         :root {
           /* No material tokens here. The glass this shell is drawn in is
-             chosen on the material axis (3.25), which owns --film-N and
-             --surface-blur for both environments; this block owns metrics. */
+             chosen on the material and backdrop axes (3.25), which own
+             --film-N and --blur-N for both environments and decide which
+             surfaces are entitled to glass at all; this block owns metrics. */
 
           /* Fixed chrome metrics. --m-topbar-h is enforced as a hard height on
              .status-bar below, so JS never has to measure it. */
@@ -5838,24 +6097,22 @@
            inline rows, so the whole popover has to be retired -- including the
            half of it that is invisible until it is not.
 
-           Level 3 glass is a fill plus --surface-blur (see the token). This
-           list cleared the fill and left the blur, so each row kept a live
-           backdrop-filter over a transparent box: it re-blurred, saturated and
-           brightened the sheet behind it and printed its own box in every strip
-           its pills did not cover -- a band in each gap between the segments.
-           Desktop never showed it (--surface-blur is `none` there) and neither
-           did E-Ink (it pins the same), which is what made a material bug look
-           like a bug in the three glass themes.
+           Level 3 glass is a fill plus a blur (see 3.25). This list cleared
+           the fill and left the blur, so each row kept a live backdrop-filter
+           over a transparent box: it re-blurred, saturated and brightened the
+           sheet behind it and printed its own box in every strip its pills did
+           not cover -- a band in each gap between the segments.
 
-           Retiring the material at its token is the reset that cannot go half
-           done, and it covers the row's descendants too. The explicit `none`
-           below covers the other direction -- a call site that ever states a
-           filter literally instead of reading the token. Any control the shell
-           starts relocating belongs in THIS list, not in a partial copy of it. */
+           The token reset that used to lead this rule is gone, and its absence
+           is the point. These rows are popovers, and popovers no longer get
+           glass to opt out of: the backdrop axis in 3.25 hands level 3 glass
+           to scrimmed panes only, so an unlisted control is already opaque.
+           The literal `backdrop-filter: none` below stays, and only that --
+           it covers the one thing the axis cannot, a call site that states a
+           filter outright instead of reading the rung's token. */
         #m-sheet .goal-presets,
         #m-sheet .tz-presets,
         #m-sheet .theme-presets {
-          --surface-blur: none;
           position: static;
           opacity: 1;
           pointer-events: auto;
@@ -6326,10 +6583,13 @@
           );
           /* Below the modal band (--z-overlay, 1000) and below the sheet (--z-overlay - 2). */
           z-index: var(--z-sticky);
-          /* Level 2, blurred -- and this is the surface the blur is really for. */
+          /* Level 2, blurred -- and this is the surface the blur is really
+             for: ambient chrome that a list is meant to scroll under. It
+             reads --blur-2 rather than a level 3 blur because those are now
+             separate materials; see 3.25. */
           background: var(--surface-2);
-          -webkit-backdrop-filter: var(--surface-blur);
-          backdrop-filter: var(--surface-blur);
+          -webkit-backdrop-filter: var(--blur-2);
+          backdrop-filter: var(--blur-2);
           border-top: var(--hairline);
           border-radius: var(--radius-xl) var(--radius-xl) 0 0;
           box-shadow: var(--elev-2);
@@ -6502,8 +6762,8 @@
           /* Inherited, never restated: the fill and the sheet must round identically, and two literals will drift the first time one of them is touched. */
           border-radius: inherit;
           background: var(--surface-3);
-          -webkit-backdrop-filter: var(--surface-blur);
-          backdrop-filter: var(--surface-blur);
+          -webkit-backdrop-filter: var(--blur-3);
+          backdrop-filter: var(--blur-3);
           /* Decorative. It sits under the content anyway, but this keeps it
              out of hit-testing even if the stacking order is ever changed. */
           pointer-events: none;
@@ -6626,15 +6886,6 @@
            every row that sets one. */
         .custom-select-option {
           min-height: 44px;
-        }
-
-        .custom-select-panel,
-        .cdp-popup {
-          --surface-blur: none;
-          background: var(--surface-3-solid);
-          -webkit-backdrop-filter: none;
-          backdrop-filter: none;
-          box-shadow: var(--elev-3);
         }
 
         .date-picker-group button.preset-pill {
@@ -9841,8 +10092,8 @@
             position: absolute;
             display: none;
             background: var(--surface-3);
-            -webkit-backdrop-filter: var(--surface-blur);
-            backdrop-filter: var(--surface-blur);
+            -webkit-backdrop-filter: var(--blur-3);
+            backdrop-filter: var(--blur-3);
             border: var(--hairline);
             border-radius: 8px;
             padding: 8px 12px;
@@ -30465,6 +30716,253 @@
           openSheet: openSheet,
           closeSheet: closeSheet,
         };
+      })();
+    </script>
+
+    <!-- =========================================================================
+         SURFACE INVARIANT CHECK
+
+         The two axes in 3.25 and the POPOVER ESCAPE rule in section 13 are
+         rules about which surfaces may carry a blur and which containers may
+         hold one. CSS can express them but cannot enforce them: a call site
+         that writes `backdrop-filter: blur(12px)` as a literal, or a new
+         `contain:` on a card that will one day host a menu, is silently
+         legal and looks right until the day it does not.
+
+         The licensed list is NOT restated here. It is read out of the
+         stylesheet at runtime through the --surface-grant sentinel, so it is
+         the GRANT rule itself rather than a copy of it -- the previous
+         version of this file kept a hand-written copy, and a pane was added
+         to one and not the other, which is the whole reason this reads the
+         CSSOM instead.
+
+         Development only and strictly opt-in. With the flag off the IIFE
+         returns before it registers a listener, an observer or a timer.
+         Enable with ?debug-surfaces in the URL or
+         localStorage.setItem("debug-surfaces", "1"); call __auditSurfaces()
+         by hand at any time.
+         ========================================================================= -->
+    <script>
+      (function () {
+        "use strict";
+
+        var enabled = /[?&]debug-surfaces(?:[=&]|$)/.test(location.search);
+        if (!enabled) {
+          try {
+            enabled = localStorage.getItem("debug-surfaces") === "1";
+          } catch (e) {
+            /* Storage throws in some private modes. Off is the safe answer. */
+          }
+        }
+        if (!enabled) return;
+
+        /* Every way a popover in this app is painted. Keep in step with the
+           SIGNALS list on the POPOVER ESCAPE rule. */
+        var POPOVERS = [
+          ".view-presets",
+          ".tz-presets",
+          ".goal-presets",
+          ".theme-presets",
+          ".custom-select-panel",
+          ".cdp-popup",
+          ".idle-popup",
+          ".app-tooltip"
+        ].join(",");
+
+        var PSEUDOS = [null, "::before", "::after"];
+
+        /* Containment values that clip a descendant or trap it in a stacking
+           context. `strict` and `content` are shorthands that include both. */
+        var TRAPPING = /\b(layout|paint|strict|content)\b/;
+
+        /* ---- the licensed panes, read from the stylesheet itself ---------- */
+        function grantSelectors() {
+          var out = [];
+          function walk(rules) {
+            for (var i = 0; i < rules.length; i++) {
+              var rule = rules[i];
+              if (rule.cssRules) walk(rule.cssRules);
+              if (
+                rule.style &&
+                rule.style.getPropertyValue("--surface-grant").trim() !== ""
+              ) {
+                out.push(rule.selectorText);
+              }
+            }
+          }
+          for (var s = 0; s < document.styleSheets.length; s++) {
+            try {
+              walk(document.styleSheets[s].cssRules);
+            } catch (e) {
+              /* A cross-origin sheet cannot be read. None of ours are. */
+            }
+          }
+          return out;
+        }
+
+        var LICENSED = grantSelectors();
+
+        function isLicensed(el) {
+          for (var i = 0; i < LICENSED.length; i++) {
+            try {
+              if (el.matches(LICENSED[i])) return true;
+            } catch (e) {
+              /* An unparseable selector is not worth an exception. */
+            }
+          }
+          return false;
+        }
+
+        /* ---- helpers ------------------------------------------------------ */
+        function filterOf(el, pseudo) {
+          var cs = getComputedStyle(el, pseudo);
+          var f = cs.backdropFilter || cs.webkitBackdropFilter || "none";
+          return f && f !== "none" ? cs : null;
+        }
+
+        /* Computed backgroundColor comes back as rgb()/rgba() in every engine
+           this app targets. Anything unparseable counts as translucent, so
+           the check errs towards silence rather than a false alarm. */
+        function alphaOf(colour) {
+          var m = /^rgba?\(([^)]+)\)$/.exec(colour || "");
+          if (!m) return 0;
+          var parts = m[1].split(/[,\/]/);
+          if (parts.length < 4) return 1;
+          var a = parseFloat(parts[3]);
+          return isNaN(a) ? 1 : a;
+        }
+
+        function label(el, pseudo) {
+          var name = el.tagName.toLowerCase();
+          if (el.id) name += "#" + el.id;
+          if (el.classList.length) name += "." + [].join.call(el.classList, ".");
+          return name + (pseudo || "");
+        }
+
+        var reported = Object.create(null);
+
+        function report(code, message, node) {
+          var key = code + "|" + message;
+          if (reported[key]) return;
+          reported[key] = true;
+          console.warn("[surfaces] " + code + ": " + message, node);
+        }
+
+        /* ---- the audit ---------------------------------------------------- */
+        function audit() {
+          var blurred = [];
+          var all = document.querySelectorAll("*");
+          var i, p;
+
+          for (i = 0; i < all.length; i++) {
+            /* Nothing that is not painted can violate anything, and skipping
+               it keeps a document this size cheap to walk. */
+            if (!all[i].getClientRects().length) continue;
+            for (p = 0; p < PSEUDOS.length; p++) {
+              var cs = filterOf(all[i], PSEUDOS[p]);
+              if (cs) blurred.push({ el: all[i], pseudo: PSEUDOS[p], style: cs });
+            }
+          }
+
+          for (i = 0; i < blurred.length; i++) {
+            var s = blurred[i];
+            var name = label(s.el, s.pseudo);
+
+            /* I1 -- no nested backdrop-filter. The inner filter samples the
+               outer's backdrop root instead of the page, so it can blur its
+               ancestor's content but never dim it, and brightness() compounds
+               across the nesting. */
+            for (var o = 0; o < blurred.length; o++) {
+              if (o !== i && blurred[o].el !== s.el && blurred[o].el.contains(s.el)) {
+                report(
+                  "I1 nested-backdrop-filter",
+                  name + " carries a blur inside " + label(blurred[o].el, blurred[o].pseudo),
+                  s.el
+                );
+              }
+            }
+
+            /* I2 -- half-applied material. An opaque fill can never show what
+               is behind it, so a live filter under one is pure compositing
+               cost plus a backdrop root nothing asked for. */
+            if (alphaOf(s.style.backgroundColor) >= 0.999) {
+              report(
+                "I2 blur-behind-opaque-fill",
+                name + " has an opaque background and a live backdrop-filter",
+                s.el
+              );
+            }
+
+            /* I3 -- unlicensed glass. A translucent surface is only legible
+               where something dims its backdrop first, so anything carrying a
+               blur has to be a pane the GRANT rule named. */
+            if (!isLicensed(s.el)) {
+              report(
+                "I3 unlicensed-glass",
+                name + " carries a backdrop-filter but is not a granted pane" +
+                  " -- see THE BACKDROP AXIS in 3.25",
+                s.el
+              );
+            }
+          }
+
+          /* I4 -- a popover trapped by an ancestor's containment. Reported
+             against the ancestor, because that is where the fix goes: either
+             add it to the HOSTS list on POPOVER ESCAPE, or stop containing
+             it. */
+          var panels = document.querySelectorAll(POPOVERS);
+          for (i = 0; i < panels.length; i++) {
+            if (!panels[i].getClientRects().length) continue;
+            for (var a = panels[i].parentElement; a && a !== document.body; a = a.parentElement) {
+              var contain = getComputedStyle(a).contain || "none";
+              if (TRAPPING.test(contain)) {
+                report(
+                  "I4 contained-popover-host",
+                  label(a) + " declares `contain: " + contain + "` and is an" +
+                    " ancestor of the open " + label(panels[i]) +
+                    " -- see POPOVER ESCAPE in section 13",
+                  a
+                );
+              }
+            }
+          }
+
+          return blurred.length;
+        }
+
+        window.__auditSurfaces = audit;
+
+        var timer = null;
+        function schedule() {
+          clearTimeout(timer);
+          timer = setTimeout(audit, 400);
+        }
+
+        if (document.readyState === "loading") {
+          document.addEventListener("DOMContentLoaded", schedule, { once: true });
+        } else {
+          schedule();
+        }
+
+        /* The interesting surfaces only exist after an interaction: dialogs
+           are opened by setting an inline display, popovers by a class or by
+           focus. Debounced, so a virtualised list scrolling does not re-walk
+           the document every frame. */
+        new MutationObserver(schedule).observe(document.body, {
+          childList: true,
+          subtree: true,
+          attributes: true,
+          attributeFilter: ["style", "class"]
+        });
+        document.addEventListener("focusin", schedule, true);
+        document.addEventListener("focusout", schedule, true);
+
+        console.info(
+          "[surfaces] invariant check active; " +
+            LICENSED.length +
+            " granted pane rule(s) read from the stylesheet. " +
+            "Call __auditSurfaces() to re-run."
+        );
       })();
     </script>
   </body>
