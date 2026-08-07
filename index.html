@@ -6594,6 +6594,19 @@
           min-height: 40px;
         }
 
+        /* Menu rows are thumb targets here too. The trigger above was already
+           sized for touch; its options never were, which left every dropdown in
+           the app -- filters, dialogs, the heatmap year list -- opening onto
+           ~26px rows on the one device with no cursor to aim.
+
+           min-height alone, deliberately: a button centres its own content, so
+           the label stays put and the row grows around it. Making this a flex
+           box would centre it just as well and quietly break text-align on
+           every row that sets one. */
+        .custom-select-option {
+          min-height: 44px;
+        }
+
         .date-picker-group button.preset-pill {
           min-height: 24px;
           height: 24px;
@@ -6609,8 +6622,16 @@
         #task-note-input:not(.task-input-running),
         .goal-inputs button:not(.active),
         #m-sheet-close,
+        /* .custom-select-option is excluded for the same reason the three
+           before it are, and it matters everywhere a dropdown opens inside a
+           dialog, not just in the heatmap: a menu row is not a control that
+           carries its own edge. Boxing one draws a border inside the panel's
+           own border and overrides .cs-selected's tint with a flat level-1
+           fill, so the chosen row stops looking chosen. */
         .modal-container
-          button:not(.help-tab-btn):not(.adjust-seg-btn):not(.btn-dashed),
+          button:not(.help-tab-btn):not(.adjust-seg-btn):not(.btn-dashed):not(
+            .custom-select-option
+          ),
         .input-standard:not(.task-input-running),
         .filter-input,
         .custom-select-trigger,
@@ -9826,37 +9847,35 @@
             color: var(--text-main);
           }
 
-          /* Level 3 -- the same material .tz-presets, .goal-presets and .theme-presets take. */
+          /* The year list is a MENU, so it is the app's standard select panel
+             (.custom-select-panel.cs-compact) with standard rows
+             (.custom-select-option) -- not a tray of .preset-pill chips, which
+             is what it used to be. A chip is a level-1 control and carries its
+             own border and fill; nesting one inside a level-3 popover drew a
+             box inside a box, and the pill's 6px/12px padding made a one-word
+             menu twice the size it needed to be. Menu rows are borderless and
+             mark selection with tint alone, which is what .cs-selected is for.
+
+             Everything below is the delta from that shared component, and it is
+             only two things: this menu hangs centred under an inline text
+             trigger rather than stretching to a form field's width, and it
+             opens on hover / focus-within rather than on the .cs-open class the
+             select controller toggles. */
           #heatmap-year-presets {
-            position: absolute;
-            top: 100%;
+            top: calc(100% + 4px);
             left: 50%;
-            opacity: 0;
-            pointer-events: none;
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-            padding: 6px;
-            background: var(--surface-3);
-            -webkit-backdrop-filter: var(--surface-blur);
-            backdrop-filter: var(--surface-blur);
-            border: var(--hairline);
-            border-radius: var(--radius-md);
-            box-shadow: var(--elev-1);
-            transform: translate3d(-50%, 4px, 0);
-            z-index: var(--z-dropdown);
-            transition:
-              opacity 0.2s ease,
-              transform 0.2s ease;
+            right: auto;
+            transform: translateX(-50%);
           }
 
           .heatmap-year-container:hover #heatmap-year-presets,
           .heatmap-year-container:focus-within #heatmap-year-presets {
             opacity: 1;
             pointer-events: auto;
-            transform: translate3d(-50%, 8px, 0);
           }
 
+          /* Dead-zone bridge, so crossing the gap from trigger to menu does not
+             drop the hover on the way. */
           #heatmap-year-presets::before {
             content: "";
             position: absolute;
@@ -9864,6 +9883,11 @@
             left: 0;
             right: 0;
             height: 10px;
+          }
+
+          /* Centred rows under a centred trigger. */
+          #heatmap-year-presets .custom-select-option {
+            text-align: center;
           }
 
           .heatmap-today-cell {
@@ -9927,7 +9951,12 @@
                   <g data-sprite="sprite-013"></g>
                 </svg>
               </div>
-              <div id="heatmap-year-presets">
+              <div
+                id="heatmap-year-presets"
+                class="custom-select-panel cs-compact"
+                role="listbox"
+                aria-label="Heatmap year"
+              >
                 <!-- populated dynamically -->
               </div>
             </div>
@@ -19955,14 +19984,11 @@
           if (label) label.textContent = year;
 
           if (presets) {
-            const buttons = presets.querySelectorAll(".preset-pill");
-            buttons.forEach((btn) => {
-              const btnYear = parseInt(btn.textContent, 10);
-              if (btnYear === year) {
-                btn.classList.add("active");
-              } else {
-                btn.classList.remove("active");
-              }
+            const options = presets.querySelectorAll(".custom-select-option");
+            options.forEach((opt) => {
+              const isActive = parseInt(opt.textContent, 10) === year;
+              opt.classList.toggle("cs-selected", isActive);
+              opt.setAttribute("aria-selected", isActive ? "true" : "false");
             });
           }
           renderHeatmap();
@@ -20009,8 +20035,10 @@
             presets.innerHTML = sortedYears
               .map((y) => {
                 const isActive = y === window.heatmapSelectedYearVal;
-                const activeClass = isActive ? " active" : "";
-                return `<button class="preset-pill${activeClass}" onclick="window.selectHeatmapYear(${y})" style="width: 100%; text-align: center; border-radius: var(--radius-sm); font-size: 0.75rem;">${y}</button>`;
+                /* Geometry and selected-state paint both come from the shared
+                   menu component -- there is deliberately no style attribute
+                   here to override it. */
+                return `<button class="custom-select-option${isActive ? " cs-selected" : ""}" role="option" aria-selected="${isActive}" onclick="window.selectHeatmapYear(${y})">${y}</button>`;
               })
               .join("");
           }
