@@ -176,6 +176,29 @@
           var(--tint-overlay) 100%,
           var(--surface-under)
         );
+        /* The same film, over its own scrim.
+
+           A scrim and a film buy the same thing -- occlusion -- and the axis
+           only ever knew how to count the kind painted by a separate element
+           BEHIND the pane. A surface that cannot have one of those can carry
+           one instead, and it is the same recipe the two twins above already
+           are: a film over whatever is behind it. Only the third term
+           changes.
+
+             -glass  film over `transparent`      something else dims
+             -solid  film over --surface-under    nothing needs to
+             -self   film over --scrim            it dims for itself
+
+           The result is not an approximation of a scrimmed pane, it is the
+           same colour: compositing 45% pigment onto 32% black gives alpha
+           0.626 either way, and color-mix() premultiplies, so one mix and two
+           stacked layers agree to the bit. Which is why this is one token and
+           not a background-image layer list. */
+        --surface-3-self: color-mix(
+          in srgb,
+          var(--tint-overlay) var(--film-3-glass),
+          var(--scrim)
+        );
         /* The default material for the rung. THE BACKDROP AXIS overrides this
            one declaration and nothing else. */
         --surface-3: var(--surface-3-opaque);
@@ -819,12 +842,15 @@
            those. This app paints exactly three scrims, and each one licenses
            exactly the pane it sits behind:
 
-             .modal-overlay   -> .modal-container
+             .modal-overlay    -> .modal-container
              #m-sheet-backdrop -> #m-sheet
              #m-sheet::after   -> #m-sheet .idle-popup
 
            If a surface cannot be traced to one of those, it does not belong
-           in this list, however much it looks like a pane.
+           in this list, however much it looks like a pane. The one way to
+           qualify without appearing in that table is to carry the scrim
+           inside the fill -- see the SELF-SCRIMMED GRANT below, which is a
+           different way of satisfying this rule and not a way around it.
 
            #m-sheet is named rather than #m-sheet::before because a
            pseudo-element inherits from its originating element: the sheet's
@@ -841,6 +867,27 @@
         #m-sheet .idle-popup {
           --surface-grant: glass;
           --surface-3: var(--surface-3-glass);
+          --blur-3: var(--glass-blur);
+        }
+
+        /* SELF-SCRIMMED GRANT -- panes that dim for themselves.
+
+           A toast has no scrim and must not be given one: dimming the page
+           for a notification that blocks nothing would make it read as modal,
+           and it flies in over whatever the user was already reading. So it
+           takes the third twin, which puts the scrim inside its own box. Same
+           two tokens, same total occlusion, same colour as a dialog -- the
+           rule is satisfied rather than waived, which is the only reason this
+           is a grant and not an exception.
+
+           The bar for joining this list is higher than for the one above, not
+           lower: a pane belongs here only if a real scrim would be WRONG for
+           it, not merely inconvenient. Anything that could have one should
+           have one. */
+        #goal-toast,
+        #app-toast {
+          --surface-grant: glass;
+          --surface-3: var(--surface-3-self);
           --blur-3: var(--glass-blur);
         }
 
@@ -4759,7 +4806,11 @@
         top: max(16px, env(safe-area-inset-top));
         left: 50%;
         height: 44px;
-        /* Level 3, blurred. */
+        /* Level 3, blurred, and self-scrimmed on a phone -- see the
+           SELF-SCRIMMED GRANT in 3.25. The declaration does not change with
+           the viewport or the theme: the axis decides which of the rung's
+           three twins --surface-3 resolves to, and this rule only ever asks
+           for the rung. */
         background: var(--surface-3);
         -webkit-backdrop-filter: var(--blur-3);
         backdrop-filter: var(--blur-3);
