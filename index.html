@@ -93,9 +93,9 @@
       /* Film weight How much pigment each level lays down, and therefore how much of the backdrop survives it. */
       --film-1: 50%;
       /* Level with content rather than above it, and deliberately so. */
-      --film-2: 50%;
+      --film-2: 32%;
       /* Six points above the other two now, and that gap is the whole of the difference between the rungs. */
-      --film-3: 65%;
+      --film-3: 45%;
 
       --surface-1: color-mix(in srgb,
           var(--tint-content) var(--film-1),
@@ -109,14 +109,11 @@
       --surface-2-solid: color-mix(in srgb,
           var(--tint-chrome) var(--film-2),
           var(--surface-under));
-      --surface-3: color-mix(in srgb,
-          var(--tint-overlay) var(--film-3),
-          transparent);
-      /* Level 3's twin is the one with no consumer at the moment -- the sheet that used to take it is glass now. */
       --surface-3-solid: var(--tint-overlay);
+      --surface-3: var(--surface-3-solid);
 
-      /* Saturation, not just blur: pushing the sampled backdrop past 100% is what stops colour read through glass from going muddy. */
-      --surface-blur: blur(18px) saturate(180%);
+      /* No blur on desktop for software-rendered GPU performance and solid UI clarity. */
+      --surface-blur: none;
 
       /* One hairline for the whole app. */
       --hairline-color: color-mix(in srgb, var(--text-main) 8%, transparent);
@@ -530,6 +527,8 @@
       --emph-fill-max: 56%;
       --dropdown-bg: var(--modal-bg);
       --modal-bg: #ffffff;
+      --film-2: 40%;
+      --surface-blur: none;
       /* A light theme needs a heavier hairline than a dark one to read at the same strength. */
       --hairline-color: color-mix(in srgb, var(--text-main) 10%, transparent);
       --elev-1: 0 4px 12px rgba(0, 0, 0, 0.1);
@@ -2208,8 +2207,8 @@
       width: 28px;
       height: 28px;
       padding: 0;
-      /* Level 2, blurred. */
-      background: var(--surface-2);
+      /* Level 2, solid. */
+      background: var(--surface-2-solid);
       -webkit-backdrop-filter: var(--surface-blur);
       backdrop-filter: var(--surface-blur);
       border: var(--hairline);
@@ -2800,8 +2799,8 @@
       left: 50%;
       transform: translateX(-50%) translateY(8px);
       z-index: var(--z-elevated);
-      /* Level 2, blurred, for the same reason as .scroll-top-btn: */
-      background: var(--surface-2);
+      /* Level 2, solid. */
+      background: var(--surface-2-solid);
       -webkit-backdrop-filter: var(--surface-blur);
       backdrop-filter: var(--surface-blur);
       border: var(--hairline);
@@ -4125,19 +4124,19 @@
 
     /* Semantic Accent Tops for Modals */
     .modal-container.accent-warning {
-      border-top: 4px solid var(--accent-warning);
+      border-top: var(--hairline-width) solid color-mix(in srgb, var(--accent-warning) 85%, transparent);
     }
 
     .modal-container.accent-danger {
-      border-top: 4px solid var(--accent-break);
+      border-top: var(--hairline-width) solid color-mix(in srgb, var(--accent-break) 85%, transparent);
     }
 
     .modal-container.accent-info {
-      border-top: 4px solid var(--accent-blue);
+      border-top: var(--hairline-width) solid color-mix(in srgb, var(--accent-blue) 85%, transparent);
     }
 
     .modal-container.accent-success {
-      border-top: 4px solid var(--accent-work);
+      border-top: var(--hairline-width) solid color-mix(in srgb, var(--accent-work) 85%, transparent);
     }
 
     /* Standardized visual date picker input groupings */
@@ -5264,6 +5263,12 @@
 
     @media (max-width: 767px) {
       :root {
+        /* Mobile Frosted Glass Material System */
+        --surface-blur: blur(10px) saturate(190%) brightness(115%);
+        --surface-3: color-mix(in srgb,
+            var(--tint-overlay) var(--film-3),
+            transparent);
+
         /* Fixed chrome metrics. --m-topbar-h is enforced as a hard height on
              .status-bar below, so JS never has to measure it. */
         --m-topbar-h: 3.6rem;
@@ -5994,6 +5999,11 @@
         left: 50%;
         bottom: calc(var(--m-tabbar-h) + var(--m-safe-bottom) + 12px);
         z-index: var(--z-sticky);
+        background: var(--surface-2);
+      }
+
+      .sticky-month-header {
+        background: var(--surface-2);
       }
 
       /* ---- Bottom tab bar --------------------------------------------- */
@@ -6012,8 +6022,8 @@
         -webkit-backdrop-filter: var(--surface-blur);
         backdrop-filter: var(--surface-blur);
         border-top: var(--hairline);
-        border-radius: 0;
-        box-shadow: none;
+        border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+        box-shadow: var(--elev-2);
         padding-top: 4px;
         padding-bottom: calc(4px + var(--m-safe-bottom) + var(--m-chrome-bleed));
         padding-left: max(12px, env(safe-area-inset-left, 0px));
