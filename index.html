@@ -829,11 +829,27 @@
           --blur-3: var(--glass-blur);
         }
 
-        /* Level 2's grant. Ambient chrome, not an overlay: it has no scrim
-           and needs none, because content is meant to be seen moving under
-           it and nothing on it has to stay readable against what passes
-           beneath. It is listed separately for exactly that reason -- it is
-           not an exception to the backdrop rule, it is a different rung. */
+        /* FLOATING CHROME -- level 2's half of the same question.
+
+           Level 1 and level 2 keep their films in both materials because they
+           sit ON an opaque panel: --surface-2 over a flat --panel-bg reads
+           solid without being solid, which is the whole trick. A level 2
+           surface that FLOATS over the list instead has no such backdrop, and
+           a 32% film over scrolling rows is not chrome, it is a smear.
+
+           So rung 2 splits by call site rather than by axis, because unlike
+           rung 3 the split is not a property of the viewport:
+
+             sits on the panel  -> var(--surface-2)        (film, correct)
+             floats over content -> var(--surface-2-solid) (twin, opaque)
+
+           The tab bar below is the one floating surface that keeps the film,
+           and it is not an exception to the rule -- it is ambient chrome
+           rather than an overlay. Content is meant to be seen moving under
+           it, it is anchored to an edge rather than dropped in the middle of
+           the list, and nothing on it has to stay legible against what
+           passes beneath. Anything that does not meet all three takes the
+           twin. I5 in the development-time check enforces this. */
         #m-tabbar {
           --surface-grant: chrome;
           --blur-2: var(--glass-blur);
@@ -2575,11 +2591,16 @@
         width: 28px;
         height: 28px;
         padding: 0;
-        /* Level 2, SOLID -- and therefore no backdrop-filter. An opaque
-           fill can never show what is behind it, so the filter here bought
-           nothing and cost a promoted layer, a backdrop root and a live
-           blur every frame the button was on screen. Half-applied material;
-           see the material block in 3.25. */
+        /* Level 2, and the SOLID twin rather than the film -- see FLOATING
+           CHROME in 3.25. This button does not sit on the panel, it floats
+           over the list, so there is no flat --panel-bg behind it for a 32%
+           film to read solid against; there is scrolling content, and the
+           icon has to stay legible against whatever happens to be under it.
+
+           No backdrop-filter either. An opaque fill can never show what is
+           behind it, so a filter here buys nothing and costs a promoted
+           layer, a backdrop root and a live blur every frame the button is
+           on screen. */
         background: var(--surface-2-solid);
         border: var(--hairline);
         border-radius: 50%;
@@ -3169,9 +3190,10 @@
         left: 50%;
         transform: translateX(-50%) translateY(8px);
         z-index: var(--z-elevated);
-        /* Level 2, SOLID -- no backdrop-filter, for the reason given on
-           .scroll-top-btn. This one rode a virtualised list, so the wasted
-           blur was being recomposited on every scroll frame. */
+        /* Level 2, SOLID twin, for the reason given on .scroll-top-btn: it
+           floats over the list rather than sitting on the panel. This one
+           rides a virtualised list, so a blur here would also have been
+           recomposited on every scroll frame. */
         background: var(--surface-2-solid);
         border: var(--hairline);
         color: var(--accent-blue);
@@ -6558,16 +6580,20 @@
           display: none !important;
         }
 
-        /* Above the list it scrolls, below the modal band -- an overlay must never have a floating action button punched through it. */
+        /* Above the list it scrolls, below the modal band -- an overlay must
+           never have a floating action button punched through it.
+
+           Position only. Both of these used to swap the solid twin for the
+           level 2 film here and lean on --surface-blur to stay readable, which
+           is the half-applied material the axis warns about: the film was
+           doing none of the covering and the blur was doing all of it, so the
+           moment the blur went the pills went with it. They float over content
+           on a phone exactly as they do on a desktop, so the material does not
+           change with the viewport and this block does not touch it. */
         .scroll-top-btn {
           left: 50%;
           bottom: calc(var(--m-tabbar-h) + var(--m-safe-bottom) + 12px);
           z-index: var(--z-sticky);
-          background: var(--surface-2);
-        }
-
-        .sticky-month-header {
-          background: var(--surface-2);
         }
 
         /* ---- Bottom tab bar --------------------------------------------- */
@@ -30723,8 +30749,8 @@
          SURFACE INVARIANT CHECK
 
          The two axes in 3.25 and the POPOVER ESCAPE rule in section 13 are
-         rules about which surfaces may carry a blur and which containers may
-         hold one. CSS can express them but cannot enforce them: a call site
+         rules about which surfaces may carry a blur, which containers may
+         hold one, and which may be translucent at all. CSS can express them but cannot enforce them: a call site
          that writes `backdrop-filter: blur(12px)` as a literal, or a new
          `contain:` on a card that will one day host a menu, is silently
          legal and looks right until the day it does not.
@@ -30770,6 +30796,10 @@
         ].join(",");
 
         var PSEUDOS = [null, "::before", "::after"];
+
+        /* Positions that take an element out of flow, and therefore off any
+           backdrop it could have relied on being flat. */
+        var POSITIONED = ["absolute", "fixed", "sticky"];
 
         /* Containment values that clip a descendant or trap it in a stacking
            context. `strict` and `content` are shorthands that include both. */
@@ -30904,6 +30934,30 @@
                 s.el
               );
             }
+          }
+
+          /* I5 -- invisible floating chrome. A surface that is taken out of
+             flow floats over whatever happens to be under it, so a
+             translucent fill with no blur behind it has nothing to read
+             against: it disappears against light content and smears against
+             busy content. Either take the -solid twin (see FLOATING CHROME in
+             3.25) or earn a blur through the grant. The tab bar is exempt by
+             name -- ambient chrome, and the one surface the film is for. */
+          for (i = 0; i < all.length; i++) {
+            var fel = all[i];
+            if (!fel.getClientRects().length) continue;
+            if (fel.id === "m-tabbar") continue;
+            var fcs = getComputedStyle(fel);
+            if (POSITIONED.indexOf(fcs.position) === -1) continue;
+            var a5 = alphaOf(fcs.backgroundColor);
+            if (a5 === 0 || a5 >= 0.999) continue;
+            if (filterOf(fel, null)) continue;
+            report(
+              "I5 invisible-floating-chrome",
+              label(fel) + " floats (position: " + fcs.position + ") on a" +
+                " translucent fill with no blur behind it",
+              fel
+            );
           }
 
           /* I4 -- a popover trapped by an ancestor's containment. Reported
