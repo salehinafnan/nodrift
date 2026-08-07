@@ -922,16 +922,25 @@
           ========================================================================= */
       * {
         box-sizing: border-box;
-        /* Globally hide scrollbars for Firefox & IE/Edge */
-        scrollbar-width: none !important;
-        -ms-overflow-style: none !important;
       }
 
-      /* Globally hide scrollbars for Chrome/Safari/Webkit */
+      /* App-wide default: no scrollbar furniture on any surface.
+
+         Stated without !important deliberately. The universal selector already
+         has the lowest possible specificity, so nothing in the app overrides
+         this by accident -- but any element that later needs a real scrollbar
+         can opt back in with a single ordinary rule. With !important the only
+         escape would have been another !important, which is how a stylesheet
+         ends up unmaintainable. */
+      * {
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+      }
+
       ::-webkit-scrollbar {
-        display: none !important;
-        width: 0 !important;
-        height: 0 !important;
+        display: none;
+        width: 0;
+        height: 0;
       }
 
       ::-webkit-calendar-picker-indicator {
@@ -6608,14 +6617,28 @@
           box-sizing: border-box !important;
           padding-top: 1.15rem;
           padding-bottom: calc(
-            var(--space-5) + var(--m-safe-bottom) + var(--m-kb-inset, 0px)
+            var(--space-5) + var(--m-safe-bottom)
           ) !important;
-          max-height: 88svh !important;
+          /* Keyboard avoidance, in two halves that only work together.
+
+             The overlay is `position: fixed; align-items: flex-end`, so the
+             sheet is pinned to the bottom of the LAYOUT viewport -- which does
+             not shrink when the soft keyboard opens. Padding alone cannot fix
+             that: it leaves the box bottom-anchored and simply pushes content
+             up inside a box whose lower band is still behind the keyboard.
+
+             margin-bottom lifts the whole box so its bottom edge meets the top
+             of the keyboard, and the max-height cap keeps the lifted box no
+             taller than the band that is actually visible, so its top cannot
+             run off-screen. Both --m-kb-inset and --vv-height are unset without
+             a keyboard, collapsing this to `margin-bottom: 0; max-height: 88svh`
+             -- the no-keyboard rendering is untouched. */
+          margin-bottom: var(--m-kb-inset, 0px) !important;
+          max-height: min(88svh, var(--vv-height, 100svh)) !important;
           overflow-y: auto;
           overscroll-behavior: contain;
           -webkit-overflow-scrolling: touch;
           animation: m-sheet-rise 0.3s cubic-bezier(0.32, 0.72, 0, 1);
-          margin-bottom: 0 !important;
         }
 
         .modal-container::before {
@@ -9496,8 +9519,8 @@
             id="new-leave-type-input"
             class="input-standard"
             placeholder="e.g., Maternity, Bereavement"
+            maxlength="40"
             onfocus="this.select()"
-            onkeydown="if (event.key === 'Enter') this.blur();"
           />
         </div>
         <div class="action-row">
@@ -11240,8 +11263,15 @@
             justify-content: center;
           }
 
+          /* Matches .sq-btn:hover svg. These buttons previously got their accent
+             from three [title="..."] rules that were removed when .sq-btn took
+             over -- but Copy Logs / Export CSV are .task-export-icon, not
+             .sq-btn, so they silently fell back to a plain muted-to-main shift
+             while the Restore JSON button beside them kept the accent.
+             Driven through `color` because the icons stroke with currentColor,
+             so one property covers the button and its glyph. */
           .task-export-icon:hover {
-            color: var(--text-main);
+            color: var(--accent-blue);
           }
 
           .ios-section-header {
@@ -13111,6 +13141,21 @@
         }
       }
 
+      /* Write twin of safeGetLocalStorage. Quota exhaustion, Safari private mode
+         and sandboxed file:// contexts all throw here, and a throw inside an
+         input handler would abandon the caller mid-mutation. Returns whether the
+         write landed so callers can decide between committing and rolling back
+         rather than assuming success. */
+      function safeSetLocalStorage(key, value) {
+        try {
+          localStorage.setItem(key, value);
+          return true;
+        } catch (e) {
+          console.warn(`Storage write blocked for key "${key}".`, e);
+          return false;
+        }
+      }
+
       // Safe date picker wrapper supporting legacy and sandboxed browser engines
       window.safeShowPicker = function (id) {
         if (typeof CustomDatePicker !== "undefined") {
@@ -13132,6 +13177,37 @@
       const THEME_KEY = "production_theme_pref";
       const PRESET_VALUES_KEY = "production_custom_presets_v2";
       const LEAVE_DATES_KEY = "production_leave_dates_v1";
+      const LEAVE_ALLOWANCES_KEY = "production_leave_allowances_v1";
+      /* Marks the migration that folds pre-existing logged leave types into the
+         allowance ledger, so it runs exactly once per browser profile. */
+      const LEAVE_ALLOWANCES_MIGRATION_KEY =
+        "production_leave_allowances_migrated_v1";
+
+      /* The type reported for legacy bare-string leave records, which predate
+         per-entry typing. Kept as one constant so the balance ledger, the badge
+         resolver and the history list all agree on the same label. */
+      const LEGACY_LEAVE_TYPE = "Leave";
+
+      /* Seed ledger for a profile that has never opened the Balances tab.
+         Frozen: it is spread into a fresh object on every read, and freezing
+         turns an accidental in-place write into a loud failure in strict mode
+         rather than silent corruption of every later read. */
+      const DEFAULT_ALLOWANCES = Object.freeze({
+        Casual: 14,
+        "Sick (IPD)": 7,
+        "Sick (OPD)": 7,
+        Annual: 0,
+        "In Lieu": 0,
+      });
+
+      /* Upper bound for a single allowance, mirrored by the max attribute on the
+         allowance inputs so the typed path and the stored path cannot disagree. */
+      const MAX_LEAVE_ALLOWANCE = 365;
+
+      /* Bounds a user-supplied leave type name. Names are ledger keys, badge
+         labels and dropdown entries, so an unbounded string would blow out the
+         layout everywhere at once. */
+      const MAX_LEAVE_TYPE_NAME_LENGTH = 40;
 
       // Latches for the duration of a factory reset (see clearAllData).
       let isFactoryResetting = false;
@@ -13193,11 +13269,62 @@
        * Executes saveLeaveDates logic.
        */
       function saveLeaveDates(dates) {
-        try {
-          localStorage.setItem(LEAVE_DATES_KEY, JSON.stringify(dates));
-        } catch (err) {
-          console.error("Error saving leave dates:", err);
-        }
+        return safeSetLocalStorage(LEAVE_DATES_KEY, JSON.stringify(dates));
+      }
+
+      /* Leave records exist in two shapes: a bare "MM/DD/YY" string (legacy) and
+         a { date, type } object. Every consumer needs the same two accessors, so
+         they live here once instead of being re-derived with an inline typeof at
+         each call site. */
+      function getLeaveRecordDate(entry) {
+        if (typeof entry === "string") return entry;
+        return entry && typeof entry.date === "string" ? entry.date : "";
+      }
+
+      function getLeaveRecordType(entry) {
+        if (typeof entry === "string") return LEGACY_LEAVE_TYPE;
+        const type = entry && entry.type;
+        return typeof type === "string" && type.trim()
+          ? type
+          : LEGACY_LEAVE_TYPE;
+      }
+
+      /* Returns the 4-digit year for a "MM/DD/YY" or "MM/DD/YYYY" record, or null
+         when the string is not a well-formed date. Callers must not index into
+         split() results directly: a value such as "5/16" contains a slash but has
+         no year segment, and dereferencing the missing part throws. */
+      function getLeaveRecordYear(dateStr) {
+        const parts = parseLeaveDateParts(dateStr);
+        return parts ? parts.year : null;
+      }
+
+      function parseLeaveDateParts(dateStr) {
+        if (typeof dateStr !== "string") return null;
+        const match = dateStr
+          .trim()
+          .match(/^(\d{1,2})\/(\d{1,2})\/(\d{2}|\d{4})$/);
+        if (!match) return null;
+
+        const month = parseInt(match[1], 10);
+        const day = parseInt(match[2], 10);
+        const rawYear = match[3];
+        const year =
+          rawYear.length === 2
+            ? 2000 + parseInt(rawYear, 10)
+            : parseInt(rawYear, 10);
+
+        if (!Number.isFinite(month) || !Number.isFinite(day)) return null;
+        if (!Number.isFinite(year)) return null;
+        return { month, day, year };
+      }
+
+      /* Chronological sort key. Unparseable records sort last rather than
+         throwing, so one malformed entry from a hand-edited backup cannot take
+         down the whole leave list. */
+      function leaveSortKey(dateStr) {
+        const parts = parseLeaveDateParts(dateStr);
+        if (!parts) return Number.MAX_SAFE_INTEGER;
+        return Date.UTC(parts.year, parts.month - 1, parts.day);
       }
 
       // Dynamic Idle Threshold Getter
@@ -17330,22 +17457,65 @@
 
       // Single source of truth for leave-type colouring. Frozen constants so
       // per-row lookups during a render allocate nothing.
+      const _LEAVE_VISUALS = Object.freeze({
+        sick: Object.freeze({
+          badgeClass: "badge-leave-sick",
+          rowClass: "is-leave-sick",
+        }),
+        casual: Object.freeze({
+          badgeClass: "badge-leave-casual",
+          rowClass: "is-leave-casual",
+        }),
+        holiday: Object.freeze({
+          badgeClass: "badge-leave-holiday",
+          rowClass: "is-leave-holiday",
+        }),
+        neutral: Object.freeze({ badgeClass: "", rowClass: "" }),
+      });
+
+      /* Keyword -> palette, ordered. Types are user-defined now, so an exact
+         lookup table can no longer enumerate them; first match wins and the
+         order below is the precedence contract. */
+      const _LEAVE_VISUAL_MATCHERS = Object.freeze([
+        Object.freeze(["sick", _LEAVE_VISUALS.sick]),
+        Object.freeze(["casual", _LEAVE_VISUALS.casual]),
+        Object.freeze(["holiday", _LEAVE_VISUALS.holiday]),
+        Object.freeze(["annual", _LEAVE_VISUALS.holiday]),
+        Object.freeze(["lieu", _LEAVE_VISUALS.holiday]),
+      ]);
+
+      /* Memoised because this is called once per row by the virtual scroller and
+         once per cell by the heatmap: without the cache each call would allocate
+         a lowercased string, and the frozen results above would be the only part
+         of the "allocates nothing" contract still holding. */
+      const _leaveVisualCache = new Map();
+      const _LEAVE_VISUAL_CACHE_LIMIT = 256;
+
       function getLeaveVisuals(type) {
-        if (!type) return { badgeClass: "", rowClass: "" };
-        const t = type.toLowerCase();
-        if (t.includes("sick"))
-          return { badgeClass: "badge-leave-sick", rowClass: "is-leave-sick" };
-        if (t.includes("casual"))
-          return {
-            badgeClass: "badge-leave-casual",
-            rowClass: "is-leave-casual",
-          };
-        if (t.includes("holiday") || t.includes("annual") || t.includes("lieu"))
-          return {
-            badgeClass: "badge-leave-holiday",
-            rowClass: "is-leave-holiday",
-          };
-        return { badgeClass: "", rowClass: "" };
+        /* Records restored from a hand-edited backup can carry a non-string
+           type; a bare .toLowerCase() would throw inside the render loop and
+           abort the rest of the list. */
+        if (typeof type !== "string" || !type) return _LEAVE_VISUALS.neutral;
+
+        const cached = _leaveVisualCache.get(type);
+        if (cached) return cached;
+
+        const needle = type.toLowerCase();
+        let resolved = _LEAVE_VISUALS.neutral;
+        for (let i = 0; i < _LEAVE_VISUAL_MATCHERS.length; i++) {
+          if (needle.includes(_LEAVE_VISUAL_MATCHERS[i][0])) {
+            resolved = _LEAVE_VISUAL_MATCHERS[i][1];
+            break;
+          }
+        }
+
+        /* Bounded: type names are user-defined, so an unbounded cache keyed on
+           them is a slow leak. */
+        if (_leaveVisualCache.size >= _LEAVE_VISUAL_CACHE_LIMIT) {
+          _leaveVisualCache.clear();
+        }
+        _leaveVisualCache.set(type, resolved);
+        return resolved;
       }
 
       function getRowTemplate() {
@@ -18700,6 +18870,35 @@
       // Seed the cache immediately so the first render uses the real token value.
       refreshLayoutMetricsCache();
 
+      /* ---- Virtual scroller container sizing --------------------------------
+
+         The scroll viewports are `display: flex; flex-direction: column`, which
+         makes `flex` and `height` a single coupled unit on their spacer child:
+         under `flex: 1` the resolved `flex-basis: 0%` wins the main axis outright
+         and the explicit pixel height is discarded, collapsing the scroll extent.
+
+         Both properties must therefore always be written together. These two
+         helpers are the only sanctioned way to size a virtual container, so a
+         future edit cannot reintroduce the drift where one call site sets the
+         height and forgets the flex. */
+
+      /* Populated: an exact pixel spacer that must be honoured verbatim. */
+      function applyVirtualContainerSize(el, totalHeightPx) {
+        if (!el) return;
+        el.style.height = `${Math.ceil(totalHeightPx)}px`;
+        el.style.flex = "none";
+        el.style.contain = "strict";
+      }
+
+      /* Empty: the container becomes the flex child that fills the viewport so
+         the centred empty state has a definite height to resolve against. */
+      function applyVirtualContainerEmpty(el) {
+        if (!el) return;
+        el.style.height = "auto";
+        el.style.flex = "1";
+        el.style.contain = "none";
+      }
+
       /**
        * Shared re-measure + re-render for the logbook and task virtual scrollers.
        * Safe to call at any time; it no-ops when the lists are empty.
@@ -18719,7 +18918,10 @@
         // Recalculate total container height and clear render key to force update
         const itemHeight = getDynamicItemHeight();
         if (virtualScrollLogs.length > 0) {
-          DOM.logContainer.style.height = `${Math.ceil(virtualScrollLogs.length * itemHeight)}px`;
+          applyVirtualContainerSize(
+            DOM.logContainer,
+            virtualScrollLogs.length * itemHeight,
+          );
           lastVirtualStart = -1;
           renderVirtualVisibleItems();
         }
@@ -18732,7 +18934,10 @@
           virtualScrollTasks.length > 0 &&
           DOM.taskLogContainer
         ) {
-          DOM.taskLogContainer.style.height = `${Math.ceil(virtualScrollTasks.length * taskItemHeight)}px`;
+          applyVirtualContainerSize(
+            DOM.taskLogContainer,
+            virtualScrollTasks.length * taskItemHeight,
+          );
           if (typeof lastTaskVirtualStart !== "undefined")
             lastTaskVirtualStart = -1;
           if (typeof renderVirtualTaskItems === "function")
@@ -19271,9 +19476,10 @@
         }
 
         if (virtualScrollLogs.length > 0) {
-          DOM.logContainer.style.height = `${Math.ceil(virtualScrollLogs.length * itemHeight)}px`;
-          DOM.logContainer.style.flex = "none";
-          DOM.logContainer.style.contain = "strict";
+          applyVirtualContainerSize(
+            DOM.logContainer,
+            virtualScrollLogs.length * itemHeight,
+          );
           if (
             DOM.logContainer.firstChild &&
             !DOM.logContainer.firstChild._dom
@@ -19282,9 +19488,7 @@
             rowNodesPool.length = 0;
           }
         } else {
-          DOM.logContainer.style.height = "auto";
-          DOM.logContainer.style.flex = "1";
-          DOM.logContainer.style.contain = "none";
+          applyVirtualContainerEmpty(DOM.logContainer);
           rowNodesPool.length = 0;
           DOM.logContainer.innerHTML = `
             <div class="empty-state-wrapper">
@@ -22281,6 +22485,16 @@
                 : JSON.stringify(data.leaveAllowances),
             );
           }
+          /* The restored logbook may carry leave types the restored ledger does
+             not list. Clearing the latch re-runs the reconciliation on the next
+             read so those types are folded in rather than orphaned. Cleared
+             unconditionally: a backup with leaves but no allowances needs it
+             just as much as one with both. */
+          try {
+            localStorage.removeItem(LEAVE_ALLOWANCES_MIGRATION_KEY);
+          } catch (e) {
+            console.warn("Could not reset leave allowance migration latch", e);
+          }
           if (data.views) {
             localStorage.setItem(
               VIEWS_KEY,
@@ -22597,6 +22811,7 @@
           PRESET_VALUES_KEY,
           LEAVE_DATES_KEY,
           LEAVE_ALLOWANCES_KEY,
+          LEAVE_ALLOWANCES_MIGRATION_KEY, // Latch must clear with the ledger
           VIEWS_KEY, // Saved custom filter views
           FILTERS_PREF_KEY, // Active filter preferences
           TASK_STATE_KEY,
@@ -23358,36 +23573,108 @@
       /*==========================================================================
        * 18. APPLICATION SHORTCUT HOTKEYS & AUDIOS
        * =========================================================================*/
-      // Helper to find visible modal overlays
-      function getVisibleModal() {
-        const modalIds = [
-          "idle-modal",
-          "ghost-modal",
-          "submit-modal",
-          "help-modal",
-          "confirm-modal",
-          "edit-modal",
-          "manual-modal",
-          "note-modal",
-          "preset-modal",
-          "leave-modal",
-          "manual-task-modal",
-          "edit-task-modal",
-          "tab-conflict-modal",
-          "conflict-wizard-modal",
-          "heatmap-modal",
-          "add-leave-type-modal",
-        ];
-        for (const id of modalIds) {
+      /* Every dialog overlay the keyboard layer arbitrates between. Order is
+         only a tie-breaker for dialogs that were already open before the
+         observer below attached; live ordering comes from open sequence. */
+      const MODAL_IDS = Object.freeze([
+        "idle-modal",
+        "ghost-modal",
+        "submit-modal",
+        "help-modal",
+        "confirm-modal",
+        "edit-modal",
+        "manual-modal",
+        "note-modal",
+        "preset-modal",
+        "leave-modal",
+        "manual-task-modal",
+        "edit-task-modal",
+        "tab-conflict-modal",
+        "conflict-wizard-modal",
+        "heatmap-modal",
+        "add-leave-type-modal",
+      ]);
+
+      function isModalVisible(el) {
+        return (
+          !!el && (el.style.display === "flex" || el.style.display === "block")
+        );
+      }
+
+      /* Modal open-order registry.
+
+         Dialogs stack: the confirm prompt opens over the leave modal, and the
+         add-leave-type dialog opens over it too. Resolving "which dialog owns
+         the keyboard" by position in a hardcoded list is wrong the moment a
+         dialog is nested under one that appears earlier in that list -- the
+         inner dialog is then permanently unreachable, because the outer one is
+         by definition still open.
+
+         Neither DOM order nor z-index can stand in: every overlay shares one
+         z-index, and #confirm-modal is authored *before* #leave-modal while
+         opening *after* it. Open order is the only ground truth, so it is
+         recorded here. A MutationObserver on the inline style attribute catches
+         it regardless of which of the ~16 open/close helpers did the showing,
+         so a dialog added later inherits correct behaviour by being listed in
+         MODAL_IDS -- no extra wiring, nothing to forget. */
+      let _modalOpenSeq = 0;
+      (function trackModalOpenOrder() {
+        const stamp = (el) => {
+          if (isModalVisible(el)) {
+            /* Re-showing an already-visible dialog must not renumber it. */
+            if (!el.dataset.modalSeq) {
+              el.dataset.modalSeq = String(++_modalOpenSeq);
+            }
+          } else {
+            delete el.dataset.modalSeq;
+          }
+        };
+
+        const observer = new MutationObserver((records) => {
+          for (const record of records) stamp(record.target);
+        });
+
+        MODAL_IDS.forEach((id) => {
           const el = document.getElementById(id);
-          if (
-            el &&
-            (el.style.display === "flex" || el.style.display === "block")
-          ) {
-            return el;
+          if (!el) return;
+          stamp(el); // Capture anything already open at install time.
+          observer.observe(el, {
+            attributes: true,
+            attributeFilter: ["style"],
+          });
+        });
+      })();
+
+      /* Returns the dialog currently on top: the most recently opened visible
+         one, falling back to MODAL_IDS order for any that never got stamped. */
+      function getVisibleModal() {
+        let top = null;
+        let topSeq = -1;
+
+        for (let i = 0; i < MODAL_IDS.length; i++) {
+          const el = document.getElementById(MODAL_IDS[i]);
+          if (!el) continue;
+
+          if (!isModalVisible(el)) {
+            if (el.dataset.modalSeq) delete el.dataset.modalSeq;
+            continue;
+          }
+
+          /* Safety net. MutationObserver callbacks are microtasks, so a dialog
+             opened during this same task may not be stamped yet. Assigning the
+             next sequence here is the correct answer for it anyway -- it is the
+             newest thing on screen. */
+          if (!el.dataset.modalSeq) {
+            el.dataset.modalSeq = String(++_modalOpenSeq);
+          }
+
+          const seq = parseInt(el.dataset.modalSeq, 10);
+          if (seq > topSeq) {
+            topSeq = seq;
+            top = el;
           }
         }
-        return null;
+        return top;
       }
 
       // Helper to close any open modal
@@ -23426,6 +23713,43 @@
           taskPanel.classList.remove("show");
           if (taskBtn) taskBtn.classList.remove("active");
         }
+      }
+
+      /* Dismissal routes for Escape, keyed by overlay id.
+
+         Deliberately partial: idle-modal, tab-conflict-modal and
+         conflict-wizard-modal are blocking states the user must resolve, and
+         they are absent here for the same reason closeAllActiveModals() never
+         closed them. */
+      const MODAL_CLOSERS = Object.freeze({
+        "submit-modal": () => closeSubmitModal(),
+        "note-modal": () => closeNoteModal(),
+        "ghost-modal": () => closeGhostModal(),
+        "manual-modal": () => closeManualModal(),
+        "help-modal": () => closeHelpModal(),
+        "leave-modal": () => closeLeaveModal(),
+        "confirm-modal": () => closeConfirmModal(),
+        "edit-modal": () => closeEditModal(),
+        "manual-task-modal": () => closeManualTaskModal(),
+        "edit-task-modal": () => closeEditTaskModal(),
+        "heatmap-modal": () => closeHeatmapModal(),
+        "preset-modal": () => closePresetModal(),
+        "add-leave-type-modal": () => closeAddLeaveTypeModal(),
+      });
+
+      /* Dismisses only the dialog on top, so Escape inside a nested dialog does
+         not also tear down the dialog that opened it. Returns false when nothing
+         dismissible is open, letting the caller fall back to the sweep above for
+         popovers and filter panels. */
+      function closeTopmostModal() {
+        const top = getVisibleModal();
+        if (!top) return false;
+
+        const closer = MODAL_CLOSERS[top.id];
+        if (typeof closer !== "function") return false;
+
+        closer();
+        return true;
       }
 
       window.addEventListener("keydown", (e) => {
@@ -23519,7 +23843,9 @@
           if (e.key === "Escape") {
             e.preventDefault();
             e.target.blur();
-            closeAllActiveModals();
+            /* Peel one layer only; fall back to the full sweep when the topmost
+               thing open is a popover rather than a dialog. */
+            if (!closeTopmostModal()) closeAllActiveModals();
           }
           return;
         }
@@ -25402,17 +25728,16 @@
         const itemHeight = getTaskItemHeight();
 
         if (virtualScrollTasks.length > 0) {
-          container.style.height = `${Math.ceil(virtualScrollTasks.length * itemHeight)}px`;
-          container.style.flex = "none";
-          container.style.contain = "strict";
+          applyVirtualContainerSize(
+            container,
+            virtualScrollTasks.length * itemHeight,
+          );
           if (container.firstChild && !container.firstChild._dom) {
             container.innerHTML = "";
             taskRowNodesPool.length = 0;
           }
         } else {
-          container.style.height = "auto";
-          container.style.flex = "1";
-          container.style.contain = "none";
+          applyVirtualContainerEmpty(container);
           taskRowNodesPool.length = 0;
           container.innerHTML = `
             <div class="empty-state-wrapper">
@@ -25897,72 +26222,185 @@
         editingPresetIndex = -1;
       };
 
-      const LEAVE_ALLOWANCES_KEY = "production_leave_allowances_v1";
-      const DEFAULT_ALLOWANCES = {
-        Casual: 14,
-        "Sick (IPD)": 7,
-        "Sick (OPD)": 7,
-        Annual: 0,
-        "In Lieu": 0,
-      };
+      /* ---- Leave allowance ledger ------------------------------------------
+         Storage shape: a flat { [typeName: string]: allowanceDays: number }.
+         Nothing outside this section may touch LEAVE_ALLOWANCES_KEY directly --
+         every read goes through getLeaveAllowances() so that a hand-edited or
+         restored payload is normalised exactly once, at the boundary. */
+
+      /* Coerces an arbitrary parsed payload into the ledger contract. JSON.parse
+         happily yields null, arrays, strings and nested objects, all of which
+         reach us through restoreBackup's unvalidated data.leaveAllowances, so
+         the shape is enforced here rather than assumed by every consumer. */
+      function normalizeAllowances(raw) {
+        const out = {};
+        if (!raw || typeof raw !== "object" || Array.isArray(raw)) return out;
+
+        Object.keys(raw).forEach((key) => {
+          const name = typeof key === "string" ? key.trim() : "";
+          if (!name) return;
+          const days = Math.trunc(Number(raw[key]));
+          out[name] = Number.isFinite(days)
+            ? Math.min(Math.max(days, 0), MAX_LEAVE_ALLOWANCE)
+            : 0;
+        });
+        return out;
+      }
+
+      /* One-time reconciliation for profiles created before the ledger existed.
+         The seed list dropped two types the old hardcoded dropdown offered
+         ("Sick", "Public Holiday"), which would strand every leave already
+         logged under them: unselectable in the dropdown and invisible to the
+         balance counters. Folding the types actually present in the logbook into
+         the ledger keeps that history addressable instead of silently orphaned. */
+      function migrateLeaveAllowances(allowances) {
+        if (safeGetLocalStorage(LEAVE_ALLOWANCES_MIGRATION_KEY)) {
+          return allowances;
+        }
+
+        const merged = { ...allowances };
+        let added = false;
+
+        getLeaveDates().forEach((entry) => {
+          const type = getLeaveRecordType(entry);
+          if (type === LEGACY_LEAVE_TYPE) return;
+          if (merged[type] === undefined) {
+            merged[type] = 0;
+            added = true;
+          }
+        });
+
+        /* Persist the merge before latching the flag. If the write fails the
+           latch is not set, so the migration is retried on the next read rather
+           than being silently skipped forever. */
+        if (added) {
+          if (
+            !safeSetLocalStorage(LEAVE_ALLOWANCES_KEY, JSON.stringify(merged))
+          )
+            return merged;
+        }
+        safeSetLocalStorage(LEAVE_ALLOWANCES_MIGRATION_KEY, "1");
+        return merged;
+      }
+
+      function getLeaveAllowances() {
+        const saved = safeGetLocalStorage(LEAVE_ALLOWANCES_KEY);
+        let base = null;
+
+        if (saved) {
+          try {
+            const parsed = JSON.parse(saved);
+            /* A plain object is authoritative even when empty. Deleting every
+               leave type is a legitimate end state, and reseeding it would make
+               the last deletion impossible to keep. Only a structurally invalid
+               payload (null, array, scalar) falls through to the seed. */
+            if (
+              parsed &&
+              typeof parsed === "object" &&
+              !Array.isArray(parsed)
+            ) {
+              base = normalizeAllowances(parsed);
+            }
+          } catch (e) {
+            console.warn("Failed to parse leave allowances; reseeding.", e);
+          }
+        }
+
+        if (!base) base = { ...DEFAULT_ALLOWANCES };
+
+        return migrateLeaveAllowances(base);
+      }
+
+      function saveLeaveAllowances(allowances) {
+        return safeSetLocalStorage(
+          LEAVE_ALLOWANCES_KEY,
+          JSON.stringify(allowances),
+        );
+      }
+
+      /* Single definition of the remaining-balance severity ramp. Both the full
+         render and the incremental per-keystroke update read it, so they cannot
+         drift apart the way two hand-copied if-ladders would. */
+      function classifyLeaveBalance(total, taken) {
+        const left = total - taken;
+        let cls = "positive";
+        if (left <= 2 && left > 0) cls = "warning";
+        if (left < 0 || (left === 0 && total > 0)) cls = "negative";
+        if (left === 0 && total === 0) cls = "";
+        return { left, cls };
+      }
+
+      function applyLeaveBalanceStat(leftEl, total, taken) {
+        const { left, cls } = classifyLeaveBalance(total, taken);
+        leftEl.textContent = String(left);
+        leftEl.className = "leave-stat-left" + (cls ? " " + cls : "");
+      }
 
       window.switchLeaveTab = function (tab) {
         const btnLog = document.getElementById("leave-tab-btn-log");
         const btnBalance = document.getElementById("leave-tab-btn-balance");
         const viewLog = document.getElementById("leave-view-log");
         const viewBalance = document.getElementById("leave-view-balance");
+        if (!btnLog || !btnBalance || !viewLog || !viewBalance) return;
 
-        if (tab === "log") {
-          btnLog.classList.add("active");
-          btnBalance.classList.remove("active");
-          viewLog.style.display = "block";
-          viewBalance.style.display = "none";
-        } else {
-          btnLog.classList.remove("active");
-          btnBalance.classList.add("active");
-          viewLog.style.display = "none";
-          viewBalance.style.display = "flex";
-          renderLeaveBalances();
-        }
+        const showLog = tab === "log";
+        btnLog.classList.toggle("active", showLog);
+        btnBalance.classList.toggle("active", !showLog);
+        viewLog.style.display = showLog ? "block" : "none";
+        viewBalance.style.display = showLog ? "none" : "flex";
+        if (!showLog) renderLeaveBalances();
       };
 
-      function getLeaveAllowances() {
-        try {
-          const saved = safeGetLocalStorage(LEAVE_ALLOWANCES_KEY);
-          if (saved) return JSON.parse(saved);
-        } catch (e) {
-          console.warn("Failed to parse leave allowances", e);
-        }
-        return { ...DEFAULT_ALLOWANCES };
-      }
-
+      /* Commits one allowance edit. Bound to the delegated input/change pair on
+         the balances list, so `type` arrives from the row's dataset rather than
+         from an interpolated inline handler. */
       window.updateLeaveAllowance = function (type, value, inputEl) {
+        /* An empty or non-numeric field is a transient editing state, not an
+           instruction to zero the allowance. Persisting it on every `input`
+           event would destroy the stored value the moment the user selects all
+           and starts retyping. */
+        const raw = typeof value === "string" ? value.trim() : value;
+        if (raw === "" || raw === null || raw === undefined) return;
+
+        const parsed = Number(raw);
+        if (!Number.isFinite(parsed)) return;
+        const total = Math.min(
+          Math.max(Math.trunc(parsed), 0),
+          MAX_LEAVE_ALLOWANCE,
+        );
+
         const allowances = getLeaveAllowances();
-        const total = parseInt(value, 10) || 0;
+        if (allowances[type] === undefined) return;
+        if (allowances[type] === total) return;
+
         allowances[type] = total;
-        localStorage.setItem(LEAVE_ALLOWANCES_KEY, JSON.stringify(allowances));
+        if (!saveLeaveAllowances(allowances)) {
+          showAppToast(
+            "Could not save allowance — storage unavailable",
+            "error",
+          );
+          return;
+        }
 
-        if (inputEl) {
-          const row = inputEl.closest(".leave-balance-row");
-          if (row) {
-            const takenEl = row.querySelector(".leave-stat-taken");
-            const leftEl = row.querySelector(".leave-stat-left");
-            if (takenEl && leftEl) {
-              const taken = parseInt(takenEl.textContent, 10) || 0;
-              const left = total - taken;
-
-              let leftClass = "positive";
-              if (left <= 2 && left > 0) leftClass = "warning";
-              if (left < 0 || (left === 0 && total > 0)) leftClass = "negative";
-              if (left === 0 && total === 0) leftClass = "";
-
-              leftEl.textContent = left;
-              leftEl.className =
-                "leave-stat-left" + (leftClass ? " " + leftClass : "");
-            }
-          }
-        } else {
+        if (!inputEl) {
           renderLeaveBalances();
+          return;
+        }
+
+        /* Reflect the clamp back into the field so the visible value and the
+           stored value can never disagree. */
+        if (String(total) !== String(inputEl.value))
+          inputEl.value = String(total);
+
+        const row = inputEl.closest(".leave-balance-row");
+        const takenEl = row && row.querySelector(".leave-stat-taken");
+        const leftEl = row && row.querySelector(".leave-stat-left");
+        if (takenEl && leftEl) {
+          applyLeaveBalanceStat(
+            leftEl,
+            total,
+            parseInt(takenEl.textContent, 10) || 0,
+          );
         }
       };
 
@@ -25984,12 +26422,18 @@
       window.saveAddLeaveTypeModal = function () {
         const input = document.getElementById("new-leave-type-input");
         if (!input) return;
-        const name = input.value;
-        if (!name || !name.trim()) {
+        const cleanName = String(input.value || "").trim();
+        if (!cleanName) {
           showAppToast("Please enter a leave type name", "warning");
           return;
         }
-        const cleanName = name.trim();
+        if (cleanName.length > MAX_LEAVE_TYPE_NAME_LENGTH) {
+          showAppToast(
+            `Leave type name must be ${MAX_LEAVE_TYPE_NAME_LENGTH} characters or fewer`,
+            "warning",
+          );
+          return;
+        }
 
         const allowances = getLeaveAllowances();
         if (allowances[cleanName] !== undefined) {
@@ -25997,8 +26441,18 @@
           return;
         }
 
-        allowances[cleanName] = 0;
-        localStorage.setItem(LEAVE_ALLOWANCES_KEY, JSON.stringify(allowances));
+        /* Persist before touching any UI: a failed write must not leave the
+           dropdown and the balances list advertising a type that was never
+           stored. */
+        const next = { ...allowances, [cleanName]: 0 };
+        if (!saveLeaveAllowances(next)) {
+          showAppToast(
+            "Could not add leave type — storage unavailable",
+            "error",
+          );
+          return;
+        }
+
         renderLeaveBalances();
         renderLeaveTypeDropdown();
         showAppToast(`Added leave type: ${cleanName}`);
@@ -26006,16 +26460,30 @@
       };
 
       window.deleteLeaveType = function (type) {
+        const allowances = getLeaveAllowances();
+        if (allowances[type] === undefined) return;
+
         openConfirmModal(
           "Delete Leave Type",
           `Are you sure you want to delete "${type}"? Existing logged leaves of this type will remain in your history but won't be tracked in balances.`,
           () => {
-            const allowances = getLeaveAllowances();
-            delete allowances[type];
-            localStorage.setItem(
-              LEAVE_ALLOWANCES_KEY,
-              JSON.stringify(allowances),
-            );
+            /* Re-read rather than closing over the snapshot above: the confirm
+               dialog is asynchronous, and another tab may have rewritten the
+               ledger while it was open. Deleting from a stale copy would
+               resurrect every type that tab removed. */
+            const current = getLeaveAllowances();
+            if (current[type] === undefined) return;
+
+            const next = { ...current };
+            delete next[type];
+            if (!saveLeaveAllowances(next)) {
+              showAppToast(
+                "Could not delete leave type — storage unavailable",
+                "error",
+              );
+              return;
+            }
+
             renderLeaveBalances();
             renderLeaveTypeDropdown();
             showAppToast(`Deleted leave type: ${type}`);
@@ -26071,69 +26539,133 @@
         }
       };
 
+      /* Counts leave days taken per type for the given year. Types absent from
+         the ledger are still counted so a caller can distinguish "zero taken"
+         from "not tracked" instead of both collapsing to 0. */
+      function computeLeaveTakenCounts(year) {
+        const counts = Object.create(null);
+        getLeaveDates().forEach((entry) => {
+          if (getLeaveRecordYear(getLeaveRecordDate(entry)) !== year) return;
+          const type = getLeaveRecordType(entry);
+          counts[type] = (counts[type] || 0) + 1;
+        });
+        return counts;
+      }
+
+      /* Builds one balances row as real nodes. Leave type names are user input
+         and reach three separate sinks here (badge text, delete target, input
+         target); routing them through textContent and dataset keeps them data on
+         every path, so no escaping contract has to be re-proved when this markup
+         is next edited. */
+      function buildLeaveBalanceRow(type, total, taken) {
+        const row = document.createElement("div");
+        row.className = "leave-balance-row";
+        row.dataset.leaveType = type;
+
+        const typeCell = document.createElement("div");
+        typeCell.className = "leave-balance-type";
+
+        const deleteBtn = document.createElement("button");
+        deleteBtn.type = "button";
+        deleteBtn.className = "leave-balance-delete-btn";
+        deleteBtn.dataset.action = "delete-leave-type";
+        deleteBtn.title = "Delete Type";
+        deleteBtn.setAttribute("aria-label", `Delete leave type ${type}`);
+        /* Sprite bodies are internal constants from the sprite table, never user
+           input -- the only markup here that may be assigned as HTML. */
+        deleteBtn.innerHTML = `<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${getSprite("sprite-004")}</svg>`;
+
+        const badge = document.createElement("span");
+        badge.className = `badge ${getLeaveVisuals(type).badgeClass || "badge-leave"} leave-balance-badge`;
+        badge.textContent = type;
+
+        typeCell.append(deleteBtn, badge);
+
+        const stats = document.createElement("div");
+        stats.className = "leave-balance-stats";
+
+        const input = document.createElement("input");
+        input.type = "number";
+        input.className = "leave-allowance-input";
+        input.value = String(total);
+        input.min = "0";
+        input.max = String(MAX_LEAVE_ALLOWANCE);
+        input.inputMode = "numeric";
+        input.dataset.action = "leave-allowance";
+        input.setAttribute("aria-label", `Total allowance for ${type}`);
+
+        const takenEl = document.createElement("span");
+        takenEl.className = "leave-stat-taken";
+        takenEl.textContent = String(taken);
+
+        const leftEl = document.createElement("span");
+        applyLeaveBalanceStat(leftEl, total, taken);
+
+        stats.append(input, takenEl, leftEl);
+        row.append(typeCell, stats);
+        return row;
+      }
+
+      /* Delegated once per container. Inline on* attributes were the previous
+         wiring, which meant every render re-serialised the type name into an
+         executable attribute context -- a sink that cannot be made safe by
+         escaping alone, because the HTML parser decodes entities before the JS
+         parser ever sees the handler body. Delegation removes the sink. */
+      function ensureLeaveBalanceDelegation(container) {
+        if (container._leaveBalancesBound) return;
+        container._leaveBalancesBound = true;
+
+        const typeOf = (target) => {
+          const row = target.closest(".leave-balance-row");
+          return row ? row.dataset.leaveType : null;
+        };
+
+        container.addEventListener("click", (e) => {
+          const btn = e.target.closest('[data-action="delete-leave-type"]');
+          if (!btn || !container.contains(btn)) return;
+          const type = typeOf(btn);
+          if (type) deleteLeaveType(type);
+        });
+
+        const commit = (e) => {
+          const input = e.target.closest('[data-action="leave-allowance"]');
+          if (!input) return;
+          const type = typeOf(input);
+          if (type) updateLeaveAllowance(type, input.value, input);
+        };
+        container.addEventListener("input", commit);
+        container.addEventListener("change", commit);
+
+        /* focus does not bubble; focusin does. */
+        container.addEventListener("focusin", (e) => {
+          const input = e.target.closest('[data-action="leave-allowance"]');
+          if (input) input.select();
+        });
+      }
+
       window.renderLeaveBalances = function () {
         const container = document.getElementById("leave-balances-list");
         if (!container) return;
+        ensureLeaveBalanceDelegation(container);
 
         const allowances = getLeaveAllowances();
-        const allLeaves = getLeaveDates();
         const currentYear = (
           typeof getPSTDateObj === "function" ? getPSTDateObj() : new Date()
         ).getFullYear();
+        const takenCounts = computeLeaveTakenCounts(currentYear);
 
-        const takenCounts = {};
-        Object.keys(allowances).forEach((t) => (takenCounts[t] = 0));
-
-        allLeaves.forEach((leave) => {
-          const type = typeof leave === "string" ? "Leave" : leave.type;
-          const dateStr = typeof leave === "string" ? leave : leave.date;
-
-          if (dateStr && dateStr.includes("/")) {
-            const parts = dateStr.split("/");
-            const y =
-              parts[2].length === 2
-                ? 2000 + parseInt(parts[2], 10)
-                : parseInt(parts[2], 10);
-            if (y === currentYear && allowances[type] !== undefined) {
-              takenCounts[type] = (takenCounts[type] || 0) + 1;
-            }
-          }
-        });
-
-        let html = "";
+        const frag = document.createDocumentFragment();
         Object.keys(allowances).forEach((type) => {
-          const total = allowances[type];
-          const taken = takenCounts[type] || 0;
-          const left = total - taken;
-
-          let leftClass = "positive";
-          if (left <= 2 && left > 0) leftClass = "warning";
-          if (left < 0 || (left === 0 && total > 0)) leftClass = "negative";
-          if (left === 0 && total === 0) leftClass = "";
-
-          const badgeClass = getLeaveVisuals(type).badgeClass || "badge-leave";
-
-          html += `
-            <div class="leave-balance-row">
-              <div class="leave-balance-type">
-                <button class="leave-balance-delete-btn" onclick="deleteLeaveType(${JSON.stringify(type).replace(/"/g, "&quot;")})" title="Delete Type">
-                  <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${getSprite("sprite-004")}</svg>
-                </button>
-                <span class="badge ${badgeClass} leave-balance-badge">${escapeHTML(type)}</span>
-              </div>
-              <div class="leave-balance-stats">
-                <input type="number" class="leave-allowance-input" value="${total}" min="0" max="365" 
-                       oninput="updateLeaveAllowance(${JSON.stringify(type).replace(/"/g, "&quot;")}, this.value, this)" 
-                       onchange="updateLeaveAllowance(${JSON.stringify(type).replace(/"/g, "&quot;")}, this.value, this)" 
-                       onfocus="this.select()" />
-                <span class="leave-stat-taken">${taken}</span>
-                <span class="leave-stat-left ${leftClass}">${left}</span>
-              </div>
-            </div>
-          `;
+          frag.appendChild(
+            buildLeaveBalanceRow(
+              type,
+              allowances[type],
+              takenCounts[type] || 0,
+            ),
+          );
         });
 
-        container.innerHTML = html;
+        container.replaceChildren(frag);
       };
 
       window.openLeaveModal = function () {
@@ -26195,17 +26727,11 @@
         // Save as a leaf object record
         currentLeaves.push({ date: formattedDate, type: leaveType });
 
-        currentLeaves.sort((a, b) => {
-          const aStr = typeof a === "string" ? a : a.date;
-          const bStr = typeof b === "string" ? b : b.date;
-          const aParts = aStr.split("/");
-          const bParts = bStr.split("/");
-          const aFullY = aParts[2].length === 2 ? `20${aParts[2]}` : aParts[2];
-          const bFullY = bParts[2].length === 2 ? `20${bParts[2]}` : bParts[2];
-          const aDate = Date.UTC(parseInt(aFullY), aParts[0] - 1, aParts[1]);
-          const bDate = Date.UTC(parseInt(bFullY), bParts[0] - 1, bParts[1]);
-          return aDate - bDate;
-        });
+        currentLeaves.sort(
+          (a, b) =>
+            leaveSortKey(getLeaveRecordDate(a)) -
+            leaveSortKey(getLeaveRecordDate(b)),
+        );
 
         saveLeaveDates(currentLeaves);
         renderLeaveDatesList();
@@ -26762,6 +27288,21 @@
               addLeaveDate();
             }
             if (e.key === "Escape") closeLeaveModal();
+          });
+        /* Same contract as the two inputs above: commit on Enter, dismiss only
+           this dialog on Escape. Both stop propagation so the global handler
+           does not also act on the dialog underneath. */
+        document
+          .getElementById("new-leave-type-input")
+          .addEventListener("keydown", (e) => {
+            if (e.key === "Enter") {
+              e.stopPropagation();
+              saveAddLeaveTypeModal();
+            }
+            if (e.key === "Escape") {
+              e.stopPropagation();
+              closeAddLeaveTypeModal();
+            }
           });
 
         const smartAdjustInput = document.getElementById("adjust-smart-input");
@@ -29149,10 +29690,7 @@
           document.body.classList.remove("m-shell");
           delete document.body.dataset.mpane;
           // Leaving a stale keyboard inset behind would offset desktop modals.
-          document.documentElement.style.setProperty("--m-kb-inset", "0px");
-          document.documentElement.style.setProperty("--m-kb-height", "0px");
-          document.documentElement.style.setProperty("--vv-top", "0px");
-          document.documentElement.style.setProperty("--vv-height", "100vh");
+          resetViewportInsets();
           returnNodes();
           // Desktop always shows both panes, but the tab content that was last
           // selected must stay selected, so replay it through switchTab().
@@ -29169,43 +29707,65 @@
           else unmount();
         }
 
-        /* soft-keyboard avoidance The layout viewport does not shrink when the on-screen keyboard opens. */
+        /* ---- soft-keyboard avoidance ---------------------------------------
+
+           The layout viewport does not shrink when the on-screen keyboard opens,
+           so the two properties below are the only signal the stylesheet has.
+
+           Both are written through writeViewportProp, which skips the CSSOM call
+           when the value is unchanged. This matters because updateKeyboardInset
+           is bound to visualViewport's `scroll` event as well as `resize`: on
+           iOS that fires continuously for the whole duration of every scroll
+           gesture, and each setProperty on documentElement invalidates computed
+           style for the entire document. During a plain scroll neither value
+           actually changes, so the coalescing turns the hot path into pure
+           reads. */
+        const _viewportProps = Object.create(null);
+        function writeViewportProp(name, value) {
+          if (_viewportProps[name] === value) return;
+          _viewportProps[name] = value;
+          document.documentElement.style.setProperty(name, value);
+        }
+
+        /* Keyboard-height threshold. Browser chrome collapsing produces deltas
+           well under this; a soft keyboard never does. */
+        const KB_DETECT_MIN_PX = 120;
+
+        /* `--vv-height` is left unset when no keyboard is up so that its CSS
+           fallback (100svh) applies. Publishing the live visual-viewport height
+           unconditionally would couple every consumer to iOS URL-bar collapse
+           and make those boxes resize mid-scroll -- exactly what the stable svh
+           unit exists to avoid. */
+        function resetViewportInsets() {
+          writeViewportProp("--m-kb-inset", "0px");
+          if (_viewportProps["--vv-height"] !== undefined) {
+            delete _viewportProps["--vv-height"];
+            document.documentElement.style.removeProperty("--vv-height");
+          }
+        }
+
         function updateKeyboardInset() {
           // Bail BEFORE any CSSOM write.
           if (!state.active) return;
           const vv = window.visualViewport;
           if (!vv) {
-            document.documentElement.style.setProperty("--m-kb-inset", "0px");
-            document.documentElement.style.setProperty("--m-kb-height", "0px");
-            document.documentElement.style.setProperty("--vv-top", "0px");
-            document.documentElement.style.setProperty("--vv-height", "100vh");
+            resetViewportInsets();
             return;
           }
 
-          document.documentElement.style.setProperty(
-            "--vv-top",
-            vv.offsetTop + "px",
-          );
-          document.documentElement.style.setProperty(
-            "--vv-height",
-            vv.height + "px",
-          );
-          const kbHeightFull = Math.max(0, window.innerHeight - vv.height);
-          const fullInset = kbHeightFull > 120 ? Math.round(kbHeightFull) : 0;
           const occluded = Math.max(
             0,
             window.innerHeight - vv.height - vv.offsetTop,
           );
-          // Ignore small deltas: browser chrome collapsing is not a keyboard.
-          const inset = occluded > 120 ? Math.round(occluded) : 0;
-          document.documentElement.style.setProperty(
-            "--m-kb-inset",
-            inset + "px",
-          );
-          document.documentElement.style.setProperty(
-            "--m-kb-height",
-            fullInset + "px",
-          );
+          const inset = occluded > KB_DETECT_MIN_PX ? Math.round(occluded) : 0;
+          writeViewportProp("--m-kb-inset", inset + "px");
+
+          if (inset > 0) {
+            writeViewportProp("--vv-height", Math.round(vv.height) + "px");
+          } else if (_viewportProps["--vv-height"] !== undefined) {
+            delete _viewportProps["--vv-height"];
+            document.documentElement.style.removeProperty("--vv-height");
+          }
         }
 
         /* native chrome tinting In standalone mode the OS paints the status bar and the Android nav bar with <meta name="theme-color">. */
