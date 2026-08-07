@@ -770,7 +770,12 @@
 
              3. GRANT -- the panes a scrim is actually painted for, and only
                 those. Adding one means adding a scrim first and then adding
-                it here, in that order. No scrim, no entry.
+                it here, in that order. No scrim, no entry -- and the order
+                matters, because "it looks flat, put it in the grant" is how
+                a surface ends up translucent over undimmed content with
+                nothing to explain why. .idle-popup is the worked example:
+                it was refused, a scrim was added for it (#m-sheet::after),
+                and only then did it qualify.
 
            A consequence worth naming, because rules 2 and 3 make it
            structural rather than lucky: NO ELEMENT CARRYING A
@@ -797,6 +802,10 @@
            than the grant and higher than inheritance. Add a pane to the grant
            below and its confinement comes with it, for free, permanently.
 
+           .idle-popup is the proof: it is granted glass AND it is nested two
+           panes deep inside another granted pane, and the select panel inside
+           it still comes out opaque without a single rule naming it.
+
            Cost is one inherited-value entry per element for three properties,
            which is what a `*` reset costs anywhere; the alternative was a
            class of bug that ships silently. */
@@ -807,9 +816,14 @@
         }
 
         /* 3. GRANT -- the panes a scrim is actually painted for, and only
-           those. This app paints exactly two scrims: .modal-overlay, behind
-           .modal-container, and #m-sheet-backdrop, behind #m-sheet. If a
-           surface cannot be traced to one of those two, it does not belong
+           those. This app paints exactly three scrims, and each one licenses
+           exactly the pane it sits behind:
+
+             .modal-overlay   -> .modal-container
+             #m-sheet-backdrop -> #m-sheet
+             #m-sheet::after   -> #m-sheet .idle-popup
+
+           If a surface cannot be traced to one of those, it does not belong
            in this list, however much it looks like a pane.
 
            #m-sheet is named rather than #m-sheet::before because a
@@ -823,7 +837,8 @@
            through it, so the list of licensed panes it enforces is THIS list
            and cannot be a stale copy of it. */
         .modal-container,
-        #m-sheet {
+        #m-sheet,
+        #m-sheet .idle-popup {
           --surface-grant: glass;
           --surface-3: var(--surface-3-glass);
           --blur-3: var(--glass-blur);
@@ -6793,6 +6808,50 @@
           /* Decorative. It sits under the content anyway, but this keeps it
              out of hit-testing even if the stacking order is ever changed. */
           pointer-events: none;
+        }
+
+        /* The sheet's own scrim, for the sheets raised ON TOP of it.
+
+           #m-sheet-backdrop dims the page behind #m-sheet. Nothing dimmed the
+           SHEET behind an .idle-popup, which is why those popups could not be
+           glass: a 45% film over undimmed sheet content is the same bug the
+           backdrop axis exists to prevent, and the axis correctly refused
+           them. The answer is to give them what every other glass pane in
+           this app already has rather than to write them an exemption --
+           surfaces do not get to opt out of the rule, they get to satisfy it.
+
+           Scoped to the sheet rather than the viewport, and that is the "two
+           scrims are one too many" rule holding rather than bending: the page
+           already has exactly one scrim (#m-sheet-backdrop) and now the sheet
+           has exactly one (this). A viewport-filling scrim here would stack a
+           second dimming over the first everywhere they overlap.
+
+           Absolute, not fixed, so it is immune to #m-sheet's transform. It
+           follows the same dismissed-state contract as #m-sheet-backdrop --
+           visibility, not opacity alone -- so it leaves the render tree
+           between uses. */
+        #m-sheet::after {
+          content: "";
+          position: absolute;
+          inset: 0;
+          /* Above the sheet's content, below the popup at --z-overlay - 1. */
+          z-index: calc(var(--z-overlay) - 2);
+          border-radius: inherit;
+          background: var(--scrim);
+          opacity: 0;
+          visibility: hidden;
+          pointer-events: none;
+          transition:
+            opacity 0.24s ease,
+            visibility 0s linear 0.24s;
+        }
+
+        #m-sheet:has(.idle-popup.show)::after {
+          opacity: 1;
+          visibility: visible;
+          transition:
+            opacity 0.24s ease,
+            visibility 0s linear 0s;
         }
 
         body.m-sheet-open #m-sheet {
