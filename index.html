@@ -4203,9 +4203,45 @@
         overflow: visible;
       }
 
-      #heatmap-container-anim {
+      /* Consistency heatmap.
+
+         Every presentational property of this dialog lives here rather than in
+         a style attribute on the markup, and it has to: below 768px the phone
+         layer turns it into a bottom sheet like every other dialog, and an
+         inline style would outrank that media query no matter what it said.
+         openHeatmapModal()/closeHeatmapModal() therefore touch exactly two
+         things -- inline `display`, which the modal open-order observer watches,
+         and the .is-open class that drives the transition. Never geometry. */
+      #heatmap-modal {
+        cursor: pointer;
         opacity: 0;
+        transition: opacity 0.15s ease-out;
+      }
+
+      #heatmap-modal.is-open {
+        opacity: 1;
+      }
+
+      #heatmap-container-anim {
+        /* Restated rather than inherited from .modal-container: the floating
+           #heatmap-tooltip is absolutely positioned against this box, so the
+           containing block is load-bearing here in a way it is nowhere else. */
+        position: relative;
+        width: max-content;
+        max-width: 95vw;
+        height: max-content;
+        padding: var(--space-4);
+        border-radius: var(--radius-xl);
+        overflow: hidden;
+        cursor: default;
+        opacity: 0;
+        transform: scale(0.96) translateY(-10px);
         transition: opacity 0.1s ease-out;
+      }
+
+      #heatmap-modal.is-open #heatmap-container-anim {
+        opacity: 1;
+        transform: none;
       }
 
       /* Standard Modal Sizes */
@@ -6408,12 +6444,11 @@
             var(--vv-height, 100svh) * 0.85 + var(--m-chrome-bleed)
           );
           margin-bottom: var(--m-kb-inset, 0px);
-          /* Level 3, but painted by ::before rather than here -- see that rule. #m-sheet itself must stay free of backdrop-filter, permanently. */
+          /* Level 3 AND the top hairline are both painted by ::before rather
+             than here -- see that rule. #m-sheet itself must stay free of
+             backdrop-filter, and free of border, permanently. */
           background: transparent;
-          border-top: var(--hairline);
-          border-left: none;
-          border-right: none;
-          border-bottom: none;
+          border: none;
           border-radius: var(--radius-xl) var(--radius-xl) 0 0;
           box-shadow: var(--elev-3);
           transform: translateY(120%);
@@ -6427,12 +6462,22 @@
           box-sizing: border-box;
         }
 
-        /* The sheet's glass, held one layer below its content. */
+        /* The sheet's glass, held one layer below its content -- and, because
+           this is the layer that paints last, the only place the sheet's top
+           edge can live. #m-sheet is position: fixed, so it is its own stacking
+           context: a border declared on the element itself paints in that
+           element's background layer, which is BELOW this z-index: -1 pseudo,
+           and the glass would swallow it whole. The hairline therefore sits
+           here, on the same token and the same edge #m-tabbar takes, so the two
+           halves of the bottom chrome read as one piece. */
         #m-sheet::before {
           content: "";
           position: absolute;
+          /* One hairline proud of the box at the top, so the rule lands ON the
+             sheet's edge instead of eating the first pixel inside it. */
           inset: calc(-1 * var(--hairline-width)) 0 0 0;
           z-index: -1;
+          border-top: var(--hairline);
           /* Inherited, never restated: the fill and the sheet must round identically, and two literals will drift the first time one of them is touched. */
           border-radius: inherit;
           background: var(--surface-3);
@@ -6815,25 +6860,32 @@
             color-mix(in srgb, var(--accent-work) 85%, transparent) !important;
         }
 
-        #heatmap-modal {
-          align-items: center !important;
-          justify-content: center !important;
-        }
-
-        /* The heatmap is the one dialog that stays a centred card rather than becoming a bottom sheet, so it takes its edge back on all four sides. */
+        /* ---- Consistency heatmap ---------------------------------------- */
+        /* No carve-out any more: the heatmap is a bottom sheet here like every
+           other dialog. The grabber, the rise animation, the full-bleed width,
+           the top hairline and the safe-area padding all arrive from the
+           .modal-container rules above -- and so does drag-to-dismiss, which is
+           bound to that same class. All this block owes them is the handful of
+           desktop-card declarations those rules cannot reach on their own,
+           because an id outranks a class no matter which is written first. */
         #heatmap-container-anim {
-          width: max-content !important;
-          height: max-content !important;
-          max-width: calc(100vw - 32px) !important;
-          max-height: 90vh !important;
-          border-radius: var(--radius-xl) !important;
-          border: var(--hairline) !important;
-          padding: 1rem 1.25rem !important;
-          box-shadow: var(--elev-2) !important;
+          height: auto;
+          padding-top: 1.15rem;
+          padding-left: var(--m-gutter);
+          padding-right: var(--m-gutter);
+          /* The card clipped its overflow; the sheet has to scroll it. */
+          overflow-x: hidden;
+          overflow-y: auto;
         }
 
-        #heatmap-container-anim::before {
-          display: none !important;
+        /* And the centred card's fade-in, which a sheet does not have -- it
+           rises. Both states are restated because the desktop open rule carries
+           a class that a plain id selector cannot outweigh. */
+        #heatmap-modal #heatmap-container-anim,
+        #heatmap-modal.is-open #heatmap-container-anim {
+          opacity: 1;
+          transform: none;
+          transition: none;
         }
 
         @keyframes m-sheet-rise {
@@ -6902,12 +6954,6 @@
         #heatmap-container-anim div[style*="overflow-x"] {
           overscroll-behavior-x: contain;
           -webkit-overflow-scrolling: touch;
-        }
-
-        /* Its own open animation is driven by an inline transform, so it must not
-           also receive the generic sheet rise -- the two would fight. */
-        #heatmap-container-anim {
-          animation: none;
         }
 
         /* Radius only. */
@@ -9711,32 +9757,14 @@
       id="heatmap-modal"
       class="modal-overlay"
       onclick="if (event.target === this) closeHeatmapModal();"
-      style="
-        align-items: center;
-        justify-content: center;
-        opacity: 0;
-        display: none;
-        transition: opacity 0.15s ease-out;
-        cursor: pointer;
-      "
+      style="display: none"
     >
       <div
         class="modal-container"
         role="dialog"
         aria-modal="true"
+        aria-label="Consistency heatmap"
         id="heatmap-container-anim"
-        style="
-          position: relative;
-          padding: var(--space-4);
-          border-radius: var(--radius-xl);
-          transform: scale(0.96) translateY(-10px);
-          opacity: 0;
-          overflow: hidden;
-          cursor: default;
-          width: max-content;
-          max-width: 95vw;
-          height: max-content;
-        "
       >
         <!-- Floating Heatmap Tooltip -->
         <div
@@ -19769,9 +19797,16 @@
           left = modalRect.width - tooltip.offsetWidth - padding;
         }
 
+        /* Everything above is reasoned in the container's VISIBLE box, because
+           that is the box the tooltip has to stay inside. The tooltip is an
+           absolutely positioned child, so it is laid out against the scrolled
+           content origin instead -- the two agree only while the container is
+           unscrolled, which stopped being guaranteed the moment this dialog
+           became a bottom sheet on the phone. One conversion, here at the end,
+           after the clamping and never before it. */
         tooltip.style.left = "0px";
         tooltip.style.top = "0px";
-        tooltip.style.transform = `translate3d(${Math.round(left)}px, ${Math.round(top)}px, 0)`;
+        tooltip.style.transform = `translate3d(${Math.round(left + modal.scrollLeft)}px, ${Math.round(top + modal.scrollTop)}px, 0)`;
 
         if (dateKey === todayStr) {
           window.isHoveringTodayHeatmap = true;
@@ -20264,32 +20299,33 @@
         });
       }
 
+      /* Open and close set inline `display` -- which is what isModalVisible()
+         and the modal open-order observer read -- plus the .is-open class the
+         stylesheet transitions from. Nothing here knows or asks whether the
+         dialog is currently a centred card or a bottom sheet; that is the
+         stylesheet's business, and the one isPhoneLayout() branch that used to
+         live here is gone with it. */
+      let _heatmapHideTimer = null;
+
       function openHeatmapModal() {
         if (typeof renderHeatmap === "function") renderHeatmap();
         const modal = DOM.heatmapModal;
-        const anim = DOM.heatmapContainerAnim;
-        if (!modal || !anim) return;
+        if (!modal) return;
+        // A reopen during the closing fade must not be hidden by its timer.
+        clearTimeout(_heatmapHideTimer);
         modal.style.display = "flex";
-        // force reflow
+        // Force reflow, so the transition has a frame to start from.
         void modal.offsetWidth;
-        modal.style.opacity = "1";
-        anim.style.opacity = "1";
-        anim.style.transform = "scale(1) translateY(0)";
+        modal.classList.add("is-open");
       }
 
       function closeHeatmapModal() {
         window.isHoveringTodayHeatmap = false;
         const modal = DOM.heatmapModal;
-        const anim = DOM.heatmapContainerAnim;
-        if (!modal || !anim) return;
-        modal.style.opacity = "0";
-        anim.style.opacity = "0";
-        // The mobile layout centres this card and gives it no scale-in, so
-        // resetting the transform there would just jog it 10px on close.
-        if (!isPhoneLayout()) {
-          anim.style.transform = "scale(0.96) translateY(-10px)";
-        }
-        setTimeout(() => {
+        if (!modal) return;
+        modal.classList.remove("is-open");
+        clearTimeout(_heatmapHideTimer);
+        _heatmapHideTimer = setTimeout(() => {
           modal.style.display = "none";
         }, 150);
       }
@@ -30130,7 +30166,6 @@
           document
             .querySelectorAll(".modal-container, .idle-popup")
             .forEach((container) => {
-              if (container.id === "heatmap-container-anim") return;
               if (container._touchDragBound) return;
               container._touchDragBound = true;
 
@@ -30143,9 +30178,13 @@
                 (e) => {
                   if (e.touches.length !== 1) return;
                   const target = e.target;
+                  /* Anything the user can operate keeps its own gesture. The
+                     last two entries are the general form of the two class
+                     names before them: a div wearing role="button" or a real
+                     tab stop is a control, whatever it is called. */
                   if (
                     target.closest(
-                      "input, textarea, select, button, a, .preset-pill, .slider-toggle, .custom-select-trigger",
+                      'input, textarea, select, button, a, .preset-pill, .slider-toggle, .custom-select-trigger, [role="button"], [tabindex]:not([tabindex="-1"])',
                     )
                   )
                     return;
