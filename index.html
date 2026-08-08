@@ -2351,52 +2351,6 @@
         display: none;
       }
 
-      .ios-pill {
-        background: transparent;
-        border: none;
-        color: var(--text-muted);
-        font-size: 0.75rem;
-        font-weight: 600;
-        padding: 0 12px;
-        border-radius: calc(
-          var(--segmented-radius, var(--radius-md, 10px)) -
-            var(--segmented-padding, 2px)
-        );
-        cursor: pointer;
-        transition:
-          color 0.15s ease,
-          background-color 0.15s ease,
-          transform 0.15s ease;
-        white-space: nowrap;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-      }
-
-      .segmented-control {
-        --segmented-radius: var(--radius-md, 10px);
-        --segmented-padding: 2px;
-        background: var(--segmented-bg);
-        border: 1px solid var(--segmented-border);
-        border-radius: var(--segmented-radius);
-        padding: var(--segmented-padding);
-        gap: 2px;
-        position: relative;
-        display: flex;
-        justify-content: space-between;
-        align-items: stretch;
-        width: 100%;
-      }
-
-      /* iOS Style Active Slider */
-      #mode-simple.active,
-      #mode-intelligent.active {
-        background: var(--tab-btn-active-bg);
-        color: var(--tab-btn-active-color);
-        box-shadow: var(--tab-btn-active-shadow);
-        border: none;
-      }
-
       /* =========================================================================
           8. BUTTONS & ACTIONS
           ========================================================================= */
@@ -5597,26 +5551,6 @@
         background: var(--segment-completed-bg) !important;
       }
 
-      .collapsible-wrapper {
-        display: grid;
-        grid-template-rows: 1fr;
-        transition: none;
-      }
-
-      .collapsible-wrapper.is-collapsed {
-        grid-template-rows: 0fr;
-        opacity: 0;
-        pointer-events: none;
-      }
-
-      .collapsible-content {
-        overflow: hidden;
-      }
-
-      .collapsible-wrapper:not(.is-collapsed) .collapsible-content {
-        overflow: visible;
-      }
-
       /* =========================================================================
           DYNAMIC THEME PRESET POPOVER COMPONENT
           ========================================================================= */
@@ -8610,10 +8544,10 @@
             on that entry, and update the goal value directly.
           </p>
           <hr />
-          <h4>Intelligent Mode — Smart Tracking</h4>
+          <h4>Automatic Protections</h4>
           <p>
-            When <strong>Intelligent</strong> mode is active (configured in
-            Settings), the app runs three protective behaviors automatically:
+            The app runs these protective behaviors automatically. Idle Lock can
+            be switched off in Settings; the rest always run.
           </p>
           <ul>
             <li>
@@ -8640,11 +8574,14 @@
             </li>
           </ul>
           <p>
-            <strong>Simple mode</strong> disables the automatic idle and sleep
-            suspension popups. However,
+            Turning off <strong>Enable idle lock</strong> in Settings disables
+            the first two behaviors — the inactivity and system-pause prompts —
+            and lets the timer run uninterrupted. This is the recommended
+            setting on phones, where a pocketed device generates no input and
+            would otherwise raise a prompt on every shift.
             <strong>Midnight Rollover is a universal safeguard</strong> that
-            still runs in Simple mode if a timer is active, ensuring your shift
-            times are cleanly partitioned across daily bounds without data loss.
+            always runs while a timer is active, ensuring your shift times are
+            cleanly partitioned across daily bounds without data loss.
           </p>
           <hr />
           <h4>Data Integrity Protections</h4>
@@ -9082,14 +9019,10 @@
           </h4>
           <ul>
             <li>
-              <strong>Simple / Intelligent mode:</strong> Switch between
-              tracking modes. Intelligent mode enables idle lock, sleep
-              detection, and midnight rollover. Simple mode runs timers
-              continuously without any interruption or auto-detection.
-            </li>
-            <li>
-              <strong>Enable Idle Lock:</strong> Toggle automatic idle detection
-              on or off (Intelligent mode only).
+              <strong>Enable Idle Lock:</strong> Toggle automatic idle and
+              system-pause detection on or off. When off, timers run
+              continuously without any interruption or prompts. Midnight
+              rollover and all data-safety checks run either way.
             </li>
             <li>
               <strong>Idle Threshold:</strong> The slider sets how long you must
@@ -12756,31 +12689,7 @@
                     </svg>
                   </button>
                 </div>
-                <!-- Card 1: Tracking Mode -->
-                <div class="settings-card" style="padding: 5px">
-                  <div class="segmented-control" style="height: 28px">
-                    <button
-                      id="mode-simple"
-                      class="ios-pill"
-                      style="flex: 1; font-size: 0.7rem; padding: 0"
-                      onclick="setMode('simple')"
-                    >
-                      Simple
-                    </button>
-                    <button
-                      id="mode-intelligent"
-                      class="ios-pill"
-                      style="flex: 1; font-size: 0.7rem; padding: 0"
-                      onclick="setMode('intelligent')"
-                    >
-                      Intelligent
-                    </button>
-                  </div>
-                  <!-- Hidden label node preserves compatibility with JavaScript state changes -->
-                  <div id="settings-mode-desc" style="display: none"></div>
-                </div>
-
-                <!-- Card 2: Tracking Behavior -->
+                <!-- Card 1: Tracking Behavior -->
                 <div class="settings-card">
                   <div class="settings-row">
                     <span class="settings-label">Auto-populate daily goal</span>
@@ -12796,190 +12705,173 @@
                   </div>
                 </div>
 
-                <!-- Collapsible Wrapper for Intelligent Mode Cards -->
-                <div id="idle-settings-wrapper" class="collapsible-wrapper">
-                  <div class="collapsible-content">
-                    <!-- Unified Card 3: Intelligent Mode Options -->
+                <!-- Card 2: Automatic Tracking & Data Options -->
+                <div
+                  class="settings-card"
+                  style="
+                    display: flex;
+                    flex-direction: column;
+                    gap: 6px;
+                    margin-top: 0.35rem;
+                  "
+                >
+                  <!-- Row 1: Enable Idle Lock -->
+                  <div class="settings-row">
+                    <span class="settings-label">Enable idle lock</span>
+                    <label class="switch">
+                      <input
+                        type="checkbox"
+                        id="idle-toggle"
+                        checked
+                        onchange="onIdleToggleChange()"
+                      />
+                      <span class="slider-toggle"></span>
+                    </label>
+                  </div>
+
+                  <!-- Row 2: Threshold Slider (Indented / Progressive Disclosure) -->
+                  <div
+                    id="idle-range-container"
+                    class="settings-row flex-col"
+                    style="gap: 4px; width: 100%; transition: all 0.15s ease"
+                  >
                     <div
-                      class="settings-card"
+                      class="idle-popup-subrow"
                       style="
                         display: flex;
-                        flex-direction: column;
-                        gap: 6px;
-                        margin-top: 0.35rem;
+                        justify-content: space-between;
+                        align-items: center;
+                        width: 100%;
+                        gap: 10px;
                       "
                     >
-                      <!-- Row 1: Enable Idle Lock -->
-                      <div class="settings-row">
-                        <span class="settings-label">Enable idle lock</span>
-                        <label class="switch">
-                          <input
-                            type="checkbox"
-                            id="idle-toggle"
-                            checked
-                            onchange="onIdleToggleChange()"
-                          />
-                          <span class="slider-toggle"></span>
-                        </label>
-                      </div>
-
-                      <!-- Row 2: Threshold Slider (Indented / Progressive Disclosure) -->
-                      <div
-                        id="idle-range-container"
-                        class="settings-row flex-col"
-                        style="
-                          gap: 4px;
-                          width: 100%;
-                          transition: all 0.15s ease;
-                        "
+                      <span
+                        class="settings-label"
+                        style="font-size: 0.65rem; color: var(--text-muted)"
+                        >Threshold</span
                       >
-                        <div
-                          class="idle-popup-subrow"
-                          style="
-                            display: flex;
-                            justify-content: space-between;
-                            align-items: center;
-                            width: 100%;
-                            gap: 10px;
-                          "
-                        >
-                          <span
-                            class="settings-label"
-                            style="font-size: 0.65rem; color: var(--text-muted)"
-                            >Threshold</span
-                          >
-                          <input
-                            type="text"
-                            id="idle-input-box"
-                            class="input-standard"
-                            style="
-                              width: 10ch;
-                              height: 22px;
-                              min-height: 22px;
-                              padding: 0 4px;
-                              font-size: 0.75rem;
-                              text-align: center;
-                            "
-                            onfocus="this.select()"
-                            onblur="onIdleInputBlur(this.value)"
-                            onkeydown="
-                              if (event.key === 'Enter') {
-                                this.blur();
-                              }
-                            "
-                          />
-                        </div>
-                      </div>
-
-                      <div
+                      <input
+                        type="text"
+                        id="idle-input-box"
+                        class="input-standard"
                         style="
-                          height: 1px;
-                          background: var(--border-main);
-                          margin: 2px 0;
+                          width: 10ch;
+                          height: 22px;
+                          min-height: 22px;
+                          padding: 0 4px;
+                          font-size: 0.75rem;
+                          text-align: center;
                         "
-                      ></div>
-
-                      <!-- Row 3: Auto-save JSON Backup -->
-                      <div class="settings-row">
-                        <span class="settings-label"
-                          >Auto-save JSON backup</span
-                        >
-                        <label class="switch">
-                          <input
-                            type="checkbox"
-                            id="auto-backup-toggle"
-                            onchange="onAutoBackupToggleChange()"
-                          />
-                          <span class="slider-toggle"></span>
-                        </label>
-                      </div>
-
-                      <div
-                        style="
-                          height: 1px;
-                          background: var(--border-main);
-                          margin: 2px 0;
+                        onfocus="this.select()"
+                        onblur="onIdleInputBlur(this.value)"
+                        onkeydown="
+                          if (event.key === 'Enter') {
+                            this.blur();
+                          }
                         "
-                      ></div>
+                      />
+                    </div>
+                  </div>
 
-                      <!-- Row 4: Auto-email EOD Summary -->
-                      <div class="settings-row">
-                        <span class="settings-label"
-                          >Auto-email EOD summary</span
-                        >
-                        <label class="switch">
-                          <input
-                            type="checkbox"
-                            id="auto-email-toggle"
-                            onchange="onAutoEmailToggleChange()"
-                          />
-                          <span class="slider-toggle"></span>
-                        </label>
-                      </div>
+                  <div
+                    style="
+                      height: 1px;
+                      background: var(--border-main);
+                      margin: 2px 0;
+                    "
+                  ></div>
 
-                      <div
-                        style="
-                          height: 1px;
-                          background: var(--border-main);
-                          margin: 2px 0;
-                        "
-                      ></div>
+                  <!-- Row 3: Auto-save JSON Backup -->
+                  <div class="settings-row">
+                    <span class="settings-label">Auto-save JSON backup</span>
+                    <label class="switch">
+                      <input
+                        type="checkbox"
+                        id="auto-backup-toggle"
+                        onchange="onAutoBackupToggleChange()"
+                      />
+                      <span class="slider-toggle"></span>
+                    </label>
+                  </div>
 
-                      <!-- Row 5: Restore Snapshot dropdown -->
-                      <div
-                        style="display: flex; flex-direction: column; gap: 4px"
+                  <div
+                    style="
+                      height: 1px;
+                      background: var(--border-main);
+                      margin: 2px 0;
+                    "
+                  ></div>
+
+                  <!-- Row 4: Auto-email EOD Summary -->
+                  <div class="settings-row">
+                    <span class="settings-label">Auto-email EOD summary</span>
+                    <label class="switch">
+                      <input
+                        type="checkbox"
+                        id="auto-email-toggle"
+                        onchange="onAutoEmailToggleChange()"
+                      />
+                      <span class="slider-toggle"></span>
+                    </label>
+                  </div>
+
+                  <div
+                    style="
+                      height: 1px;
+                      background: var(--border-main);
+                      margin: 2px 0;
+                    "
+                  ></div>
+
+                  <!-- Row 5: Restore Snapshot dropdown -->
+                  <div style="display: flex; flex-direction: column; gap: 4px">
+                    <span class="settings-label">Restore Snapshot</span>
+                    <div class="custom-select">
+                      <select
+                        id="snapshot-restore-select"
+                        style="display: none"
+                        onchange="onSnapshotSelectChange(this.value)"
                       >
-                        <span class="settings-label">Restore Snapshot</span>
-                        <div class="custom-select">
-                          <select
-                            id="snapshot-restore-select"
-                            style="display: none"
-                            onchange="onSnapshotSelectChange(this.value)"
-                          >
-                            <option value="">Choose a snapshot...</option>
-                          </select>
-                          <button
-                            type="button"
-                            class="custom-select-trigger cs-sm"
-                            data-for="snapshot-restore-select"
-                            aria-haspopup="listbox"
-                          >
-                            <span class="cs-trigger-val"
-                              >Choose a snapshot...</span
-                            >
-                            <svg
-                              class="cs-chevron"
-                              viewBox="0 0 24 24"
-                              width="14"
-                              height="14"
-                              fill="none"
-                              stroke="currentColor"
-                              stroke-width="1.8"
-                              stroke-linecap="round"
-                              stroke-linejoin="round"
-                            >
-                              <polyline points="6 9 12 15 18 9"></polyline>
-                            </svg>
-                          </button>
-                          <div
-                            class="custom-select-panel cs-compact"
-                            role="listbox"
-                          >
-                            <button
-                              type="button"
-                              class="custom-select-option cs-selected"
-                              data-value=""
-                            >
-                              Choose a snapshot...
-                            </button>
-                          </div>
-                        </div>
+                        <option value="">Choose a snapshot...</option>
+                      </select>
+                      <button
+                        type="button"
+                        class="custom-select-trigger cs-sm"
+                        data-for="snapshot-restore-select"
+                        aria-haspopup="listbox"
+                      >
+                        <span class="cs-trigger-val">Choose a snapshot...</span>
+                        <svg
+                          class="cs-chevron"
+                          viewBox="0 0 24 24"
+                          width="14"
+                          height="14"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="1.8"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                        >
+                          <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                      </button>
+                      <div
+                        class="custom-select-panel cs-compact"
+                        role="listbox"
+                      >
+                        <button
+                          type="button"
+                          class="custom-select-option cs-selected"
+                          data-value=""
+                        >
+                          Choose a snapshot...
+                        </button>
                       </div>
                     </div>
                   </div>
                 </div>
 
-                <!-- Card 4: Help Description Strip (Fixed Height for CPU efficiency) -->
+                <!-- Card 3: Help Description Strip (Fixed Height for CPU efficiency) -->
                 <div class="settings-card settings-help-strip">
                   <svg
                     class="settings-help-icon"
@@ -14148,7 +14040,6 @@
         idleType: null,
         lastHeartbeatWall: null,
         tabHiddenAt: null,
-        trackingMode: "intelligent", // 'simple' or 'intelligent'
         goalAutopopulateEnabled: true,
         notes: "", // Persisted session notes
       };
@@ -14513,8 +14404,6 @@
         goalAutopopulateToggle: document.getElementById(
           "goal-autopopulate-toggle",
         ),
-        modeSimple: document.getElementById("mode-simple"),
-        modeIntelligent: document.getElementById("mode-intelligent"),
         snapshotRestoreSelect: document.getElementById(
           "snapshot-restore-select",
         ),
@@ -14550,8 +14439,6 @@
         heatmapYtdStats: document.getElementById("heatmap-ytd-stats"),
         conflictCount: document.getElementById("conflict-count"),
         conflictWizardModal: document.getElementById("conflict-wizard-modal"),
-        settingsModeDesc: document.getElementById("settings-mode-desc"),
-        idleSettingsWrapper: document.getElementById("idle-settings-wrapper"),
         leaveTypeSelect: document.getElementById("leave-type-select"),
         leaveDatesList: document.getElementById("leave-dates-list"),
         manualDatePicker: document.getElementById("manual-date-picker"),
@@ -16779,7 +16666,6 @@
         }
 
         if (
-          state.trackingMode === "intelligent" &&
           state.currentMode !== null &&
           !state.idleLock &&
           state.idleTrackingEnabled !== false &&
@@ -16956,10 +16842,8 @@
                 DOM.goalMins.value,
                 DOM.goalSecs.value,
               );
-            if (state.trackingMode === "intelligent") {
-              state.lastHeartbeatWall = nowWall;
-              markClockHeartbeat();
-            }
+            state.lastHeartbeatWall = nowWall;
+            markClockHeartbeat();
           }
         } else {
           setSessionAnchor(null);
@@ -18446,9 +18330,6 @@
        * Wipes live transaction memory and boots active workspace clean.
        */
       function resetSession(isFactoryReset = false) {
-        const previousMode = isFactoryReset
-          ? "intelligent"
-          : state.trackingMode || "intelligent";
         const previousIdleEnabled = isFactoryReset
           ? true
           : state.idleTrackingEnabled;
@@ -18466,7 +18347,6 @@
           : state.goalAutopopulateEnabled;
 
         state = {
-          trackingMode: previousMode,
           workAccumulated: 0,
           breakAccumulated: 0,
           currentMode: null,
@@ -24205,7 +24085,7 @@
               state.currentMode !== null ||
               state.idleLock
             ) {
-              // UNIVERSAL midnight save — applies to BOTH Simple and Intelligent modes
+              // UNIVERSAL midnight save — runs regardless of the idle-lock setting
               const activeMode = state.currentMode;
               const activeLoginTs = state.loginTimestamp;
 
@@ -24333,7 +24213,7 @@
               state.activeDate = nextDatePST;
 
               // Adjust anchors for the loop's next iteration (or continuation)
-              // Preserves all other state properties like trackingMode intact.
+              // Preserves all other state properties (settings, notes) intact.
               if (state.idleLock) {
                 // Also align the login timestamp to midnight so the new day's shift starts cleanly.
                 if (state.loginTimestamp) {
@@ -24436,7 +24316,6 @@
 
         // Pure idle/sleep audit check BEFORE midnight reset
         if (
-          state.trackingMode === "intelligent" &&
           state.idleTrackingEnabled !== false &&
           !state.idleLock &&
           state.currentMode !== null
@@ -24450,11 +24329,7 @@
         checkMidnightReset(now);
 
         // Update last heartbeat for passive background tracking
-        if (
-          state.trackingMode === "intelligent" &&
-          state.currentMode !== null &&
-          !state.idleLock
-        ) {
+        if (state.currentMode !== null && !state.idleLock) {
           state.lastHeartbeatWall = nowMs;
         }
 
@@ -24555,11 +24430,7 @@
         const nowWall = Date.now();
 
         // Inactivity audit runs independently of the discrepancy check above.
-        if (
-          state.trackingMode === "intelligent" &&
-          state.currentMode !== null &&
-          !state.idleLock
-        ) {
+        if (state.currentMode !== null && !state.idleLock) {
           const idleGap = nowWall - lastActivity;
           if (
             !state.idleLock &&
@@ -25944,30 +25815,6 @@
        * Executes syncSettingsUI logic to populate the modal with correct saved states.
        */
       function syncSettingsUI() {
-        const mode = state.trackingMode || "intelligent";
-        const isSimple = mode === "simple";
-
-        // Toggle active classes on buttons
-        const btnSimple = DOM.modeSimple;
-        const btnIntelligent = DOM.modeIntelligent;
-        if (btnSimple) btnSimple.classList.toggle("active", isSimple);
-        if (btnIntelligent)
-          btnIntelligent.classList.toggle("active", !isSimple);
-
-        // Update helper description
-        const descEl = DOM.settingsModeDesc;
-        if (descEl) {
-          descEl.textContent = isSimple
-            ? "Manual stop/start with zero automated checks."
-            : "Automated tracking with smart sleep & idle detection.";
-        }
-
-        // Disable/Dim idle settings if Simple mode is active
-        const idleWrapper = DOM.idleSettingsWrapper;
-        if (idleWrapper) {
-          idleWrapper.classList.toggle("is-collapsed", isSimple);
-        }
-
         // Sync existing toggle/slider values
         const isIdleEnabled = state.idleTrackingEnabled !== false;
         const idleCheckbox = DOM.idleToggle;
@@ -26265,40 +26112,6 @@
         const checkbox = DOM.autoEmailToggle;
         state.autoEmailEnabled = checkbox.checked;
         saveState();
-      };
-
-      /**
-       * Updates UI and state mode switches with an immediate engine reset.
-       */
-      window.setMode = function (mode) {
-        if (state.trackingMode === mode) return;
-
-        if (state.idleLock) {
-          showAppToast(
-            "Cannot change modes while idle lock is active.",
-            "warning",
-          );
-          return;
-        }
-
-        // 1. Logic Reset: If moving to Simple, scrub the audit data so it can't accidentally trigger
-        if (mode === "simple") {
-          state.lastHeartbeatWall = null;
-          state.idleLock = false; // Force-clear any pending locks
-          DOM.idleModal.style.display = "none";
-        }
-        // 2. Logic Startup: If moving to Intelligent, force a fresh heartbeat sync
-        else if (mode === "intelligent") {
-          state.lastHeartbeatWall = Date.now();
-          markClockHeartbeat();
-        }
-
-        state.trackingMode = mode;
-        syncSettingsUI();
-        saveState(true); // Force sync to storage immediately
-        showAppToast(
-          `Mode set to ${mode.charAt(0).toUpperCase() + mode.slice(1)}`,
-        );
       };
 
       /**
@@ -30101,10 +29914,6 @@
         if (!helpText) return;
 
         const descriptions = {
-          "mode-simple":
-            "Simple Mode: Manual start/stop controls. Disables automated idle lock, standby recovery, and rollovers.",
-          "mode-intelligent":
-            "Intelligent Mode: Smart tracking. Enables idle locks, standby recovery, and midnight rollovers.",
           "goal-autopopulate-toggle":
             "Auto-Populate: Adjusts your daily target dynamically to pace you toward a 40-hour work week.",
           "idle-toggle":
@@ -30146,8 +29955,6 @@
           targetEl.addEventListener("blur", resetHelp, { passive: true });
         };
 
-        bindHover("mode-simple", DOM.modeSimple);
-        bindHover("mode-intelligent", DOM.modeIntelligent);
         bindHover("goal-autopopulate-toggle", DOM.goalAutopopulateToggle);
         bindHover("idle-toggle", DOM.idleToggle);
         bindHover("idle-input-box", DOM.idleInputBox);
@@ -30307,7 +30114,6 @@
 
           acquireLease().then(() => {
             if (
-              state.trackingMode === "intelligent" &&
               state.idleTrackingEnabled !== false &&
               state.currentMode !== null &&
               !state.idleLock
