@@ -4650,6 +4650,19 @@
         margin: var(--space-4) 0;
       }
 
+      /* Keys and typed shorthand read as literals, so they get a chip rather
+         than the browser's bare monospace default. */
+      .help-tab-content code {
+        font-family: var(--font-mono);
+        font-size: 0.9em;
+        color: var(--text-main);
+        background: var(--element-hover);
+        border: var(--hairline);
+        border-radius: var(--radius-sm);
+        padding: 1px 5px;
+        white-space: nowrap;
+      }
+
       /* Semantic Accent Tops for Modals */
       .modal-container.accent-warning {
         border-top: var(--hairline-width) solid
@@ -8217,12 +8230,6 @@
           </button>
           <button
             class="help-tab-btn"
-            onclick="switchHelpTab('help-shortcuts', this)"
-          >
-            Shortcuts
-          </button>
-          <button
-            class="help-tab-btn"
             onclick="switchHelpTab('help-tracking', this)"
           >
             Tracking
@@ -8249,893 +8256,851 @@
             class="help-tab-btn"
             onclick="switchHelpTab('help-data', this)"
           >
-            Data & Settings
+            Data &amp; Settings
+          </button>
+          <button
+            class="help-tab-btn"
+            onclick="switchHelpTab('help-shortcuts', this)"
+          >
+            Shortcuts
           </button>
         </div>
 
         <!-- Tab 1: Overview -->
         <div id="help-overview" class="help-tab-content active">
-          <h4>What is nodrift?</h4>
+          <h4>What nodrift does</h4>
           <p>
-            nodrift is a self-contained browser app for logging and analyzing
-            your daily work sessions. All data is stored locally in your browser
-            — no account or internet connection required after the page loads.
+            nodrift is a work-hours tracker that runs entirely inside your
+            browser. You press <strong>Work</strong> when you start, take breaks
+            as you need them, and press <strong>End Shift</strong> when you are
+            done. nodrift saves the finished day to a permanent
+            <strong>Logbook</strong> and shows you how the week is adding up.
+          </p>
+          <p>
+            There is no account, no sign-up and no server. Everything is stored
+            on the device you are using, which also means each device keeps its
+            own separate history.
           </p>
           <hr />
-          <h4>Resilient Dual-Storage Engine</h4>
-          <p>
-            To protect your database from browser crashes or sudden tab
-            closures, the app uses a dual-layer storage layout. Logs are written
-            asynchronously to a local <strong>IndexedDB</strong> database, and
-            simultaneously mirrored to a synchronous
-            <strong>Emergency Sync Backup</strong> in local storage. On load,
-            the app automatically checks and restores any missing records.
-          </p>
-          <hr />
-          <h4>Interface at a Glance</h4>
+          <h4>Your first shift, in three steps</h4>
           <ul>
             <li>
-              <strong>Left Panel — Live Tracker:</strong> Your active session
-              controls, live timers, and daily progress bar.
+              <strong>1. Check the Daily Goal.</strong> It sits in the top bar
+              and normally fills itself in for you. Change it before you finish
+              the day if it looks wrong.
             </li>
             <li>
-              <strong>Right Panel — Insights / Logbook:</strong> Switch between
-              your weekly analytics view and your full shift history using the
-              two tabs at the top of the panel.
+              <strong>2. Track the day.</strong> Press <strong>Work</strong> to
+              begin. Press <strong>Break</strong> when you step away, and
+              <strong>Work</strong> again when you come back. Only one of the
+              two timers ever runs at a time.
             </li>
             <li>
-              <strong>Footer Toolbar:</strong> Access CSV export, clipboard
-              copy, JSON backup/restore, leave management, help, settings, and
-              the factory reset (Wipe).
-            </li>
-            <li>
-              <strong>Header Bar:</strong> Set your active timezone, configure
-              your daily goal, and switch the app theme.
+              <strong>3. End the shift.</strong> Press
+              <strong>End Shift</strong>. A box appears where you can type a
+              short note about what you did — notes are optional — and the day
+              is then written to the Logbook.
             </li>
           </ul>
           <hr />
-          <h4>Quick Start (3 Steps)</h4>
+          <h4>The screen on a computer</h4>
           <ul>
             <li>
-              <strong>Step 1 — Verify your goal:</strong> Before starting,
-              review your <strong>Daily Goal</strong> in the header. It
-              dynamically auto-populates to keep you on pace for a 40-hour week
-              (or 6 hours on weekends). You can click the field to open presets,
-              or type a custom value. The goal for each day is permanently
-              locked the moment you submit your first shift, so set it correctly
-              upfront.
+              <strong>Left side — the tracker.</strong> Production Time on top,
+              Break Time underneath, a progress bar between them, and the Work /
+              Break / End Shift buttons.
             </li>
             <li>
-              <strong>Step 2 — Track your day:</strong> Click
-              <strong>Start Work</strong> when you begin. Use
-              <strong>Take Break</strong> when stepping away and
-              <strong>Resume Work</strong> to continue. The Production and Break
-              timers update in real time.
+              <strong>Right side — three tabs.</strong>
+              <strong>Insights</strong> for charts and totals,
+              <strong>Logbook</strong> for your saved shifts, and
+              <strong>Tasks</strong> for a separate small stopwatch.
             </li>
             <li>
-              <strong>Step 3 — Submit your shift:</strong> Click
-              <strong>Submit EOD</strong> at the end of your day. A dialog will
-              prompt you to add shift notes before the entry is written to your
-              Logbook permanently.
+              <strong>Top bar.</strong> Your time zone and two live clocks, the
+              Daily Goal, and the theme picker.
+            </li>
+            <li>
+              <strong>Bottom toolbar.</strong> Backup JSON, Restore JSON,
+              Leaves, Heatmap, this Help guide, Adjust Timer, Settings, and the
+              red Wipe button.
             </li>
           </ul>
-        </div>
-
-        <!-- Tab 6: Shortcuts -->
-        <div id="help-shortcuts" class="help-tab-content">
-          <h4>Keyboard Shortcuts Reference</h4>
           <p>
-            The application features a rich suite of keyboard hotkeys designed
-            specifically for power users. All active mappings are listed below:
+            The <strong>Copy</strong> and <strong>CSV</strong> buttons are not
+            in the bottom toolbar — they sit in the header of the Logbook and
+            Tasks tabs, so they always export whichever list you are looking at.
           </p>
           <hr />
-          <ul style="line-height: 1.5; margin-bottom: 0">
+          <h4>The screen on a phone</h4>
+          <p>
+            On a narrow screen nodrift switches to a phone layout that shows one
+            thing at a time, with five buttons along the bottom edge.
+          </p>
+          <ul>
             <li>
-              <strong>Spacebar:</strong> Starts a new shift, takes a break, or
-              resumes active work.
+              <strong>Timer</strong> (the middle button) is the tracker: your
+              two timers, the progress bar and the Work / Break / End Shift
+              buttons.
             </li>
             <li>
-              <strong>S:</strong> Opens the End of Day (EOD) submission modal.
+              <strong>Insights</strong>, <strong>Logbook</strong> and
+              <strong>Tasks</strong> open the same three views a computer shows
+              on the right-hand side.
             </li>
             <li>
-              <strong>Ctrl + S / Cmd + S:</strong> Downloads the backup JSON
-              file and opens an email draft template.
-            </li>
-            <li>
-              <strong>Alt + 1 / Alt + 2 / Alt + 3:</strong> Swaps directly
-              between the <strong>Insights</strong>, <strong>Logbook</strong>,
-              and <strong>Tasks</strong> tabs.
-            </li>
-            <li>
-              <strong>Question Mark (?):</strong> Opens this Help Guide overlay.
-            </li>
-            <li>
-              <strong>Escape:</strong> Exits input fields, closes modal
-              overlays, collapses the filter drawer, and deselects highlighted
-              logs.
-            </li>
-            <li>
-              <strong>Tab:</strong> Navigates fields sequentially with focus
-              traps active inside modals.
-            </li>
-            <li>
-              <strong>Alt + K:</strong> Opens the Logbook search box and expands
-              the advanced filters automatically.
-            </li>
-            <li>
-              <strong>Alt + N:</strong> Launches the Add Manual Log modal
-              instantly.
-            </li>
-            <li>
-              <strong>Alt + T:</strong> Cycles through the four design themes
-              (Vercel Dark, Cobalt Glass, etc.).
-            </li>
-            <li>
-              <strong>Alt + Plus/Minus (= / -):</strong> Fine-tunes your Daily
-              Goal by +/- 15 mins.
-            </li>
-            <li>
-              <strong>Alt + Left / Alt + Right:</strong> Steps back and forward
-              through the Insights calendar week.
-            </li>
-            <li>
-              <strong>H:</strong> Jumps the Insights timeline instantly back to
-              the current week.
-            </li>
-            <li>
-              <strong>Selected Log Actions:</strong> Highlight an entry with the
-              arrow keys, then press:
-              <ul style="margin-top: 4px; padding-left: var(--space-4)">
-                <li><code>E</code> — Edit the selected shift record.</li>
-                <li>
-                  <code>C</code> — Copy the shift record cleanly to your
-                  clipboard.
-                </li>
-                <li>
-                  <code>N</code> or <code>Enter</code> — View shift notes in a
-                  popup overlay.
-                </li>
-                <li>
-                  <code>D</code> or <code>Backspace</code> /
-                  <code>Delete</code> — Trigger the deletion confirmation flow.
-                </li>
-              </ul>
+              <strong>Settings &amp; Tools</strong> (the last button) slides a
+              panel up from the bottom holding the Daily Goal, the time zone,
+              the theme picker and every toolbar button. Close it by tapping the
+              <strong>&times;</strong>, tapping the dimmed area behind it, or
+              dragging the small bar at the top of the panel downwards.
             </li>
           </ul>
-          <hr />
-          <h4>Activating Keyboard Navigation</h4>
           <p>
-            To use the log-specific keyboard actions (Edit, Copy, View Notes,
-            Delete), you must first activate keyboard focus on the log list. You
-            can trigger this by pressing <strong>Alt + K</strong> to focus the
-            filter search box, or by pressing <strong>Tab</strong> sequentially
-            until focus lands on the log rows. Use the
-            <strong>Up / Down Arrow Keys</strong> to highlight individual log
-            cards, and press the corresponding action keys.
+            Nothing else changes: it is the same app with the same data, only
+            rearranged to fit. Keyboard shortcuts are the one thing you will not
+            have on a phone.
+          </p>
+          <hr />
+          <h4>Where your data is kept</h4>
+          <p>
+            nodrift writes every shift to your browser's own storage, and keeps
+            a second copy alongside it. If a write to the main store is ever
+            lost — a crash, a tab closed mid-save — the spare copy is used to
+            put the missing entries back the next time you open the app.
+          </p>
+          <p>
+            That safety net protects you from crashes, but not from clearing
+            your browsing data, switching browsers, or moving to a new device.
+            Those erase everything. Download a <strong>JSON backup</strong> from
+            the toolbar about once a week so you always have a copy you control.
           </p>
         </div>
 
         <!-- Tab 2: Tracking -->
         <div id="help-tracking" class="help-tab-content">
-          <h4>Session Controls</h4>
+          <h4>The three buttons</h4>
           <ul>
             <li>
-              <strong>Start Work:</strong> Begins a new session and starts the
-              Production timer. Only available when no session is active.
+              <strong>Work</strong> — starts the shift, or returns to work after
+              a break. Production Time counts up.
             </li>
             <li>
-              <strong>Take Break:</strong> Pauses the Production timer and
-              starts the Break timer. Available while working.
+              <strong>Break</strong> — stops Production Time and starts Break
+              Time. It appears once a shift is running.
             </li>
             <li>
-              <strong>Resume Work:</strong> Stops the Break timer and resumes
-              Production. Replaces the Take Break button while on break.
-            </li>
-            <li>
-              <strong>Submit EOD:</strong> Ends and saves the current session to
-              your Logbook. You will be prompted to enter shift notes. This
-              action is final — the shift is written to permanent storage.
-            </li>
-            <li>
-              <strong>Adjust Timer:</strong> Click the adjustment icon in the
-              footer to open the floating Adjust Time popup.
-              <ul>
-                <li>
-                  <strong>Context-Aware Safety:</strong> Automatically targets
-                  whichever mode is currently active (Work or Break) and
-                  disables input controls when no session is running.
-                </li>
-                <li>
-                  <strong>Smart Offset Parsing:</strong> Supports decimal hours
-                  (e.g., <code>1.5h</code>), composite offsets (e.g.,
-                  <code>1h 15m 30s</code>), and bare digits (which default to
-                  minutes).
-                </li>
-                <li>
-                  <strong>Real-Time Preview:</strong> Above the popup, a
-                  floating tooltip displays the projected time calculation as
-                  you type (color-coded to match the target timer) and alerts
-                  you with a warning if absolute clock notation (such as
-                  <code>:</code> or <code>AM/PM</code>) is used.
-                </li>
-                <li>
-                  <strong>Deficit Protection:</strong> If you subtract more time
-                  than has currently accumulated, the app prevents negative
-                  numbers by capping the timer at zero and advancing your
-                  initial shift start time (login timestamp) forward to absorb
-                  the difference.
-                </li>
-                <li>
-                  <strong>Instant Undo:</strong> After applying an adjustment, a
-                  notification toast appears with an
-                  <strong>Undo</strong> button, letting you instantly roll back
-                  and recover your original timer states.
-                </li>
-              </ul>
-            </li>
-          </ul>
-          <hr />
-          <h4>Progress Bar & ETA</h4>
-          <ul>
-            <li>
-              The horizontal bar between the two timers shows your progress
-              toward today's daily goal.
-            </li>
-            <li>
-              <strong>Left label:</strong> Current completion percentage and
-              remaining time.
-            </li>
-            <li>
-              <strong>Right label:</strong> Estimated end-of-day time in BST
-              based on your current pace.
-            </li>
-            <li>The bar turns fully green once your goal is reached.</li>
-          </ul>
-          <hr />
-          <h4>Dynamic Daily Goal Auto-Population</h4>
-          <p>
-            To help you stay on track for your 40-hour weekly target, the daily
-            goal automatically populates with your current pacing requirement
-            each time a new session starts:
-          </p>
-          <ul>
-            <li>
-              <strong>Weekdays (Mon–Fri):</strong> The goal calculates
-              dynamically based on the cumulative hours needed to reach the
-              40-hour weekly target [5]. For example, if you log 10 hours on
-              Monday, Tuesday's goal auto-populates to 6 hours [5]. Conversely,
-              working 7 hours on Monday auto-populates Tuesday's goal to 9 hours
-              [5]. Scheduled leaves on prior weekdays automatically deduct 8
-              hours from your cumulative weekly target [5].
-            </li>
-            <li>
-              <strong>Weekends (Sat–Sun):</strong> The weekend daily goal
-              defaults to a fixed 6 hours.
-            </li>
-            <li>
-              <strong>Manual Adjustments & Custom Presets:</strong> The daily
-              goal is only an initial recommendation. You can override it at any
-              point using presets, the <strong>−15m / +15m</strong> adjusters,
-              or by typing directly in the header. You can also
-              <strong>double-click</strong> any preset pill to permanently
-              assign your own custom duration to it.
-            </li>
-          </ul>
-          <hr />
-          <h4>Goal Anchor & Split Shifts</h4>
-          <p>
-            When you submit your first shift on any given day, the daily goal
-            active at that moment is permanently saved ("anchored") to that
-            entry [5]. This ensures that changing tomorrow's goal does not
-            retroactively alter your historical records [5].
-          </p>
-          <p>
-            <strong>Intra-Day Deficit Auto-Adjustment (Split Shifts):</strong>
-            If there is already a logged shift for today and you start a
-            subsequent session, the header Daily Goal input automatically scales
-            down to represent only the <em>remaining deficit</em> against
-            today's anchored target.
-          </p>
-          <p>
-            <strong>Best practice:</strong> Always verify your Daily Goal in the
-            header before submitting your first shift of the day [5]. If you
-            need to correct a previously anchored goal, go to the
-            <strong>Logbook</strong> tab, click the <strong>Edit</strong> icon
-            on that entry, and update the goal value directly.
-          </p>
-          <hr />
-          <h4>Automatic Protections</h4>
-          <p>
-            The app runs these protective behaviors automatically. Idle Lock can
-            be switched off in Settings; the rest always run.
-          </p>
-          <ul>
-            <li>
-              <strong>Idle Lock:</strong> If your keyboard and mouse are
-              inactive beyond the configured threshold (default: 60 minutes),
-              the session pauses and a dialog appears when you return. You
-              choose whether the idle period counts as work, break, or is
-              discarded entirely. When returning from system sleep or tab
-              suspension, a customized, distinct
-              <strong>"System Pause Detected"</strong> state is presented to
-              reassure you.
-            </li>
-            <li>
-              <strong>Sleep / Tab Suspension Detection:</strong> If your
-              computer sleeps, the browser suspends the tab, or the system
-              freezes, the app detects the gap on wake and prompts you to decide
-              how to handle the missing time — the same as idle recovery.
-            </li>
-            <li>
-              <strong>Midnight Rollover:</strong> If a session is still active
-              at 12:00 AM, the app automatically submits the current shift for
-              the prior day and starts a clean session for the new date. No data
-              is lost.
+              <strong>End Shift</strong> — finishes the day and saves it to the
+              Logbook. You are asked for an optional note first. Once saved, the
+              day can still be corrected from the Logbook.
             </li>
           </ul>
           <p>
-            Turning off <strong>Enable idle lock</strong> in Settings disables
-            the first two behaviors — the inactivity and system-pause prompts —
-            and lets the timer run uninterrupted. This is the recommended
-            setting on phones, where a pocketed device generates no input and
-            would otherwise raise a prompt on every shift.
-            <strong>Midnight Rollover is a universal safeguard</strong> that
-            always runs while a timer is active, ensuring your shift times are
-            cleanly partitioned across daily bounds without data loss.
+            On a computer the <strong>space bar</strong> does the same job as
+            whichever of these buttons is showing.
           </p>
           <hr />
-          <h4>Data Integrity Protections</h4>
+          <h4>The timers and the progress bar</h4>
           <ul>
             <li>
-              <strong>Multiple Tab Prevention:</strong> The application actively
-              prevents multiple tabs or instances from running simultaneously to
-              protect your database from corruption.
+              <strong>Production Time</strong> is time spent working.
+              <strong>Break Time</strong> is time spent away. They never run at
+              the same time.
             </li>
             <li>
-              <strong>Ghost Shift Detection:</strong> If you accidentally log a
-              shift that is under 60 seconds, the UI will intercept it and throw
-              a warning to prevent database spam.
+              <strong>Left of the bar</strong> shows how far along you are and
+              how much is left of today's goal.
             </li>
+            <li>
+              <strong>Right of the bar</strong> estimates what time you will
+              finish, shown on the fixed BST clock.
+            </li>
+            <li>The bar turns fully green once you reach the goal.</li>
           </ul>
-          <hr />
-          <h4>Smart Time & Clock Inputs</h4>
           <p>
-            Whenever you edit a duration or a clock time value (like in the Add
-            Log or Edit Shift menus), you can use shorthand formats to speed up
-            entry. The app will automatically format it when you press Enter or
-            click away.
+            Both timers are worked out from the clock, not by counting ticks. If
+            the browser slows the page down in a background tab, or you lock the
+            screen, the totals are still right when you come back.
           </p>
-          <p><strong>Work, Break, and Goal Durations:</strong></p>
+          <hr />
+          <h4>Fixing a timer that is wrong</h4>
+          <p>
+            Open <strong>Adjust Timer</strong> from the toolbar to add or remove
+            time from the current shift — useful if you forgot to press Break,
+            or started late.
+          </p>
           <ul>
             <li>
-              <strong>Numbers:</strong> Typing <code>8</code> converts to
-              <code>08:00:00</code> (or <code>08:00</code> for goals).
+              Pick <strong>Work</strong> or <strong>Break</strong> at the top of
+              the popup. Whichever timer is running is chosen for you.
             </li>
             <li>
-              <strong>Decimals:</strong> Typing <code>8.5</code> converts to
-              <code>08:30:00</code>.
+              Type an amount such as <code>+15m</code>, <code>-5m 30s</code>,
+              <code>1.5h</code> or <code>1h 15m 30s</code>. A bare number means
+              minutes.
             </li>
             <li>
-              <strong>Minutes:</strong> Typing <code>45m</code> converts to
-              <code>00:45:00</code>.
+              A preview above the popup shows the result before you apply it,
+              and warns you if you type a clock time (like <code>9:00 AM</code>)
+              instead of an amount.
             </li>
             <li>
-              <strong>Hours & Minutes:</strong> Typing
-              <code>8h 30m</code> converts to <code>08:30:00</code>.
-            </li>
-          </ul>
-          <p><strong>Login and Logout Clock Times:</strong></p>
-          <ul>
-            <li>
-              <strong>Raw Numbers:</strong> Typing <code>0900</code> or
-              <code>900</code> auto-expands to <code>09:00:00 AM</code>.
+              Subtracting more than a timer holds will not produce a negative
+              number. The timer stops at zero and your shift start time moves
+              forward to absorb the rest.
             </li>
             <li>
-              <strong>Suffix Shortcuts:</strong> Typing <code>900p</code> or
-              <code>900pm</code> auto-expands to <code>09:00:00 PM</code>.
-            </li>
-            <li>
-              <strong>Partial Colons:</strong> Typing <code>9:30</code> or
-              <code>9:30p</code> auto-resolves to AM/PM and pads seconds.
-            </li>
-            <li>
-              <strong>Auto-Meridian Fallback:</strong> If no AM/PM is typed,
-              hours $\ge 12$ default to PM, and hours $&lt; 12$ default to AM.
+              After applying, a message with an <strong>Undo</strong> button
+              appears so you can put the timers straight back.
             </li>
           </ul>
           <hr />
-          <h4>Storage Block Warnings</h4>
+          <h4>The Daily Goal</h4>
           <p>
-            nodrift constantly validates browser storage health. If browser data
-            writing fails (e.g., due to strict private browsing restrictions,
-            disabled cookies, or running out of local disk space), a red alert
-            badge will flash in the status bar:
-            <strong>"RAM Only"</strong>. If you see this, your data is only in
-            temporary memory—<strong>download a JSON backup immediately</strong>
-            using the toolbar to avoid losing your shift history.
+            The goal in the top bar is how many hours you are aiming for today.
+            Left alone, it fills itself in to keep you on pace for a 40-hour
+            week.
+          </p>
+          <ul>
+            <li>
+              <strong>Monday to Friday:</strong> the goal is whatever today
+              needs to be for the week to still reach 40 hours. Log 10 hours on
+              Monday and Tuesday asks for 6; log 7 on Monday and Tuesday asks
+              for 9.
+            </li>
+            <li>
+              <strong>Saturday and Sunday:</strong> the goal is a flat 6 hours.
+            </li>
+            <li>
+              <strong>Booked leave</strong> earlier in the week takes 8 hours
+              off the weekly total, so the remaining days are not asked to make
+              it up.
+            </li>
+            <li>
+              <strong>You can always override it.</strong> Click the goal to
+              open the presets, use <strong>&minus;15m</strong> /
+              <strong>+15m</strong>, or type a value. Double-click a preset
+              button to save your own amount onto it.
+            </li>
+          </ul>
+          <p>
+            If you would rather set the goal yourself every day, turn
+            <strong>Auto-populate daily goal</strong> off in Settings. It cannot
+            be switched while a shift is running.
+          </p>
+          <hr />
+          <h4>Locked goals and split shifts</h4>
+          <p>
+            When you save the first shift of a day, that day's goal is locked to
+            it. Changing tomorrow's goal will never rewrite yesterday's records.
+          </p>
+          <p>
+            If you end a shift and start another one on the same day, the goal
+            in the top bar shrinks to show only what is
+            <em>still left</em> of that locked target, so the progress bar stays
+            meaningful for the rest of the day.
+          </p>
+          <p>
+            To correct a goal you have already locked in, open the
+            <strong>Logbook</strong>, edit that entry, and change the goal
+            there.
+          </p>
+          <hr />
+          <h4>Automatic protections</h4>
+          <p>
+            These run on their own in the background. Idle Lock can be switched
+            off in Settings; the others always run.
+          </p>
+          <ul>
+            <li>
+              <strong>Idle Lock.</strong> If there is no typing, clicking or
+              scrolling for longer than your threshold (1 hour to start with),
+              the timer pauses. When you come back, nodrift shows you exactly
+              how long the gap was and asks whether to
+              <strong>Log as Work</strong>, <strong>Log as Break</strong>, or
+              <strong>Discard Idle Time</strong>.
+            </li>
+            <li>
+              <strong>Sleep and suspended tabs.</strong> If your computer sleeps
+              or the browser puts the tab to sleep, nodrift spots the missing
+              time on waking and asks the same question, under the heading
+              <strong>System Pause Detected</strong>.
+            </li>
+            <li>
+              <strong>Midnight rollover.</strong> If a shift is still running at
+              midnight, nodrift saves it against the day that just ended and
+              starts a fresh one for the new date. Nothing is lost and nothing
+              lands on the wrong day.
+            </li>
+          </ul>
+          <p>
+            Turning <strong>Enable idle lock</strong> off stops the first two
+            prompts and lets the timer run without interruption. That is the
+            better setting on a phone, which sits in a pocket generating no
+            typing or scrolling and would otherwise ask you about a gap on
+            nearly every shift. Midnight rollover keeps working either way.
+          </p>
+          <hr />
+          <h4>Guards against bad entries</h4>
+          <ul>
+            <li>
+              <strong>One tab at a time.</strong> Two copies of nodrift running
+              at once could overwrite each other, so only one is allowed to
+              track. The others show a
+              <strong>Multiple Tabs Detected</strong> screen with a
+              <strong>Take Over Here</strong> button.
+            </li>
+            <li>
+              <strong>Very short shifts.</strong> Ending a shift under 60
+              seconds asks you to confirm first, in case the button was pressed
+              by accident. You can still choose <strong>Log Anyway</strong>.
+            </li>
+          </ul>
+          <hr />
+          <h4>Typing times quickly</h4>
+          <p>
+            Anywhere you type a length of time — the Add Log and Edit forms, the
+            goal, the idle threshold — you can use shorthand and nodrift will
+            tidy it up when you press Enter or click away.
+          </p>
+          <ul>
+            <li><code>8</code> becomes 8 hours.</li>
+            <li><code>8.5</code> becomes 8 hours 30 minutes.</li>
+            <li><code>45m</code> becomes 45 minutes.</li>
+            <li><code>8h 30m</code> becomes 8 hours 30 minutes.</li>
+          </ul>
+          <p>The same applies to start and finish clock times:</p>
+          <ul>
+            <li>
+              <code>0900</code> or <code>900</code> becomes
+              <strong>09:00:00 AM</strong>.
+            </li>
+            <li>
+              <code>900p</code> or <code>900pm</code> becomes
+              <strong>09:00:00 PM</strong>.
+            </li>
+            <li>
+              <code>9:30</code> and <code>9:30p</code> are both understood, and
+              the seconds are filled in.
+            </li>
+            <li>
+              If you leave out AM/PM, anything from 12 upwards is read as PM and
+              anything below 12 as AM.
+            </li>
+          </ul>
+          <hr />
+          <h4>The "RAM Only" warning</h4>
+          <p>
+            nodrift keeps checking that it can actually save to your browser. If
+            saving fails — private browsing, blocked storage, or a full disk — a
+            red <strong>RAM Only</strong> badge appears in the top bar. That
+            means your work exists only in memory and will vanish when you close
+            the page. Download a JSON backup straight away.
           </p>
         </div>
 
         <!-- Tab 3: Insights -->
         <div id="help-insights" class="help-tab-content">
-          <h4>Weekly Progress Overview</h4>
+          <h4>What Insights shows</h4>
           <p>
-            The <strong>Insights</strong> tab (right panel) shows your
-            aggregated weekly performance. Use the left/right arrows to navigate
-            between weeks. Double-click the week label to jump back to the
-            current week.
+            Insights is the summary view: how much you have worked over a
+            period, how that compares with your target, and whether you are
+            ahead or behind.
           </p>
           <ul>
             <li>
-              <strong>Total Work / Total Break:</strong> Cumulative hours for
-              the displayed week.
+              <strong>Weekly</strong> — one bar per weekday, Monday to Friday,
+              measured against the 40-hour week.
             </li>
             <li>
-              <strong>Weekly completion %:</strong> Your progress toward the
-              40-hour weekly target, shown in blue.
+              <strong>Monthly</strong> — one row per week of the chosen month.
             </li>
-            <li>
-              <strong>Status message:</strong> A short contextual summary —
-              e.g., whether you are on track, ahead, or behind pace for the
-              week.
-            </li>
+            <li><strong>Yearly</strong> — one row per month of the year.</li>
           </ul>
-          <hr />
-          <h4>Consistency Heatmap</h4>
           <p>
-            Click the <strong>Heatmap</strong> icon in the header or toolbar to
-            open the Consistency Heatmap modal. This visual calendar provides a
-            macroscopic view of your tracking consistency and work density over
-            time.
+            Switch between the three by clicking
+            <strong>Weekly Work</strong> at the top of the panel.
           </p>
-          <p><strong>Advanced Interactive Features:</strong></p>
+          <hr />
+          <h4>Moving between weeks</h4>
+          <p>
+            Use the arrows either side of the date label to step backwards and
+            forwards, and double-click the label itself to jump straight back to
+            today. On a computer, <code>[</code> and <code>]</code> do the same
+            thing, and <code>H</code> returns to the current week.
+          </p>
+          <hr />
+          <h4>Reading the numbers</h4>
           <ul>
             <li>
-              <strong>Real-Time Today Integration:</strong> Hovering over
-              "today" on the heatmap dynamically merges your active running
-              session's work and break times on the fly, rendering a
-              live-updating preview.
+              <strong>Weekly Work</strong> — hours worked so far against the
+              40-hour target, with the percentage beside it.
             </li>
             <li>
-              <strong>Click-to-Filter Navigation:</strong> Clicking any cell in
-              the heatmap instantly closes the modal, navigates the Insights
-              base date to that target week, switches your active panel tab to
-              <strong>Logbook</strong>, automatically expands the Advanced
-              Filters drawer, and injects that date directly into the search
-              filter to show you that specific day's records.
+              <strong>Total Break</strong> — break time over the same span.
             </li>
             <li>
-              <strong>YTD Annual Aggregates:</strong> Displays cumulative annual
-              stats (YTD Work Hours and total Leave days) at the bottom left of
-              the modal.
+              <strong>Pace Required</strong> — the average per day you now need
+              across the working days you have left in order to reach 40 hours.
+              It recalculates as you log time.
+            </li>
+            <li>
+              <strong>Status line</strong> — a short plain-English verdict, such
+              as how many hours ahead or behind you are.
             </li>
           </ul>
           <hr />
-          <h4>M–T–W–T–F Day Segments</h4>
+          <h4>The day bars</h4>
           <p>
-            The five horizontal bars represent Monday through Friday of the
-            selected week. Each bar fills proportionally based on hours logged
-            against that day's goal.
+            In the weekly view, each bar is one day and fills up as you approach
+            that day's goal. Today's bar keeps moving while a shift is running.
+          </p>
+          <ul>
+            <li>A fully green bar means the goal for that day was met.</li>
+            <li>
+              A bar with diagonal stripes is a booked leave day. Leave days are
+              left out of pace and goal maths.
+            </li>
+            <li>
+              Hovering a bar opens a summary of that day: date, work, break, how
+              far over or under goal it was, the goal itself, and any notes you
+              saved.
+            </li>
+          </ul>
+          <hr />
+          <h4>The letter badges</h4>
+          <ul>
+            <li>
+              <span class="badge badge-w">W</span> — work time logged for that
+              shift.
+            </li>
+            <li>
+              <span class="badge badge-b">B</span> — break time logged for that
+              shift.
+            </li>
+            <li>
+              <span class="badge badge-over">O</span> — over: the shift met or
+              beat its goal.
+            </li>
+            <li>
+              <span class="badge badge-under">U</span> — under: the shift fell
+              short of its goal.
+            </li>
+            <li>
+              <span class="badge badge-g">G</span> — the goal that shift was
+              measured against.
+            </li>
+          </ul>
+          <hr />
+          <h4>How leave affects the maths</h4>
+          <p>
+            Booking a leave day takes 8 hours off the 40-hour weekly target and
+            marks that date with stripes, so the days around it are not asked to
+            cover for it.
           </p>
           <p>
-            <strong>Interactive Segment Hover Tooltips:</strong> Hovering over
-            any Monday-Friday progress segment bar in the Insights tab reveals a
-            high-density popup detailing date, day, work, break, variance (with
-            <code>O</code>/<code>U</code> badges), progress %, goal, and a list
-            of all notes logged for that day.
+            If you end up working on a day you had booked as leave, the hours
+            still count towards your totals and the day is marked
+            <strong>Worked Leave</strong> — your pace is not penalised either
+            way.
+          </p>
+          <hr />
+          <h4>The Consistency Heatmap</h4>
+          <p>
+            The heatmap button in the toolbar opens a calendar of the whole
+            year, one square per day, shaded by how much you worked. It is the
+            quickest way to see streaks and gaps. Use the year label at the top
+            to look at a different year.
           </p>
           <ul>
             <li>
-              A bar that is fully green means the daily goal was met or exceeded
-              for that day.
+              Hovering a square shows that day's detail. Today's square includes
+              the shift you are running right now.
             </li>
             <li>
-              A bar with a <strong>striped pattern</strong> indicates a
-              scheduled leave day. Leave days are excluded from pace and goal
-              calculations.
+              Clicking a square closes the heatmap and takes you to that day in
+              the Logbook, with the filters already set for you.
             </li>
             <li>
-              The current day's bar updates live as your session progresses.
+              The bottom-left corner shows your year-to-date work hours and how
+              many leave days you have used.
             </li>
           </ul>
-          <hr />
-          <h4>Shift Badges</h4>
-          <p>
-            Each log entry in the weekly breakdown carries colored badges
-            summarizing that shift:
-          </p>
-          <ul>
-            <li>
-              <span class="badge badge-w">W</span> <strong>Work Time</strong> —
-              Total productive hours logged.
-            </li>
-            <li>
-              <span class="badge badge-b">B</span> <strong>Break Time</strong> —
-              Total break duration.
-            </li>
-            <li>
-              <span class="badge badge-over">O</span>
-              <strong>Overtime</strong> — Shift met or exceeded its anchored
-              goal.
-            </li>
-            <li>
-              <span class="badge badge-under">U</span>
-              <strong>Under Goal</strong> — Shift did not reach its anchored
-              goal.
-            </li>
-            <li>
-              <span class="badge badge-g">G</span>
-              <strong>Goal Status</strong> — Visual indicator of daily goal
-              attainment.
-            </li>
-          </ul>
-          <hr />
-          <h4>Pace Required</h4>
-          <p>
-            Displayed in the weekly breakdown, this figure tells you how many
-            hours per day you need to average across the remaining active
-            (non-leave) weekdays to reach your 40-hour weekly target. It
-            recalculates automatically as you log hours each day.
-          </p>
-          <p>
-            <strong>Worked Leave Badge:</strong> If you work on a scheduled
-            leave day, your hours are compiled but your pacing is protected.
-            This is displayed with a specialized
-            <strong>"Worked Leave"</strong> badge.
-          </p>
-          <p>
-            <strong>Note on Scheduled Leave:</strong> Scheduling a leave day
-            automatically deducts exactly 8 hours from your cumulative weekly
-            40-hour pacing target, and that date is marked with a diagonal
-            stripe pattern. This ensures your required daily pace recalculates
-            fairly without penalizing your consistency scores.
-          </p>
         </div>
 
         <!-- Tab 4: Logbook -->
         <div id="help-logbook" class="help-tab-content">
-          <h4>Viewing & Navigating Entries</h4>
+          <h4>Reading the list</h4>
           <p>
-            The <strong>Logbook</strong> tab (right panel) lists every submitted
-            shift entry in reverse chronological order. Each entry shows the
-            date, login/logout times, work and break duration, daily goal
-            percentage, and any shift notes.
+            The Logbook holds every shift you have saved, newest first. Each row
+            shows the date, when you started and finished, work and break
+            totals, how you did against that day's goal, and any note you wrote.
           </p>
-          <p><strong>UI Interaction Shortcuts:</strong></p>
-          <ul>
-            <li>
-              <strong>Click Row to Edit:</strong> Clicking anywhere on a log row
-              (outside of action buttons) instantly launches the Edit Modal for
-              that entry.
-            </li>
-            <li>
-              <strong>Scroll-to-Top Button:</strong> A floating scroll-to-top
-              button automatically reveals itself when scrolling down the
-              logbook past 150px, letting you jump back up easily.
-            </li>
-            <li>
-              <strong>Custom Picker Interfaces:</strong> Fully styled custom
-              dropdowns and the Custom Date Picker calendar engine provide
-              responsive year/month pagination, "Today" selection, and input
-              clearing.
-            </li>
-          </ul>
+          <p>
+            Click anywhere on a row to open it for editing. Scroll down a little
+            way and a button appears in the corner to jump back to the top.
+          </p>
           <hr />
-          <h4>Adding a Manual Entry</h4>
+          <h4>Adding a shift by hand</h4>
           <p>
-            Click <strong>Add Log</strong> in the Logbook header to open the
-            manual entry form.
+            Press <strong>Add Log</strong> in the Logbook header to enter a day
+            you did not track live.
           </p>
           <p>
-            <strong>Dynamic Field Auto-Calculations:</strong> In both Add Manual
-            Shift and Edit Shift modals, typing any two values of Login, Logout,
-            and Work automatically calculates the third (tracking overrides
-            cleanly). Changing Break dynamically updates either Work or Logout.
-            If your Break time exceeds the total elapsed shift time, the field
-            turns red and displays a warning block.
+            Fill in any two of <strong>Login</strong>,
+            <strong>Logout</strong> and <strong>Work</strong> and the third is
+            worked out for you. Changing <strong>Break</strong> updates
+            whichever of the others makes sense. If the break you enter is
+            longer than the shift itself, the field turns red and explains the
+            problem.
           </p>
+          <hr />
+          <h4>Typing dates quickly</h4>
           <p>
-            <strong>Deep Date Input Shorthands:</strong> You can type highly
-            rapid shorthands into any date field and press Enter or blur to
-            auto-expand them:
+            Any date field accepts shorthand. Press Enter or click away and it
+            expands to a full date.
           </p>
           <ul>
             <li>
-              <code>t</code> / <code>today</code> / <code>0</code> &rarr;
-              today's date.
+              <code>t</code>, <code>today</code> or <code>0</code> — today.
             </li>
             <li>
-              <code>y</code> / <code>yesterday</code> / <code>-1</code> &rarr;
-              yesterday's date.
+              <code>y</code>, <code>yesterday</code> or <code>-1</code> —
+              yesterday.
             </li>
+            <li><code>-5</code> — five days ago, and so on for any number.</li>
+            <li><code>15th jan</code> or <code>jan 15</code> — that date.</li>
             <li>
-              <strong>Negative Integers:</strong> typing
-              <code>-5</code> calculates and outputs the date of exactly 5 days
-              ago.
-            </li>
-            <li>
-              <strong>Natural Monthly Strings:</strong> expressions like
-              <code>15th jan</code> or <code>jan 15</code> auto-map to the
-              correct date.
-            </li>
-            <li>
-              <strong>Smart Digits Auto-Expansion:</strong> 8 digits
-              (<code>12252026</code>) and 6 digits (<code>122526</code>) expand
-              to <code>12/25/26</code>. 4 digits (<code>1225</code>) auto-fills
-              the current year. Typing 1 or 2 digits (e.g., <code>15</code>)
-              auto-completes to day 15 of the current month and year.
+              <code>12252026</code> and <code>122526</code> both become 25
+              December 2026; <code>1225</code> adds the current year; a bare
+              <code>15</code> becomes the 15th of this month.
             </li>
           </ul>
           <hr />
-          <h4>Editing & Deleting Entries</h4>
+          <h4>Editing and deleting</h4>
           <ul>
             <li>
-              <strong>Edit (pencil icon):</strong> Opens the entry in an
-              editable form. You can update any field, including the anchored
-              goal, notes, hours, or date. Save to commit changes.
+              The <strong>pencil</strong> icon opens the entry for editing.
+              Every field can be changed, including the goal that shift was
+              measured against.
             </li>
             <li>
-              <strong>Delete (trash icon):</strong> Permanently removes the
-              entry. This action cannot be undone. A confirmation prompt will
-              appear before deletion.
+              The <strong>bin</strong> icon deletes it. You are asked to
+              confirm, and a deleted entry cannot be brought back except from a
+              backup or a snapshot.
             </li>
           </ul>
           <hr />
-          <h4>Filters & Saved Views</h4>
+          <h4>Filters and saved views</h4>
           <p>
-            Once you have configured a filter combination you use regularly,
-            save it as a named <strong>Saved View</strong>. Saved views appear
-            in the dropdown at the top of the filter drawer and can be recalled
-            with a single click. You can also delete custom views by selecting
-            them and clicking the delete option inside the filter drawer.
+            <strong>Filters</strong> opens a drawer where you can narrow the
+            list by date, hours or text. Once you have a combination you use
+            often, save it as a named <strong>view</strong> — it then appears in
+            the dropdown at the top of the drawer and is one click away. Views
+            you have created can be deleted from the same place.
           </p>
           <hr />
-          <h4>Managing Leaves & Holidays</h4>
+          <h4>Copying and exporting</h4>
+          <ul>
+            <li>
+              <strong>Copy</strong> puts your log history on the clipboard as a
+              tidy plain-text summary, grouped by day, with any shift under 7
+              hours flagged. Paste it straight into an email.
+            </li>
+            <li>
+              <strong>CSV</strong> downloads a spreadsheet of the entries you
+              are currently viewing — date, start and finish, work and break
+              hours, goal and notes — ready for Excel or Google Sheets.
+            </li>
+          </ul>
+          <hr />
+          <h4>Leave and holidays</h4>
           <p>
-            Click the <strong>Leaves</strong> icon in the footer toolbar to open
-            the leave manager. Add scheduled leave days (annual leave, sick
-            days, public holidays) by date. Leave days are rendered with a
-            striped pattern in the Insights day segments and are excluded from
-            pace and weekly goal calculations.
+            The <strong>Leaves</strong> button in the toolbar opens a window
+            with two tabs.
           </p>
+          <ul>
+            <li>
+              <strong>Log Leave</strong> — pick a date and a type, then press
+              <strong>Add Leave Entry</strong>. Your booked dates are listed
+              underneath and can be removed from there.
+            </li>
+            <li>
+              <strong>Balances</strong> — shows each type of leave with its
+              total, how many days you have used and how many are left. Set your
+              own allowances here, and use <strong>+ Add Leave Type</strong> to
+              create a category of your own.
+            </li>
+          </ul>
         </div>
 
-        <!-- Tab 5: Micro-Tasks -->
+        <!-- Tab 5: Tasks -->
         <div id="help-tasks" class="help-tab-content">
-          <h4>Micro-Tasks & Stopwatch</h4>
+          <h4>What Tasks is for</h4>
           <p>
-            The <strong>Tasks</strong> tab (right panel) provides an isolated,
-            lightweight stopwatch for tracking small, individual activities
-            (such as pre-charting a note, reviewing lab results, or
-            micro-billing) without interrupting your primary shift timer.
+            Tasks is a small separate stopwatch for timing individual pieces of
+            work inside your day. It runs completely independently of your shift
+            — starting a task does not touch Production Time, and your shift
+            keeps running normally.
           </p>
           <hr />
-          <h4>Tracking a Task</h4>
+          <h4>Timing a task</h4>
           <ul>
             <li>
-              <strong>Enter Task Note:</strong> Type the context or patient note
-              into the input box at the top of the tab.
+              Type what you are doing in the box at the top, then press
+              <strong>Start</strong>.
             </li>
             <li>
-              <strong>Start Task:</strong> Click <strong>Start Task</strong> to
-              begin the stopwatch. The timer counts up cleanly without goal
-              limits or break tracking.
+              <strong>Pause</strong> stops the clock without ending the task;
+              press it again to carry on.
             </li>
             <li>
-              <strong>Stop & Save:</strong> Click
-              <strong>Stop & Save</strong> when finished. The exact start time,
-              end time, total duration, and note are recorded to your Task
-              History.
+              <strong>Done</strong> saves the task with its start time, finish
+              time, total length and your note.
             </li>
             <li>
-              <strong>Cancel:</strong> Click <strong>Cancel</strong> while a
-              task is running to discard the timer without saving.
+              The <strong>&times;</strong> in the corner throws the task away
+              without saving it.
             </li>
           </ul>
           <hr />
-          <h4>Task History & Exports</h4>
+          <h4>Your task history</h4>
+          <p>
+            Finished tasks are listed underneath, grouped by date. The list is
+            built to stay fast no matter how many tasks you have, so it renders
+            only the rows on screen as you scroll.
+          </p>
           <ul>
             <li>
-              <strong>High-Performance History:</strong> Completed tasks are
-              grouped by date. To maintain 0ms UI performance, the history
-              renders in lightweight chunks with a
-              <strong>Load More</strong> button for older records.
+              <strong>Add Task</strong> records a task you did not time, by
+              entering the details yourself.
             </li>
             <li>
-              <strong>Copy Task:</strong> Click the clipboard icon on any task
-              card to copy its details, or click <strong>Copy</strong> at the
-              top of the list to copy all task records.
+              <strong>Filters</strong> narrows the history by date, length or
+              text, the same way the Logbook filters work.
             </li>
             <li>
-              <strong>Export CSV:</strong> Click <strong>CSV</strong> in the
-              Tasks header to download a spreadsheet report of all logged tasks.
+              The <strong>copy</strong> icon on a row copies that one task; the
+              copy button in the header copies them all.
             </li>
-            <li>
-              <strong>Backup Integration:</strong> Task history is automatically
-              included in your JSON backups and restored when importing backup
-              files.
-            </li>
+            <li><strong>CSV</strong> downloads the whole task history.</li>
           </ul>
+          <p>
+            Tasks are included in your JSON backups and come back when you
+            restore one.
+          </p>
         </div>
 
         <!-- Tab 6: Data & Settings -->
         <div id="help-data" class="help-tab-content">
-          <h4>Export & Sharing</h4>
-          <ul>
-            <li>
-              <strong>CSV (spreadsheet icon):</strong> Downloads a
-              <code>.csv</code> file of all visible log entries. Columns include
-              date, login/logout times, work hours (decimal), break hours, daily
-              goal, and notes. Suitable for submitting to HR or importing into
-              Excel / Google Sheets.
-            </li>
-            <li>
-              <strong>Copy (clipboard icon):</strong> Copies your log history to
-              the clipboard as a formatted plain-text email summary. Entries are
-              grouped by day, work/break totals are shown per day, and any shift
-              under 7 hours is flagged. Paste directly into a Gmail draft with
-              <kbd>Ctrl+V</kbd> / <kbd>Cmd+V</kbd>.
-            </li>
-          </ul>
-          <hr />
-          <h4>Backup & Restore</h4>
-          <ul>
-            <li>
-              <strong>Save / JSON backup (download icon):</strong> Downloads a
-              <code>.json</code> file containing your entire log database and
-              app state. Store this file somewhere safe. All data lives in your
-              browser's local storage — clearing browser data or switching
-              devices will erase it without a backup.
-            </li>
-            <li>
-              <strong>Load / JSON restore (upload icon):</strong> Imports a
-              previously saved <code>.json</code> backup file. Existing logs are
-              merged with the imported data. If there are duplicates or
-              colliding entries, an interactive
-              <strong>Import Conflict Wizard</strong> will guide you through
-              resolving them.
-            </li>
-            <li>
-              <strong>Recommended cadence:</strong> Export a JSON backup at
-              least once per week.
-            </li>
-          </ul>
-          <hr />
-          <h4>
-            Settings (<svg
-              viewBox="0 0 24 24"
-              width="16"
-              height="16"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="1.8"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              style="vertical-align: text-bottom"
-            >
-              <g data-sprite="sprite-036"></g>
-            </svg>
-            icon)
-          </h4>
-          <ul>
-            <li>
-              <strong>Enable Idle Lock:</strong> Toggle automatic idle and
-              system-pause detection on or off. When off, timers run
-              continuously without any interruption or prompts. Midnight
-              rollover and all data-safety checks run either way.
-            </li>
-            <li>
-              <strong>Idle Threshold:</strong> The slider sets how long you must
-              be inactive (5–120 minutes) before the idle lock triggers. Default
-              is 60 minutes.
-            </li>
-            <li>
-              <strong>Auto-Populate Daily Goal:</strong> Toggle whether the app
-              automatically adjusts your daily goal to keep you on pace for the
-              40-hour weekly target.
-            </li>
-            <li>
-              <strong>Auto-save Backup:</strong> When enabled, the app
-              automatically downloads a JSON backup file at the end of each day
-              when you submit your EOD shift.
-            </li>
-            <li>
-              <strong>Auto-email Summary:</strong> When enabled, submitting EOD
-              automatically copies your log summary to the clipboard and opens a
-              new Gmail draft, ready to paste.
-            </li>
-          </ul>
-          <hr />
-          <h4>Theme & Timezone</h4>
-          <ul>
-            <li>
-              <strong>Theme:</strong> Click the theme toggle button in the
-              header to open the theme picker. Choose from
-              <strong>SF Dark</strong>, <strong>SF Light</strong>,
-              <strong>Vercel Dark</strong>, or <strong>E-Ink</strong>. Your
-              selection is saved automatically.
-            </li>
-            <li>
-              <strong>Timezone:</strong> Click the timezone label
-              (PST/MST/CST/EST) in the header status bar to switch the primary
-              clock timezone. The secondary clock always displays BST as a fixed
-              reference. Your selection persists across sessions.
-            </li>
-            <li>
-              <strong>Daily Goal Presets:</strong> Click the
-              <strong>Daily Goal</strong> field to open the preset picker. Use
-              <strong>−15m</strong> / <strong>+15m</strong> to fine-tune, or
-              double-click either preset pill to permanently reassign it to a
-              custom value.
-            </li>
-          </ul>
-          <hr />
-          <h4>Database Safety & Recovery Systems</h4>
-          <ul>
-            <li>
-              <strong>Restore Snapshot:</strong> Before any database write,
-              nodrift automatically takes a backup state snapshot in local
-              storage. If you ever make a mistake or lose tracking, open
-              <strong
-                >Settings (<svg
-                  viewBox="0 0 24 24"
-                  width="14"
-                  height="14"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="1.8"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  style="vertical-align: text-bottom"
-                >
-                  <g data-sprite="sprite-036"></g></svg
-                >)</strong
-              >
-              and select a prior timestamp from the
-              <strong>Restore Snapshot</strong> list to instantly restore that
-              exact database state.
-            </li>
-            <li>
-              <strong>Import Collision Conflict Wizard:</strong> When loading a
-              <code>.json</code> backup, nodrift scans for overlapping dates. If
-              conflicts occur, an interactive wizard will display a side-by-side
-              comparison of local vs. backup records and prompt you to choose:
-              <ul style="margin-top: 4px; padding-left: var(--space-4)">
-                <li>
-                  <strong>Keep Current Local:</strong> Discards the backup's
-                  overlapping shifts and keeps your local data intact.
-                </li>
-                <li>
-                  <strong>Overwrite with Backup:</strong> Erases the local
-                  conflicting entries and writes the backup's records.
-                </li>
-                <li>
-                  <strong>Keep Both:</strong> Imports all entries, creating
-                  duplicate shifts on those dates for you to resolve manually.
-                </li>
-              </ul>
-            </li>
-            <li>
-              <strong>Multi-Tab Eviction Protocol:</strong> Opening nodrift in
-              multiple browser tabs simultaneously triggers the
-              <strong>Multiple Tabs Detected</strong> screen. To prevent clock
-              conflicts and data corruption, only one tab can own the master
-              tracking lease. Click <strong>Take Over Here</strong> on your
-              desired tab to safely evict other instances, synchronize existing
-              states, and resume tracking.
-            </li>
-          </ul>
-          <hr />
-          <h4>Factory Reset</h4>
+          <h4>Backups</h4>
           <p>
-            The <strong>Wipe</strong> button (red trash icon) permanently
-            deletes all logs, saved views, leave entries, rollback snapshots,
-            and app settings. Once everything is gone the app reloads itself
-            automatically — along with any other tabs you have open, so none of
-            them can write their copy of the data back — and you land on a
-            genuinely fresh install without refreshing by hand. This action is
-            irreversible. Always export a JSON backup before using this option.
+            A <strong>JSON backup</strong> is a single file holding your entire
+            history and settings. It is the only copy that survives clearing
+            your browser data or moving to another device, so keep one somewhere
+            safe and refresh it about once a week.
           </p>
+          <ul>
+            <li>
+              <strong>Backup JSON</strong> downloads the file. Turn on
+              <strong>Auto-save JSON backup</strong> in Settings to have one
+              saved automatically each time you end a shift.
+            </li>
+            <li>
+              <strong>Restore JSON</strong> loads a backup back in. Its entries
+              are merged with what you already have rather than replacing
+              everything.
+            </li>
+            <li>
+              If a restored backup covers days you already have, an
+              <strong>Import Conflict</strong> window shows both versions side
+              by side and asks whether to keep what is on this device, replace
+              it with the backup, or keep both copies and sort them out
+              yourself.
+            </li>
+          </ul>
+          <hr />
+          <h4>Settings</h4>
+          <p>
+            The gear button in the toolbar opens the settings panel. Hover over
+            any setting to see a one-line description at the bottom of it.
+          </p>
+          <ul>
+            <li>
+              <strong>Auto-populate daily goal</strong> — lets nodrift set each
+              day's goal to keep you on pace for 40 hours a week. Turn it off to
+              set the goal yourself. It cannot be changed while a shift is
+              running.
+            </li>
+            <li>
+              <strong>Enable idle lock</strong> — turns the inactivity and
+              system-pause prompts on or off. Off is usually the right choice on
+              a phone.
+            </li>
+            <li>
+              <strong>Threshold</strong> — how long nodrift waits before
+              deciding you are idle. Type it the same way as any other duration,
+              for example <code>45m</code> or <code>1h 30m</code>. It starts at
+              1 hour, and is only shown while idle lock is on.
+            </li>
+            <li>
+              <strong>Auto-save JSON backup</strong> — downloads a backup file
+              automatically whenever you end a shift.
+            </li>
+            <li>
+              <strong>Auto-email EOD summary</strong> — on ending a shift,
+              copies your summary to the clipboard and opens a new email draft
+              ready to paste into.
+            </li>
+            <li><strong>Restore Snapshot</strong> — see below.</li>
+          </ul>
+          <hr />
+          <h4>Snapshots</h4>
+          <p>
+            Before every change to your data, nodrift quietly saves a snapshot
+            of how things looked beforehand. If something goes wrong — a bad
+            edit, a deletion you regret — open Settings, pick a time from the
+            <strong>Restore Snapshot</strong> list, and everything returns to
+            exactly that moment.
+          </p>
+          <p>
+            Snapshots live in the same browser as your data, so they cover
+            mistakes, not lost devices. A JSON backup is what covers that.
+          </p>
+          <hr />
+          <h4>Theme, time zone and goal presets</h4>
+          <ul>
+            <li>
+              <strong>Theme</strong> — the theme button in the top bar offers
+              <strong>SF Light</strong>, <strong>SF Dark</strong>,
+              <strong>E-Ink</strong> and <strong>Vercel Dark</strong>. Hovering
+              a name previews it; clicking keeps it.
+            </li>
+            <li>
+              <strong>Time zone</strong> — click the time zone label to switch
+              the main clock between PST, MST, CST and EST. The second clock is
+              always BST, as a fixed reference.
+            </li>
+            <li>
+              <strong>Goal presets</strong> — click the Daily Goal to open its
+              presets, nudge it with <strong>&minus;15m</strong> and
+              <strong>+15m</strong>, or double-click a preset button to save
+              your own amount onto it.
+            </li>
+          </ul>
+          <hr />
+          <h4>Running two tabs at once</h4>
+          <p>
+            Only one nodrift tab is allowed to track at a time, so two copies
+            can never overwrite each other's work. Any extra tab shows
+            <strong>Multiple Tabs Detected</strong>. Press
+            <strong>Take Over Here</strong> in the tab you actually want to use
+            and it takes control, bringing the current state with it.
+          </p>
+          <hr />
+          <h4>Starting over</h4>
+          <p>
+            The red <strong>Wipe</strong> button erases everything — shifts,
+            tasks, leave, saved views, snapshots and settings — and reloads the
+            app, along with any other tabs you have open, so nothing can write
+            the old data back. There is no undo. Download a JSON backup first if
+            there is any chance you will want the data again.
+          </p>
+        </div>
+
+        <!-- Tab 7: Shortcuts -->
+        <div id="help-shortcuts" class="help-tab-content">
+          <h4>Keyboard shortcuts</h4>
+          <p>
+            These work on a computer with a keyboard. They are ignored while you
+            are typing in a text box, and while the idle prompt is waiting for
+            an answer. There are no shortcuts on a phone.
+          </p>
+          <hr />
+          <h4>Tracking</h4>
+          <ul>
+            <li>
+              <code>Space</code> — start the shift, take a break, or go back to
+              work, depending on what you are doing.
+            </li>
+            <li><code>S</code> — end the shift and open the save box.</li>
+            <li>
+              <code>Ctrl</code> + <code>S</code> (<code>Cmd</code> +
+              <code>S</code> on a Mac) — download a JSON backup and open an
+              email draft to send it to yourself.
+            </li>
+            <li>
+              <code>Alt</code> + <code>=</code> / <code>Alt</code> +
+              <code>-</code> — raise or lower today's goal by 15 minutes.
+            </li>
+          </ul>
+          <hr />
+          <h4>Getting around</h4>
+          <ul>
+            <li>
+              <code>Alt</code> + <code>1</code> / <code>2</code> /
+              <code>3</code> — jump to Insights, Logbook or Tasks.
+            </li>
+            <li>
+              <code>Alt</code> + <code>K</code> — open the Logbook, expand the
+              filters and put the cursor in the search box.
+            </li>
+            <li><code>Alt</code> + <code>N</code> — add a shift by hand.</li>
+            <li><code>Alt</code> + <code>T</code> — change theme.</li>
+            <li><code>?</code> — open this guide.</li>
+          </ul>
+          <hr />
+          <h4>Insights</h4>
+          <ul>
+            <li>
+              <code>[</code> and <code>]</code>, or <code>Alt</code> +
+              <code>&larr;</code> / <code>&rarr;</code> — step back and forward
+              through the weeks.
+            </li>
+            <li><code>H</code> — jump back to the current week.</li>
+          </ul>
+          <hr />
+          <h4>Working through a list</h4>
+          <p>
+            First give the list the keyboard's attention: press
+            <code>Alt</code> + <code>K</code>, or press <code>Tab</code> until a
+            row is highlighted. Then use <code>&uarr;</code> and
+            <code>&darr;</code> to move between rows.
+          </p>
+          <p>With a shift highlighted in the Logbook:</p>
+          <ul>
+            <li><code>E</code> — edit it.</li>
+            <li><code>C</code> — copy it to the clipboard.</li>
+            <li><code>N</code> or <code>Enter</code> — read its note.</li>
+            <li>
+              <code>D</code>, <code>Delete</code> or <code>Backspace</code> —
+              delete it, after confirming.
+            </li>
+          </ul>
+          <p>With a task highlighted in Tasks:</p>
+          <ul>
+            <li><code>E</code> or <code>Enter</code> — edit it.</li>
+            <li><code>C</code> — copy it to the clipboard.</li>
+            <li>
+              <code>D</code>, <code>Delete</code> or <code>Backspace</code> —
+              delete it.
+            </li>
+          </ul>
+          <hr />
+          <h4>In dialogs</h4>
+          <ul>
+            <li>
+              <code>Enter</code> — confirms or saves whatever box is open.
+            </li>
+            <li>
+              <code>Escape</code> — leaves a text field, closes the box on top,
+              and clears any highlighted row.
+            </li>
+            <li>
+              <code>Tab</code> — moves between fields, and stays inside the open
+              box rather than wandering off behind it.
+            </li>
+          </ul>
         </div>
       </div>
     </div>
