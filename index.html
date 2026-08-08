@@ -4772,7 +4772,24 @@
         position: fixed;
         top: max(16px, env(safe-area-inset-top));
         left: 50%;
-        height: 44px;
+        /* A toast is centred by a -50% translate, so a box wider than the
+           viewport is clipped at BOTH ends with no scroll to recover it. Width
+           therefore tracks the content only up to what the viewport can hold:
+           the cap, not the length of any one message, is what guarantees a
+           notification is readable on a 320px phone. Insets are honoured so a
+           landscape notch cannot eat an edge either. */
+        width: max-content;
+        max-width: min(
+          440px,
+          calc(
+            100vw - 2 *
+              max(16px, env(safe-area-inset-left), env(safe-area-inset-right))
+          )
+        );
+        /* Height follows the wrapped copy; 44px stays the floor so a one-line
+           toast keeps the pill it has always been and the close button keeps
+           its touch target. */
+        min-height: 44px;
         /* Level 3, blurred, and self-scrimmed on a phone -- see the
            SELF-SCRIMMED GRANT in 3.25. The declaration does not change with
            the viewport or the theme: the axis decides which of the rung's
@@ -4783,15 +4800,19 @@
         backdrop-filter: var(--blur-3);
         color: var(--text-main);
         border: var(--hairline);
-        padding: 0 16px 0 8px;
-        border-radius: 9999px;
+        padding: 8px 16px 8px 8px;
+        /* Half the 44px floor: one line is still a perfect capsule, while a
+           wrapped message becomes a rounded rectangle instead of a lozenge
+           with its text buried in the round ends. */
+        border-radius: 22px;
         font-weight: 600;
         font-size: 0.85rem;
+        line-height: 1.35;
         display: flex;
         gap: 12px;
         align-items: center;
         justify-content: center;
-        white-space: nowrap;
+        text-align: center;
         box-shadow: var(--elev-2);
         transition:
           transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1),
@@ -4810,6 +4831,29 @@
         transform: translate3d(-50%, 0, 0) scale(1) !important;
         opacity: 1 !important;
         pointer-events: auto !important;
+      }
+
+      /* The message is the only part of a toast allowed to give up width.
+         min-width:0 overrides the flex default of min-content, which would
+         otherwise let a long word push the box past its max-width, and
+         overflow-wrap catches the one word that is itself wider than the line
+         (an unspaced path or an error string from a browser). */
+      #undo-toast > span,
+      #sync-toast > span,
+      #goal-toast > span,
+      #app-toast > span {
+        min-width: 0;
+        overflow-wrap: anywhere;
+        text-wrap: pretty;
+      }
+
+      /* Chrome keeps its size: shrinking an icon or a 28px touch target to buy
+         room for text is never the right trade. */
+      #undo-btn,
+      #adjust-undo-btn,
+      .toast-close-btn {
+        flex-shrink: 0;
+        white-space: nowrap;
       }
 
       .island-icon {
@@ -4888,6 +4932,8 @@
         padding: 4px 10px;
         border-radius: 9999px;
         letter-spacing: 0.02em;
+        flex-shrink: 0;
+        white-space: nowrap;
       }
 
       .toast-close-btn {
@@ -7614,7 +7660,7 @@
           <g data-sprite="sprite-003"></g>
         </svg>
       </div>
-      <span>Shift Logged Successfully</span>
+      <span>Shift Logged</span>
       <button id="undo-btn">Undo</button>
       <button
         class="toast-close-btn"
@@ -13249,7 +13295,7 @@
         const toast = DOM.appToast;
         if (toast) toast.classList.remove("toast-visible");
 
-        showAppToast("Adjustment successfully undone.", "success");
+        showAppToast("Adjustment undone", "success");
       };
 
       function parseTime(str) {
@@ -14688,6 +14734,14 @@
             "). Timers rebased.",
         );
 
+        /* The anomaly is always logged -- diagnostics want every step. The
+           toast is not: it claims "timers corrected", and with no segment in
+           flight there was nothing to correct. Rebasing still happened (it
+           keeps stored timestamps honest), but announcing it to a user who is
+           off the clock is a false alarm, so the reload and idle-lock paths
+           stay silent. */
+        if (!state || state.currentMode === null || state.idleLock) return;
+
         const magnitude = Math.abs(deltaMs);
         if (magnitude < CLOCK_NOTIFY_THRESHOLD_MS) return;
         if (entry.at - lastClockNotifyAt < CLOCK_NOTIFY_COOLDOWN_MS) return;
@@ -14700,9 +14754,7 @@
               ? Math.round(secs / 60) + " min"
               : secs + (secs === 1 ? " sec" : " secs");
           showAppToast(
-            "System clock changed by " +
-              human +
-              ". Your timers were corrected automatically.",
+            "Clock changed by " + human + " — timers corrected",
             "warning",
           );
         }
@@ -14877,9 +14929,9 @@
         if (now - lastQuotaWarnAt < STORAGE_PRESSURE_WARN_COOLDOWN_MS) return;
         lastQuotaWarnAt = now;
         showAppToast(
-          "Storage is " +
+          "Storage " +
             Math.round(est.ratio * 100) +
-            "% full. Export a JSON backup soon to avoid losing history.",
+            "% full — export a JSON backup soon",
           "warning",
         );
       }
@@ -14954,7 +15006,7 @@
             "Existing mirror left intact; it is now out of date.",
         );
         showAppToast(
-          "Storage full: the local backup is out of date. Export a JSON backup now.",
+          "Storage full — backup is stale. Export JSON now",
           "error",
         );
         return false;
@@ -15040,10 +15092,7 @@
         try {
           const db = await dbPromise;
           if (isDbReloading) {
-            showAppToast(
-              "Database syncing. Please wait a moment and try again.",
-              "warning",
-            );
+            showAppToast("Syncing — try again in a moment", "warning");
             return Promise.reject(
               new Error("Database is currently syncing with another tab."),
             );
@@ -15380,7 +15429,7 @@
             .catch((err) => {
               console.error("Cross-tab log reload failed:", err);
               showAppToast(
-                "Cross-tab sync failed. Data may be stale.",
+                "Cross-tab sync failed — data may be stale",
                 "error",
               );
               isDbReloading = false;
@@ -15698,7 +15747,7 @@
             renderTimersOnly();
             renderLogbook();
             renderInsights();
-            showSyncToast("Tab takeover successful. Session synchronized");
+            showSyncToast("Tab takeover complete — session synced");
             acquireLease();
           });
         };
@@ -15994,10 +16043,7 @@
         if (isDbReloading) {
           _pendingWriteAfterReload = logs.map((l) => ({ ...l }));
           if (!options.silent) {
-            showAppToast(
-              "Database syncing. Please wait a moment and try again.",
-              "warning",
-            );
+            showAppToast("Syncing — try again in a moment", "warning");
           }
           return Promise.reject(
             new Error("Database is currently syncing with another tab."),
@@ -16005,7 +16051,7 @@
         }
         if (!isDatabaseHealthy && window.location.protocol !== "file:") {
           showAppToast(
-            "Save blocked: Database read failed on startup. Please reload the page.",
+            "Save blocked — database unreadable. Reload the page",
             "error",
           );
           return Promise.reject(new Error("Database read failed on startup."));
@@ -17853,7 +17899,7 @@
         } catch (err) {
           if (mailTab && !mailTab.closed) mailTab.close();
           console.error("EOD Submit failed:", err);
-          showAppToast("Shift submission failed. Please try again.", "error");
+          showAppToast("Shift submission failed — try again", "error");
           DOM.modalShiftNotes.value = notes;
           DOM.submitModal.style.display = "flex";
         }
@@ -17970,7 +18016,7 @@
             if (mailTab && !mailTab.closed) mailTab.close();
             window.location.href = mailtoUrl;
           }
-          showAppToast("EOD complete: Summary prepared for email!");
+          showAppToast("EOD complete — summary ready to email");
         };
 
         if (navigator.clipboard && window.ClipboardItem) {
@@ -19083,9 +19129,7 @@
           name = null;
         }
         if (name === null) {
-          showAppToast(
-            "Could not open name input. Try a different browser context",
-          );
+          showAppToast("Could not open name input here");
           return;
         }
         const cleanName = name.trim();
@@ -19124,7 +19168,7 @@
 
         DOM.filterViewPresets.value = cleanName;
         saveActiveFilters();
-        showAppToast(`Saved view "${cleanName}" successfully`);
+        showAppToast(`Saved view "${cleanName}"`);
       };
 
       /**
@@ -19223,7 +19267,7 @@
           selectedName === "Overtime Shifts" ||
           selectedName === "Logged Notes Only"
         ) {
-          showAppToast("Default system views cannot be deleted", "warning");
+          showAppToast("Default views can't be deleted", "warning");
           return;
         }
 
@@ -19241,7 +19285,7 @@
             localStorage.setItem(VIEWS_KEY, JSON.stringify(views));
             loadSavedFilterViews();
             clearFilters();
-            showAppToast(`Deleted saved view "${selectedName}"`);
+            showAppToast(`Deleted view "${selectedName}"`);
           },
           true,
         );
@@ -22587,7 +22631,7 @@
         );
         saveTaskLogs();
         if (typeof renderTaskLogbook === "function") renderTaskLogbook();
-        showAppToast("Task updated successfully", "success");
+        showAppToast("Task updated", "success");
         closeEditTaskModal();
       };
 
@@ -22685,7 +22729,7 @@
         );
         saveTaskLogs();
         if (typeof renderTaskLogbook === "function") renderTaskLogbook();
-        showAppToast("Manual task added successfully", "success");
+        showAppToast("Task added", "success");
         closeManualTaskModal();
       };
 
@@ -22730,10 +22774,7 @@
         if (bSec !== null) bSec = Math.min(bSec, 86400);
 
         if (wSec !== null && bSec !== null && wSec + bSec > 86400) {
-          showAppToast(
-            "Total shift duration cannot exceed 24 hours.",
-            "warning",
-          );
+          showAppToast("Shift cannot exceed 24 hours", "warning");
           return;
         }
 
@@ -22745,7 +22786,7 @@
         const goal = gh * 3600 + gm * 60 + gs || 1;
 
         if (goal > 86400) {
-          showAppToast("Goal cannot exceed 24 hours.", "warning");
+          showAppToast("Goal cannot exceed 24 hours", "warning");
           return;
         }
 
@@ -22804,7 +22845,7 @@
           derivedLogoutEpochMs = Math.floor(derivedLogoutEpochMs / 1000) * 1000;
 
           if (epochMs > Date.now() + 172800000) {
-            showAppToast("Date is too far in the future.", "warning");
+            showAppToast("Date is too far in the future", "warning");
             return;
           }
 
@@ -22887,11 +22928,11 @@
               );
               await saveLogs(logs);
               closeEditModal();
-              showAppToast("Shift updated successfully");
+              showAppToast("Shift updated");
             } catch (err) {
               Object.assign(log, logBackup);
               isEditSubmitting = false;
-              showAppToast("Failed to save shift edit.", "error");
+              showAppToast("Could not save shift edit", "error");
               console.error("Shift edit save failed:", err);
             }
           };
@@ -22943,7 +22984,7 @@
             const logs = getLogs();
             const pos = logs.findIndex((l) => l.id === logId);
             if (pos === -1) {
-              showAppToast("Shift was already deleted.");
+              showAppToast("Shift was already deleted");
               return;
             }
             const delLog = logs[pos];
@@ -22960,7 +23001,7 @@
               showAppToast("Shift deleted");
             } catch (err) {
               logs.splice(pos, 0, delLog);
-              showAppToast("Failed to delete shift.", "error");
+              showAppToast("Could not delete shift", "error");
               console.error("Shift delete failed:", err);
             }
           },
@@ -23048,7 +23089,7 @@
         a.download = `nodrift-backup-${exportNameDateFormatter.format(new Date())}.json`;
         a.click();
         requestAnimationFrame(() => URL.revokeObjectURL(a.href));
-        showAppToast("JSON Backup created");
+        showAppToast("JSON backup created");
       }
 
       /**
@@ -23556,9 +23597,9 @@
             saveLogs(finalLogs);
           }
 
-          let toastMsg = "Data verified. No changes detected";
+          let toastMsg = "Data verified — no changes";
           if (logsAddedCount > 0 || logsOverwrittenCount > 0) {
-            toastMsg = `Imported: ${logsAddedCount} new, ${logsOverwrittenCount} overwritten shifts`;
+            toastMsg = `Imported ${logsAddedCount} new, ${logsOverwrittenCount} updated shifts`;
           }
           showSyncToast(toastMsg);
 
@@ -23638,7 +23679,7 @@
         const filteredLogs = getFilteredLogs().filter((l) => !l.isLeaveRecord);
 
         if (!filteredLogs.length) {
-          showAppToast("No logs found to copy");
+          showAppToast("No logs to copy");
           return;
         }
 
@@ -23705,7 +23746,7 @@
 
         const writeToClipboard = () => {
           if (filteredLogs.length === allLogs.length) {
-            showAppToast(`Copied all ${filteredLogs.length} logs to clipboard`);
+            showAppToast(`Copied all ${filteredLogs.length} logs`);
           } else {
             showAppToast(`Copied ${filteredLogs.length} filtered logs`);
           }
@@ -23920,7 +23961,7 @@
                 });
                 console.error("Factory reset aborted", err);
                 showAppToast(
-                  "Wipe incomplete — your logs could not be deleted. Please try again.",
+                  "Wipe incomplete — logs could not be deleted",
                   "error",
                 );
               });
@@ -24201,7 +24242,7 @@
 
               if (activeWork > 0) {
                 showSyncToast(
-                  "Midnight rollover: Yesterday's shift auto-saved.",
+                  "Midnight rollover — yesterday's shift saved",
                   true,
                 );
               }
@@ -24995,7 +25036,7 @@
 
           const newTheme = toggleTheme();
           const displayName = friendlyNames[newTheme] || newTheme;
-          showAppToast(`Theme switched to ${displayName}`);
+          showAppToast(`Theme: ${displayName}`);
         }
 
         // Alt+Plus/Minus adjusts goal
@@ -25133,9 +25174,7 @@
               let htmlOut = `<table style="border-collapse: collapse; font-family: sans-serif; font-size: 14px;"><tr><td style="padding-right: 16px; white-space: nowrap; font-weight: 600;">[${log.date} - ${dayNameShort}]</td><td style="padding-right: 16px; white-space: nowrap;">${bW}${formatDuration(log.workSec)}</td><td style="padding-right: 16px; white-space: nowrap;">${bB}${formatDuration(log.breakSec)}</td><td style="padding-right: 16px; white-space: nowrap;">${bG}${formatDuration(goal)}</td><td style="white-space: nowrap;">${htmlDiff}</td></tr></table>`;
 
               const writeSuccess = () => {
-                showAppToast(
-                  `Shift summary for ${log.date} copied to clipboard`,
-                );
+                showAppToast(`Copied summary for ${log.date}`);
               };
 
               if (navigator.clipboard && window.ClipboardItem) {
@@ -25461,7 +25500,7 @@
 
         const rawInput = (rawInputStr || "").trim().toLowerCase();
         if (!rawInput) {
-          showAppToast("Enter an adjustment (e.g., +15m, -5m 30s).", "warning");
+          showAppToast("Enter an adjustment, e.g. +15m or -5m 30s", "warning");
           return false;
         }
 
@@ -25483,7 +25522,7 @@
           .trim();
         if (!cleanedInput) {
           showAppToast(
-            "Enter a valid duration (e.g., +15m, -5m 30s).",
+            "Enter a valid duration, e.g. +15m or -5m 30s",
             "warning",
           );
           return false;
@@ -25496,15 +25535,12 @@
         );
 
         if (isNaN(totalSec) || totalSec === 0) {
-          showAppToast(
-            "Could not parse time. Try: +15m, -1h 30m, 45s.",
-            "warning",
-          );
+          showAppToast("Could not parse. Try +15m, -1h 30m, 45s", "warning");
           return false;
         }
 
         if (totalSec > 86400) {
-          showAppToast("Maximum adjustment is 24 hours.", "warning");
+          showAppToast("Maximum adjustment is 24 hours", "warning");
           return false;
         }
 
@@ -25555,7 +25591,7 @@
             if (deficitSec > maxPermissibleDeficit) {
               deficitSec = maxPermissibleDeficit;
               showAppToast(
-                "Adjustment bounded to protect active break records.",
+                "Adjustment capped to protect break records",
                 "warning",
               );
             }
@@ -25584,7 +25620,7 @@
             }
           } else {
             // Mode is null (should not happen given the guard above, but be safe)
-            showAppToast("No active timer to adjust.", "warning");
+            showAppToast("No active timer to adjust", "warning");
             return false;
           }
 
@@ -25737,10 +25773,7 @@
 
       window.onGoalAutopopulateToggleChange = function () {
         if (state.loginTimestamp) {
-          showAppToast(
-            "Cannot toggle auto-populate during an active shift.",
-            "warning",
-          );
+          showAppToast("Can't change auto-populate during a shift", "warning");
           DOM.goalAutopopulateToggle.checked = state.goalAutopopulateEnabled;
           return;
         }
@@ -25847,7 +25880,7 @@
         try {
           const target = await readSnapshot(index);
           if (!target || !Array.isArray(target.logs)) {
-            showAppToast("Snapshot could not be read.", "error");
+            showAppToast("Snapshot could not be read", "error");
             return;
           }
 
@@ -25867,14 +25900,14 @@
               renderTimersOnly();
               renderLogbook();
               renderInsights();
-              showAppToast(`Logs reverted to ${target.date} snapshot.`);
+              showAppToast(`Logs reverted to ${target.date} snapshot`);
               DOM.snapshotRestoreSelect.value = "";
             },
             false,
             "Restore",
           );
         } catch (e) {
-          showAppToast("Error restoring snapshot.");
+          showAppToast("Could not restore snapshot");
         }
       };
 
@@ -26140,7 +26173,7 @@
         const goal = gh * 3600 + gm * 60 + gs || 1;
 
         if (goal > 86400) {
-          showAppToast("Goal cannot exceed 24 hours.", "warning");
+          showAppToast("Goal cannot exceed 24 hours", "warning");
           return;
         }
 
@@ -26151,10 +26184,7 @@
         if (bSec !== null) bSec = Math.min(bSec, 86400);
 
         if (wSec !== null && bSec !== null && wSec + bSec > 86400) {
-          showAppToast(
-            "Total shift duration cannot exceed 24 hours.",
-            "warning",
-          );
+          showAppToast("Shift cannot exceed 24 hours", "warning");
           return;
         }
 
@@ -26289,13 +26319,13 @@
             try {
               await saveLogs(logs);
               closeManualModal();
-              showAppToast("Manual shift added successfully", "success");
+              showAppToast("Shift added", "success");
             } catch (err) {
               const revertIdx = logs.findIndex((l) => l.id === entry.id);
               if (revertIdx > -1) logs.splice(revertIdx, 1);
               isManualSubmitting = false;
               console.error("Manual save failed:", err);
-              showAppToast("Failed to save manual shift.", "error");
+              showAppToast("Could not save shift", "error");
             }
           };
 
@@ -26395,10 +26425,7 @@
         } catch (e) {
           window.storageWriteError = true;
           console.warn("Task logs storage write failed", e);
-          showAppToast(
-            "Storage full! Task log could not be saved locally.",
-            "error",
-          );
+          showAppToast("Storage full — task log not saved", "error");
         }
       }
 
@@ -26546,7 +26573,7 @@
             cachedTaskLogs.unshift(newTask);
             saveTaskLogs();
             if (typeof renderTaskLogbook === "function") renderTaskLogbook();
-            showAppToast("Task saved successfully", "success");
+            showAppToast("Task saved", "success");
           }
 
           resetTaskUI();
@@ -27029,10 +27056,10 @@
             .writeText(txt)
             .then(() => showAppToast("Task copied to clipboard"))
             .catch((err) =>
-              showAppToast("Clipboard write permission denied", "warning"),
+              showAppToast("Clipboard permission denied", "warning"),
             );
         } else {
-          showAppToast("Clipboard API unavailable in this context", "warning");
+          showAppToast("Clipboard unavailable here", "warning");
         }
       };
 
@@ -27065,14 +27092,12 @@
         if (navigator.clipboard && navigator.clipboard.writeText) {
           navigator.clipboard
             .writeText(txt)
-            .then(() =>
-              showAppToast(`Copied ${tasksToCopy.length} tasks to clipboard`),
-            )
+            .then(() => showAppToast(`Copied ${tasksToCopy.length} tasks`))
             .catch((err) =>
-              showAppToast("Clipboard write permission denied", "warning"),
+              showAppToast("Clipboard permission denied", "warning"),
             );
         } else {
-          showAppToast("Clipboard API unavailable in this context", "warning");
+          showAppToast("Clipboard unavailable here", "warning");
         }
       });
 
@@ -27188,7 +27213,7 @@
 
         const parsed = parseGoalTimeStr(goalTimeEl.value);
         if (parsed.hh === null) {
-          showAppToast("Invalid goal format.", "warning");
+          showAppToast("Invalid goal format", "warning");
           const revertH = parseInt(safeGetLocalStorage(GOAL_H_KEY) || "8", 10);
           const revertM = parseInt(safeGetLocalStorage(GOAL_M_KEY) || "0", 10);
           const revertS = parseInt(safeGetLocalStorage(GOAL_S_KEY) || "0", 10);
@@ -27201,7 +27226,7 @@
         const newGoalSecs = hh * 3600 + mm * 60 + ss;
 
         if (newGoalSecs > 86400) {
-          showAppToast("Goal cannot exceed 24 hours.", "warning");
+          showAppToast("Goal cannot exceed 24 hours", "warning");
           const revertH = parseInt(safeGetLocalStorage(GOAL_H_KEY) || "8", 10);
           const revertM = parseInt(safeGetLocalStorage(GOAL_M_KEY) || "0", 10);
           const revertS = parseInt(safeGetLocalStorage(GOAL_S_KEY) || "0", 10);
@@ -27561,12 +27586,12 @@
         if (!input) return;
         const cleanName = String(input.value || "").trim();
         if (!cleanName) {
-          showAppToast("Please enter a leave type name", "warning");
+          showAppToast("Enter a leave type name", "warning");
           return;
         }
         if (cleanName.length > MAX_LEAVE_TYPE_NAME_LENGTH) {
           showAppToast(
-            `Leave type name must be ${MAX_LEAVE_TYPE_NAME_LENGTH} characters or fewer`,
+            `Leave type: max ${MAX_LEAVE_TYPE_NAME_LENGTH} characters`,
             "warning",
           );
           return;
@@ -27825,12 +27850,12 @@
         const leaveType = typeSelect ? typeSelect.value : "Casual";
 
         if (!leaveType) {
-          showAppToast("Please add or select a leave type first", "warning");
+          showAppToast("Select a leave type first", "warning");
           return;
         }
 
         if (!val) {
-          showAppToast("Please select a valid date", "warning");
+          showAppToast("Select a valid date", "warning");
           return;
         }
 
@@ -27981,7 +28006,7 @@
           closePresetModal();
           showAppToast(`Preset updated to ${newVal}h`);
         } else {
-          showAppToast("Please enter a valid number (0-24)", "warning");
+          showAppToast("Enter a number from 0 to 24", "warning");
         }
       };
 
@@ -28058,7 +28083,7 @@
         if (totalSecs < 900) totalSecs = 900;
 
         if (totalSecs > 86400) {
-          showAppToast("Goal cannot exceed 24 hours.", "warning");
+          showAppToast("Goal cannot exceed 24 hours", "warning");
           return;
         }
 
@@ -29747,7 +29772,7 @@
                 e,
               );
               showAppToast(
-                "Storage full! State changes cannot be saved locally. Please export JSON.",
+                "Storage full — changes not saved. Export JSON",
                 "error",
               );
             }
@@ -30019,7 +30044,7 @@
           cachedLogs = [];
           isDatabaseHealthy = false;
           showAppToast(
-            "Database read failed. Writes are disabled to protect historical data.",
+            "Database unreadable — writes disabled to protect history",
             "error",
           );
         } else if (window.loadedFromMirror) {
@@ -30028,8 +30053,7 @@
              so a partial view can never be written back over a full database. */
           isDatabaseHealthy = false;
           showAppToast(
-            "Database unavailable - showing the local backup copy. Writes are " +
-              "disabled so your full history is not overwritten. Reload to retry.",
+            "Showing local backup — writes disabled. Reload to retry",
             "error",
           );
         }
