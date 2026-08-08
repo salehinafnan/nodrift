@@ -4232,21 +4232,21 @@
          specificity zero.
          ===================================================================== */
       :is(
-          #bst-clock,
-          .progress-rail,
-          .log-row,
-          .stat-card,
-          .breakdown-row,
-          .timer-val
-        ):has(
-          .view-container,
-          .tz-container,
-          .goal-container,
-          .theme-container,
-          .heatmap-year-container,
-          .custom-select,
-          .idle-popup
-        ) {
+        #bst-clock,
+        .progress-rail,
+        .log-row,
+        .stat-card,
+        .breakdown-row,
+        .timer-val
+      ):has(
+        .view-container,
+        .tz-container,
+        .goal-container,
+        .theme-container,
+        .heatmap-year-container,
+        .custom-select,
+        .idle-popup
+      ) {
         contain: none;
         /* Raised only as far as the rung the popover itself sits on, so a host
            can never outrank the sheet, a modal or a toast. */
@@ -15131,7 +15131,8 @@
                 db.close();
               } catch (e) {}
               isDbReloading = true;
-              if (typeof hardReloadApp === "function") hardReloadApp(300, false);
+              if (typeof hardReloadApp === "function")
+                hardReloadApp(300, false);
             };
             resolve(db);
           };
@@ -16838,7 +16839,10 @@
           return 0;
         }
 
-        const measured = Math.max(0, (Date.now() - state.sessionAnchorWall) / 1000);
+        const measured = Math.max(
+          0,
+          (Date.now() - state.sessionAnchorWall) / 1000,
+        );
         const floor = state.activeSegmentFloorSec || 0;
         const elapsed = measured > floor ? measured : floor;
 
@@ -25475,7 +25479,12 @@
         }
 
         const popup = DOM.adjustTimePopup;
-        if (popup && popup.classList.contains("show") && DOM.adjustSmartInput && !isPhoneLayout()) {
+        if (
+          popup &&
+          popup.classList.contains("show") &&
+          DOM.adjustSmartInput &&
+          !isPhoneLayout()
+        ) {
           DOM.adjustSmartInput.focus();
         }
       };
@@ -25495,16 +25504,16 @@
           window.closeAdjustPopup();
         } else {
           _syncAdjustPopupContext();
-            popup.classList.add("show");
+          popup.classList.add("show");
 
-            const smartInput = DOM.adjustSmartInput;
-            if (smartInput && !smartInput.disabled && !isPhoneLayout()) {
-              smartInput.focus();
-              smartInput.select();
-            }
+          const smartInput = DOM.adjustSmartInput;
+          if (smartInput && !smartInput.disabled && !isPhoneLayout()) {
+            smartInput.focus();
+            smartInput.select();
+          }
 
-            if (adjustPopupAbortController) {
-              adjustPopupAbortController.abort();
+          if (adjustPopupAbortController) {
+            adjustPopupAbortController.abort();
           }
 
           adjustPopupAbortController = new AbortController();
@@ -26052,7 +26061,10 @@
       let snapshotIndex = [];
 
       function snapshotsUsingFallback() {
-        return window.location.protocol === "file:" || typeof indexedDB === "undefined";
+        return (
+          window.location.protocol === "file:" ||
+          typeof indexedDB === "undefined"
+        );
       }
 
       /* file:// has no IndexedDB, so a bounded localStorage tier is retained
@@ -26181,7 +26193,9 @@
         if (snapshotsUsingFallback()) {
           try {
             const all = [record]
-              .concat(readFallbackSnapshots().filter((s) => s.date !== todayStr))
+              .concat(
+                readFallbackSnapshots().filter((s) => s.date !== todayStr),
+              )
               .slice(0, FALLBACK_SNAPSHOT_RETENTION);
             localStorage.setItem(LS_LEGACY_SNAPSHOT_KEY, JSON.stringify(all));
           } catch (e) {
@@ -26191,7 +26205,10 @@
             try {
               localStorage.removeItem(LS_LEGACY_SNAPSHOT_KEY);
             } catch (e2) {}
-            console.warn("Fallback snapshot skipped: no room in localStorage", e);
+            console.warn(
+              "Fallback snapshot skipped: no room in localStorage",
+              e,
+            );
           }
           return;
         }
@@ -30239,7 +30256,11 @@
            close to their quota is exactly who needs the space back soonest.
            Runs at most once: afterwards the stored payload no longer matches. */
         try {
-          if (!window.loadedFromMirror && !isRemoteFactoryReset && cachedLogs.length) {
+          if (
+            !window.loadedFromMirror &&
+            !isRemoteFactoryReset &&
+            cachedLogs.length
+          ) {
             const storedMirror = safeGetLocalStorage(LS_MIRROR_KEY);
             if (storedMirror && storedMirror.indexOf('"searchStr"') !== -1) {
               writeEmergencyMirror(cachedLogs);
