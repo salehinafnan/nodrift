@@ -6884,7 +6884,7 @@
         #m-sheet::after {
           content: "";
           position: absolute;
-          inset: 0;
+          inset: calc(-1 * var(--hairline-width)) 0 0 0;
           /* Above the sheet's content, below the popup at --z-overlay - 1. */
           z-index: calc(var(--z-overlay) - 2);
           border-radius: inherit;
@@ -7021,7 +7021,13 @@
            box would centre it just as well and quietly break text-align on
            every row that sets one. */
         .custom-select-option {
-          min-height: 44px;
+          min-height: 36px;
+        }
+
+        .custom-select-panel.cs-compact .custom-select-option,
+        .view-presets .custom-select-option {
+          min-height: 28px;
+          padding: 4px 8px;
         }
 
         .date-picker-group button.preset-pill {
@@ -12853,9 +12859,6 @@
                               padding: 0 4px;
                               font-size: 0.75rem;
                               text-align: center;
-                              font-family: var(--font-mono);
-                              font-weight: 700;
-                              color: var(--accent-blue);
                             "
                             onfocus="this.select()"
                             onblur="onIdleInputBlur(this.value)"
@@ -14130,6 +14133,7 @@
         breakAccumulated: 0,
         currentMode: null,
         sessionAnchorWall: null, // This is our single primary Wall-clock anchor
+        activeSegmentFloorSec: 0, // Ratchet: elapsed inside a segment never decreases
         loginTimestamp: null,
         activeDate: null,
         idleLock: false,
@@ -14143,7 +14147,6 @@
         autoBackupEnabled: false, // New property for silent backup
         idleType: null,
         lastHeartbeatWall: null,
-        lastHeartbeatMonotonic: null,
         tabHiddenAt: null,
         trackingMode: "intelligent", // 'simple' or 'intelligent'
         goalAutopopulateEnabled: true,
@@ -14695,12 +14698,392 @@
       }
 
       /*==========================================================================
-       * 4. LOCAL TIME SYNCHRONIZATION ENGINE
+       * 4. DUAL-CLOCK RECONCILIATION ENGINE
+       *
+       * Two clocks are available to the page and neither is trustworthy alone:
+       *
+       *   Date.now()          Wall clock. Tracks real elapsed time across system
+       *                       sleep, but is NON-MONOTONIC: the OS can step it at
+       *                       any moment (NTP correction, manual change, VM resume,
+       *                       RTC drift correction). A step silently adds or erases
+       *                       time from any duration derived by subtraction.
+       *
+       *   performance.now()   Monotonic clock. Immune to system clock steps, but is
+       *                       relative to THIS document (resets to 0 on reload) and
+       *                       may or may not advance across system suspend depending
+       *                       on platform. Never persist it.
+       *
+       * Strategy: wall clock remains the basis for all durations (so genuine elapsed
+       * time, including sleep, is preserved and product behaviour is unchanged), and
+       * the monotonic clock is used purely as a DISCONTINUITY DETECTOR. When the two
+       * clocks disagree by more than a threshold over an interval where they should
+       * have advanced together, the difference is a system clock step, and every
+       * in-flight wall timestamp is rebased onto the corrected timeline. Durations
+       * are therefore continuous across clock steps, and absolute labels are pulled
+       * onto true time rather than left on the stale one.
        * =========================================================================*/
 
-      /* Fallback local time provider using the client system's system epoch clock. */
-      function getTrueTime() {
+      /* Divergence beyond this over a reconciled window is treated as a clock step
+         rather than timer jitter. Well above scheduler noise, well below anything a
+         user would notice as lost time. */
+      const CLOCK_STEP_THRESHOLD_MS = 2000;
+      /* Longest monotonic gap over which a forward divergence can still be
+         attributed to a clock step. Beyond this the tab may have been frozen or the
+         machine suspended, and a forward wall gap is indistinguishable from real
+         elapsed time, so it is left alone and handled by the idle-lock system. */
+      const CLOCK_RECONCILE_MAX_GAP_MS = 30000;
+      /* Only surface a correction to the user above this magnitude, to avoid
+         nagging about sub-minute NTP nudges that were already handled silently. */
+      const CLOCK_NOTIFY_THRESHOLD_MS = 10000;
+      const CLOCK_NOTIFY_COOLDOWN_MS = 60000;
+      const CLOCK_ANOMALY_LOG_LIMIT = 20;
+
+      const CLOCK_HAS_PERF =
+        typeof performance !== "undefined" &&
+        typeof performance.now === "function";
+
+      /* Monotonic reading in ms. Falls back to the wall clock on ancient engines,
+         in which case reconciliation self-disables (divergence is always 0). */
+      function monoNow() {
+        return CLOCK_HAS_PERF ? performance.now() : Date.now();
+      }
+
+      /* Wall-clock reading from the host system clock.
+         NOTE: this is the local OS clock, NOT a synchronized time source. It is
+         correct for absolute labels only after reconcileSystemClock() has had a
+         chance to rebase. Never derive a duration from it without an anchor that
+         passes through applyClockStep(). */
+      function getLocalTime() {
         return Date.now();
+      }
+
+      /* Paired wall/monotonic reading from the last reconciliation. Deliberately
+         module-scoped and NEVER persisted: a DOMHighResTimeStamp is meaningless
+         outside the document that produced it. */
+      let clockHeartbeat = null;
+      let lastClockNotifyAt = 0;
+      let clockAnomalies = [];
+
+      /* Every state field holding a wall-clock instant that is still compared
+         against "now". Committed logbook entries are deliberately excluded: those
+         are historical records, not in-flight measurements. */
+      const CLOCK_REBASE_STATE_KEYS = [
+        "sessionAnchorWall",
+        "loginTimestamp",
+        "idleStart",
+        "idleWakeup",
+        "lastActivity",
+        "lastHeartbeatWall",
+        "tabHiddenAt",
+      ];
+
+      function rebaseTimestampBag(bag, deltaMs) {
+        if (!bag || typeof bag !== "object") return;
+        for (let i = 0; i < CLOCK_REBASE_STATE_KEYS.length; i++) {
+          const k = CLOCK_REBASE_STATE_KEYS[i];
+          const v = bag[k];
+          if (typeof v === "number" && isFinite(v)) bag[k] = v + deltaMs;
+        }
+      }
+
+      /* Shifts every in-flight wall timestamp by deltaMs so that all live durations
+         survive a system clock step unchanged, and absolute labels land on the
+         corrected timeline. */
+      function applyClockStep(deltaMs) {
+        if (!deltaMs || !isFinite(deltaMs)) return;
+
+        rebaseTimestampBag(state, deltaMs);
+        rebaseTimestampBag(lastStateBackup, deltaMs);
+        rebaseTimestampBag(lastAdjustmentStateBackup, deltaMs);
+
+        if (typeof lastActivity === "number" && isFinite(lastActivity)) {
+          lastActivity += deltaMs;
+        }
+        if (
+          typeof lastActivityRegisterTime === "number" &&
+          isFinite(lastActivityRegisterTime) &&
+          lastActivityRegisterTime > 0
+        ) {
+          lastActivityRegisterTime += deltaMs;
+        }
+        if (typeof lastTickTime === "number" && isFinite(lastTickTime)) {
+          lastTickTime += deltaMs;
+        }
+        if (
+          taskState &&
+          typeof taskState.startTimeMs === "number" &&
+          isFinite(taskState.startTimeMs)
+        ) {
+          taskState.startTimeMs += deltaMs;
+        }
+      }
+
+      function recordClockAnomaly(deltaMs, reason) {
+        const entry = {
+          at: Date.now(),
+          deltaMs: Math.round(deltaMs),
+          reason: reason || "tick",
+        };
+        clockAnomalies.unshift(entry);
+        if (clockAnomalies.length > CLOCK_ANOMALY_LOG_LIMIT) {
+          clockAnomalies.length = CLOCK_ANOMALY_LOG_LIMIT;
+        }
+        console.warn(
+          "System clock step detected: " +
+            entry.deltaMs +
+            "ms (" +
+            entry.reason +
+            "). Timers rebased.",
+        );
+
+        const magnitude = Math.abs(deltaMs);
+        if (magnitude < CLOCK_NOTIFY_THRESHOLD_MS) return;
+        if (entry.at - lastClockNotifyAt < CLOCK_NOTIFY_COOLDOWN_MS) return;
+        lastClockNotifyAt = entry.at;
+
+        if (typeof showAppToast === "function") {
+          const secs = Math.round(magnitude / 1000);
+          const human =
+            secs >= 60
+              ? Math.round(secs / 60) + " min"
+              : secs + (secs === 1 ? " sec" : " secs");
+          showAppToast(
+            "System clock changed by " +
+              human +
+              ". Your timers were corrected automatically.",
+            "warning",
+          );
+        }
+      }
+
+      /**
+       * Compares wall-clock and monotonic advance since the last reconciliation and
+       * rebases all in-flight timestamps if the system clock has stepped.
+       * @param {string} reason - Call site tag, recorded in the anomaly log.
+       * @returns {number} The applied correction in ms (0 when the clocks agree).
+       */
+      function reconcileSystemClock(reason) {
+        const nowWall = Date.now();
+        const nowMono = monoNow();
+
+        if (!clockHeartbeat) {
+          clockHeartbeat = { wall: nowWall, mono: nowMono };
+          return 0;
+        }
+
+        const monoDelta = nowMono - clockHeartbeat.mono;
+        const wallDelta = nowWall - clockHeartbeat.wall;
+        const divergence = wallDelta - monoDelta;
+
+        let step = 0;
+        if (CLOCK_HAS_PERF && Math.abs(divergence) > CLOCK_STEP_THRESHOLD_MS) {
+          if (monoDelta >= 0 && monoDelta <= CLOCK_RECONCILE_MAX_GAP_MS) {
+            /* Both clocks were running and observable across a short window:
+               any divergence is unambiguously a clock step. */
+            step = divergence;
+          } else if (wallDelta < 0) {
+            /* Long or unmeasurable monotonic gap, but the wall clock moved
+               BACKWARD. A wall clock can never legitimately go backward, so this
+               is a step regardless of how long the gap was. */
+            step = divergence;
+          }
+          /* Remaining case: long gap with a forward wall jump. Indistinguishable
+             from genuine suspend/freeze, so it is left to the idle-lock system,
+             which asks the user rather than guessing. */
+        }
+
+        if (step !== 0) {
+          applyClockStep(step);
+          recordClockAnomaly(step, reason);
+        }
+
+        clockHeartbeat = { wall: nowWall, mono: nowMono };
+        return step;
+      }
+
+      /* Re-baselines the heartbeat pair without attempting a correction. Used after
+         deliberate timeline edits so the next reconcile does not misread them. */
+      function markClockHeartbeat() {
+        clockHeartbeat = { wall: Date.now(), mono: monoNow() };
+      }
+
+      /**
+       * Cross-reload clock step recovery. performance.now() cannot bridge documents,
+       * so the newest persisted wall timestamp is the only witness to the pre-reload
+       * timeline. If that witness sits in the future, the clock moved backward while
+       * the app was closed; rebasing by the observed difference preserves every
+       * accumulated duration instead of clamping them away.
+       */
+      function reconcileClockOnLoad() {
+        const now = Date.now();
+        let witness = 0;
+        for (let i = 0; i < CLOCK_REBASE_STATE_KEYS.length; i++) {
+          const v = state[CLOCK_REBASE_STATE_KEYS[i]];
+          if (typeof v === "number" && isFinite(v) && v > witness) witness = v;
+        }
+        if (witness > now + CLOCK_STEP_THRESHOLD_MS) {
+          const step = now - witness;
+          applyClockStep(step);
+          recordClockAnomaly(step, "reload");
+        }
+        markClockHeartbeat();
+      }
+
+      window.getClockDiagnostics = function () {
+        return {
+          hasMonotonicClock: CLOCK_HAS_PERF,
+          heartbeat: clockHeartbeat,
+          anomalies: clockAnomalies.slice(),
+        };
+      };
+
+      /*==========================================================================
+       * 4b. STORAGE MANAGER
+       *
+       * localStorage is a hard-capped (~5MB), synchronous, origin-wide bucket.
+       * It is the emergency mirror only - never the primary store, and never a
+       * place to keep more than one copy of anything. Everything here exists to
+       * keep that bucket small, to notice when it is filling BEFORE a write
+       * fails, and to guarantee that a write which cannot be honoured is
+       * reported rather than silently downgraded.
+       * =========================================================================*/
+
+      const LS_MIRROR_KEY = "production_logs_emergency_backup";
+      const LS_LEGACY_SNAPSHOT_KEY = "production_snapshots_v1";
+      /* Warn once the origin is this full: leaves headroom to export before any
+         write actually starts failing. */
+      const STORAGE_PRESSURE_WARN_RATIO = 0.8;
+
+      /* Set when the emergency mirror could not be written. Distinct from
+         window.storageWriteError (any storage write failure) because a stale
+         mirror is recoverable while a failed primary write is not. */
+      window.mirrorDegraded = false;
+      let lastQuotaWarnAt = 0;
+
+      function isQuotaError(e) {
+        if (!e) return false;
+        return (
+          e.name === "QuotaExceededError" ||
+          e.name === "NS_ERROR_DOM_QUOTA_REACHED" ||
+          e.code === 22 ||
+          e.code === 1014
+        );
+      }
+
+      /* Asks the browser to exempt this origin from automatic eviction. This is
+         the documented defence against Safari ITP's 7-day script-writable
+         storage purge and Chrome's clean-up-under-pressure heuristics. */
+      async function requestDurableStorage() {
+        try {
+          if (!navigator.storage || !navigator.storage.persist) return false;
+          if (await navigator.storage.persisted()) return true;
+          return await navigator.storage.persist();
+        } catch (e) {
+          return false;
+        }
+      }
+
+      async function getStorageEstimate() {
+        try {
+          if (!navigator.storage || !navigator.storage.estimate) return null;
+          const { usage, quota } = await navigator.storage.estimate();
+          if (!quota) return null;
+          return { usage: usage || 0, quota, ratio: (usage || 0) / quota };
+        } catch (e) {
+          return null;
+        }
+      }
+
+      /* Proactive pressure check. Runs after log mutations so the user is told
+         to export while there is still room to do so. */
+      async function checkStoragePressure() {
+        const est = await getStorageEstimate();
+        if (!est || est.ratio < STORAGE_PRESSURE_WARN_RATIO) return;
+        const now = Date.now();
+        if (now - lastQuotaWarnAt < 3600000) return;
+        lastQuotaWarnAt = now;
+        showAppToast(
+          "Storage is " +
+            Math.round(est.ratio * 100) +
+            "% full. Export a JSON backup soon to avoid losing history.",
+          "warning",
+        );
+      }
+
+      /* Drops derived fields from the localStorage mirror. searchStr duplicates
+         the entire notes field on every entry and _idx is positional; both are
+         rebuilt on load, so persisting them roughly doubles the mirror for no
+         benefit. Implemented as a replacer so nothing has to be copied. */
+      function mirrorReplacer(key, value) {
+        if (key === "searchStr" || key === "_idx") return undefined;
+        return value;
+      }
+
+      /**
+       * Writes the emergency mirror.
+       *
+       * On quota exhaustion this NEVER truncates the dataset. A previous build
+       * silently replaced the mirror with the newest 100 entries, which looked
+       * like a successful save and quietly discarded the rest. The mirror is a
+       * safety net: a stale-but-complete net beats a fresh-but-gutted one, so a
+       * failed write leaves the prior value untouched and tells the user.
+       *
+       * @param {Array} logs - Full log array to mirror.
+       * @returns {boolean} Whether the mirror now reflects the current dataset.
+       */
+      function writeEmergencyMirror(logs) {
+        let payload;
+        try {
+          payload = JSON.stringify(logs, mirrorReplacer);
+        } catch (e) {
+          console.error("Mirror serialization failed", e);
+          return false;
+        }
+
+        try {
+          localStorage.setItem(LS_MIRROR_KEY, payload);
+          window.mirrorDegraded = false;
+          return true;
+        } catch (e) {
+          if (!isQuotaError(e)) {
+            console.warn("Emergency mirror write failed", e);
+            window.mirrorDegraded = true;
+            return false;
+          }
+        }
+
+        /* Quota hit. Reclaim space from lower-value tenants and retry once
+           before giving up. Legacy snapshots are the largest offender: older
+           builds kept five full copies of the logbook in this same bucket. */
+        let reclaimed = false;
+        try {
+          if (localStorage.getItem(LS_LEGACY_SNAPSHOT_KEY) !== null) {
+            localStorage.removeItem(LS_LEGACY_SNAPSHOT_KEY);
+            reclaimed = true;
+          }
+        } catch (e) {}
+
+        if (reclaimed) {
+          try {
+            localStorage.setItem(LS_MIRROR_KEY, payload);
+            window.mirrorDegraded = false;
+            return true;
+          } catch (e2) {}
+        }
+
+        /* Still no room. Leave whatever is already stored intact - it is older
+           but complete - and escalate loudly. */
+        window.mirrorDegraded = true;
+        window.storageWriteError = true;
+        console.error(
+          "Emergency mirror could not be updated: storage quota exhausted. " +
+            "Existing mirror left intact; it is now out of date.",
+        );
+        showAppToast(
+          "Storage full: the local backup is out of date. Export a JSON backup now.",
+          "error",
+        );
+        return false;
       }
 
       /*==========================================================================
@@ -14723,7 +15106,7 @@
           return;
         }
         try {
-          const request = indexedDB.open("WorkTrackerDB", 2);
+          const request = indexedDB.open("WorkTrackerDB", 3);
           request.onupgradeneeded = (e) => {
             const db = e.target.result;
             if (!db.objectStoreNames.contains("logs")) {
@@ -14732,12 +15115,31 @@
             if (!db.objectStoreNames.contains("logs_chunked")) {
               db.createObjectStore("logs_chunked", { keyPath: "chunkId" });
             }
+            /* v3: rollback snapshots move here from localStorage. Five full
+               copies of the logbook have no business in a 5MB synchronous
+               bucket shared with the emergency mirror. */
+            if (!db.objectStoreNames.contains("snapshots")) {
+              db.createObjectStore("snapshots", { keyPath: "date" });
+            }
           };
-          request.onsuccess = () => resolve(request.result);
+          request.onsuccess = () => {
+            const db = request.result;
+            /* Yield immediately if another tab needs to upgrade, otherwise this
+               connection blocks it and that tab falls back to localStorage. */
+            db.onversionchange = () => {
+              try {
+                db.close();
+              } catch (e) {}
+              isDbReloading = true;
+              if (typeof hardReloadApp === "function") hardReloadApp(300, false);
+            };
+            resolve(db);
+          };
           request.onerror = () => reject(request.error);
           request.onblocked = () => {
-            console.warn("IndexedDB open blocked by another tab.");
-            reject(new Error("IndexedDB blocked by another connection."));
+            console.warn(
+              "IndexedDB upgrade blocked by another tab; waiting for it to yield.",
+            );
           };
         } catch (err) {
           reject(err);
@@ -14869,11 +15271,22 @@
           db = await dbPromise;
         } catch (e) {
           console.warn(
-            "IndexedDB unavailable, falling back to LocalStorage backup:",
+            "IndexedDB unavailable, falling back to LocalStorage mirror:",
             e,
           );
-          const saved = safeGetLocalStorage("production_logs_emergency_backup");
-          return saved ? JSON.parse(saved) : [];
+          let mirrored = [];
+          try {
+            const saved = safeGetLocalStorage(LS_MIRROR_KEY);
+            if (saved) mirrored = JSON.parse(saved);
+          } catch (parseErr) {
+            console.error("Emergency mirror is unreadable:", parseErr);
+            return null;
+          }
+          if (!Array.isArray(mirrored)) return null;
+          /* Flagged so the caller can tell a mirror read from a primary read.
+             On file:// the mirror IS the primary store and stays writable. */
+          window.loadedFromMirror = window.location.protocol !== "file:";
+          return mirrored;
         }
         return new Promise((resolve) => {
           let settled = false;
@@ -15016,11 +15429,9 @@
           if (wasActiveMaster) {
             if (state.currentMode !== null) {
               if (!state.idleLock) {
+                reconcileSystemClock("takeover");
                 const nowWall = Date.now();
-                const elapsedSeconds = Math.max(
-                  0,
-                  (nowWall - state.sessionAnchorWall) / 1000,
-                );
+                const elapsedSeconds = getActiveSegmentSeconds();
                 if (state.currentMode === "work") {
                   state.workAccumulated =
                     (state.workAccumulated || 0) + elapsedSeconds;
@@ -15028,9 +15439,9 @@
                   state.breakAccumulated =
                     (state.breakAccumulated || 0) + elapsedSeconds;
                 }
-                state.sessionAnchorWall = nowWall;
+                setSessionAnchor(nowWall);
                 state.lastHeartbeatWall = nowWall;
-                state.lastHeartbeatMonotonic = performance.now();
+                markClockHeartbeat();
               }
 
               if (state.tabHiddenAt) {
@@ -15750,39 +16161,19 @@
           triggerAutoSnapshot();
         }
 
-        // FIX 3: INSTANT SYNCHRONOUS EMERGENCY BACKUP
-        try {
-          // Skipped while another tab is wiping: on file:// this mirror is the
-          // only store there is, so writing it would undo that wipe outright.
-          if (!isRemoteFactoryReset) {
-            localStorage.setItem(
-              "production_logs_emergency_backup",
-              JSON.stringify(logs),
-            );
-          }
-        } catch (e) {
-          if (window.location.protocol === "file:") {
-            window.storageWriteError = true;
-            showAppToast(
-              "Storage full! Please export and save your JSON backup immediately.",
-              "error",
-            );
-          } else {
-            console.warn("Emergency backup full write failed, truncating", e);
-            try {
-              localStorage.setItem(
-                "production_logs_emergency_backup",
-                JSON.stringify(logs.slice(0, 100)),
-              );
-            } catch (e2) {
-              window.storageWriteError = true;
-              showAppToast(
-                "Storage full! Changes cannot be saved locally. Please export JSON.",
-                "error",
-              );
-            }
-          }
+        /* SYNCHRONOUS EMERGENCY MIRROR.
+           Skipped while another tab is wiping: on file:// this mirror is the
+           only store there is, so writing it would undo that wipe outright.
+           writeEmergencyMirror never truncates - a quota failure leaves the
+           previous complete copy in place and escalates to the user. */
+        if (!isRemoteFactoryReset) {
+          writeEmergencyMirror(logs);
         }
+
+        /* Proactive quota check, deliberately not awaited: the user is warned
+           while there is still room to export, rather than after a write has
+           already failed. */
+        checkStoragePressure();
 
         const taskPromise = _saveLogsQueue.then(async () => {
           try {
@@ -16378,7 +16769,7 @@
         lastActivityRegisterTime = now;
 
         if (!state.idleLock) {
-          lastActivity = getTrueTime();
+          lastActivity = getLocalTime();
           state.lastActivity = lastActivity;
           state.lastHeartbeatWall = lastActivity;
         } else if (!state.idleWakeup) {
@@ -16422,21 +16813,56 @@
        * =========================================================================*/
 
       /**
+       * Elapsed seconds inside the currently running work/break segment.
+       *
+       * Single source of truth for live duration. The wall clock supplies the
+       * reading (so genuine elapsed time, including system suspend, is counted),
+       * but the anchor it is measured against is continuously rebased by
+       * reconcileSystemClock(), so system clock steps cannot add or erase time.
+       *
+       * A persisted high-water mark guards the one window reconciliation cannot
+       * observe: a hard process kill followed by a backward clock change before
+       * the next launch. Elapsed within a segment is physically monotonic, so
+       * clamping upward to the floor is always correct.
+       *
+       * @param {boolean} [advanceFloor=false] - Raise the persisted high-water
+       *   mark to the current reading. Only the save path should do this.
+       * @returns {number} Active segment duration in seconds.
+       */
+      function getActiveSegmentSeconds(advanceFloor = false) {
+        if (
+          state.idleLock ||
+          state.sessionAnchorWall === null ||
+          state.sessionAnchorWall === undefined
+        ) {
+          return 0;
+        }
+
+        const measured = Math.max(0, (Date.now() - state.sessionAnchorWall) / 1000);
+        const floor = state.activeSegmentFloorSec || 0;
+        const elapsed = measured > floor ? measured : floor;
+
+        if (advanceFloor && elapsed > floor) {
+          state.activeSegmentFloorSec = elapsed;
+        }
+        return elapsed;
+      }
+
+      /* Re-anchors the running segment and clears its ratchet. Every assignment
+         to sessionAnchorWall must go through here so the floor can never outlive
+         the anchor it was measured against. */
+      function setSessionAnchor(wallMs) {
+        state.sessionAnchorWall = wallMs;
+        state.activeSegmentFloorSec = 0;
+      }
+
+      /**
        * Returns the directly accumulated work seconds tracked by real-time delta loops.
        * @returns {number} Active work duration.
        */
       function getCurrentWorkSeconds() {
-        let activeWorkSeconds = 0;
-        if (
-          state.currentMode === "work" &&
-          !state.idleLock &&
-          state.sessionAnchorWall !== null
-        ) {
-          activeWorkSeconds = Math.max(
-            0,
-            (Date.now() - state.sessionAnchorWall) / 1000,
-          );
-        }
+        const activeWorkSeconds =
+          state.currentMode === "work" ? getActiveSegmentSeconds() : 0;
         return (state.workAccumulated || 0) + activeWorkSeconds;
       }
 
@@ -16445,17 +16871,8 @@
        * @returns {number} Active break duration.
        */
       function getCurrentBreakSeconds() {
-        let activeBreakSeconds = 0;
-        if (
-          state.currentMode === "break" &&
-          !state.idleLock &&
-          state.sessionAnchorWall !== null
-        ) {
-          activeBreakSeconds = Math.max(
-            0,
-            (Date.now() - state.sessionAnchorWall) / 1000,
-          );
-        }
+        const activeBreakSeconds =
+          state.currentMode === "break" ? getActiveSegmentSeconds() : 0;
         return (state.breakAccumulated || 0) + activeBreakSeconds;
       }
 
@@ -16471,18 +16888,18 @@
           return;
         }
 
+        /* Absorb any pending clock step before the segment is committed:
+           whatever is banked here becomes permanent. */
+        reconcileSystemClock("switchMode");
         const nowWall = Date.now();
 
-        // Finalize the current chunk exactly on mode switch using robust wall-clock calculation
+        // Finalize the current chunk through the single elapsed source of truth
         if (
           state.currentMode &&
           !state.idleLock &&
           state.sessionAnchorWall !== null
         ) {
-          const elapsedSeconds = Math.max(
-            0,
-            (nowWall - state.sessionAnchorWall) / 1000,
-          );
+          const elapsedSeconds = getActiveSegmentSeconds();
 
           if (state.currentMode === "work") {
             state.workAccumulated =
@@ -16503,7 +16920,7 @@
         _syncAdjustPopupContext();
 
         if (mode === "work" || mode === "break") {
-          state.sessionAnchorWall = nowWall;
+          setSessionAnchor(nowWall);
           if (mode === "work" && !state.loginTimestamp) {
             state.loginTimestamp = nowWall;
             state.shiftStartGoalSec =
@@ -16515,11 +16932,11 @@
               );
             if (state.trackingMode === "intelligent") {
               state.lastHeartbeatWall = nowWall;
-              state.lastHeartbeatMonotonic = performance.now();
+              markClockHeartbeat();
             }
           }
         } else {
-          state.sessionAnchorWall = null;
+          setSessionAnchor(null);
         }
 
         saveState();
@@ -16611,7 +17028,7 @@
       let lastLiveBreakSec = -1;
 
       /* Updates the main timer and status clock displays once per second. */
-      function renderTimersOnly(nowDate = new Date(getTrueTime())) {
+      function renderTimersOnly(nowDate = new Date(getLocalTime())) {
         const nowMs = nowDate.getTime();
         const workSeconds = getCurrentWorkSeconds();
         const breakSeconds = getCurrentBreakSeconds();
@@ -17734,10 +18151,7 @@
           !state.idleLock &&
           state.sessionAnchorWall !== null
         ) {
-          const elapsedSeconds = Math.max(
-            0,
-            (nowWall - state.sessionAnchorWall) / 1000,
-          );
+          const elapsedSeconds = getActiveSegmentSeconds();
           if (state.currentMode === "work") {
             state.workAccumulated =
               (state.workAccumulated || 0) + elapsedSeconds;
@@ -17745,7 +18159,7 @@
             state.breakAccumulated =
               (state.breakAccumulated || 0) + elapsedSeconds;
           }
-          state.sessionAnchorWall = null;
+          setSessionAnchor(null);
           state.currentMode = null;
         }
 
@@ -17828,7 +18242,7 @@
         state = lastStateBackup;
         state.activeDate = getPSTDate(); // Prevent checkMidnightReset re-triggering after undo
         state.lastHeartbeatWall = Date.now(); // prevent spurious idle lock on reload
-        state.lastHeartbeatMonotonic = performance.now();
+        markClockHeartbeat();
         saveState();
 
         const logs = getLogs();
@@ -17866,9 +18280,11 @@
           !state.idleLock &&
           state.sessionAnchorWall !== null
         ) {
+          /* Time banked at the idle boundary, never below the ratchet floor:
+             the user genuinely worked at least that long before going idle. */
           const elapsedBeforeIdle = Math.max(
-            0,
-            (timeOfIdleWall - state.sessionAnchorWall) / 1000,
+            state.activeSegmentFloorSec || 0,
+            Math.max(0, (timeOfIdleWall - state.sessionAnchorWall) / 1000),
           );
 
           if (state.currentMode === "work") {
@@ -17883,7 +18299,7 @@
         state.preIdleMode = state.currentMode;
         state.idleOverlapSec = 0;
         state.currentMode = null;
-        state.sessionAnchorWall = null;
+        setSessionAnchor(null);
         state.idleStart = timeOfIdleWall;
         state.idleLock = true;
         state.idleType = type;
@@ -17995,7 +18411,7 @@
         switchMode(targetMode);
 
         if (state.sessionAnchorWall) {
-          state.sessionAnchorWall = resolutionTime;
+          setSessionAnchor(resolutionTime);
           state.lastHeartbeatWall = resolutionTime;
         }
       }
@@ -18029,6 +18445,7 @@
           breakAccumulated: 0,
           currentMode: null,
           sessionAnchorWall: null,
+          activeSegmentFloorSec: 0,
           loginTimestamp: null,
           activeDate: getPSTDate(),
           idleLock: false,
@@ -18051,7 +18468,6 @@
               ? previousGoalAutopopulate
               : true,
           lastHeartbeatWall: null,
-          lastHeartbeatMonotonic: null,
           tabHiddenAt: null,
           notes: "", // Reset notes on new session
           shiftStartGoalSec: null, // Clear shift goal on session reset
@@ -23487,12 +23903,17 @@
                   resolve();
                 };
                 try {
-                  const tx = db.transaction(
-                    ["logs", "logs_chunked"],
-                    "readwrite",
-                  );
+                  const stores = ["logs", "logs_chunked"];
+                  if (db.objectStoreNames.contains("snapshots")) {
+                    stores.push("snapshots");
+                  }
+                  const tx = db.transaction(stores, "readwrite");
                   tx.objectStore("logs").clear();
                   tx.objectStore("logs_chunked").clear();
+                  if (db.objectStoreNames.contains("snapshots")) {
+                    tx.objectStore("snapshots").clear();
+                    snapshotIndex = [];
+                  }
                   tx.oncomplete = finish;
                   tx.onerror = finish;
                   tx.onabort = finish;
@@ -23718,11 +24139,7 @@
           while (state.activeDate !== currentDatePST && safetyCounter++ < 366) {
             const hasAccumulatedWork =
               (state.workAccumulated || 0) +
-              (state.currentMode === "work" &&
-              state.sessionAnchorWall !== null &&
-              !state.idleLock
-                ? Math.max(0, (Date.now() - state.sessionAnchorWall) / 1000)
-                : 0);
+              (state.currentMode === "work" ? getActiveSegmentSeconds() : 0);
 
             // NO active session and NO meaningful accumulated work — just advance the date
             if (
@@ -23846,7 +24263,7 @@
                     state.breakAccumulated =
                       (state.breakAccumulated || 0) + elapsedToMidnight;
                   }
-                  state.sessionAnchorWall = null;
+                  setSessionAnchor(null);
                   state.lastHeartbeatWall = midnightMs;
                 }
               } else if (
@@ -23854,7 +24271,7 @@
                 state.preIdleMode !== null &&
                 state.idleStart < midnightMs
               ) {
-                state.sessionAnchorWall = null;
+                setSessionAnchor(null);
               }
 
               // Create the log entry for the prior day using our safe atomic helper
@@ -23902,10 +24319,10 @@
               } else if (activeMode !== null) {
                 state.currentMode = activeMode;
                 state.loginTimestamp = midnightMs;
-                state.sessionAnchorWall = midnightMs;
+                setSessionAnchor(midnightMs);
                 state.lastHeartbeatWall = midnightMs;
               } else {
-                state.sessionAnchorWall = null;
+                setSessionAnchor(null);
                 state.loginTimestamp = null;
               }
 
@@ -23979,6 +24396,10 @@
        */
       function tick() {
         if (isTabConflict) return;
+
+        /* Detect and absorb any system clock step BEFORE any timestamp is read
+           this tick, so every downstream duration sees a corrected timeline. */
+        reconcileSystemClock("tick");
 
         const nowMs = Date.now();
         sharedTickDate.setTime(nowMs);
@@ -24100,8 +24521,12 @@
       async function handleWakeUpRecovery() {
         checkLeaseState();
         if (isTabConflict) return;
+
+        /* The ticker is stopped while the page is hidden, so a clock step may
+           have gone unobserved. Reconcile before reading any timestamp. */
+        reconcileSystemClock("wakeup");
+
         const nowWall = Date.now();
-        const nowMonotonic = performance.now();
 
         // Inactivity audit runs independently of the discrepancy check above.
         if (
@@ -24130,7 +24555,6 @@
         // Re-align the passive audit references immediately on wakeup
         if (state.currentMode !== null && !state.idleLock) {
           state.lastHeartbeatWall = nowWall;
-          state.lastHeartbeatMonotonic = nowMonotonic;
         }
 
         if (state.idleLock) {
@@ -25051,7 +25475,7 @@
         }
 
         const popup = DOM.adjustTimePopup;
-        if (popup && popup.classList.contains("show") && DOM.adjustSmartInput) {
+        if (popup && popup.classList.contains("show") && DOM.adjustSmartInput && !isPhoneLayout()) {
           DOM.adjustSmartInput.focus();
         }
       };
@@ -25071,16 +25495,16 @@
           window.closeAdjustPopup();
         } else {
           _syncAdjustPopupContext();
-          popup.classList.add("show");
+            popup.classList.add("show");
 
-          const smartInput = DOM.adjustSmartInput;
-          if (smartInput && !smartInput.disabled) {
-            smartInput.focus();
-            smartInput.select();
-          }
+            const smartInput = DOM.adjustSmartInput;
+            if (smartInput && !smartInput.disabled && !isPhoneLayout()) {
+              smartInput.focus();
+              smartInput.select();
+            }
 
-          if (adjustPopupAbortController) {
-            adjustPopupAbortController.abort();
+            if (adjustPopupAbortController) {
+              adjustPopupAbortController.abort();
           }
 
           adjustPopupAbortController = new AbortController();
@@ -25229,18 +25653,18 @@
             !state.idleLock &&
             state.sessionAnchorWall !== null
           ) {
-            const elapsedSec = Math.max(
-              0,
-              (nowWall - state.sessionAnchorWall) / 1000,
-            );
+            const elapsedSec = getActiveSegmentSeconds();
             if (state.currentMode === "work") {
               state.workAccumulated = (state.workAccumulated || 0) + elapsedSec;
             } else if (state.currentMode === "break") {
               state.breakAccumulated =
                 (state.breakAccumulated || 0) + elapsedSec;
             }
-            // Restart the live counter from now so there's no time gap
-            state.sessionAnchorWall = nowWall;
+            /* Restart the live counter from now so there's no time gap.
+               setSessionAnchor also clears the ratchet floor, which is required:
+               a manual downward adjustment must not be undone by the high-water
+               mark from the segment that was just committed. */
+            setSessionAnchor(nowWall);
           }
 
           // --- Calculate start-anchor over-subtraction deficit if applicable ---
@@ -25556,20 +25980,18 @@
           snapshotSelect.innerHTML =
             '<option value="">Choose a snapshot...</option>';
           try {
-            const saved = safeGetLocalStorage("production_snapshots_v1");
-            if (saved) {
-              const snapshots = JSON.parse(saved);
-              snapshots.forEach((s, idx) => {
-                const opt = document.createElement("option");
-                opt.value = idx;
-                const formattedTime = new Date(s.timestamp).toLocaleTimeString(
-                  [],
-                  { hour: "2-digit", minute: "2-digit" },
-                );
-                opt.textContent = `${s.date} (${formattedTime}) - ${s.logs.length} logs`;
-                snapshotSelect.appendChild(opt);
-              });
-            }
+            snapshotIndex.forEach((s) => {
+              const opt = document.createElement("option");
+              /* Keyed by date rather than array position: the index is
+                 re-sorted and pruned, so an ordinal would go stale. */
+              opt.value = s.date;
+              const formattedTime = new Date(s.timestamp).toLocaleTimeString(
+                [],
+                { hour: "2-digit", minute: "2-digit" },
+              );
+              opt.textContent = `${s.date} (${formattedTime}) - ${s.count} logs`;
+              snapshotSelect.appendChild(opt);
+            });
           } catch (e) {}
 
           window.rebuildCustomSelect("snapshot-restore-select");
@@ -25577,14 +25999,14 @@
       }
 
       // Handles the snapshot restoration flow safely
-      window.onSnapshotSelectChange = function (index) {
+      window.onSnapshotSelectChange = async function (index) {
         if (index === "") return;
         try {
-          const saved = safeGetLocalStorage("production_snapshots_v1");
-          if (!saved) return;
-          const snapshots = JSON.parse(saved);
-          const target = snapshots[index];
-          if (!target) return;
+          const target = await readSnapshot(index);
+          if (!target || !Array.isArray(target.logs)) {
+            showAppToast("Snapshot could not be read.", "error");
+            return;
+          }
 
           const validationError = validateImportPayload({ logs: target.logs });
           if (validationError) {
@@ -25613,40 +26035,191 @@
         }
       };
 
+      /*==========================================================================
+       * ROLLBACK SNAPSHOTS
+       *
+       * Stored in IndexedDB, never localStorage. Older builds kept five full
+       * copies of the logbook in the same ~5MB synchronous bucket as the
+       * emergency mirror, so the two backup systems competed for quota and the
+       * snapshot writer swallowed its own failures - meaning snapshots silently
+       * stopped being taken exactly when they were most needed.
+       *
+       * snapshotIndex holds only metadata so the settings UI can render
+       * synchronously without keeping five logbooks resident in memory.
+       * =========================================================================*/
+
+      const SNAPSHOT_RETENTION = 5;
+      let snapshotIndex = [];
+
+      function snapshotsUsingFallback() {
+        return window.location.protocol === "file:" || typeof indexedDB === "undefined";
+      }
+
+      /* file:// has no IndexedDB, so a bounded localStorage tier is retained
+         there. Kept deliberately small: on file:// the emergency mirror is the
+         only copy of the user's data and must win any quota contest. */
+      const FALLBACK_SNAPSHOT_RETENTION = 2;
+
+      function readFallbackSnapshots() {
+        try {
+          const raw = safeGetLocalStorage(LS_LEGACY_SNAPSHOT_KEY);
+          const parsed = raw ? JSON.parse(raw) : [];
+          return Array.isArray(parsed) ? parsed : [];
+        } catch (e) {
+          return [];
+        }
+      }
+
+      async function loadSnapshotIndex() {
+        if (snapshotsUsingFallback()) {
+          snapshotIndex = readFallbackSnapshots().map((s) => ({
+            date: s.date,
+            timestamp: s.timestamp,
+            count: Array.isArray(s.logs) ? s.logs.length : 0,
+          }));
+          return snapshotIndex;
+        }
+        try {
+          const db = await dbPromise;
+          snapshotIndex = await new Promise((resolve, reject) => {
+            const tx = db.transaction("snapshots", "readonly");
+            const req = tx.objectStore("snapshots").getAll();
+            req.onsuccess = () =>
+              resolve(
+                (req.result || [])
+                  .map((s) => ({
+                    date: s.date,
+                    timestamp: s.timestamp,
+                    count: Array.isArray(s.logs) ? s.logs.length : 0,
+                  }))
+                  .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0)),
+              );
+            req.onerror = () => reject(req.error);
+          });
+        } catch (e) {
+          console.warn("Snapshot index unavailable:", e);
+          snapshotIndex = [];
+        }
+        return snapshotIndex;
+      }
+
+      async function readSnapshot(date) {
+        if (snapshotsUsingFallback()) {
+          return readFallbackSnapshots().find((s) => s.date === date) || null;
+        }
+        try {
+          const db = await dbPromise;
+          return await new Promise((resolve, reject) => {
+            const tx = db.transaction("snapshots", "readonly");
+            const req = tx.objectStore("snapshots").get(date);
+            req.onsuccess = () => resolve(req.result || null);
+            req.onerror = () => reject(req.error);
+          });
+        } catch (e) {
+          console.warn("Snapshot read failed:", e);
+          return null;
+        }
+      }
+
+      /* One-time migration of legacy localStorage snapshots into IndexedDB.
+         Reclaims the single largest consumer of the localStorage quota. */
+      async function migrateLegacySnapshots() {
+        if (snapshotsUsingFallback()) return;
+        const legacy = readFallbackSnapshots();
+        if (!legacy.length) {
+          try {
+            localStorage.removeItem(LS_LEGACY_SNAPSHOT_KEY);
+          } catch (e) {}
+          return;
+        }
+        try {
+          const db = await dbPromise;
+          await new Promise((resolve, reject) => {
+            const tx = db.transaction("snapshots", "readwrite");
+            const store = tx.objectStore("snapshots");
+            legacy.forEach((s) => {
+              if (s && s.date && Array.isArray(s.logs)) store.put(s);
+            });
+            tx.oncomplete = resolve;
+            tx.onerror = () => reject(tx.error);
+            tx.onabort = () => reject(tx.error);
+          });
+          localStorage.removeItem(LS_LEGACY_SNAPSHOT_KEY);
+          console.info(
+            "Migrated " +
+              legacy.length +
+              " rollback snapshot(s) out of localStorage into IndexedDB.",
+          );
+        } catch (e) {
+          console.warn("Snapshot migration deferred:", e);
+        }
+      }
+
       // Creates daily backup snapshots
       function triggerAutoSnapshot() {
         if (isFactoryResetting) return;
-        try {
-          const todayStr = getPSTDate();
-          let snapshots = [];
-          const saved = safeGetLocalStorage("production_snapshots_v1");
-          if (saved) {
-            snapshots = JSON.parse(saved);
+        const todayStr = getPSTDate();
+        if (snapshotIndex.some((s) => s.date === todayStr)) return;
+
+        const currentLogs = getLogs();
+        if (!currentLogs.length) return;
+
+        const record = {
+          date: todayStr,
+          timestamp: Date.now(),
+          logs: currentLogs,
+        };
+
+        /* Register in the index immediately so a slow write cannot cause a
+           duplicate snapshot attempt on the next mutation. */
+        snapshotIndex.unshift({
+          date: todayStr,
+          timestamp: record.timestamp,
+          count: currentLogs.length,
+        });
+
+        if (snapshotsUsingFallback()) {
+          try {
+            const all = [record]
+              .concat(readFallbackSnapshots().filter((s) => s.date !== todayStr))
+              .slice(0, FALLBACK_SNAPSHOT_RETENTION);
+            localStorage.setItem(LS_LEGACY_SNAPSHOT_KEY, JSON.stringify(all));
+          } catch (e) {
+            /* On file:// the mirror is the only copy of the user's data, so
+               snapshots yield the quota rather than compete for it. */
+            snapshotIndex = snapshotIndex.filter((s) => s.date !== todayStr);
+            try {
+              localStorage.removeItem(LS_LEGACY_SNAPSHOT_KEY);
+            } catch (e2) {}
+            console.warn("Fallback snapshot skipped: no room in localStorage", e);
           }
-          const alreadySnapshottedToday = snapshots.some(
-            (s) => s.date === todayStr,
-          );
-          if (alreadySnapshottedToday) return;
-
-          let currentLogs = getLogs();
-          if (currentLogs.length === 0) return;
-
-          snapshots.unshift({
-            date: todayStr,
-            timestamp: Date.now(),
-            logs: currentLogs,
-          });
-
-          if (snapshots.length > 5) {
-            snapshots = snapshots.slice(0, 5);
-          }
-          localStorage.setItem(
-            "production_snapshots_v1",
-            JSON.stringify(snapshots),
-          );
-        } catch (e) {
-          console.warn("Snapshot auto-save failed", e);
+          return;
         }
+
+        (async () => {
+          try {
+            const db = await dbPromise;
+            await new Promise((resolve, reject) => {
+              const tx = db.transaction("snapshots", "readwrite");
+              const store = tx.objectStore("snapshots");
+              store.put(record);
+              const cutoff = snapshotIndex
+                .slice()
+                .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0))
+                .slice(SNAPSHOT_RETENTION);
+              cutoff.forEach((s) => store.delete(s.date));
+              tx.oncomplete = resolve;
+              tx.onerror = () => reject(tx.error);
+              tx.onabort = () => reject(tx.error);
+            });
+            snapshotIndex = snapshotIndex
+              .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0))
+              .slice(0, SNAPSHOT_RETENTION);
+          } catch (e) {
+            snapshotIndex = snapshotIndex.filter((s) => s.date !== todayStr);
+            console.warn("Snapshot auto-save failed", e);
+          }
+        })();
       }
 
       window.onAutoEmailToggleChange = function () {
@@ -25672,14 +26245,13 @@
         // 1. Logic Reset: If moving to Simple, scrub the audit data so it can't accidentally trigger
         if (mode === "simple") {
           state.lastHeartbeatWall = null;
-          state.lastHeartbeatMonotonic = null;
           state.idleLock = false; // Force-clear any pending locks
           DOM.idleModal.style.display = "none";
         }
         // 2. Logic Startup: If moving to Intelligent, force a fresh heartbeat sync
         else if (mode === "intelligent") {
           state.lastHeartbeatWall = Date.now();
-          state.lastHeartbeatMonotonic = performance.now();
+          markClockHeartbeat();
         }
 
         state.trackingMode = mode;
@@ -29341,7 +29913,9 @@
 
         if (state.currentMode !== null && !state.idleLock) {
           state.lastHeartbeatWall = Date.now();
-          state.lastHeartbeatMonotonic = performance.now();
+          /* Persist the segment high-water mark alongside the anchor so a hard
+             kill cannot lose time to a later backward clock change. */
+          getActiveSegmentSeconds(true);
         }
         state.lastActivity = lastActivity;
 
@@ -29419,8 +29993,10 @@
             return; // state stays at default; app boots clean
           }
 
-          // Null out monotonic clock to prevent meaningless drift calculations across page reloads
-          state.lastHeartbeatMonotonic = null;
+          /* Legacy field: earlier builds serialized a DOMHighResTimeStamp here,
+             which is meaningless outside the document that produced it. The live
+             monotonic pair now lives in clockHeartbeat and is never persisted. */
+          delete state.lastHeartbeatMonotonic;
 
           // Backward compatibility migration:
           if (
@@ -29443,7 +30019,7 @@
             (state.sessionAnchorWall === null ||
               state.sessionAnchorWall === undefined)
           ) {
-            state.sessionAnchorWall = state.sessionAnchorTime;
+            setSessionAnchor(state.sessionAnchorTime);
           }
           if (
             state.lastHeartbeat !== undefined &&
@@ -29457,16 +30033,12 @@
 
           if (state.lastActivity) lastActivity = state.lastActivity;
 
+          /* Cross-reload clock step recovery. Rebases every in-flight anchor by
+             the observed backward step so accumulated durations survive intact,
+             replacing the old per-field clamp which discarded them. */
+          reconcileClockOnLoad();
+
           const now = Date.now();
-          if (state.sessionAnchorWall && state.sessionAnchorWall > now) {
-            state.sessionAnchorWall = now;
-          }
-          if (state.lastHeartbeatWall && state.lastHeartbeatWall > now) {
-            state.lastHeartbeatWall = now;
-          }
-          if (state.idleStart && state.idleStart > now) {
-            state.idleStart = now;
-          }
 
           const currentDate = getPSTDate();
 
@@ -29626,6 +30198,11 @@
        * Launches first execution bootstrap cycle.
        */
       (async function initApp() {
+        /* Ask for eviction protection before anything is written. This is the
+           documented defence against Safari ITP's 7-day script-writable storage
+           purge and Chrome's storage-pressure cleanup. */
+        requestDurableStorage();
+
         cachedLogs = await loadLogsFromDB();
         if (cachedLogs === null) {
           cachedLogs = [];
@@ -29634,6 +30211,42 @@
             "Database read failed. Writes are disabled to protect historical data.",
             "error",
           );
+        } else if (window.loadedFromMirror) {
+          /* The primary database could not be opened and this is the emergency
+             mirror, which may be older than the real dataset. Writes are frozen
+             so a partial view can never be written back over a full database. */
+          isDatabaseHealthy = false;
+          showAppToast(
+            "Database unavailable - showing the local backup copy. Writes are " +
+              "disabled so your full history is not overwritten. Reload to retry.",
+            "error",
+          );
+        }
+
+        /* Reclaim the localStorage quota consumed by legacy snapshots, then
+           hydrate the metadata index the settings UI renders from. */
+        try {
+          await migrateLegacySnapshots();
+          await loadSnapshotIndex();
+        } catch (e) {
+          console.warn("Snapshot subsystem init deferred:", e);
+        }
+
+        /* One-time mirror compaction. Mirrors written by older builds embed the
+           derived searchStr/_idx fields, which roughly doubles their size. The
+           mirror is otherwise only rewritten on a log mutation, so without this
+           an existing user keeps the bloated copy indefinitely - and a user
+           close to their quota is exactly who needs the space back soonest.
+           Runs at most once: afterwards the stored payload no longer matches. */
+        try {
+          if (!window.loadedFromMirror && !isRemoteFactoryReset && cachedLogs.length) {
+            const storedMirror = safeGetLocalStorage(LS_MIRROR_KEY);
+            if (storedMirror && storedMirror.indexOf('"searchStr"') !== -1) {
+              writeEmergencyMirror(cachedLogs);
+            }
+          }
+        } catch (e) {
+          console.warn("Mirror compaction skipped:", e);
         }
 
         async function completeStartup() {
@@ -29721,9 +30334,11 @@
               mutated = true;
             }
             if (!l.searchStr) {
+              /* Derived index, rebuilt in memory on every load and deliberately
+                 not persisted to the mirror. Does NOT count as a mutation:
+                 marking it dirty forced a full logbook re-save every boot. */
               l.searchStr =
                 `${l.displayDate || ""} ${l.date || ""} ${l.login || ""} ${l.logout || ""} ${l.notes || ""}`.toLowerCase();
-              mutated = true;
             }
             if (!l.status) {
               const goal =
@@ -29755,14 +30370,7 @@
                     completeStartup().catch(console.error);
                   });
               } else {
-                try {
-                  localStorage.setItem(
-                    "production_logs_emergency_backup",
-                    JSON.stringify(logs),
-                  );
-                } catch (e) {
-                  console.warn("Local fallback hydration save failed", e);
-                }
+                writeEmergencyMirror(logs);
                 completeStartup().catch(console.error);
               }
             } else {
@@ -30852,281 +31460,6 @@
           openSheet: openSheet,
           closeSheet: closeSheet,
         };
-      })();
-    </script>
-
-    <!-- =========================================================================
-         SURFACE INVARIANT CHECK
-
-         The two axes in 3.25 and the POPOVER ESCAPE rule in section 13 are
-         rules about which surfaces may carry a blur, which containers may
-         hold one, and which may be translucent at all. CSS can express them but cannot enforce them: a call site
-         that writes `backdrop-filter: blur(12px)` as a literal, or a new
-         `contain:` on a card that will one day host a menu, is silently
-         legal and looks right until the day it does not.
-
-         The licensed list is NOT restated here. It is read out of the
-         stylesheet at runtime through the --surface-grant sentinel, so it is
-         the GRANT rule itself rather than a copy of it -- the previous
-         version of this file kept a hand-written copy, and a pane was added
-         to one and not the other, which is the whole reason this reads the
-         CSSOM instead.
-
-         Development only and strictly opt-in. With the flag off the IIFE
-         returns before it registers a listener, an observer or a timer.
-         Enable with ?debug-surfaces in the URL or
-         localStorage.setItem("debug-surfaces", "1"); call __auditSurfaces()
-         by hand at any time.
-         ========================================================================= -->
-    <script>
-      (function () {
-        "use strict";
-
-        var enabled = /[?&]debug-surfaces(?:[=&]|$)/.test(location.search);
-        if (!enabled) {
-          try {
-            enabled = localStorage.getItem("debug-surfaces") === "1";
-          } catch (e) {
-            /* Storage throws in some private modes. Off is the safe answer. */
-          }
-        }
-        if (!enabled) return;
-
-        /* Every way a popover in this app is painted. Keep in step with the
-           SIGNALS list on the POPOVER ESCAPE rule. */
-        var POPOVERS = [
-          ".view-presets",
-          ".tz-presets",
-          ".goal-presets",
-          ".theme-presets",
-          ".custom-select-panel",
-          ".cdp-popup",
-          ".idle-popup",
-          ".app-tooltip"
-        ].join(",");
-
-        var PSEUDOS = [null, "::before", "::after"];
-
-        /* Positions that take an element out of flow, and therefore off any
-           backdrop it could have relied on being flat. */
-        var POSITIONED = ["absolute", "fixed", "sticky"];
-
-        /* Containment values that clip a descendant or trap it in a stacking
-           context. `strict` and `content` are shorthands that include both. */
-        var TRAPPING = /\b(layout|paint|strict|content)\b/;
-
-        /* ---- the licensed panes, read from the stylesheet itself ---------- */
-        function grantSelectors() {
-          var out = [];
-          function walk(rules) {
-            for (var i = 0; i < rules.length; i++) {
-              var rule = rules[i];
-              if (rule.cssRules) walk(rule.cssRules);
-              if (
-                rule.style &&
-                rule.style.getPropertyValue("--surface-grant").trim() !== ""
-              ) {
-                out.push(rule.selectorText);
-              }
-            }
-          }
-          for (var s = 0; s < document.styleSheets.length; s++) {
-            try {
-              walk(document.styleSheets[s].cssRules);
-            } catch (e) {
-              /* A cross-origin sheet cannot be read. None of ours are. */
-            }
-          }
-          return out;
-        }
-
-        var LICENSED = grantSelectors();
-
-        function isLicensed(el) {
-          for (var i = 0; i < LICENSED.length; i++) {
-            try {
-              if (el.matches(LICENSED[i])) return true;
-            } catch (e) {
-              /* An unparseable selector is not worth an exception. */
-            }
-          }
-          return false;
-        }
-
-        /* ---- helpers ------------------------------------------------------ */
-        function filterOf(el, pseudo) {
-          var cs = getComputedStyle(el, pseudo);
-          var f = cs.backdropFilter || cs.webkitBackdropFilter || "none";
-          return f && f !== "none" ? cs : null;
-        }
-
-        /* Computed backgroundColor comes back as rgb()/rgba() in every engine
-           this app targets. Anything unparseable counts as translucent, so
-           the check errs towards silence rather than a false alarm. */
-        function alphaOf(colour) {
-          var m = /^rgba?\(([^)]+)\)$/.exec(colour || "");
-          if (!m) return 0;
-          var parts = m[1].split(/[,\/]/);
-          if (parts.length < 4) return 1;
-          var a = parseFloat(parts[3]);
-          return isNaN(a) ? 1 : a;
-        }
-
-        function label(el, pseudo) {
-          var name = el.tagName.toLowerCase();
-          if (el.id) name += "#" + el.id;
-          if (el.classList.length) name += "." + [].join.call(el.classList, ".");
-          return name + (pseudo || "");
-        }
-
-        var reported = Object.create(null);
-
-        function report(code, message, node) {
-          var key = code + "|" + message;
-          if (reported[key]) return;
-          reported[key] = true;
-          console.warn("[surfaces] " + code + ": " + message, node);
-        }
-
-        /* ---- the audit ---------------------------------------------------- */
-        function audit() {
-          var blurred = [];
-          var all = document.querySelectorAll("*");
-          var i, p;
-
-          for (i = 0; i < all.length; i++) {
-            /* Nothing that is not painted can violate anything, and skipping
-               it keeps a document this size cheap to walk. */
-            if (!all[i].getClientRects().length) continue;
-            for (p = 0; p < PSEUDOS.length; p++) {
-              var cs = filterOf(all[i], PSEUDOS[p]);
-              if (cs) blurred.push({ el: all[i], pseudo: PSEUDOS[p], style: cs });
-            }
-          }
-
-          for (i = 0; i < blurred.length; i++) {
-            var s = blurred[i];
-            var name = label(s.el, s.pseudo);
-
-            /* I1 -- no nested backdrop-filter. The inner filter samples the
-               outer's backdrop root instead of the page, so it can blur its
-               ancestor's content but never dim it, and brightness() compounds
-               across the nesting. */
-            for (var o = 0; o < blurred.length; o++) {
-              if (o !== i && blurred[o].el !== s.el && blurred[o].el.contains(s.el)) {
-                report(
-                  "I1 nested-backdrop-filter",
-                  name + " carries a blur inside " + label(blurred[o].el, blurred[o].pseudo),
-                  s.el
-                );
-              }
-            }
-
-            /* I2 -- half-applied material. An opaque fill can never show what
-               is behind it, so a live filter under one is pure compositing
-               cost plus a backdrop root nothing asked for. */
-            if (alphaOf(s.style.backgroundColor) >= 0.999) {
-              report(
-                "I2 blur-behind-opaque-fill",
-                name + " has an opaque background and a live backdrop-filter",
-                s.el
-              );
-            }
-
-            /* I3 -- unlicensed glass. A translucent surface is only legible
-               where something dims its backdrop first, so anything carrying a
-               blur has to be a pane the GRANT rule named. */
-            if (!isLicensed(s.el)) {
-              report(
-                "I3 unlicensed-glass",
-                name + " carries a backdrop-filter but is not a granted pane" +
-                  " -- see THE BACKDROP AXIS in 3.25",
-                s.el
-              );
-            }
-          }
-
-          /* I5 -- invisible floating chrome. A surface that is taken out of
-             flow floats over whatever happens to be under it, so a
-             translucent fill with no blur behind it has nothing to read
-             against: it disappears against light content and smears against
-             busy content. Either take the -solid twin (see FLOATING CHROME in
-             3.25) or earn a blur through the grant. The tab bar is exempt by
-             name -- ambient chrome, and the one surface the film is for. */
-          for (i = 0; i < all.length; i++) {
-            var fel = all[i];
-            if (!fel.getClientRects().length) continue;
-            if (fel.id === "m-tabbar") continue;
-            var fcs = getComputedStyle(fel);
-            if (POSITIONED.indexOf(fcs.position) === -1) continue;
-            var a5 = alphaOf(fcs.backgroundColor);
-            if (a5 === 0 || a5 >= 0.999) continue;
-            if (filterOf(fel, null)) continue;
-            report(
-              "I5 invisible-floating-chrome",
-              label(fel) + " floats (position: " + fcs.position + ") on a" +
-                " translucent fill with no blur behind it",
-              fel
-            );
-          }
-
-          /* I4 -- a popover trapped by an ancestor's containment. Reported
-             against the ancestor, because that is where the fix goes: either
-             add it to the HOSTS list on POPOVER ESCAPE, or stop containing
-             it. */
-          var panels = document.querySelectorAll(POPOVERS);
-          for (i = 0; i < panels.length; i++) {
-            if (!panels[i].getClientRects().length) continue;
-            for (var a = panels[i].parentElement; a && a !== document.body; a = a.parentElement) {
-              var contain = getComputedStyle(a).contain || "none";
-              if (TRAPPING.test(contain)) {
-                report(
-                  "I4 contained-popover-host",
-                  label(a) + " declares `contain: " + contain + "` and is an" +
-                    " ancestor of the open " + label(panels[i]) +
-                    " -- see POPOVER ESCAPE in section 13",
-                  a
-                );
-              }
-            }
-          }
-
-          return blurred.length;
-        }
-
-        window.__auditSurfaces = audit;
-
-        var timer = null;
-        function schedule() {
-          clearTimeout(timer);
-          timer = setTimeout(audit, 400);
-        }
-
-        if (document.readyState === "loading") {
-          document.addEventListener("DOMContentLoaded", schedule, { once: true });
-        } else {
-          schedule();
-        }
-
-        /* The interesting surfaces only exist after an interaction: dialogs
-           are opened by setting an inline display, popovers by a class or by
-           focus. Debounced, so a virtualised list scrolling does not re-walk
-           the document every frame. */
-        new MutationObserver(schedule).observe(document.body, {
-          childList: true,
-          subtree: true,
-          attributes: true,
-          attributeFilter: ["style", "class"]
-        });
-        document.addEventListener("focusin", schedule, true);
-        document.addEventListener("focusout", schedule, true);
-
-        console.info(
-          "[surfaces] invariant check active; " +
-            LICENSED.length +
-            " granted pane rule(s) read from the stylesheet. " +
-            "Call __auditSurfaces() to re-run."
-        );
       })();
     </script>
   </body>
