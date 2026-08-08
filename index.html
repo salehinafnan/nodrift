@@ -14897,14 +14897,22 @@
           recordClockAnomaly(step, reason);
         }
 
-        clockHeartbeat = { wall: nowWall, mono: nowMono };
+        /* Mutated rather than reallocated: this runs once per second for the
+           length of a shift, and a fresh object each tick is pure garbage. */
+        clockHeartbeat.wall = nowWall;
+        clockHeartbeat.mono = nowMono;
         return step;
       }
 
       /* Re-baselines the heartbeat pair without attempting a correction. Used after
          deliberate timeline edits so the next reconcile does not misread them. */
       function markClockHeartbeat() {
-        clockHeartbeat = { wall: Date.now(), mono: monoNow() };
+        if (clockHeartbeat) {
+          clockHeartbeat.wall = Date.now();
+          clockHeartbeat.mono = monoNow();
+        } else {
+          clockHeartbeat = { wall: Date.now(), mono: monoNow() };
+        }
       }
 
       /**
@@ -14953,12 +14961,17 @@
       /* Warn once the origin is this full: leaves headroom to export before any
          write actually starts failing. */
       const STORAGE_PRESSURE_WARN_RATIO = 0.8;
+      /* How often the quota is sampled at all. */
+      const STORAGE_PRESSURE_CHECK_INTERVAL_MS = 600000; // 10 minutes
+      /* How often the user may be warned about it. */
+      const STORAGE_PRESSURE_WARN_COOLDOWN_MS = 3600000; // 1 hour
 
       /* Set when the emergency mirror could not be written. Distinct from
          window.storageWriteError (any storage write failure) because a stale
          mirror is recoverable while a failed primary write is not. */
       window.mirrorDegraded = false;
       let lastQuotaWarnAt = 0;
+      let lastStorageCheckAt = 0;
 
       function isQuotaError(e) {
         if (!e) return false;
@@ -14997,10 +15010,19 @@
       /* Proactive pressure check. Runs after log mutations so the user is told
          to export while there is still room to do so. */
       async function checkStoragePressure() {
+        const now = Date.now();
+        /* Cooldown is checked BEFORE the estimate, not after: quota moves on a
+           scale of months, while navigator.storage.estimate() walks the whole
+           origin's storage accounting. Running it on every log mutation would
+           burn measurable battery on mobile for information that cannot have
+           changed meaningfully since the last check. */
+        if (now - lastStorageCheckAt < STORAGE_PRESSURE_CHECK_INTERVAL_MS)
+          return;
+        lastStorageCheckAt = now;
+
         const est = await getStorageEstimate();
         if (!est || est.ratio < STORAGE_PRESSURE_WARN_RATIO) return;
-        const now = Date.now();
-        if (now - lastQuotaWarnAt < 3600000) return;
+        if (now - lastQuotaWarnAt < STORAGE_PRESSURE_WARN_COOLDOWN_MS) return;
         lastQuotaWarnAt = now;
         showAppToast(
           "Storage is " +
