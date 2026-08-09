@@ -14043,6 +14043,9 @@
         isPaused: false,
         startTimeMs: null,
         accumulatedSec: 0,
+        /* High-water mark for the in-flight segment, mirroring
+           state.activeSegmentFloorSec. Seconds, not a timestamp. */
+        taskFloorSec: 0,
         note: "",
       };
       let cachedTaskLogs = [];
@@ -14673,10 +14676,49 @@
         return Date.now();
       }
 
+      /* How long the wall clock stays untrusted after a divergence
+         reconciliation deliberately refused to judge. Long enough for an NTP
+         correction to arrive and be recognised as a backward step, short enough
+         that a genuinely suspended machine resumes banking promptly. */
+      const CLOCK_SUSPECT_COOLDOWN_MS = 60000;
+
       /* Paired wall/monotonic reading from the last reconciliation. Deliberately
          module-scoped and NEVER persisted: a DOMHighResTimeStamp is meaningless
          outside the document that produced it. */
       let clockHeartbeat = null;
+
+      /* Monotonic deadline until which the wall clock is considered unreliable.
+         Held on the monotonic clock for the obvious reason: the wall clock is
+         the thing in doubt. Never persisted, for the same reason as the pair
+         above. */
+      let clockSuspectUntilMono = 0;
+
+      /**
+       * Whether the wall clock is currently untrusted.
+       *
+       * The high-water marks exist to stop a backward clock step from erasing
+       * time that was genuinely worked, and clamping upward is always correct
+       * when the reading below the floor is the lie. The floors are only safe to
+       * ADVANCE while the reading above them is not: one banked from an inflated
+       * reading outlives the correction that follows it, and since the floor is
+       * a maximum it can never be walked back down.
+       *
+       * The one divergence reconcileSystemClock refuses to judge - a long
+       * monotonic gap with a forward wall jump, where genuine suspend and a
+       * forward clock step look identical - is exactly the case that can inflate
+       * a reading. So the floors pause there rather than guess.
+       */
+      function isClockSuspect() {
+        return clockSuspectUntilMono > 0 && monoNow() < clockSuspectUntilMono;
+      }
+
+      function markClockSuspect() {
+        clockSuspectUntilMono = monoNow() + CLOCK_SUSPECT_COOLDOWN_MS;
+      }
+
+      function clearClockSuspect() {
+        clockSuspectUntilMono = 0;
+      }
       let lastClockNotifyAt = 0;
       let clockAnomalies = [];
 
@@ -14730,6 +14772,10 @@
           typeof taskState.startTimeMs === "number" &&
           isFinite(taskState.startTimeMs)
         ) {
+          /* Deliberately bypasses setTaskAnchor. This is a rebase, not a
+             re-anchor: elapsed is held constant across the step, so the floor
+             measured against the old anchor is still valid against the new one.
+             Clearing it here would discard a legitimate high-water mark. */
           taskState.startTimeMs += deltaMs;
         }
       }
@@ -14808,15 +14854,24 @@
                BACKWARD. A wall clock can never legitimately go backward, so this
                is a step regardless of how long the gap was. */
             step = divergence;
+          } else {
+            /* Remaining case: long gap with a forward wall jump.
+               Indistinguishable from genuine suspend/freeze, so the reading is
+               left alone and the idle-lock system asks the user rather than
+               guessing. The reading is not corrected, but it may be inflated,
+               so the ratchets stop advancing until the clock proves itself -
+               otherwise a bogus jump gets locked into a floor moments before
+               the correction that would have exposed it. */
+            markClockSuspect();
           }
-          /* Remaining case: long gap with a forward wall jump. Indistinguishable
-             from genuine suspend/freeze, so it is left to the idle-lock system,
-             which asks the user rather than guessing. */
         }
 
         if (step !== 0) {
           applyClockStep(step);
           recordClockAnomaly(step, reason);
+          /* The correction arrived and every in-flight anchor was rebased onto
+             it, so the timeline is coherent again and the floors may resume. */
+          clearClockSuspect();
         }
 
         /* Mutated rather than reallocated: this runs once per second for the
@@ -16764,10 +16819,14 @@
        * clamping upward to the floor is always correct.
        *
        * @param {boolean} [advanceFloor=false] - Raise the persisted high-water
-       *   mark to the current reading. Only the save path should do this.
+       *   mark to the current reading. Only the save path should do this, and
+       *   only while the wall clock is trusted - see isClockSuspect.
+       * @param {number} [nowMs=null] - Evaluate the segment as of this instant
+       *   instead of now. Lets boundary events (idle lock) measure up to the
+       *   moment they represent rather than the moment they were noticed.
        * @returns {number} Active segment duration in seconds.
        */
-      function getActiveSegmentSeconds(advanceFloor = false) {
+      function getActiveSegmentSeconds(advanceFloor = false, nowMs = null) {
         if (
           state.idleLock ||
           state.sessionAnchorWall === null ||
@@ -16776,14 +16835,13 @@
           return 0;
         }
 
-        const measured = Math.max(
-          0,
-          (Date.now() - state.sessionAnchorWall) / 1000,
-        );
+        const ref =
+          typeof nowMs === "number" && isFinite(nowMs) ? nowMs : Date.now();
+        const measured = Math.max(0, (ref - state.sessionAnchorWall) / 1000);
         const floor = state.activeSegmentFloorSec || 0;
         const elapsed = measured > floor ? measured : floor;
 
-        if (advanceFloor && elapsed > floor) {
+        if (advanceFloor && elapsed > floor && !isClockSuspect()) {
           state.activeSegmentFloorSec = elapsed;
         }
         return elapsed;
@@ -16795,6 +16853,72 @@
       function setSessionAnchor(wallMs) {
         state.sessionAnchorWall = wallMs;
         state.activeSegmentFloorSec = 0;
+      }
+
+      /* Re-anchors the running task segment and clears its ratchet. The task
+         timer's counterpart to setSessionAnchor, and subject to the same rule:
+         every assignment to taskState.startTimeMs goes through here.
+
+         The one deliberate exception is applyClockStep, which rebases the anchor
+         to hold elapsed constant across a system clock step. That must not clear
+         the floor, because nothing about the segment actually restarted. */
+      function setTaskAnchor(wallMs) {
+        taskState.startTimeMs = wallMs;
+        taskState.taskFloorSec = 0;
+      }
+
+      /**
+       * Seconds elapsed in the in-flight task segment - the task timer's
+       * counterpart to getActiveSegmentSeconds, and the single source of truth
+       * for live task duration.
+       *
+       * Three call sites previously inlined this subtraction and had drifted
+       * apart: the two render paths clamped negatives away, while the save path
+       * did not, so a backward clock step landing between a render and a save
+       * could bank a negative contribution into the stored task.
+       *
+       * @param {boolean} [advanceFloor=false] - Raise the high-water mark to the
+       *   current reading. Only the persistence path should do this, and only
+       *   while the wall clock is trusted - see isClockSuspect.
+       * @param {number} [nowMs=null] - Shared frame timestamp. The render tick
+       *   passes its own so every timer in one frame reads the same instant.
+       * @returns {number} Whole seconds elapsed in the running segment.
+       */
+      function getTaskSegmentSeconds(advanceFloor = false, nowMs = null) {
+        if (
+          !taskState.isRunning ||
+          taskState.isPaused ||
+          typeof taskState.startTimeMs !== "number" ||
+          !isFinite(taskState.startTimeMs)
+        ) {
+          return 0;
+        }
+
+        const ref =
+          typeof nowMs === "number" && isFinite(nowMs) ? nowMs : Date.now();
+        const measured = Math.max(
+          0,
+          Math.floor((ref - taskState.startTimeMs) / 1000),
+        );
+        const floor = taskState.taskFloorSec || 0;
+        const elapsed = measured > floor ? measured : floor;
+
+        if (advanceFloor && elapsed > floor && !isClockSuspect()) {
+          taskState.taskFloorSec = elapsed;
+        }
+        return elapsed;
+      }
+
+      /**
+       * Total duration of the in-flight task: banked paused time plus whatever
+       * the running segment has accrued.
+       * @returns {number} Whole seconds.
+       */
+      function getTaskTotalSeconds(advanceFloor = false, nowMs = null) {
+        const banked = Number.isFinite(taskState.accumulatedSec)
+          ? taskState.accumulatedSec
+          : 0;
+        return banked + getTaskSegmentSeconds(advanceFloor, nowMs);
       }
 
       /**
@@ -18220,10 +18344,12 @@
           state.sessionAnchorWall !== null
         ) {
           /* Time banked at the idle boundary, never below the ratchet floor:
-             the user genuinely worked at least that long before going idle. */
-          const elapsedBeforeIdle = Math.max(
-            state.activeSegmentFloorSec || 0,
-            Math.max(0, (timeOfIdleWall - state.sessionAnchorWall) / 1000),
+             the user genuinely worked at least that long before going idle.
+             Measured as of the idle instant, not of now - the gap between the
+             two is exactly the inactivity that must not be counted. */
+          const elapsedBeforeIdle = getActiveSegmentSeconds(
+            false,
+            timeOfIdleWall,
           );
 
           if (state.currentMode === "work") {
@@ -24373,19 +24499,7 @@
             (taskState.isRunning || taskState.isPaused) &&
             DOM.taskTimerDisplay
           ) {
-            let totalSec = Number.isFinite(taskState.accumulatedSec)
-              ? taskState.accumulatedSec
-              : 0;
-            if (
-              taskState.isRunning &&
-              !taskState.isPaused &&
-              taskState.startTimeMs
-            ) {
-              totalSec += Math.max(
-                0,
-                Math.floor((liveNowMs - taskState.startTimeMs) / 1000),
-              );
-            }
+            const totalSec = getTaskTotalSeconds(false, liveNowMs);
             if (DOM.taskTimerDigits && DOM.taskTimerDigits.length === 3) {
               const parts = formatDuration(totalSec).split(":");
               if (DOM.taskTimerDigits[0].textContent !== parts[0])
@@ -26415,6 +26529,13 @@
           const savedState = safeGetLocalStorage(TASK_STATE_KEY);
           if (savedState) {
             taskState = JSON.parse(savedState);
+            /* Blobs written before the ratchet existed have no floor. Reads
+               already tolerate that, so this is about shape rather than safety:
+               a field that is sometimes absent becomes a merge hazard once the
+               blob is serialized for cross-device sync. */
+            if (!Number.isFinite(taskState.taskFloorSec)) {
+              taskState.taskFloorSec = 0;
+            }
             syncTaskUI();
           }
           const savedLogs = safeGetLocalStorage(TASK_LOGS_KEY);
@@ -26428,6 +26549,10 @@
 
       function saveTaskState() {
         if (isFactoryResetting) return;
+        /* Persist the segment high-water mark alongside the anchor so a hard
+           kill cannot lose time to a later backward clock change. Mirrors the
+           getActiveSegmentSeconds(true) call in saveState. */
+        getTaskSegmentSeconds(true);
         try {
           localStorage.setItem(TASK_STATE_KEY, JSON.stringify(taskState));
         } catch (e) {
@@ -26456,15 +26581,7 @@
           DOM.taskNoteInput.value = taskState.note;
         }
 
-        let currentSec = Number.isFinite(taskState.accumulatedSec)
-          ? taskState.accumulatedSec
-          : 0;
-        if (isRunning && !isPaused && taskState.startTimeMs) {
-          currentSec += Math.max(
-            0,
-            Math.floor((Date.now() - taskState.startTimeMs) / 1000),
-          );
-        }
+        const currentSec = getTaskTotalSeconds();
         if (
           DOM.taskTimerDisplay &&
           DOM.taskTimerDigits &&
@@ -26523,7 +26640,7 @@
           taskState.isRunning = true;
           taskState.isPaused = false;
           taskState.accumulatedSec = 0;
-          taskState.startTimeMs = Date.now();
+          setTaskAnchor(Date.now());
           taskState.note = DOM.taskNoteInput.value.trim() || "Untitled Task";
           saveTaskState();
           syncTaskUI();
@@ -26534,19 +26651,19 @@
         DOM.taskPauseBtn.addEventListener("click", () => {
           if (taskState.isRunning && !taskState.isPaused) {
             // PAUSE
-            taskState.accumulatedSec += Math.floor(
-              (Date.now() - taskState.startTimeMs) / 1000,
-            );
+            /* Bank the segment before the flags flip: getTaskSegmentSeconds
+               returns 0 once isPaused is set. */
+            taskState.accumulatedSec += getTaskSegmentSeconds();
             taskState.isRunning = false;
             taskState.isPaused = true;
-            taskState.startTimeMs = null;
+            setTaskAnchor(null);
             saveTaskState();
             syncTaskUI();
           } else if (taskState.isPaused) {
             // RESUME
             taskState.isRunning = true;
             taskState.isPaused = false;
-            taskState.startTimeMs = Date.now();
+            setTaskAnchor(Date.now());
             taskState.note =
               DOM.taskNoteInput.value.trim() ||
               taskState.note ||
@@ -26559,14 +26676,7 @@
 
       if (DOM.taskSaveBtn) {
         DOM.taskSaveBtn.addEventListener("click", () => {
-          let totalSec = taskState.accumulatedSec || 0;
-          if (
-            taskState.isRunning &&
-            !taskState.isPaused &&
-            taskState.startTimeMs
-          ) {
-            totalSec += Math.floor((Date.now() - taskState.startTimeMs) / 1000);
-          }
+          const totalSec = getTaskTotalSeconds();
 
           if (totalSec > 0) {
             const finalNote =
@@ -26586,6 +26696,9 @@
               endMs: endMs,
               durationSec: totalSec,
               note: finalNote,
+              /* Merge key for cross-device sync. Shifts already carry this;
+                 task records did not, which would leave them unmergeable. */
+              lastModified: Date.now(),
             };
 
             cachedTaskLogs.unshift(newTask);
@@ -26606,7 +26719,7 @@
       function resetTaskUI() {
         taskState.isRunning = false;
         taskState.isPaused = false;
-        taskState.startTimeMs = null;
+        setTaskAnchor(null);
         taskState.accumulatedSec = 0;
         taskState.note = "";
         saveTaskState();
