@@ -1080,6 +1080,7 @@
 
       .form-row .form-group {
         flex: 1;
+        min-width: 0;
         margin-bottom: 0;
       }
 
@@ -5197,7 +5198,7 @@
 
       /* Leave & Holidays Modal — List Components */
       .leave-dates-list {
-        height: 150px;
+        height: 228px;
         overflow-y: auto;
         /* Level 1: an inset well inside a level 3 dialog. */
         background: var(--surface-1);
@@ -6980,10 +6981,16 @@
           font-size: var(--field-text-touch) !important;
         }
 
-        /* Comfortable, thumb-sized controls. */
+        /* Comfortable, thumb-sized controls. The dropdown trigger belongs on
+           this list with the rest of them: it is a field, it sits beside them
+           in two-column form rows, and left off it stayed at its 38px desktop
+           height -- a short touch target and a visible mismatch next to the
+           date field it shares a row with. min-height clamps the fixed height
+           .cs-md sets, exactly as it does for the inputs above. */
         input.input-standard,
         select.input-standard,
-        .date-picker-group {
+        .date-picker-group,
+        .custom-select-trigger.cs-md {
           min-height: 44px;
           padding: 0 var(--space-3);
         }
@@ -9518,12 +9525,7 @@
             </div>
           </div>
           <div class="form-group">
-            <label
-              class="form-label"
-              for="edit-goal"
-              style="color: var(--accent-blue)"
-              >Daily Goal</label
-            >
+            <label class="form-label" for="edit-goal">Shift Goal</label>
             <input
               type="text"
               id="edit-goal"
@@ -9673,12 +9675,7 @@
             </div>
           </div>
           <div class="form-group">
-            <label
-              class="form-label"
-              for="manual-goal"
-              style="color: var(--accent-blue)"
-              >Daily Goal</label
-            >
+            <label class="form-label" for="manual-goal">Shift Goal</label>
             <input
               type="text"
               id="manual-goal"
@@ -9922,86 +9919,90 @@
 
         <!-- TAB 1: LOG & HISTORY -->
         <div id="leave-view-log">
-          <!-- Date Picker Row -->
-          <div class="form-group">
-            <label class="form-label" for="leave-date-input"
-              >Select Leave Date</label
-            >
-            <div class="date-picker-group">
-              <input
-                type="text"
-                id="leave-date-input"
-                class="input-standard"
-                placeholder="05/16/26"
-                onfocus="this.select()"
-                onkeydown="if (event.key === 'Enter') this.blur();"
-              />
-              <!-- Hidden native input triggered by button click -->
-              <input
-                type="text"
-                readonly
-                id="leave-date-picker"
-                style="
-                  position: absolute;
-                  opacity: 0.01;
-                  width: 1px;
-                  height: 1px;
-                  pointer-events: none;
-                "
-              />
-              <button
-                type="button"
-                class="preset-pill"
-                onclick="safeShowPicker('leave-date-picker')"
-                title="Open Calendar"
+          <!-- Date + type share one row; the reclaimed height goes to the list. -->
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="leave-date-input"
+                >Select Leave Date</label
               >
-                <svg
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  fill="none"
+              <div class="date-picker-group">
+                <input
+                  type="text"
+                  id="leave-date-input"
+                  class="input-standard"
+                  placeholder="05/16/26"
+                  onfocus="this.select()"
+                  onkeydown="if (event.key === 'Enter') this.blur();"
+                />
+                <!-- Hidden native input triggered by button click -->
+                <input
+                  type="text"
+                  readonly
+                  id="leave-date-picker"
                   style="
-                    width: 14px;
-                    height: 14px;
-                    stroke-width: 2;
-                    flex-shrink: 0;
+                    position: absolute;
+                    opacity: 0.01;
+                    width: 1px;
+                    height: 1px;
+                    pointer-events: none;
                   "
+                />
+                <button
+                  type="button"
+                  class="preset-pill"
+                  onclick="safeShowPicker('leave-date-picker')"
+                  title="Open Calendar"
                 >
-                  <g data-sprite="sprite-008"></g>
-                </svg>
-              </button>
+                  <svg
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    fill="none"
+                    style="
+                      width: 14px;
+                      height: 14px;
+                      stroke-width: 2;
+                      flex-shrink: 0;
+                    "
+                  >
+                    <g data-sprite="sprite-008"></g>
+                  </svg>
+                </button>
+              </div>
             </div>
-          </div>
 
-          <!-- Leave Classification dropdown -->
-          <div class="form-group">
-            <label class="form-label" for="leave-type-select">Leave Type</label>
-            <div class="custom-select">
-              <select id="leave-type-select" style="display: none">
-                <!-- Populated dynamically by JS -->
-              </select>
-              <button
-                type="button"
-                class="custom-select-trigger cs-md"
-                data-for="leave-type-select"
-                aria-haspopup="listbox"
+            <!-- Leave Classification dropdown -->
+            <div class="form-group">
+              <label class="form-label" for="leave-type-select"
+                >Leave Type</label
               >
-                <span class="cs-trigger-val">Select Type...</span>
-                <svg
-                  class="cs-chevron"
-                  viewBox="0 0 24 24"
-                  width="14"
-                  height="14"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="1.8"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
+              <div class="custom-select">
+                <select id="leave-type-select" style="display: none">
+                  <!-- Populated dynamically by JS -->
+                </select>
+                <button
+                  type="button"
+                  class="custom-select-trigger cs-md"
+                  data-for="leave-type-select"
+                  aria-haspopup="listbox"
                 >
-                  <polyline points="6 9 12 15 18 9"></polyline>
-                </svg>
-              </button>
-              <div class="custom-select-panel" role="listbox">
-                <!-- Populated dynamically by JS -->
+                  <span class="cs-trigger-val">Select Type...</span>
+                  <svg
+                    class="cs-chevron"
+                    viewBox="0 0 24 24"
+                    width="14"
+                    height="14"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.8"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                  </svg>
+                </button>
+                <div class="custom-select-panel" role="listbox">
+                  <!-- Populated dynamically by JS -->
+                </div>
               </div>
             </div>
           </div>
