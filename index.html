@@ -1509,8 +1509,18 @@
         opacity: 0;
       }
 
-      .theme-container:hover .theme-toggle-btn,
-      .theme-container:focus-within .theme-toggle-btn {
+      /* Open-state paint follows the same split as the menu itself: hover where
+         there is a pointer to hover with, .popover-open everywhere else. */
+      @media (hover: hover) and (pointer: fine) {
+        .theme-container:hover .theme-toggle-btn,
+        .theme-container:focus-within .theme-toggle-btn {
+          background: var(--element-hover);
+          border-color: var(--accent-blue);
+          color: var(--text-main);
+        }
+      }
+
+      .theme-container.popover-open .theme-toggle-btn {
         background: var(--element-hover);
         border-color: var(--accent-blue);
         color: var(--text-main);
@@ -1524,8 +1534,14 @@
           color 0.2s;
       }
 
-      .theme-container:hover .theme-chevron,
-      .theme-container:focus-within .theme-chevron {
+      @media (hover: hover) and (pointer: fine) {
+        .theme-container:hover .theme-chevron,
+        .theme-container:focus-within .theme-chevron {
+          transform: rotate(180deg);
+        }
+      }
+
+      .theme-container.popover-open .theme-chevron {
         transform: rotate(180deg);
       }
 
@@ -1635,8 +1651,17 @@
         height: 100%;
       }
 
-      .tz-container:hover .tz-trigger,
-      .tz-container:focus-within .tz-trigger {
+      /* Open-state paint follows the same split as the menu itself: hover where
+         there is a pointer to hover with, .popover-open everywhere else. */
+      @media (hover: hover) and (pointer: fine) {
+        .tz-container:hover .tz-trigger,
+        .tz-container:focus-within .tz-trigger {
+          background: var(--element-hover);
+          color: var(--text-main);
+        }
+      }
+
+      .tz-container.popover-open .tz-trigger {
         background: var(--element-hover);
         color: var(--text-main);
       }
@@ -1649,8 +1674,14 @@
           color 0.2s;
       }
 
-      .tz-container:hover .tz-chevron,
-      .tz-container:focus-within .tz-chevron {
+      @media (hover: hover) and (pointer: fine) {
+        .tz-container:hover .tz-chevron,
+        .tz-container:focus-within .tz-chevron {
+          transform: rotate(180deg);
+        }
+      }
+
+      .tz-container.popover-open .tz-chevron {
         transform: rotate(180deg);
       }
 
@@ -4317,8 +4348,17 @@
         user-select: none;
       }
 
-      .view-container:hover .view-trigger,
-      .view-container:focus-within .view-trigger {
+      /* Open-state paint follows the same split as the menu itself: hover where
+         there is a pointer to hover with, .popover-open everywhere else. */
+      @media (hover: hover) and (pointer: fine) {
+        .view-container:hover .view-trigger,
+        .view-container:focus-within .view-trigger {
+          background: var(--element-hover);
+          color: var(--text-main);
+        }
+      }
+
+      .view-container.popover-open .view-trigger {
         background: var(--element-hover);
         color: var(--text-main);
       }
@@ -4331,8 +4371,14 @@
           color 0.2s;
       }
 
-      .view-container:hover .view-chevron,
-      .view-container:focus-within .view-chevron {
+      @media (hover: hover) and (pointer: fine) {
+        .view-container:hover .view-chevron,
+        .view-container:focus-within .view-chevron {
+          transform: rotate(180deg);
+        }
+      }
+
+      .view-container.popover-open .view-chevron {
         transform: rotate(180deg);
       }
 
@@ -10335,7 +10381,15 @@
             transition: background-color 0.15s ease;
           }
 
-          .heatmap-year-trigger:hover {
+          /* Open-state paint follows the same split as the menu itself; see
+             POINTER-DRIVEN POPOVERS. */
+          @media (hover: hover) and (pointer: fine) {
+            .heatmap-year-trigger:hover {
+              background-color: var(--element-hover);
+            }
+          }
+
+          .heatmap-year-container.popover-open .heatmap-year-trigger {
             background-color: var(--element-hover);
           }
 
@@ -10345,7 +10399,14 @@
               color 0.2s;
           }
 
-          .heatmap-year-container:hover .heatmap-year-chevron {
+          @media (hover: hover) and (pointer: fine) {
+            .heatmap-year-container:hover .heatmap-year-chevron {
+              transform: rotate(180deg);
+              color: var(--text-main);
+            }
+          }
+
+          .heatmap-year-container.popover-open .heatmap-year-chevron {
             transform: rotate(180deg);
             color: var(--text-main);
           }
