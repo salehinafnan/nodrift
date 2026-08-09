@@ -3049,6 +3049,81 @@
         height: 100%;
       }
 
+      /* Date-range card in the two filter drawers. This geometry used to live on
+         a dozen near-identical inline blobs across both panels, which also put
+         it out of reach of the phone layer below: an inline `flex: 1.5` outranks
+         any stylesheet rule, so the card could never be widened for a viewport
+         that could not fit two of them side by side. */
+      .filter-date-card {
+        flex: 1.5;
+        min-width: 0;
+        display: flex;
+        align-items: center;
+        /* Level 1. */
+        background: var(--surface-1);
+        border: var(--hairline);
+        border-radius: 6px;
+        padding: 0 6px;
+        gap: 6px;
+        height: 27px;
+        box-sizing: border-box;
+      }
+
+      /* One half of the card: label, value, calendar button. */
+      .filter-date-field {
+        display: flex;
+        align-items: center;
+        gap: 3px;
+        flex: 1;
+        min-width: 0;
+      }
+
+      /* The card is the field, so the input inside it carries no edge of its
+         own. !important is load-bearing: the phone layer re-boxes every
+         .filter-input at level 1, and this has to win against it. */
+      .filter-date-card .filter-input {
+        border: none !important;
+        background: transparent !important;
+        padding: 0 !important;
+        height: 100% !important;
+        flex: 1;
+        min-width: 0;
+        font-size: 0.7rem;
+        color: var(--text-main);
+      }
+
+      .filter-date-divider {
+        width: 1px;
+        height: 12px;
+        background: var(--border-main);
+        flex-shrink: 0;
+      }
+
+      .filter-date-btn {
+        background: transparent;
+        border: none;
+        padding: 0;
+        cursor: pointer;
+        color: var(--text-muted);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+      }
+
+      .filter-date-btn svg {
+        width: 12px;
+        height: 12px;
+      }
+
+      .filter-hours-group {
+        flex: 1.2;
+        min-width: 0;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+
       .form-label-xs {
         font-size: var(--text-xs);
         font-weight: 600;
@@ -6508,14 +6583,27 @@
           gap: 6px;
         }
 
-        .advanced-filters .filter-row:nth-child(2) > * {
-          flex: 1 1 100% !important;
+        /* Two controls per row, and each one gets half the drawer.
+
+           These were :nth-child rules, which quietly meant two different things:
+           the logbook panel opens with a hidden <select> for JS safety and the
+           task panel does not, so the same ordinal landed on a different row in
+           each and the two drawers reflowed differently. Matching on what a
+           control *is* fixes both at once. */
+        .advanced-filters .filter-row > * {
+          flex: 1 1 calc(50% - 3px) !important;
           min-width: 0 !important;
         }
 
-        .advanced-filters .filter-row:nth-child(3) > * {
-          flex: 1 1 calc(50% - 3px) !important;
-          min-width: 0 !important;
+        /* Full width for anything that cannot survive the halving: a control
+           alone in its row has nothing to pair with, and the date range needs
+           the room -- at half a 440pt drawer each half of the card was left
+           ~38pt of text for a ten-character date, so the value clipped mid
+           string, and worse on any smaller phone. */
+        .advanced-filters .filter-row > *:only-child,
+        .advanced-filters .filter-date-card,
+        .advanced-filters .filter-hours-group {
+          flex-basis: 100% !important;
         }
 
         /* Filter chips become a horizontally swipeable strip instead of wrapping
@@ -11122,31 +11210,9 @@
               <!-- Row 2: Unified Constraints (Date Picker & Hours Filter) -->
               <div class="filter-row">
                 <!-- Unified Date Picker -->
-                <div
-                  style="
-                    flex: 1.5;
-                    min-width: 0;
-                    display: flex;
-                    align-items: center;
-                    background: var(--surface-1);
-                    border: var(--hairline);
-                    border-radius: 6px;
-                    padding: 0 6px;
-                    gap: 6px;
-                    height: 27px;
-                    box-sizing: border-box;
-                  "
-                >
+                <div class="filter-date-card">
                   <!-- From Column with Clickable Calendar Button -->
-                  <div
-                    style="
-                      display: flex;
-                      align-items: center;
-                      gap: 3px;
-                      flex: 1;
-                      min-width: 0;
-                    "
-                  >
+                  <div class="filter-date-field">
                     <span
                       class="form-label-xs"
                       style="text-transform: none !important"
@@ -11156,31 +11222,11 @@
                       type="text"
                       id="filter-date-start"
                       class="filter-input"
-                      style="
-                        border: none !important;
-                        background: transparent !important;
-                        padding: 0 !important;
-                        height: 100% !important;
-                        flex: 1;
-                        min-width: 0;
-                        font-size: 0.7rem;
-                        color: var(--text-main);
-                      "
                     />
                     <button
                       type="button"
                       onclick="safeShowPicker('filter-date-start')"
-                      style="
-                        background: transparent;
-                        border: none;
-                        padding: 0;
-                        cursor: pointer;
-                        color: var(--text-muted);
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                        flex-shrink: 0;
-                      "
+                      class="filter-date-btn"
                       title="Open Calendar"
                     >
                       <svg
@@ -11190,29 +11236,14 @@
                         stroke-width="1.8"
                         stroke-linecap="round"
                         stroke-linejoin="round"
-                        style="width: 12px; height: 12px"
                       >
                         <g data-sprite="sprite-027"></g>
                       </svg>
                     </button>
                   </div>
-                  <div
-                    style="
-                      width: 1px;
-                      height: 12px;
-                      background: var(--border-main);
-                    "
-                  ></div>
+                  <div class="filter-date-divider"></div>
                   <!-- To Column with Clickable Calendar Button -->
-                  <div
-                    style="
-                      display: flex;
-                      align-items: center;
-                      gap: 3px;
-                      flex: 1;
-                      min-width: 0;
-                    "
-                  >
+                  <div class="filter-date-field">
                     <span
                       class="form-label-xs"
                       style="text-transform: none !important"
@@ -11222,31 +11253,11 @@
                       type="text"
                       id="filter-date-end"
                       class="filter-input"
-                      style="
-                        border: none !important;
-                        background: transparent !important;
-                        padding: 0 !important;
-                        height: 100% !important;
-                        flex: 1;
-                        min-width: 0;
-                        font-size: 0.7rem;
-                        color: var(--text-main);
-                      "
                     />
                     <button
                       type="button"
                       onclick="safeShowPicker('filter-date-end')"
-                      style="
-                        background: transparent;
-                        border: none;
-                        padding: 0;
-                        cursor: pointer;
-                        color: var(--text-muted);
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                        flex-shrink: 0;
-                      "
+                      class="filter-date-btn"
                       title="Open Calendar"
                     >
                       <svg
@@ -11256,7 +11267,6 @@
                         stroke-width="1.8"
                         stroke-linecap="round"
                         stroke-linejoin="round"
-                        style="width: 12px; height: 12px"
                       >
                         <g data-sprite="sprite-027"></g>
                       </svg>
@@ -11265,16 +11275,7 @@
                 </div>
 
                 <!-- Unified Hours Filter -->
-                <div
-                  class="filter-hours-group"
-                  style="
-                    flex: 1.2;
-                    min-width: 0;
-                    display: flex;
-                    gap: 4px;
-                    align-items: center;
-                  "
-                >
+                <div class="filter-hours-group">
                   <div
                     class="filter-select-wrapper"
                     style="flex: 1.2; min-width: 0"
@@ -12164,30 +12165,8 @@
                 </div>
               </div>
               <div class="filter-row">
-                <div
-                  style="
-                    flex: 1.5;
-                    min-width: 0;
-                    display: flex;
-                    align-items: center;
-                    background: var(--surface-1);
-                    border: var(--hairline);
-                    border-radius: 6px;
-                    padding: 0 6px;
-                    gap: 6px;
-                    height: 27px;
-                    box-sizing: border-box;
-                  "
-                >
-                  <div
-                    style="
-                      display: flex;
-                      align-items: center;
-                      gap: 3px;
-                      flex: 1;
-                      min-width: 0;
-                    "
-                  >
+                <div class="filter-date-card">
+                  <div class="filter-date-field">
                     <span
                       class="form-label-xs"
                       style="text-transform: none !important"
@@ -12197,16 +12176,6 @@
                       type="text"
                       id="task-filter-date-start"
                       class="filter-input"
-                      style="
-                        border: none !important;
-                        background: transparent !important;
-                        padding: 0 !important;
-                        height: 100% !important;
-                        flex: 1;
-                        min-width: 0;
-                        font-size: 0.7rem;
-                        color: var(--text-main);
-                      "
                     />
                     <input
                       type="text"
@@ -12223,17 +12192,7 @@
                     <button
                       type="button"
                       onclick="safeShowPicker('task-filter-date-start-picker')"
-                      style="
-                        background: transparent;
-                        border: none;
-                        padding: 0;
-                        cursor: pointer;
-                        color: var(--text-muted);
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                        flex-shrink: 0;
-                      "
+                      class="filter-date-btn"
                       title="Open Calendar"
                     >
                       <svg
@@ -12243,28 +12202,13 @@
                         stroke-width="1.8"
                         stroke-linecap="round"
                         stroke-linejoin="round"
-                        style="width: 12px; height: 12px"
                       >
                         <g data-sprite="sprite-027"></g>
                       </svg>
                     </button>
                   </div>
-                  <div
-                    style="
-                      width: 1px;
-                      height: 12px;
-                      background: var(--border-main);
-                    "
-                  ></div>
-                  <div
-                    style="
-                      display: flex;
-                      align-items: center;
-                      gap: 3px;
-                      flex: 1;
-                      min-width: 0;
-                    "
-                  >
+                  <div class="filter-date-divider"></div>
+                  <div class="filter-date-field">
                     <span
                       class="form-label-xs"
                       style="text-transform: none !important"
@@ -12274,16 +12218,6 @@
                       type="text"
                       id="task-filter-date-end"
                       class="filter-input"
-                      style="
-                        border: none !important;
-                        background: transparent !important;
-                        padding: 0 !important;
-                        height: 100% !important;
-                        flex: 1;
-                        min-width: 0;
-                        font-size: 0.7rem;
-                        color: var(--text-main);
-                      "
                     />
                     <input
                       type="text"
@@ -12300,17 +12234,7 @@
                     <button
                       type="button"
                       onclick="safeShowPicker('task-filter-date-end-picker')"
-                      style="
-                        background: transparent;
-                        border: none;
-                        padding: 0;
-                        cursor: pointer;
-                        color: var(--text-muted);
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                        flex-shrink: 0;
-                      "
+                      class="filter-date-btn"
                       title="Open Calendar"
                     >
                       <svg
@@ -12320,23 +12244,13 @@
                         stroke-width="1.8"
                         stroke-linecap="round"
                         stroke-linejoin="round"
-                        style="width: 12px; height: 12px"
                       >
                         <g data-sprite="sprite-027"></g>
                       </svg>
                     </button>
                   </div>
                 </div>
-                <div
-                  class="filter-hours-group"
-                  style="
-                    flex: 1.2;
-                    min-width: 0;
-                    display: flex;
-                    gap: 4px;
-                    align-items: center;
-                  "
-                >
+                <div class="filter-hours-group">
                   <div
                     class="filter-select-wrapper"
                     style="flex: 1.2; min-width: 0"
