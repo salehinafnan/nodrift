@@ -1698,8 +1698,18 @@
         height: 10px;
       }
 
-      .tz-container:hover .tz-presets,
-      .tz-container:focus-within .tz-presets {
+      /* Hover only opens this where a pointer can also leave it again. On a
+         touch screen the open state is owned by .popover-open -- see the
+         POINTER-DRIVEN POPOVERS controller. */
+      @media (hover: hover) and (pointer: fine) {
+        .tz-container:hover .tz-presets,
+        .tz-container:focus-within .tz-presets {
+          opacity: 1;
+          pointer-events: auto;
+        }
+      }
+
+      .tz-container.popover-open .tz-presets {
         opacity: 1;
         pointer-events: auto;
       }
@@ -4361,8 +4371,18 @@
         height: 10px;
       }
 
-      .view-container:hover .view-presets,
-      .view-container:focus-within .view-presets {
+      /* Hover only opens this where a pointer can also leave it again. On a
+         touch screen the open state is owned by .popover-open -- see the
+         POINTER-DRIVEN POPOVERS controller. */
+      @media (hover: hover) and (pointer: fine) {
+        .view-container:hover .view-presets,
+        .view-container:focus-within .view-presets {
+          opacity: 1;
+          pointer-events: auto;
+        }
+      }
+
+      .view-container.popover-open .view-presets {
         opacity: 1;
         pointer-events: auto;
       }
@@ -5726,8 +5746,18 @@
         height: 10px;
       }
 
-      .theme-container:hover .theme-presets,
-      .theme-container:focus-within .theme-presets {
+      /* Hover only opens this where a pointer can also leave it again. On a
+         touch screen the open state is owned by .popover-open -- see the
+         POINTER-DRIVEN POPOVERS controller. */
+      @media (hover: hover) and (pointer: fine) {
+        .theme-container:hover .theme-presets,
+        .theme-container:focus-within .theme-presets {
+          opacity: 1;
+          pointer-events: auto;
+        }
+      }
+
+      .theme-container.popover-open .theme-presets {
         opacity: 1;
         pointer-events: auto;
       }
@@ -10341,8 +10371,17 @@
             transform: translateX(-50%);
           }
 
-          .heatmap-year-container:hover #heatmap-year-presets,
-          .heatmap-year-container:focus-within #heatmap-year-presets {
+          /* Hover only opens this where a pointer can also leave it again;
+             touch uses .popover-open. See POINTER-DRIVEN POPOVERS. */
+          @media (hover: hover) and (pointer: fine) {
+            .heatmap-year-container:hover #heatmap-year-presets,
+            .heatmap-year-container:focus-within #heatmap-year-presets {
+              opacity: 1;
+              pointer-events: auto;
+            }
+          }
+
+          .heatmap-year-container.popover-open #heatmap-year-presets {
             opacity: 1;
             pointer-events: auto;
           }
@@ -30589,6 +30628,17 @@
         return {
           open: function (id) {
             init();
+
+            /* A second press of the same trigger closes the picker. The
+               outside-pointerdown handler above deliberately ignores picker
+               triggers -- otherwise it would close the popup a moment before
+               the click that opened it -- which left this method as the only
+               place that can honour the press, and it only ever opened. */
+            if (targetId === id && popup.classList.contains("cdp-open")) {
+              popup.classList.remove("cdp-open");
+              return;
+            }
+
             targetId = id;
             const input = document.getElementById(id);
             if (input && input.value) {
@@ -30613,6 +30663,90 @@
             popup.classList.add("cdp-open");
           },
         };
+      })();
+
+      /* =========================================================================
+       * POINTER-DRIVEN POPOVERS
+       * The saved-view, heatmap-year, timezone and theme menus were written as
+       * hover popovers: :hover or :focus-within opens them, moving away closes
+       * them. A touch screen has no "away" -- iOS latches :hover on the last
+       * element tapped and holds it until something else is tapped, and a tap
+       * also leaves the trigger focused -- so both openers stayed true after
+       * the finger lifted and the trigger was open-only. Pressing it again
+       * re-hovered and re-focused what was already hovered and focused.
+       *
+       * The fix is the standard split rather than another layer of CSS: the
+       * stylesheet only opens on hover behind `(hover: hover) and
+       * (pointer: fine)`, and everywhere else this controller owns the open
+       * state outright via .popover-open. Exactly one mechanism is ever live,
+       * which is what makes the toggle deterministic.
+       *
+       * The goal control is deliberately not in the list: its trigger is the
+       * goal time field, so its menu has to follow the caret, not a tap count.
+       * ========================================================================= */
+      (function () {
+        const FAMILIES = [
+          { holder: ".view-container", trigger: ".view-trigger" },
+          {
+            holder: ".heatmap-year-container",
+            trigger: ".heatmap-year-trigger",
+          },
+          { holder: ".tz-container", trigger: ".tz-trigger" },
+          { holder: ".theme-container", trigger: ".theme-toggle-btn" },
+        ];
+        const HOLDERS = FAMILIES.map((f) => f.holder).join(", ");
+        const TRIGGERS = FAMILIES.map((f) => f.trigger).join(", ");
+        const OPEN = "popover-open";
+        /* The complement of the stylesheet's media query, so the two can never
+           both be live or both be dead on the same device. */
+        const hoverCapable = window.matchMedia(
+          "(hover: hover) and (pointer: fine)",
+        );
+
+        function setOpen(holder, open) {
+          holder.classList.toggle(OPEN, open);
+          const trigger = holder.querySelector(TRIGGERS);
+          if (trigger) trigger.setAttribute("aria-expanded", String(open));
+        }
+
+        function closeAll(except) {
+          document.querySelectorAll("." + OPEN).forEach((holder) => {
+            if (holder !== except) setOpen(holder, false);
+          });
+        }
+
+        /* click, not pointerdown: an option inside the menu has to receive its
+           own press before anything closes the menu underneath it. */
+        document.addEventListener("click", (e) => {
+          if (hoverCapable.matches) return;
+
+          const trigger = e.target.closest?.(TRIGGERS);
+          const holder = trigger?.closest(HOLDERS);
+          if (holder) {
+            const open = !holder.classList.contains(OPEN);
+            closeAll(holder);
+            setOpen(holder, open);
+            return;
+          }
+
+          /* Anything else -- including a choice inside an open menu, which has
+             already run its own handler by the time this fires -- dismisses. */
+          closeAll();
+        });
+
+        document.addEventListener("keydown", (e) => {
+          if (e.key === "Escape") closeAll();
+        });
+
+        /* A device can change category mid-session: a keyboard folio on a
+           tablet, or a phone mirrored to a desktop-class window. Whichever
+           mechanism is handing over, it hands over closed. */
+        const onModeChange = () => closeAll();
+        if (hoverCapable.addEventListener) {
+          hoverCapable.addEventListener("change", onModeChange);
+        } else if (hoverCapable.addListener) {
+          hoverCapable.addListener(onModeChange);
+        }
       })();
 
       /* =========================================================================
