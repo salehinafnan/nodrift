@@ -10,7 +10,7 @@
     <!-- manifest-src is added so the web app manifest can be inlined as a data: URI and the app can stay a single file. -->
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' 'unsafe-inline' blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; connect-src 'none'; img-src 'self' data:; font-src 'self' data: https://fonts.gstatic.com; manifest-src 'self' data:;"
+      content="default-src 'self'; script-src 'self' 'unsafe-inline' blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; connect-src https://dhvnnzzzsmfwwydyfupf.supabase.co; img-src 'self' data:; font-src 'self' data: https://fonts.gstatic.com; manifest-src 'self' data:;"
     />
     <title>nodrift</title>
 
@@ -12900,7 +12900,93 @@
                   </div>
                 </div>
 
-                <!-- Card 3: Help Description Strip (Fixed Height for CPU efficiency) -->
+                <!-- Card 3: Cloud sync account -->
+                <div
+                  class="settings-card"
+                  id="sync-account-card"
+                  style="
+                    display: flex;
+                    flex-direction: column;
+                    gap: 6px;
+                    margin-top: 0.35rem;
+                  "
+                >
+                  <div class="settings-row">
+                    <span class="settings-label">Cloud sync</span>
+                    <span
+                      class="settings-label"
+                      id="sync-status-chip"
+                      style="font-weight: 500"
+                      >Signed out</span
+                    >
+                  </div>
+
+                  <div
+                    id="sync-signin-form"
+                    style="display: flex; flex-direction: column; gap: 6px"
+                  >
+                    <input
+                      type="email"
+                      id="sync-email"
+                      class="input-standard"
+                      placeholder="Email"
+                      autocomplete="username"
+                      spellcheck="false"
+                    />
+                    <input
+                      type="password"
+                      id="sync-password"
+                      class="input-standard"
+                      placeholder="Password"
+                      autocomplete="current-password"
+                      onkeydown="if (event.key === 'Enter') syncSignIn();"
+                    />
+                    <button
+                      type="button"
+                      class="btn-info-outline"
+                      id="sync-signin-btn"
+                      onclick="syncSignIn()"
+                    >
+                      Sign in
+                    </button>
+                  </div>
+
+                  <div
+                    id="sync-account-detail"
+                    style="display: none; flex-direction: column; gap: 6px"
+                  >
+                    <div class="settings-row">
+                      <span class="settings-label" style="font-weight: 500"
+                        >This device</span
+                      >
+                      <span
+                        class="settings-label"
+                        id="sync-device-label"
+                      ></span>
+                    </div>
+                    <div class="settings-row">
+                      <span class="settings-label" style="font-weight: 500"
+                        >Clock offset</span
+                      >
+                      <span class="settings-label" id="sync-offset"></span>
+                    </div>
+                    <button
+                      type="button"
+                      class="btn-secondary"
+                      onclick="syncSignOut()"
+                    >
+                      Sign out
+                    </button>
+                  </div>
+
+                  <span
+                    class="settings-help-text"
+                    id="sync-error"
+                    style="display: none; color: var(--accent-break)"
+                  ></span>
+                </div>
+
+                <!-- Card 4: Help Description Strip (Fixed Height for CPU efficiency) -->
                 <div class="settings-card settings-help-strip">
                   <svg
                     class="settings-help-icon"
@@ -14735,10 +14821,30 @@
         "tabHiddenAt",
       ];
 
-      function rebaseTimestampBag(bag, deltaMs) {
+      /* The subset that crosses the wire during cross-device sync. Deliberately
+         NOT the same list as CLOCK_REBASE_STATE_KEYS: lastActivity and
+         tabHiddenAt describe this browser's own input and visibility, so
+         shipping them would make a phone inherit the laptop's idleness the
+         instant it took over the session. */
+      const SYNC_INSTANT_KEYS = [
+        "sessionAnchorWall",
+        "loginTimestamp",
+        "idleStart",
+        "idleWakeup",
+        "lastHeartbeatWall",
+      ];
+
+      /* Shifts wall-clock instants in a bag by a delta. Two callers with two
+         key lists: applyClockStep rebases everything live for a system clock
+         step, sync converts only the wire subset between clock domains. */
+      function rebaseTimestampBag(
+        bag,
+        deltaMs,
+        keys = CLOCK_REBASE_STATE_KEYS,
+      ) {
         if (!bag || typeof bag !== "object") return;
-        for (let i = 0; i < CLOCK_REBASE_STATE_KEYS.length; i++) {
-          const k = CLOCK_REBASE_STATE_KEYS[i];
+        for (let i = 0; i < keys.length; i++) {
+          const k = keys[i];
           const v = bag[k];
           if (typeof v === "number" && isFinite(v)) bag[k] = v + deltaMs;
         }
@@ -15105,7 +15211,7 @@
           return;
         }
         try {
-          const request = indexedDB.open("WorkTrackerDB", 3);
+          const request = indexedDB.open("WorkTrackerDB", 4);
           request.onupgradeneeded = (e) => {
             const db = e.target.result;
             if (!db.objectStoreNames.contains("logs")) {
@@ -15119,6 +15225,14 @@
                bucket shared with the emergency mirror. */
             if (!db.objectStoreNames.contains("snapshots")) {
               db.createObjectStore("snapshots", { keyPath: "date" });
+            }
+            /* v4: sync bookkeeping - shadow maps, the delta cursor and this
+               device's id. Deliberately not localStorage: the shadow grows
+               with the logbook and that 5MB bucket already carries the
+               emergency mirror. Purely derived data, so an upgrade that
+               creates it empty costs one full reconciliation, not data. */
+            if (!db.objectStoreNames.contains("sync_meta")) {
+              db.createObjectStore("sync_meta", { keyPath: "key" });
             }
           };
           request.onsuccess = () => {
@@ -15146,6 +15260,813 @@
         }
       });
       dbPromise.catch(() => {});
+
+      /* ═══════════════════════════════════════════════════════════════════ CROSS-DEVICE SYNC — change detection. Nothing in this block transmits.
+
+         It answers exactly one question, correctly: "what changed since the
+         server last confirmed it?" The network layer is built on top of this
+         rather than inside it, because a wrong answer here stays invisible
+         until two devices disagree a week later.
+
+         The outbox is DERIVED, never maintained. A Map of id -> lastModified
+         holding what the server has confirmed is diffed against the live
+         array on every save: anything present with a different stamp is an
+         edit, anything the map knows that the array no longer holds is a
+         delete. That catches deletes from paths this block has never heard
+         of — snapshot restore, factory reset, import-overwrite, and any
+         written later — because absence IS the signal. It also makes the
+         queue crash-proof: the shadow is the queue, so the next boot
+         re-derives precisely the same pending set from durable state.
+
+         Inert on file://, where IndexedDB is unavailable and a cross-origin
+         fetch would have no usable origin anyway. */
+      const Sync = (() => {
+        const isSupported = window.location.protocol !== "file:";
+
+        /* Confirmed server state, per kind. Empty until loadMeta resolves,
+           which is deliberate: an empty shadow derives every record as an
+           edit and no record as a delete, which is exactly right for a first
+           sync on a device that already has history. */
+        const shadow = { log: new Map(), task: new Map() };
+
+        /* When this device first observed a record was gone. Stamped once
+           and persisted rather than recomputed per derivation: a tombstone
+           whose timestamp advanced on every retry would eventually out-rank
+           a genuinely newer edit from another device and win a conflict it
+           is supposed to lose. */
+        const pendingDeletes = { log: new Map(), task: new Map() };
+
+        const cursor = { log: 0, task: 0 };
+        const dirty = new Set();
+        let deviceId = null;
+        let deviceLabel = null;
+
+        /* How far AHEAD this device's clock runs, measured against Postgres
+           by the network layer. Zero until then, which makes every
+           conversion below the identity function while signed out. */
+        let serverOffsetMs = 0;
+
+        const toWire = (t) => t - serverOffsetMs;
+        const fromWire = (t) => t + serverOffsetMs;
+
+        /* ── sync_meta persistence ─────────────────────────────────────── */
+
+        /* Requests are issued synchronously inside the executor on purpose:
+           an IndexedDB transaction goes inactive the moment control returns
+           to the event loop, so an await between opening one and using it
+           throws TransactionInactiveError. */
+        function readMeta(key) {
+          if (!isSupported) return Promise.resolve(null);
+          return dbPromise.then(
+            (db) =>
+              new Promise((resolve, reject) => {
+                const req = db
+                  .transaction("sync_meta", "readonly")
+                  .objectStore("sync_meta")
+                  .get(key);
+                req.onsuccess = () => resolve(req.result || null);
+                req.onerror = () => reject(req.error);
+              }),
+          );
+        }
+
+        function writeMeta(records) {
+          if (!isSupported || isDbReloading) return Promise.resolve();
+          return dbPromise.then(
+            (db) =>
+              new Promise((resolve, reject) => {
+                const tx = db.transaction("sync_meta", "readwrite");
+                const store = tx.objectStore("sync_meta");
+                for (let i = 0; i < records.length; i++) store.put(records[i]);
+                tx.oncomplete = () => resolve();
+                tx.onerror = () => reject(tx.error);
+                tx.onabort = () => reject(tx.error);
+              }),
+          );
+        }
+
+        /* Maps survive structured clone, so the shadow is stored as-is
+           instead of being marshalled through an object on every write. */
+        function metaRecords() {
+          return [
+            { key: "shadow:log", map: shadow.log, deletes: pendingDeletes.log },
+            {
+              key: "shadow:task",
+              map: shadow.task,
+              deletes: pendingDeletes.task,
+            },
+            { key: "cursors", log: cursor.log, task: cursor.task },
+            { key: "device", id: deviceId, label: deviceLabel },
+          ];
+        }
+
+        /* Debounced: the shadow is the largest thing this module owns and a
+           push confirming 400 records should cost one clone, not 400. */
+        let persistHandle = null;
+        let persistPending = null;
+        function persistMeta() {
+          if (!isSupported) return Promise.resolve();
+          if (!persistPending) {
+            persistPending = new Promise((resolve) => {
+              persistHandle = setTimeout(() => {
+                persistHandle = null;
+                persistPending = null;
+                writeMeta(metaRecords()).catch((e) => {
+                  console.warn("Sync meta write failed", e);
+                });
+                resolve();
+              }, 750);
+            });
+          }
+          return persistPending;
+        }
+
+        /* Bypasses the debounce for pagehide, where a queued timeout will
+           simply never run. */
+        function flushMeta() {
+          if (persistHandle) {
+            clearTimeout(persistHandle);
+            persistHandle = null;
+            persistPending = null;
+          }
+          return writeMeta(metaRecords()).catch(() => {});
+        }
+
+        /* ── identity ──────────────────────────────────────────────────── */
+
+        function newUuid() {
+          if (window.crypto && typeof crypto.randomUUID === "function") {
+            return crypto.randomUUID();
+          }
+          const b = crypto.getRandomValues(new Uint8Array(16));
+          b[6] = (b[6] & 0x0f) | 0x40;
+          b[8] = (b[8] & 0x3f) | 0x80;
+          const h = Array.from(b, (x) => x.toString(16).padStart(2, "0")).join(
+            "",
+          );
+          return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`;
+        }
+
+        /* The takeover prompt is only actionable if it names something the
+           user recognises. "Running on device a7f3c1e2" is not. */
+        function guessLabel() {
+          const ua = navigator.userAgent || "";
+          const browser = /Edg\//.test(ua)
+            ? "Edge"
+            : /OPR\//.test(ua)
+              ? "Opera"
+              : /Firefox\//.test(ua)
+                ? "Firefox"
+                : /Chrome\//.test(ua)
+                  ? "Chrome"
+                  : /Safari\//.test(ua)
+                    ? "Safari"
+                    : "Browser";
+          const os = /Windows/.test(ua)
+            ? "Windows"
+            : /Android/.test(ua)
+              ? "Android"
+              : /iPhone|iPad|iPod/.test(ua)
+                ? "iOS"
+                : /Mac OS X/.test(ua)
+                  ? "macOS"
+                  : /Linux/.test(ua)
+                    ? "Linux"
+                    : "this device";
+          return `${browser} on ${os}`;
+        }
+
+        /* ── change detection ──────────────────────────────────────────── */
+
+        /* state mixes three domains that need three different merge rules.
+           Lease-owned: only the device holding the session may write these,
+           because there is exactly one running timer in the real world and
+           merging two of them produces a number true of neither. */
+        const SESSION_FIELDS = [
+          "workAccumulated",
+          "breakAccumulated",
+          "currentMode",
+          "sessionAnchorWall",
+          "activeSegmentFloorSec",
+          "loginTimestamp",
+          "activeDate",
+          "idleLock",
+          "idleStart",
+          "idleWakeup",
+          "preIdleMode",
+          "idleOverlapSec",
+          "idleType",
+          "goalNotified",
+          "lastHeartbeatWall",
+          "notes",
+        ];
+
+        /* Any device writes these and the newest edit wins. Preferences are
+           not measurements: losing the older of two edits costs nothing, and
+           gating them on the session lease would be baffling. */
+        const SETTINGS_FIELDS = [
+          "idleTrackingEnabled",
+          "idleThresholdMinutes",
+          "autoBackupEnabled",
+          "autoEmailEnabled",
+          "goalAutopopulateEnabled",
+        ];
+
+        /* lastActivity and tabHiddenAt never leave the device — see the note
+           on SYNC_INSTANT_KEYS. Listed here so the omission reads as a
+           decision rather than an oversight. */
+        const LOCAL_ONLY_FIELDS = ["lastActivity", "tabHiddenAt"];
+
+        /* Must be deterministic across devices: two browsers deriving
+           different stamps for the same legacy record makes LWW oscillate
+           forever. Records are normalised once at load by the hydration
+           backfill, so this ladder is a fallback rather than the hot path. */
+        function lastModifiedOf(kind, r) {
+          if (Number.isFinite(r.lastModified)) return r.lastModified;
+          const fallback =
+            kind === "task"
+              ? r.endMs || r.startMs || 0
+              : r.logoutEpochMs || r.epochMs || 0;
+          return Number.isFinite(fallback) ? fallback : 0;
+        }
+
+        /* One O(n) pass over the array. saveLogs already does an index pass,
+           a weekly-cache rebuild and a full JSON.stringify for the emergency
+           mirror, so a map walk is noise beside what is already there.
+
+           Rows carry _localModified alongside the wire stamp so that
+           confirmPushed can advance the shadow without converting back
+           through an offset that may have been re-measured mid-flight. */
+        function deriveOutbox(kind, records) {
+          const map = shadow[kind];
+          if (!map) return [];
+          const deletes = pendingDeletes[kind];
+          const list = Array.isArray(records) ? records : [];
+          const out = [];
+          const seen = new Set();
+
+          for (let i = 0; i < list.length; i++) {
+            const r = list[i];
+            if (!r || !r.id) continue;
+            seen.add(r.id);
+            const lm = lastModifiedOf(kind, r);
+            if (map.get(r.id) !== lm) {
+              out.push({
+                kind,
+                id: r.id,
+                payload: r,
+                deleted: false,
+                last_modified: toWire(lm),
+                _localModified: lm,
+              });
+            }
+          }
+
+          for (const id of map.keys()) {
+            /* Present again: an undo or a restore brought it back, so the
+               tombstone this device was holding is void. */
+            if (seen.has(id)) {
+              deletes.delete(id);
+              continue;
+            }
+            let at = deletes.get(id);
+            if (!Number.isFinite(at)) {
+              at = Date.now();
+              deletes.set(id, at);
+            }
+            out.push({
+              kind,
+              id,
+              payload: null,
+              deleted: true,
+              last_modified: toWire(at),
+              _localModified: at,
+            });
+          }
+          return out;
+        }
+
+        /* The shadow advances only on a confirmed 2xx, which is what makes
+           retries free: a failed push simply reappears in the next
+           derivation and there is no separate queue to fall out of step. */
+        function confirmPushed(rows) {
+          if (!Array.isArray(rows)) return Promise.resolve();
+          for (let i = 0; i < rows.length; i++) {
+            const row = rows[i];
+            const map = shadow[row.kind];
+            if (!map) continue;
+            if (row.deleted) {
+              map.delete(row.id);
+              pendingDeletes[row.kind].delete(row.id);
+            } else {
+              map.set(row.id, row._localModified);
+            }
+          }
+          return persistMeta();
+        }
+
+        /* Applied after a pull merges a remote record into local storage:
+           the server is by definition already holding that version, so
+           recording it prevents the next derivation pushing it straight
+           back and starting a ping-pong between two devices. */
+        function noteRemote(kind, id, localModified, deleted) {
+          const map = shadow[kind];
+          if (!map) return;
+          if (deleted) {
+            map.delete(id);
+            pendingDeletes[kind].delete(id);
+          } else {
+            map.set(id, localModified);
+          }
+        }
+
+        function markDirty(kind) {
+          dirty.add(kind);
+          /* The network layer debounces a push from here. Until then this is
+             a pure record of intent — readable from the sync panel and from
+             the headless tests, and costing one Set insert per save. */
+        }
+
+        /* saveState fires on every heartbeat tick, so marking settings dirty
+           unconditionally would push the preferences blob every 15 seconds
+           and let an untouched device keep winning LWW races it never
+           entered. Session is always dirty; settings only when a settings
+           field actually moved. */
+        let settingsPrint = null;
+        function noteStateSaved(s) {
+          dirty.add("session");
+          if (!s) return;
+          const picked = {};
+          for (let i = 0; i < SETTINGS_FIELDS.length; i++) {
+            picked[SETTINGS_FIELDS[i]] = s[SETTINGS_FIELDS[i]];
+          }
+          const print = JSON.stringify(picked);
+          /* The first call after boot establishes the baseline instead of
+             reporting a change: loading persisted settings is not an edit. */
+          if (settingsPrint !== null && print !== settingsPrint) {
+            dirty.add("settings");
+          }
+          settingsPrint = print;
+        }
+
+        /* ── boot ──────────────────────────────────────────────────────── */
+
+        const ready = (async () => {
+          if (!isSupported) return;
+          try {
+            const [logMeta, taskMeta, cursors, device] = await Promise.all([
+              readMeta("shadow:log"),
+              readMeta("shadow:task"),
+              readMeta("cursors"),
+              readMeta("device"),
+            ]);
+            if (logMeta && logMeta.map instanceof Map) {
+              shadow.log = logMeta.map;
+              if (logMeta.deletes instanceof Map)
+                pendingDeletes.log = logMeta.deletes;
+            }
+            if (taskMeta && taskMeta.map instanceof Map) {
+              shadow.task = taskMeta.map;
+              if (taskMeta.deletes instanceof Map)
+                pendingDeletes.task = taskMeta.deletes;
+            }
+            if (cursors) {
+              cursor.log = Number(cursors.log) || 0;
+              cursor.task = Number(cursors.task) || 0;
+            }
+            deviceId = (device && device.id) || newUuid();
+            deviceLabel = (device && device.label) || guessLabel();
+            if (!device) await flushMeta();
+          } catch (e) {
+            /* A meta read failure is recoverable: an empty shadow costs one
+               full reconciliation on the next sync, never data. */
+            console.warn("Sync meta unavailable; starting from empty", e);
+            deviceId = deviceId || newUuid();
+            deviceLabel = deviceLabel || guessLabel();
+          }
+        })();
+
+        if (isSupported) {
+          window.addEventListener("pagehide", () => {
+            flushMeta();
+          });
+        }
+
+        return {
+          isSupported,
+          ready,
+          markDirty,
+          noteStateSaved,
+          deriveOutbox,
+          confirmPushed,
+          noteRemote,
+          lastModifiedOf,
+          flushMeta,
+          get serverOffsetMs() {
+            return serverOffsetMs;
+          },
+          set serverOffsetMs(v) {
+            if (Number.isFinite(v)) serverOffsetMs = v;
+          },
+          toWire,
+          fromWire,
+          /* Corrected wall clock. getPSTDate switches to this when the
+             network layer lands, so two devices near midnight cannot file
+             the same shift under two different calendar days. */
+          trueNow: () => Date.now() - serverOffsetMs,
+          get deviceId() {
+            return deviceId;
+          },
+          get deviceLabel() {
+            return deviceLabel;
+          },
+          setDeviceLabel(v) {
+            deviceLabel = String(v || "").slice(0, 60) || guessLabel();
+            return persistMeta();
+          },
+          cursor,
+          dirty,
+          SESSION_FIELDS,
+          SETTINGS_FIELDS,
+          LOCAL_ONLY_FIELDS,
+          /* Exposed for the sync panel and the headless tests. */
+          _shadow: shadow,
+          _pendingDeletes: pendingDeletes,
+        };
+      })();
+      window.Sync = Sync;
+
+      /* ═══════════════════════════════════════════════════════════════════ CROSS-DEVICE SYNC — transport and identity.
+
+         Supabase is Postgres behind two ordinary REST APIs, so this is a
+         fetch wrapper and a handful of call sites rather than a dependency.
+         The CSP names one host and blocks every other, which is only worth
+         having because no CDN script is loaded either: nothing in this file
+         can execute code from somewhere else, and nothing can phone home.
+
+         Sign-in is email and password on purpose. A magic link opens in the
+         default browser rather than the installed home-screen app, so the
+         tokens land in a storage container the app cannot read — you sign in
+         successfully and stay signed out. A password grant is one call that
+         behaves identically everywhere, including headless. */
+      const SUPABASE_URL = "https://dhvnnzzzsmfwwydyfupf.supabase.co";
+      const SUPABASE_ANON_KEY =
+        "sb_publishable_pZVm8lkClrXIAvRiKlIn2w_aAyf-yAb";
+      const SYNC_AUTH_KEY = "production_sync_auth_v1";
+
+      const SyncNet = (() => {
+        let session = null;
+        let refreshTimer = null;
+        let inFlightRefresh = null;
+        let offsetMeasured = false;
+        let lastError = null;
+        const offsetSamples = [];
+        const listeners = new Set();
+
+        function emit() {
+          for (const fn of listeners) {
+            try {
+              fn();
+            } catch (e) {
+              console.warn("Sync listener failed", e);
+            }
+          }
+        }
+
+        /* ── token storage ─────────────────────────────────────────────── */
+
+        function loadStoredSession() {
+          try {
+            const raw = localStorage.getItem(SYNC_AUTH_KEY);
+            if (!raw) return null;
+            const s = JSON.parse(raw);
+            if (!s || !s.access_token || !s.refresh_token) return null;
+            if (!Number.isFinite(s.expires_at)) return null;
+            return s;
+          } catch (e) {
+            return null;
+          }
+        }
+
+        function persistSession(s) {
+          try {
+            localStorage.setItem(SYNC_AUTH_KEY, JSON.stringify(s));
+          } catch (e) {
+            window.storageWriteError = true;
+            console.warn("Could not persist sync tokens", e);
+          }
+        }
+
+        /* Refresh tokens ROTATE: the one just spent is already dead on the
+           server. Persisting happens in the same tick the response is
+           parsed, because a crash between the response and the write signs
+           the user out permanently with no way back. */
+        function adoptTokens(data) {
+          if (!data || !data.access_token || !data.refresh_token) {
+            throw new Error("Auth response was missing tokens");
+          }
+          const lifetimeMs = (Number(data.expires_in) || 3600) * 1000;
+          session = {
+            access_token: data.access_token,
+            refresh_token: data.refresh_token,
+            /* Deliberately local now + lifetime, NOT the server's expires_at
+               field: that one is in server time, and the entire point of
+               this layer is that the two clocks disagree. */
+            expires_at: Date.now() + lifetimeMs,
+            lifetime_ms: lifetimeMs,
+            email:
+              (data.user && data.user.email) ||
+              (session && session.email) ||
+              "",
+            user_id:
+              (data.user && data.user.id) || (session && session.user_id) || "",
+          };
+          persistSession(session);
+          lastError = null;
+          scheduleRefresh();
+          emit();
+          return session;
+        }
+
+        /* Clears tokens and nothing else. Local data is never touched here —
+           a year of history must not disappear because a refresh failed. */
+        function clearSession(message) {
+          session = null;
+          offsetSamples.length = 0;
+          offsetMeasured = false;
+          Sync.serverOffsetMs = 0;
+          if (refreshTimer) {
+            clearTimeout(refreshTimer);
+            refreshTimer = null;
+          }
+          try {
+            localStorage.removeItem(SYNC_AUTH_KEY);
+          } catch (e) {}
+          emit();
+          if (message && typeof showAppToast === "function") {
+            showAppToast(message, "warning");
+          }
+        }
+
+        function scheduleRefresh() {
+          if (refreshTimer) clearTimeout(refreshTimer);
+          refreshTimer = null;
+          if (!session) return;
+          /* Refresh at 80% of lifetime so an expiry never surfaces as a
+             failed request the user can see. */
+          const lead = Math.max(30000, (session.lifetime_ms || 3600000) * 0.2);
+          const delay = Math.max(5000, session.expires_at - lead - Date.now());
+          refreshTimer = setTimeout(() => {
+            refresh().catch((e) => {
+              lastError = e.message;
+              emit();
+            });
+          }, delay);
+        }
+
+        function refresh() {
+          if (inFlightRefresh) return inFlightRefresh;
+          inFlightRefresh = (async () => {
+            /* Another tab may have rotated the token while this one sat
+               idle. Re-read before spending ours, or both tabs present a
+               dead token and both get signed out. */
+            const stored = loadStoredSession();
+            if (
+              stored &&
+              session &&
+              stored.refresh_token !== session.refresh_token &&
+              stored.expires_at > Date.now()
+            ) {
+              session = stored;
+              scheduleRefresh();
+              emit();
+              return session;
+            }
+            if (!session || !session.refresh_token) {
+              throw new Error("Not signed in");
+            }
+            const r = await fetch(
+              `${SUPABASE_URL}/auth/v1/token?grant_type=refresh_token`,
+              {
+                method: "POST",
+                headers: {
+                  apikey: SUPABASE_ANON_KEY,
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ refresh_token: session.refresh_token }),
+              },
+            );
+            const data = await r.json().catch(() => ({}));
+            if (!r.ok) {
+              /* The refresh token itself was rejected. No retry recovers
+                 from that, so stop cleanly rather than looping. */
+              clearSession("Signed out — sign in again to resume syncing");
+              throw new Error(
+                data.error_description ||
+                  data.msg ||
+                  `Session refresh rejected (${r.status})`,
+              );
+            }
+            return adoptTokens(data);
+          })().finally(() => {
+            inFlightRefresh = null;
+          });
+          return inFlightRefresh;
+        }
+
+        /* ── transport ─────────────────────────────────────────────────── */
+
+        async function net(path, options = {}, retried = false) {
+          const headers = Object.assign(
+            { apikey: SUPABASE_ANON_KEY },
+            options.headers || {},
+          );
+          if (session && session.access_token) {
+            headers.Authorization = `Bearer ${session.access_token}`;
+          }
+          if (options.body && !headers["Content-Type"]) {
+            headers["Content-Type"] = "application/json";
+          }
+          const r = await fetch(
+            SUPABASE_URL + path,
+            Object.assign({}, options, { headers }),
+          );
+          /* Refresh once, retry once. A second 401 after a fresh token is a
+             real refusal, and retrying again would only spin. */
+          if (r.status === 401 && session && !retried) {
+            await refresh();
+            return net(path, options, true);
+          }
+          return r;
+        }
+
+        async function rpc(name, args) {
+          const r = await net(`/rest/v1/rpc/${name}`, {
+            method: "POST",
+            body: JSON.stringify(args || {}),
+          });
+          if (!r.ok) {
+            const detail = await r.text().catch(() => "");
+            throw new Error(`${name} failed (${r.status}) ${detail}`.trim());
+          }
+          return r.json();
+        }
+
+        /* ── clock offset ──────────────────────────────────────────────── */
+
+        function median(arr) {
+          const s = arr.slice().sort((a, b) => a - b);
+          const m = s.length >> 1;
+          return s.length % 2 === 1 ? s[m] : (s[m - 1] + s[m]) / 2;
+        }
+
+        /* Measured against Postgres rather than the HTTP Date header, which
+           is not CORS-safelisted and only has second precision anyway. */
+        async function measureOffset() {
+          if (!session) return Sync.serverOffsetMs;
+          const t0 = Date.now();
+          const serverMs = Number(await rpc("server_now"));
+          const rtt = Date.now() - t0;
+          if (!Number.isFinite(serverMs)) {
+            throw new Error("server_now returned no usable time");
+          }
+          /* Half the round trip is the best single estimate of when the
+             server actually read its clock. */
+          const sample = t0 + rtt / 2 - serverMs;
+          offsetSamples.push(sample);
+          if (offsetSamples.length > 5) offsetSamples.shift();
+
+          const next = median(offsetSamples);
+          /* Adopt only a change over two seconds. Otherwise ordinary network
+             jitter walks the offset around and every pull rewrites session
+             anchors that were already correct. */
+          if (!offsetMeasured || Math.abs(next - Sync.serverOffsetMs) > 2000) {
+            Sync.serverOffsetMs = next;
+            offsetMeasured = true;
+          }
+          lastError = null;
+          emit();
+          return Sync.serverOffsetMs;
+        }
+
+        /* ── account ───────────────────────────────────────────────────── */
+
+        async function signIn(email, password) {
+          const r = await fetch(
+            `${SUPABASE_URL}/auth/v1/token?grant_type=password`,
+            {
+              method: "POST",
+              headers: {
+                apikey: SUPABASE_ANON_KEY,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ email, password }),
+            },
+          );
+          const data = await r.json().catch(() => ({}));
+          if (!r.ok) {
+            throw new Error(
+              data.error_description ||
+                data.msg ||
+                data.message ||
+                `Sign-in failed (${r.status})`,
+            );
+          }
+          adoptTokens(data);
+          await measureOffset().catch((e) => {
+            lastError = e.message;
+            emit();
+          });
+          return session;
+        }
+
+        async function signOut() {
+          /* Best effort: the local clear is what actually signs you out and
+             must happen whether or not the network agrees. */
+          try {
+            if (session) await net("/auth/v1/logout", { method: "POST" });
+          } catch (e) {}
+          clearSession(null);
+        }
+
+        /* ── boot ──────────────────────────────────────────────────────── */
+
+        const stored = loadStoredSession();
+        if (stored) {
+          session = stored;
+          scheduleRefresh();
+          /* Expired, or close to it, while the tab was closed. */
+          if (session.expires_at - Date.now() < 60000) {
+            refresh()
+              .then(() => measureOffset())
+              .catch((e) => {
+                lastError = e.message;
+                emit();
+              });
+          } else {
+            measureOffset().catch((e) => {
+              lastError = e.message;
+              emit();
+            });
+          }
+        }
+
+        /* Another tab signed in or out. Adopt its result rather than
+           holding a session it has already invalidated. */
+        window.addEventListener("storage", (e) => {
+          if (e.key !== SYNC_AUTH_KEY) return;
+          const next = loadStoredSession();
+          if (!next) {
+            session = null;
+            offsetMeasured = false;
+            offsetSamples.length = 0;
+            Sync.serverOffsetMs = 0;
+            if (refreshTimer) {
+              clearTimeout(refreshTimer);
+              refreshTimer = null;
+            }
+          } else {
+            session = next;
+            scheduleRefresh();
+          }
+          emit();
+        });
+
+        return {
+          net,
+          rpc,
+          signIn,
+          signOut,
+          refresh,
+          measureOffset,
+          onChange(fn) {
+            listeners.add(fn);
+            return () => listeners.delete(fn);
+          },
+          get signedIn() {
+            return !!session;
+          },
+          get email() {
+            return session ? session.email : null;
+          },
+          get userId() {
+            return session ? session.user_id : null;
+          },
+          status() {
+            return {
+              signedIn: !!session,
+              email: session ? session.email : null,
+              userId: session ? session.user_id : null,
+              expiresInMs: session ? session.expires_at - Date.now() : null,
+              offsetMs: Sync.serverOffsetMs,
+              offsetMeasured,
+              online: navigator.onLine,
+              lastError,
+            };
+          },
+        };
+      })();
+      window.SyncNet = SyncNet;
 
       /**
        * Persists historical logs grouped into chronological chunk blocks.
@@ -16129,6 +17050,10 @@
           );
           return Promise.reject(new Error("Database read failed on startup."));
         }
+        /* Placed after the guards so a rejected save never reports a change
+           that did not happen. One of four hooks; between them they cover
+           every mutation path in the app, including ones not written yet. */
+        if (window.Sync) window.Sync.markDirty("log");
         for (let i = 0; i < logs.length; i++) {
           logs[i]._idx = i;
         }
@@ -22769,6 +23694,10 @@
         task.endMs = endMs;
         task.durationSec = durSec !== null ? durSec : 0;
         task.note = noteStr;
+        /* Without this the outbox diff sees an unchanged stamp and skips the
+           record entirely, so the edit would never leave this device.
+           Deletes are caught structurally by absence; edits are not. */
+        task.lastModified = Date.now();
 
         cachedTaskLogs.sort(
           (a, b) => (Number(b.startMs) || 0) - (Number(a.startMs) || 0),
@@ -22865,6 +23794,9 @@
           endMs: endMs,
           durationSec: durSec || 0,
           note: noteStr,
+          /* The timer path already stamps this; manual creation did not,
+             which left hand-added tasks unmergeable across devices. */
+          lastModified: Date.now(),
         };
 
         cachedTaskLogs.unshift(newTask);
@@ -25944,7 +26876,137 @@
       /**
        * Executes syncSettingsUI logic to populate the modal with correct saved states.
        */
+      /* ── Cloud sync account card ─────────────────────────────────────── */
+
+      /* Positive means this device's clock runs ahead of the server's. */
+      function formatClockOffset(ms) {
+        if (!Number.isFinite(ms)) return "unknown";
+        const abs = Math.abs(ms);
+        const sign = ms > 0 ? "+" : ms < 0 ? "-" : "";
+        if (abs < 1000) return `${sign}${Math.round(abs)} ms`;
+        if (abs < 60000) return `${sign}${(abs / 1000).toFixed(1)} s`;
+        return `${sign}${(abs / 60000).toFixed(1)} min`;
+      }
+
+      function renderSyncCard() {
+        const card = document.getElementById("sync-account-card");
+        if (!card) return;
+        const status = window.SyncNet
+          ? SyncNet.status()
+          : { signedIn: false, online: true };
+
+        const chip = document.getElementById("sync-status-chip");
+        if (chip) {
+          chip.textContent = !status.signedIn
+            ? "Signed out"
+            : status.online
+              ? status.email || "Signed in"
+              : "Offline";
+          chip.style.color = status.signedIn
+            ? "var(--accent-work)"
+            : "var(--text-muted)";
+        }
+
+        const form = document.getElementById("sync-signin-form");
+        if (form) form.style.display = status.signedIn ? "none" : "flex";
+        const detail = document.getElementById("sync-account-detail");
+        if (detail) detail.style.display = status.signedIn ? "flex" : "none";
+
+        const dev = document.getElementById("sync-device-label");
+        if (dev)
+          dev.textContent = (window.Sync && Sync.deviceLabel) || "unknown";
+
+        const off = document.getElementById("sync-offset");
+        if (off) {
+          off.textContent = status.offsetMeasured
+            ? formatClockOffset(status.offsetMs)
+            : "measuring...";
+        }
+
+        const errorEl = document.getElementById("sync-error");
+        if (errorEl && !errorEl.dataset.sticky) {
+          if (status.lastError) {
+            errorEl.textContent = status.lastError;
+            errorEl.style.display = "block";
+          } else {
+            errorEl.style.display = "none";
+          }
+        }
+      }
+
+      window.syncSignIn = async function () {
+        const emailEl = document.getElementById("sync-email");
+        const passEl = document.getElementById("sync-password");
+        const btn = document.getElementById("sync-signin-btn");
+        const errorEl = document.getElementById("sync-error");
+        const email = emailEl ? emailEl.value.trim() : "";
+        const password = passEl ? passEl.value : "";
+
+        /* dataset.sticky keeps a form-level message on screen through the
+           re-renders that SyncNet.onChange fires underneath it. */
+        const fail = (msg) => {
+          if (!errorEl) return;
+          errorEl.textContent = msg;
+          errorEl.style.display = "block";
+          errorEl.dataset.sticky = "1";
+        };
+        if (errorEl) {
+          delete errorEl.dataset.sticky;
+          errorEl.style.display = "none";
+        }
+
+        if (!email || !password) {
+          fail("Enter your email and password.");
+          return;
+        }
+        if (!navigator.onLine) {
+          fail("You are offline. Sign in once you reconnect.");
+          return;
+        }
+
+        if (btn) {
+          btn.disabled = true;
+          btn.textContent = "Signing in...";
+        }
+        try {
+          await SyncNet.signIn(email, password);
+          if (passEl) passEl.value = "";
+          showAppToast("Signed in", "success");
+        } catch (e) {
+          fail(e && e.message ? e.message : "Sign-in failed");
+        } finally {
+          if (btn) {
+            btn.disabled = false;
+            btn.textContent = "Sign in";
+          }
+          renderSyncCard();
+        }
+      };
+
+      window.syncSignOut = async function () {
+        const errorEl = document.getElementById("sync-error");
+        if (errorEl) {
+          delete errorEl.dataset.sticky;
+          errorEl.style.display = "none";
+        }
+        try {
+          await SyncNet.signOut();
+          /* Says plainly what did NOT happen: signing out clearing a year of
+             history because the button was ambiguous is unrecoverable. */
+          showAppToast(
+            "Signed out — your data stays on this device",
+            "success",
+          );
+        } catch (e) {
+          console.warn("Sign-out failed", e);
+        }
+        renderSyncCard();
+      };
+
+      if (window.SyncNet) SyncNet.onChange(renderSyncCard);
+
       function syncSettingsUI() {
+        renderSyncCard();
         // Sync existing toggle/slider values
         const isIdleEnabled = state.idleTrackingEnabled !== false;
         const idleCheckbox = DOM.idleToggle;
@@ -26541,6 +27603,28 @@
           const savedLogs = safeGetLocalStorage(TASK_LOGS_KEY);
           if (savedLogs) {
             cachedTaskLogs = JSON.parse(savedLogs);
+            /* The same normalisation the shift logbook gets during
+               hydration. A task with no id is invisible to the outbox and
+               would never sync at all; a task with no lastModified would be
+               stamped differently on each device. Both are load-time fixes,
+               deliberately not merge-time ones. */
+            let taskMutated = false;
+            for (let i = 0; i < cachedTaskLogs.length; i++) {
+              const t = cachedTaskLogs[i];
+              if (!t) continue;
+              if (!t.id) {
+                t.id =
+                  "task_" +
+                  Math.random().toString(36).substring(2, 11) +
+                  Date.now().toString(36);
+                taskMutated = true;
+              }
+              if (!Number.isFinite(t.lastModified)) {
+                t.lastModified = t.endMs || t.startMs || 0;
+                taskMutated = true;
+              }
+            }
+            if (taskMutated) saveTaskLogs();
           }
         } catch (e) {
           console.warn("Failed to load task state", e);
@@ -26549,6 +27633,9 @@
 
       function saveTaskState() {
         if (isFactoryResetting) return;
+        /* The running task belongs to the live session, so it travels under
+           the same lease rather than merging per-record like task history. */
+        if (window.Sync) window.Sync.markDirty("session");
         /* Persist the segment high-water mark alongside the anchor so a hard
            kill cannot lose time to a later backward clock change. Mirrors the
            getActiveSegmentSeconds(true) call in saveState. */
@@ -26563,6 +27650,7 @@
 
       function saveTaskLogs() {
         if (isFactoryResetting) return;
+        if (window.Sync) window.Sync.markDirty("task");
         try {
           localStorage.setItem(TASK_LOGS_KEY, JSON.stringify(cachedTaskLogs));
         } catch (e) {
@@ -29884,6 +30972,11 @@
         if (isTabConflict) return; // Prevent uninitialized or evicted tabs from writing stale state!
         if (isFactoryResetting) return; // A wipe is reloading; never re-seed the keys it removed.
 
+        /* Session is dirty on every call; settings only when one actually
+           changed. The isTabConflict guard above is what keeps three open
+           tabs producing one syncing tab rather than three. */
+        if (window.Sync) window.Sync.noteStateSaved(state);
+
         if (state.currentMode !== null && !state.idleLock) {
           state.lastHeartbeatWall = Date.now();
           /* Persist the segment high-water mark alongside the anchor so a hard
@@ -30314,6 +31407,15 @@
                 l.dayGoal != null && l.dayGoal > 0 ? l.dayGoal : 28800;
               l.dayGoal = goal;
               l.status = l.workSec >= goal ? "OVER" : "UNDER";
+              mutated = true;
+            }
+            /* Merge key for cross-device sync. Records predating the field
+               must resolve to the SAME stamp on every device, so normalise
+               once at load rather than at comparison time: two browsers
+               deriving different fallbacks would make LWW oscillate between
+               them forever. */
+            if (!Number.isFinite(l.lastModified)) {
+              l.lastModified = l.logoutEpochMs || l.epochMs || 0;
               mutated = true;
             }
           }
