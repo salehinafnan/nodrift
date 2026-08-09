@@ -15306,8 +15306,14 @@
            conversion below the identity function while signed out. */
         let serverOffsetMs = 0;
 
-        const toWire = (t) => t - serverOffsetMs;
-        const fromWire = (t) => t + serverOffsetMs;
+        /* Wire timestamps are INTEGER epoch milliseconds. push_records casts
+           them to bigint and Postgres rejects "1786305061362.5" outright,
+           and the offset is a median of samples each carrying an rtt/2 term,
+           so it is routinely fractional. Rounding belongs here, at the
+           boundary that defines the format, rather than at every call site
+           that happens to remember. */
+        const toWire = (t) => Math.round(t - serverOffsetMs);
+        const fromWire = (t) => Math.round(t + serverOffsetMs);
 
         /* ── sync_meta persistence ─────────────────────────────────────── */
 
@@ -15574,17 +15580,59 @@
           if (!map) return;
           if (deleted) {
             map.delete(id);
-            pendingDeletes[kind].delete(id);
           } else {
             map.set(id, localModified);
           }
+          /* Either way this device is now in step with the server on that
+             record, so any tombstone it was holding for it is void. */
+          pendingDeletes[kind].delete(id);
         }
+
+        /* Stamps a deletion time for every id the shadow knows that the
+           array no longer holds, without building a whole outbox.
+
+           A pull has to run this FIRST. Otherwise an incoming copy of a
+           record this device deleted a moment ago looks exactly like a
+           record it has never seen, and the merge helpfully puts it back —
+           silently undoing the delete before the push can tombstone it. */
+        function stampPendingDeletes(kind, records) {
+          const map = shadow[kind];
+          if (!map) return;
+          const deletes = pendingDeletes[kind];
+          const list = Array.isArray(records) ? records : [];
+          const seen = new Set();
+          for (let i = 0; i < list.length; i++) {
+            if (list[i] && list[i].id) seen.add(list[i].id);
+          }
+          for (const id of map.keys()) {
+            if (seen.has(id)) {
+              deletes.delete(id);
+            } else if (!Number.isFinite(deletes.get(id))) {
+              deletes.set(id, Date.now());
+            }
+          }
+        }
+
+        function pendingDeleteAt(kind, id) {
+          const m = pendingDeletes[kind];
+          const v = m ? m.get(id) : undefined;
+          return Number.isFinite(v) ? v : null;
+        }
+
+        /* The sync engine subscribes here rather than this module reaching
+           forward to it, so change detection stays independent of whether a
+           network layer exists at all. */
+        const dirtyHooks = new Set();
 
         function markDirty(kind) {
           dirty.add(kind);
-          /* The network layer debounces a push from here. Until then this is
-             a pure record of intent — readable from the sync panel and from
-             the headless tests, and costing one Set insert per save. */
+          for (const fn of dirtyHooks) {
+            try {
+              fn(kind);
+            } catch (e) {
+              console.warn("Sync dirty hook failed", e);
+            }
+          }
         }
 
         /* saveState fires on every heartbeat tick, so marking settings dirty
@@ -15594,7 +15642,7 @@
            field actually moved. */
         let settingsPrint = null;
         function noteStateSaved(s) {
-          dirty.add("session");
+          markDirty("session");
           if (!s) return;
           const picked = {};
           for (let i = 0; i < SETTINGS_FIELDS.length; i++) {
@@ -15604,7 +15652,7 @@
           /* The first call after boot establishes the baseline instead of
              reporting a change: loading persisted settings is not an edit. */
           if (settingsPrint !== null && print !== settingsPrint) {
-            dirty.add("settings");
+            markDirty("settings");
           }
           settingsPrint = print;
         }
@@ -15657,16 +15705,25 @@
           ready,
           markDirty,
           noteStateSaved,
+          onDirty(fn) {
+            dirtyHooks.add(fn);
+            return () => dirtyHooks.delete(fn);
+          },
           deriveOutbox,
           confirmPushed,
           noteRemote,
+          stampPendingDeletes,
+          pendingDeleteAt,
           lastModifiedOf,
           flushMeta,
           get serverOffsetMs() {
             return serverOffsetMs;
           },
           set serverOffsetMs(v) {
-            if (Number.isFinite(v)) serverOffsetMs = v;
+            /* Sub-millisecond precision in a clock offset is noise — the
+               measurement carries an rtt/2 uncertainty of its own — and a
+               fractional offset makes every derived wire stamp fractional. */
+            if (Number.isFinite(v)) serverOffsetMs = Math.round(v);
           },
           toWire,
           fromWire,
@@ -16067,6 +16124,502 @@
         };
       })();
       window.SyncNet = SyncNet;
+
+      /* ═══════════════════════════════════════════════════════════════════ CROSS-DEVICE SYNC — history.
+
+         Pull, then merge, then push, in that order and for a reason. Pulling
+         first compares local edits against current server state rather than
+         a stale view of it; pushing second lets a local edit that genuinely
+         is newer still win. A pull arriving mid-push is harmless because the
+         server-side LWW guard makes both directions idempotent.
+
+         Only the leader tab runs any of this. Local tabs already elect one
+         leader between themselves, so three open tabs produce one poller
+         rather than three racing ones. */
+      const SyncEngine = (() => {
+        const KINDS = ["log", "task"];
+        const PULL_PAGE = 500;
+        const PUSH_BATCH = 200;
+        /* clock_timestamp() is assigned before the commit lands, so a row
+           can become visible carrying a stamp slightly behind one already
+           seen. Rewinding the cursor five seconds closes that window; LWW
+           merge is idempotent, so re-seeing a record costs one comparison. */
+        const CURSOR_REWIND_MS = 5000;
+        /* Tombstones are pruned server-side at 90 days. A cursor older than
+           60 can no longer produce a complete delta, and sixty against
+           ninety leaves a month of slack. */
+        const STALE_CURSOR_MS = 60 * 864e5;
+        const POLL_IDLE_MS = 60000;
+
+        let running = false;
+        let pushTimer = null;
+        let pollTimer = null;
+        let failures = 0;
+        let lastSyncAt = 0;
+        let lastError = null;
+        let lastReport = null;
+        let announcedFirstSync = false;
+
+        /* Running totals across every cycle, background ones included. The
+           sync panel reports them, and they are the only race-free way to
+           ask "did this device send anything?" while a poll may also be
+           running. */
+        const totals = { cycles: 0, pushed: 0, applied: 0, removed: 0 };
+
+        function canSync() {
+          return (
+            SyncNet.signedIn &&
+            !isTabConflict &&
+            !isFactoryResetting &&
+            !isDbReloading &&
+            navigator.onLine
+          );
+        }
+
+        function recordsOf(kind) {
+          return kind === "task" ? cachedTaskLogs : getLogs();
+        }
+
+        /* ── local shaping ─────────────────────────────────────────────── */
+
+        /* Chunk keys are YYYY-MM derived from the record's MM/DD/YY date,
+           matching what the delete and submit paths already add. Marking
+           them means saveLogs rewrites only the affected months instead of
+           the whole store. */
+        function chunkKeyOf(record) {
+          const d = record && record.date;
+          if (typeof d !== "string") return null;
+          const p = d.split("/");
+          if (p.length !== 3) return null;
+          const yy = p[2].length === 2 ? "20" + p[2] : p[2];
+          return `${yy}-${p[0].padStart(2, "0")}`;
+        }
+
+        function markChunk(kind, record) {
+          if (kind !== "log" || !window.dirtyChunks) return;
+          const key = chunkKeyOf(record);
+          if (key) window.dirtyChunks.add(key);
+        }
+
+        /* searchStr and _idx are derived locally on every load, so they are
+           stripped from the wire and rebuilt on arrival rather than shipped
+           and stored twice. */
+        function stripDerived(payload) {
+          if (!payload || typeof payload !== "object") return null;
+          const out = {};
+          for (const k in payload) {
+            if (k === "_idx" || k === "searchStr") continue;
+            out[k] = payload[k];
+          }
+          return out;
+        }
+
+        function rehydrate(kind, r) {
+          if (kind !== "log") return r;
+          const goal = r.dayGoal != null && r.dayGoal > 0 ? r.dayGoal : 28800;
+          r.dayGoal = goal;
+          if (!r.status) r.status = (r.workSec || 0) >= goal ? "OVER" : "UNDER";
+          r.searchStr =
+            `${r.displayDate || ""} ${r.date || ""} ${r.login || ""} ${r.logout || ""} ${r.notes || ""}`.toLowerCase();
+          return r;
+        }
+
+        function sortKind(kind) {
+          if (kind === "task") {
+            cachedTaskLogs.sort(
+              (a, b) => (Number(b.startMs) || 0) - (Number(a.startMs) || 0),
+            );
+          } else {
+            getLogs().sort(
+              (a, b) =>
+                (b.epochMs || 0) - (a.epochMs || 0) ||
+                (b.loginEpochMs || 0) - (a.loginEpochMs || 0),
+            );
+          }
+        }
+
+        function replaceAll(list, next) {
+          list.length = 0;
+          for (let i = 0; i < next.length; i++) list.push(next[i]);
+        }
+
+        async function persistKind(kind) {
+          if (kind === "task") {
+            saveTaskLogs();
+            if (typeof renderTaskLogbook === "function") renderTaskLogbook();
+            return;
+          }
+          await saveLogs(getLogs());
+          if (typeof renderLogbook === "function") renderLogbook();
+          if (typeof renderInsights === "function") renderInsights();
+        }
+
+        /* ── push ──────────────────────────────────────────────────────── */
+
+        async function pushKind(kind) {
+          const outbox = Sync.deriveOutbox(kind, recordsOf(kind));
+          if (!outbox.length) return 0;
+          let sent = 0;
+          for (let i = 0; i < outbox.length; i += PUSH_BATCH) {
+            const slice = outbox.slice(i, i + PUSH_BATCH);
+            const rows = slice.map((r) => ({
+              kind: r.kind,
+              id: r.id,
+              payload: r.deleted ? null : stripDerived(r.payload),
+              deleted: r.deleted,
+              last_modified: r.last_modified,
+            }));
+            await SyncNet.rpc("push_records", { p_rows: rows });
+            /* Only now. The shadow advancing on anything less than a
+               confirmed 2xx is how records silently stop being sent. */
+            await Sync.confirmPushed(slice);
+            sent += slice.length;
+          }
+          return sent;
+        }
+
+        /* ── pull ──────────────────────────────────────────────────────── */
+
+        async function pullKind(kind, fromCursorMs) {
+          const rows = [];
+          let since = Math.max(0, fromCursorMs - CURSOR_REWIND_MS);
+          for (;;) {
+            const q =
+              "/rest/v1/records?select=id,kind,payload,deleted,last_modified,updated_at" +
+              `&kind=eq.${kind}` +
+              `&updated_at=gt.${encodeURIComponent(new Date(since).toISOString())}` +
+              `&order=updated_at.asc&limit=${PULL_PAGE}`;
+            const r = await SyncNet.net(q);
+            if (!r.ok) {
+              const detail = await r.text().catch(() => "");
+              throw new Error(
+                `pull ${kind} failed (${r.status}) ${detail}`.trim(),
+              );
+            }
+            const page = await r.json();
+            for (let i = 0; i < page.length; i++) rows.push(page[i]);
+            if (page.length < PULL_PAGE) break;
+            const next = Date.parse(page[page.length - 1].updated_at);
+            /* No forward progress would page forever on identical stamps. */
+            if (!Number.isFinite(next) || next <= since) break;
+            since = next;
+          }
+          return rows;
+        }
+
+        /* ── merge ─────────────────────────────────────────────────────── */
+
+        function mergeRows(kind, rows) {
+          const out = { applied: 0, removed: 0, kept: 0, cursor: 0 };
+          if (!rows.length) return out;
+
+          const list = recordsOf(kind);
+          const byId = new Map();
+          for (let i = 0; i < list.length; i++) {
+            if (list[i] && list[i].id) byId.set(list[i].id, i);
+          }
+          const removals = new Set();
+
+          for (let i = 0; i < rows.length; i++) {
+            const row = rows[i];
+            const stamp = Date.parse(row.updated_at);
+            if (Number.isFinite(stamp) && stamp > out.cursor)
+              out.cursor = stamp;
+
+            const wireLm = Date.parse(row.last_modified);
+            if (!Number.isFinite(wireLm)) continue;
+            const remoteLm = Sync.fromWire(wireLm);
+
+            const idx = byId.get(row.id);
+            const local = idx === undefined ? null : list[idx];
+            const localLm = local ? Sync.lastModifiedOf(kind, local) : null;
+
+            /* Absent locally but known to the shadow means this device
+               deleted it and has not pushed the tombstone yet. */
+            if (!local && !row.deleted) {
+              const deletedAt = Sync.pendingDeleteAt(kind, row.id);
+              if (deletedAt !== null) {
+                if (deletedAt > remoteLm) {
+                  /* Our delete is the newer act. Leave it pending and let
+                     the push that follows tell the server. */
+                  out.kept++;
+                  continue;
+                }
+                /* The remote edit is newer than our delete. Last-writer-wins
+                   says the edit survives — somebody touched it more recently
+                   than somebody else removed it — so let it come back. That
+                   is a choice, and it errs toward keeping data. */
+              }
+            }
+
+            /* Local is newer: keep it and let the push that follows correct
+               the server. Not a conflict, just an ordering. */
+            if (local && localLm > remoteLm) {
+              out.kept++;
+              continue;
+            }
+            /* Ties are frequent and must be cheap. */
+            if (local && localLm === remoteLm && !row.deleted) {
+              Sync.noteRemote(kind, row.id, localLm, false);
+              continue;
+            }
+
+            if (row.deleted) {
+              if (local) {
+                markChunk(kind, local);
+                removals.add(row.id);
+                out.removed++;
+              }
+              Sync.noteRemote(kind, row.id, null, true);
+            } else {
+              const rec = rehydrate(kind, stripDerived(row.payload) || {});
+              rec.id = row.id;
+              rec.lastModified = remoteLm;
+              if (local) {
+                markChunk(kind, local);
+                list[idx] = rec;
+              } else {
+                list.push(rec);
+              }
+              markChunk(kind, rec);
+              out.applied++;
+              /* The server already holds this version, so record it or the
+                 next derivation pushes it straight back and two devices
+                 play catch forever. */
+              Sync.noteRemote(kind, row.id, remoteLm, false);
+            }
+          }
+
+          if (removals.size) {
+            replaceAll(
+              list,
+              list.filter((r) => !r || !removals.has(r.id)),
+            );
+          }
+          return out;
+        }
+
+        /* A cursor past the retention window means the delta above was
+           actually a full download. Anything the shadow knows that the
+           complete server set does not carry was deleted while this device
+           was away, and no tombstone survives to say so. */
+        function reconcileFullResync(kind, rows) {
+          const serverIds = new Set();
+          for (let i = 0; i < rows.length; i++) serverIds.add(rows[i].id);
+          const gone = [];
+          for (const id of Sync._shadow[kind].keys()) {
+            if (!serverIds.has(id)) gone.push(id);
+          }
+          if (!gone.length) return 0;
+
+          const goneSet = new Set(gone);
+          const list = recordsOf(kind);
+          const keep = [];
+          let removed = 0;
+          for (let i = 0; i < list.length; i++) {
+            const r = list[i];
+            if (r && goneSet.has(r.id)) {
+              markChunk(kind, r);
+              removed++;
+              continue;
+            }
+            keep.push(r);
+          }
+          replaceAll(list, keep);
+          for (let i = 0; i < gone.length; i++) {
+            Sync.noteRemote(kind, gone[i], null, true);
+          }
+          return removed;
+        }
+
+        /* ── the cycle ─────────────────────────────────────────────────── */
+
+        async function syncOnce(reason) {
+          if (running || !canSync()) return null;
+          running = true;
+          /* An empty shadow with no cursor means this device has never
+             reconciled with the server. Worth telling the user about once,
+             because it is the moment data from two places becomes one. */
+          const firstSync =
+            !announcedFirstSync &&
+            !Sync.cursor.log &&
+            !Sync.cursor.task &&
+            Sync._shadow.log.size === 0 &&
+            Sync._shadow.task.size === 0;
+
+          const report = {
+            reason,
+            pulled: 0,
+            applied: 0,
+            removed: 0,
+            kept: 0,
+            pushed: 0,
+          };
+          try {
+            for (const kind of KINDS) {
+              let from = Sync.cursor[kind] || 0;
+              const stale = from > 0 && Date.now() - from > STALE_CURSOR_MS;
+              if (stale) from = 0;
+
+              /* Before the pull, not after: the merge has to be able to
+                 tell "never seen this" from "deleted this, not yet sent". */
+              Sync.stampPendingDeletes(kind, recordsOf(kind));
+
+              const rows = await pullKind(kind, from);
+              report.pulled += rows.length;
+
+              const merged = mergeRows(kind, rows);
+              report.applied += merged.applied;
+              report.removed += merged.removed;
+              report.kept += merged.kept;
+              if (stale) report.removed += reconcileFullResync(kind, rows);
+
+              if (merged.applied || merged.removed || stale) {
+                sortKind(kind);
+                await persistKind(kind);
+              }
+              if (merged.cursor > (Sync.cursor[kind] || 0)) {
+                Sync.cursor[kind] = merged.cursor;
+              }
+
+              /* Never push a view built on a failed read. */
+              if (isDatabaseHealthy) {
+                report.pushed += await pushKind(kind);
+              }
+            }
+
+            Sync.flushMeta();
+            failures = 0;
+            lastError = null;
+            lastSyncAt = Date.now();
+            lastReport = report;
+            totals.cycles++;
+            totals.pushed += report.pushed;
+            totals.applied += report.applied;
+            totals.removed += report.removed;
+
+            if (firstSync && (report.applied || report.pushed)) {
+              announcedFirstSync = true;
+              if (typeof showAppToast === "function") {
+                const parts = [];
+                if (report.applied)
+                  parts.push(`merged ${report.applied} from your other device`);
+                if (report.pushed) parts.push(`uploaded ${report.pushed}`);
+                showAppToast("Sync — " + parts.join(", "), "success");
+              }
+            }
+            notify();
+            return report;
+          } catch (e) {
+            failures++;
+            lastError = (e && e.message) || String(e);
+            /* Phase 6 replaces this with jittered exponential backoff. For
+               now it is enough not to hammer a server that is refusing. */
+            console.warn("Sync cycle failed", e);
+            notify();
+            throw e;
+          } finally {
+            running = false;
+          }
+        }
+
+        /* ── scheduling ────────────────────────────────────────────────── */
+
+        const listeners = new Set();
+        function notify() {
+          for (const fn of listeners) {
+            try {
+              fn();
+            } catch (e) {}
+          }
+        }
+
+        function schedulePush(delay) {
+          if (!canSync()) return;
+          if (pushTimer) clearTimeout(pushTimer);
+          pushTimer = setTimeout(
+            () => {
+              pushTimer = null;
+              syncOnce("local change").catch(() => {});
+            },
+            delay === undefined ? 800 : delay,
+          );
+        }
+
+        function startPolling() {
+          stopPolling();
+          pollTimer = setInterval(() => {
+            /* Back off crudely while failing rather than polling into a
+               wall every minute. */
+            if (
+              failures > 0 &&
+              Date.now() - lastSyncAt < failures * POLL_IDLE_MS
+            ) {
+              return;
+            }
+            syncOnce("poll").catch(() => {});
+          }, POLL_IDLE_MS);
+        }
+
+        function stopPolling() {
+          if (pollTimer) clearInterval(pollTimer);
+          pollTimer = null;
+        }
+
+        Sync.onDirty((kind) => {
+          if (kind === "log" || kind === "task") schedulePush();
+        });
+
+        SyncNet.onChange(() => {
+          if (SyncNet.signedIn) {
+            startPolling();
+            syncOnce("sign-in").catch(() => {});
+          } else {
+            stopPolling();
+            announcedFirstSync = false;
+          }
+        });
+
+        /* Picking the phone up is exactly when a pull matters most. */
+        document.addEventListener("visibilitychange", () => {
+          if (!document.hidden) syncOnce("visible").catch(() => {});
+        });
+        window.addEventListener("online", () => {
+          syncOnce("online").catch(() => {});
+        });
+
+        if (SyncNet.signedIn) {
+          startPolling();
+          syncOnce("boot").catch(() => {});
+        }
+
+        return {
+          syncOnce,
+          schedulePush,
+          pushKind,
+          pullKind,
+          mergeRows,
+          onChange(fn) {
+            listeners.add(fn);
+            return () => listeners.delete(fn);
+          },
+          status() {
+            return {
+              running,
+              failures,
+              lastError,
+              lastSyncAt,
+              lastReport,
+              totals: Object.assign({}, totals),
+              pending: {
+                log: Sync.deriveOutbox("log", recordsOf("log")).length,
+                task: Sync.deriveOutbox("task", recordsOf("task")).length,
+              },
+            };
+          },
+        };
+      })();
+      window.SyncEngine = SyncEngine;
 
       /**
        * Persists historical logs grouped into chronological chunk blocks.
