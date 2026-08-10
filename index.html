@@ -8256,6 +8256,56 @@
       </div>
     </div>
 
+    <!-- Cross-device session lease. Unlike the tab conflict above this is an
+         offer rather than a blocking state: the session is running somewhere
+         else, and moving it here is a choice. -->
+    <div id="lease-modal" class="modal-overlay">
+      <div
+        class="modal-container modal-width-sm accent-warning"
+        role="dialog"
+        aria-modal="true"
+        style="text-align: center"
+      >
+        <div
+          class="modal-warning-icon"
+          style="
+            display: flex;
+            justify-content: center;
+            color: var(--accent-warning);
+            margin-bottom: 1rem;
+          "
+        >
+          <svg
+            viewBox="0 0 24 24"
+            width="48"
+            height="48"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+          >
+            <g data-sprite="sprite-084"></g>
+          </svg>
+        </div>
+        <h3 class="modal-header warning" style="justify-content: center">
+          Session Running Elsewhere
+        </h3>
+        <p class="modal-body-text" id="lease-modal-text">
+          This session is already running on another device.
+        </p>
+        <div class="action-row">
+          <button class="btn-secondary" onclick="closeLeaseModal()">
+            Not now
+          </button>
+          <button
+            class="btn-info-outline idle-action-btn"
+            onclick="leaseTakeOver()"
+          >
+            Continue here
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- Backup Collision Conflict Wizard Modal -->
     <div id="conflict-wizard-modal" class="modal-overlay">
       <div
@@ -12959,11 +13009,38 @@
                       <span class="settings-label" style="font-weight: 500"
                         >This device</span
                       >
-                      <span
-                        class="settings-label"
+                      <!-- Editable because the takeover prompt on the other
+                           device quotes it, and "Chrome on Windows" is only
+                           useful until there are two of them. -->
+                      <input
+                        type="text"
                         id="sync-device-label"
-                      ></span>
+                        class="input-standard"
+                        maxlength="60"
+                        spellcheck="false"
+                        style="max-width: 58%; text-align: right"
+                        onchange="syncRenameDevice()"
+                        onkeydown="if (event.key === 'Enter') this.blur();"
+                      />
                     </div>
+                    <div class="settings-row">
+                      <span class="settings-label" style="font-weight: 500"
+                        >Live session</span
+                      >
+                      <span class="settings-label" id="sync-lease-state"></span>
+                    </div>
+                    <!-- The only way in for a device with nothing running of
+                         its own: the takeover prompt can't appear until this
+                         device already wants the lease. -->
+                    <button
+                      type="button"
+                      class="btn-info-outline"
+                      id="sync-lease-takeover-btn"
+                      style="display: none"
+                      onclick="leaseTakeOver()"
+                    >
+                      Continue session here
+                    </button>
                     <div class="settings-row">
                       <span class="settings-label" style="font-weight: 500"
                         >Clock offset</span
@@ -15370,32 +15447,37 @@
            push confirming 400 records should cost one clone, not 400. */
         let persistHandle = null;
         let persistPending = null;
+        let persistResolve = null;
         function persistMeta() {
           if (!isSupported) return Promise.resolve();
           if (!persistPending) {
             persistPending = new Promise((resolve) => {
-              persistHandle = setTimeout(() => {
-                persistHandle = null;
-                persistPending = null;
-                writeMeta(metaRecords()).catch((e) => {
-                  console.warn("Sync meta write failed", e);
-                });
-                resolve();
-              }, 750);
+              persistResolve = resolve;
+              persistHandle = setTimeout(flushMeta, 750);
             });
           }
           return persistPending;
         }
 
         /* Bypasses the debounce for pagehide, where a queued timeout will
-           simply never run. */
+           simply never run.
+
+           Settling the debounced promise is not optional. Cancelling the
+           timeout without resolving it strands every caller that awaited
+           persistMeta on a promise that can never complete — confirmPushed
+           returns exactly that promise, and one interleaved flush would hang
+           a push mid-cycle with no error and no way to notice. */
         function flushMeta() {
-          if (persistHandle) {
-            clearTimeout(persistHandle);
-            persistHandle = null;
-            persistPending = null;
-          }
-          return writeMeta(metaRecords()).catch(() => {});
+          if (persistHandle) clearTimeout(persistHandle);
+          persistHandle = null;
+          const settle = persistResolve;
+          persistPending = null;
+          persistResolve = null;
+          const done = writeMeta(metaRecords()).catch((e) => {
+            console.warn("Sync meta write failed", e);
+          });
+          if (settle) settle(done);
+          return done;
         }
 
         /* ── identity ──────────────────────────────────────────────────── */
@@ -15977,20 +16059,20 @@
           return s.length % 2 === 1 ? s[m] : (s[m - 1] + s[m]) / 2;
         }
 
-        /* Measured against Postgres rather than the HTTP Date header, which
-           is not CORS-safelisted and only has second precision anyway. */
-        async function measureOffset() {
-          if (!session) return Sync.serverOffsetMs;
-          const t0 = Date.now();
-          const serverMs = Number(await rpc("server_now"));
-          const rtt = Date.now() - t0;
-          if (!Number.isFinite(serverMs)) {
-            throw new Error("server_now returned no usable time");
+        /* Folds one (t0, serverMs) observation into the running median.
+
+           Split out from measureOffset because any call that returns a server
+           clock reading gives this away for free: claim_session ships now_ms
+           with every lease heartbeat, and spending a second round trip on
+           server_now to learn the same thing would be waste. */
+        function noteServerTime(t0, serverMs, t1) {
+          if (!Number.isFinite(serverMs) || !Number.isFinite(t0)) {
+            return Sync.serverOffsetMs;
           }
+          const rtt = Math.max(0, (Number.isFinite(t1) ? t1 : Date.now()) - t0);
           /* Half the round trip is the best single estimate of when the
              server actually read its clock. */
-          const sample = t0 + rtt / 2 - serverMs;
-          offsetSamples.push(sample);
+          offsetSamples.push(t0 + rtt / 2 - serverMs);
           if (offsetSamples.length > 5) offsetSamples.shift();
 
           const next = median(offsetSamples);
@@ -16001,9 +16083,23 @@
             Sync.serverOffsetMs = next;
             offsetMeasured = true;
           }
-          lastError = null;
           emit();
           return Sync.serverOffsetMs;
+        }
+
+        /* Measured against Postgres rather than the HTTP Date header, which
+           is not CORS-safelisted and only has second precision anyway. */
+        async function measureOffset() {
+          if (!session) return Sync.serverOffsetMs;
+          const t0 = Date.now();
+          const serverMs = Number(await rpc("server_now"));
+          if (!Number.isFinite(serverMs)) {
+            throw new Error("server_now returned no usable time");
+          }
+          const out = noteServerTime(t0, serverMs, Date.now());
+          lastError = null;
+          emit();
+          return out;
         }
 
         /* ── account ───────────────────────────────────────────────────── */
@@ -16096,6 +16192,7 @@
           signOut,
           refresh,
           measureOffset,
+          noteServerTime,
           onChange(fn) {
             listeners.add(fn);
             return () => listeners.delete(fn);
@@ -16570,8 +16667,17 @@
           if (kind === "log" || kind === "task") schedulePush();
         });
 
+        /* onChange fires on anything the auth layer notices — a token
+           refresh, a clock sample folded in by a lease heartbeat — so it has
+           to be read as an edge, not a level. Treating every emit as a
+           sign-in would restart the poll timer and launch a cycle several
+           times a minute for no reason at all. */
+        let wasSignedIn = SyncNet.signedIn;
         SyncNet.onChange(() => {
-          if (SyncNet.signedIn) {
+          const signedIn = SyncNet.signedIn;
+          if (signedIn === wasSignedIn) return;
+          wasSignedIn = signedIn;
+          if (signedIn) {
             startPolling();
             syncOnce("sign-in").catch(() => {});
           } else {
@@ -16620,6 +16726,571 @@
         };
       })();
       window.SyncEngine = SyncEngine;
+
+      /* ═══════════════════════════════════════════════════════════════════ CROSS-DEVICE SYNC — the session lease.
+
+         There is exactly one running timer in the real world, so exactly one
+         device may write it. Merging two of them produces a number that is
+         true of neither. This module is the same shape as the tab lease the
+         app already runs (LEASE_KEY, Web Locks, randomised backoff) moved to
+         Postgres, where the compare-and-swap is genuinely atomic instead of
+         being a read and a write with a hopeful gap between them.
+
+         Both layers apply and neither replaces the other. Tabs elect one
+         leader per browser and only that leader talks to the network; this
+         elects one browser across devices. Three tabs on two laptops produce
+         one heartbeat each, not three.
+
+         PHASE 4 IS OWNERSHIP ONLY. Nothing here disables a control or moves a
+         session payload. A device that loses the lease keeps running its own
+         timer exactly as it does today and is simply told what happened.
+         Gating the UI before the payload crosses the wire — phase 5 — would
+         leave a demoted laptop unable to stop a shift that no other device
+         can see, which trades a cosmetic problem for a data-loss one. */
+      const SessionLease = (() => {
+        /* Long enough that a laptop lid closing does not hand the session
+           away before the user has walked to the other room, short enough
+           that they are not locked out when it does. */
+        const TTL_SECONDS = 45;
+        /* Three beats inside one TTL. Two means a single dropped request
+           costs the lease; four is traffic bought for nothing. */
+        const BEAT_MS = 15000;
+        /* A device with nothing running only watches, and watching is a
+           plain GET that can never take ownership away from anybody. */
+        const WATCH_MS = 60000;
+        const DEVICE_TOUCH_MS = 300000;
+        const TOUCH_RETRY_MS = 60000;
+        const LABEL_TTL_MS = 300000;
+
+        let phase = "off"; /* off | owner | follower | free */
+        let owner = null;
+        let generation = 0;
+        let heldUntil = 0;
+        let heldSince = 0;
+        let lastBeatAt = 0;
+        let lastReason = null;
+        let lastError = null;
+        let timer = null;
+        let active = null;
+        let queuedReason = null;
+        let forceNext = false;
+        let wantOverride = false;
+        let overrideSawSession = false;
+        let lastWant = false;
+        let promptedFor = null;
+        let deviceTouchedAt = 0;
+        let labelsFetchedAt = 0;
+        let labelFetch = null;
+        const labels = new Map();
+        const listeners = new Set();
+        const totals = { beats: 0, claims: 0, demotions: 0, refusals: 0 };
+
+        function notify() {
+          for (const fn of listeners) {
+            try {
+              fn();
+            } catch (e) {}
+          }
+        }
+
+        /* Deliberately does not test navigator.onLine. Being offline is a
+           reason not to send a request, not a reason to stop having a lease:
+           a held lease keeps running until its TTL lapses whether or not the
+           holder can hear about it. */
+        function isEligible() {
+          return (
+            Sync.isSupported &&
+            SyncNet.signedIn &&
+            !!Sync.deviceId &&
+            !isTabConflict &&
+            !isFactoryResetting &&
+            !isDbReloading
+          );
+        }
+
+        /* The predicate the import guard already uses, plus the task timer: a
+           task can run between shifts and is just as much a live session as
+           far as ownership is concerned. */
+        function hasLiveSession() {
+          const s = typeof state === "object" && state ? state : null;
+          if (s) {
+            if (s.currentMode !== null) return true;
+            if (s.idleLock === true) return true;
+            if ((Number(s.workAccumulated) || 0) > 0) return true;
+            if ((Number(s.breakAccumulated) || 0) > 0) return true;
+          }
+          return !!(
+            typeof taskState === "object" &&
+            taskState &&
+            taskState.isRunning
+          );
+        }
+
+        /* Ownership follows the session. A device with nothing running does
+           not claim, because a phone left open on a kitchen counter should
+           not inherit the laptop's session the moment the laptop's wifi
+           drops for a minute. */
+        function wantsLease() {
+          return hasLiveSession() || wantOverride;
+        }
+
+        function labelFor(id) {
+          if (!id) return "another device";
+          if (id === Sync.deviceId) return Sync.deviceLabel || "this device";
+          return labels.get(id) || "another device";
+        }
+
+        /* A lease not renewed inside its own TTL is gone whether or not this
+           device can reach the server to be told so. Believing otherwise is
+           precisely how two devices both conclude they may write. Applied on
+           read as well as on beat, because a sleeping tab fires no timers. */
+        function expireIfStale() {
+          if (phase === "owner" && heldUntil && Date.now() > heldUntil) {
+            phase = "free";
+            owner = null;
+            return true;
+          }
+          return false;
+        }
+
+        /* ── server calls ──────────────────────────────────────────────── */
+
+        /* The prompt on the other device reads "Running on Chrome on Windows"
+           because of this row, and nothing else reads it at all. Written on
+           the first beat, then at most every five minutes. */
+        async function touchDevice() {
+          if (Date.now() - deviceTouchedAt < DEVICE_TOUCH_MS) return;
+          deviceTouchedAt = Date.now();
+          const r = await SyncNet.net("/rest/v1/devices", {
+            method: "POST",
+            headers: { Prefer: "return=minimal,resolution=merge-duplicates" },
+            body: JSON.stringify({
+              id: Sync.deviceId,
+              label: Sync.deviceLabel || "Unnamed device",
+              last_seen_at: new Date(Sync.trueNow()).toISOString(),
+            }),
+          });
+          if (!r.ok) {
+            /* Never fatal. A nameless device holds a perfectly good lease; it
+               just prompts less helpfully, so retry soon rather than never. */
+            deviceTouchedAt = Date.now() - DEVICE_TOUCH_MS + TOUCH_RETRY_MS;
+          }
+        }
+
+        /* The takeover prompt is only actionable if it says "MacBook" rather
+           than a uuid, and pointless to re-fetch every beat once it does.
+
+           Two different waits: a name already in hand is re-checked every few
+           minutes so a rename on the other device eventually shows up, while
+           an id with no row at all is retried far sooner but not every beat. */
+        async function ensureLabel(id) {
+          if (!id || id === Sync.deviceId) return;
+          const age = Date.now() - labelsFetchedAt;
+          if (labels.has(id) ? age < LABEL_TTL_MS : age < 30000) return;
+          labelsFetchedAt = Date.now();
+          const r = await SyncNet.net("/rest/v1/devices?select=id,label");
+          labelFetch = { at: labelsFetchedAt, status: r.status, rows: 0 };
+          if (!r.ok) return;
+          const rows = await r.json();
+          labels.clear();
+          for (let i = 0; i < rows.length; i++) {
+            labels.set(rows[i].id, rows[i].label);
+          }
+          labelFetch.rows = rows.length;
+        }
+
+        /* Read-only. Used by every device that does not want the lease, so
+           that watching who holds it never becomes taking it. */
+        async function observe() {
+          const r = await SyncNet.net(
+            "/rest/v1/session_state?select=owner_device,owner_expires_at,generation&limit=1",
+          );
+          if (!r.ok) throw new Error(`lease read failed (${r.status})`);
+          const rows = await r.json();
+          const row = rows && rows[0];
+          if (row && Number.isFinite(Number(row.generation))) {
+            generation = Number(row.generation);
+          }
+          const expires = row ? Date.parse(row.owner_expires_at) : NaN;
+          /* Against the corrected clock, never this device's own: a laptop
+             running five minutes fast would otherwise declare every live
+             lease in the world expired. */
+          const live =
+            !!(row && row.owner_device) &&
+            Number.isFinite(expires) &&
+            expires > Sync.trueNow();
+          owner = live ? row.owner_device : null;
+          phase = live ? "follower" : "free";
+        }
+
+        /* Hands the lease back the moment the session that justified it ends,
+           so the next device gets it at once instead of waiting out the TTL.
+           Scoped to our own device id, so a release racing somebody else's
+           takeover cannot clear their fresh claim. */
+        async function release() {
+          const id = Sync.deviceId;
+          if (!id) return;
+          const r = await SyncNet.net(
+            `/rest/v1/session_state?owner_device=eq.${encodeURIComponent(id)}`,
+            {
+              method: "PATCH",
+              headers: { Prefer: "return=minimal" },
+              body: JSON.stringify({
+                owner_device: null,
+                owner_expires_at: null,
+              }),
+            },
+          );
+          if (!r.ok) throw new Error(`lease release failed (${r.status})`);
+          if (phase === "owner") phase = "free";
+          owner = null;
+          heldUntil = 0;
+        }
+
+        /* Returns the transition the caller has to announce, rather than
+           announcing it here: naming the other device requires a fetch, and
+           a toast should not be issued before the name is known. */
+        function applyClaim(res, t0) {
+          const nowMs = Number(res && res.now_ms);
+          if (Number.isFinite(nowMs)) {
+            SyncNet.noteServerTime(t0, nowMs, Date.now());
+          }
+          const wasOwner = phase === "owner";
+          owner = (res && res.owner) || null;
+          const gen = Number(res && res.generation);
+          if (Number.isFinite(gen)) generation = gen;
+
+          if (res && res.held) {
+            /* Dated from before the request, not after: the server started
+               counting the TTL when it ran the statement, and half a round
+               trip of optimism is exactly the margin that lets two devices
+               briefly agree they both hold it. */
+            heldUntil = t0 + TTL_SECONDS * 1000;
+            if (!wasOwner) {
+              totals.claims++;
+              heldSince = Date.now();
+            }
+            phase = "owner";
+            promptedFor = null;
+            return wasOwner ? null : "claimed";
+          }
+
+          totals.refusals++;
+          heldUntil = 0;
+          phase = owner ? "follower" : "free";
+          if (wasOwner) {
+            totals.demotions++;
+            return "demoted";
+          }
+          return "refused";
+        }
+
+        /* ── the beat ──────────────────────────────────────────────────── */
+
+        async function runBeat(reason) {
+          lastReason = reason;
+          expireIfStale();
+          if (!isEligible()) {
+            phase = "off";
+            owner = null;
+            heldUntil = 0;
+            notify();
+            schedule();
+            return;
+          }
+          if (!navigator.onLine) {
+            /* Nothing to send and nothing to learn. The phase stands as it
+               was, and expireIfStale above is what eventually retires it. */
+            notify();
+            schedule();
+            return;
+          }
+          /* "Continue here" exists to carry a device from watching to
+             holding so a session can live on it. Once one has lived here and
+             ended, the reason for the override is gone and the lease goes
+             back; leaving it set would turn one takeover into a permanent
+             claim on an account. Until a session has actually arrived the
+             override stands — in phase 4 nothing arrives at all, and a
+             button that undid itself one beat later would be a lie. */
+          if (wantOverride) {
+            if (hasLiveSession()) overrideSawSession = true;
+            else if (overrideSawSession) wantOverride = false;
+          }
+          const want = wantsLease();
+          lastWant = want;
+          try {
+            await touchDevice();
+            if (want) {
+              /* Consumed before the request rather than after it. An armed
+                 force that survives its own call turns two devices each
+                 taking over once into an unending exchange of takeovers —
+                 the non-forced renew that follows is refused, and that
+                 refusal is what makes the exchange terminate. */
+              const force = forceNext;
+              forceNext = false;
+              const t0 = Date.now();
+              const res = await SyncNet.rpc("claim_session", {
+                p_device: Sync.deviceId,
+                p_force: force,
+                p_ttl_seconds: TTL_SECONDS,
+              });
+              const event = applyClaim(res, t0);
+              await ensureLabel(owner);
+              if (event === "demoted") {
+                /* Already told; do not also offer to take it back. */
+                promptedFor = owner;
+                if (typeof showAppToast === "function") {
+                  showAppToast(
+                    `This session moved to ${labelFor(owner)}`,
+                    "warning",
+                  );
+                }
+              } else if (event === "refused" && owner) {
+                offerTakeover();
+              } else if (event === "claimed") {
+                closeLeaseModal();
+              }
+            } else {
+              if (phase === "owner") await release();
+              await observe();
+              await ensureLabel(owner);
+            }
+            totals.beats++;
+            lastBeatAt = Date.now();
+            lastError = null;
+          } catch (e) {
+            lastError = (e && e.message) || String(e);
+            /* An unrenewable lease is a lost lease; say so rather than
+               letting a stale "owner" outlive the connection. */
+            expireIfStale();
+          } finally {
+            notify();
+            schedule();
+          }
+        }
+
+        /* Beats serialize. A burst of triggers arriving during one slow round
+           trip collapses to a single follow-up rather than a backlog, and the
+           follow-up carries the newest reason.
+
+           The drain is bounded, and that bound is load-bearing. Anything that
+           fires a beat from inside a beat queues the next one before this one
+           finishes, and an unbounded loop then never ends — which is exactly
+           what happened when the auth listener was wired to every emit rather
+           than to the sign-in edge, because a claim folds the server clock in
+           and folding it in emits. Three is plenty for a genuine burst;
+           beyond that it is feedback, and the heartbeat picks up whatever was
+           missed within fifteen seconds regardless. */
+        const MAX_DRAIN = 3;
+        function beat(reason) {
+          if (active) {
+            queuedReason = reason;
+            return active;
+          }
+          active = (async () => {
+            let next = reason;
+            for (let i = 0; i < MAX_DRAIN; i++) {
+              await runBeat(next).catch(() => {});
+              if (queuedReason === null) break;
+              next = queuedReason;
+              queuedReason = null;
+            }
+            queuedReason = null;
+          })().finally(() => {
+            active = null;
+          });
+          return active;
+        }
+
+        function schedule() {
+          if (timer) clearTimeout(timer);
+          timer = null;
+          /* Scheduled even while offline, so a missed `online` event still
+             recovers on the next tick rather than never. */
+          if (!isEligible()) return;
+          timer = setTimeout(
+            () => {
+              timer = null;
+              beat("heartbeat");
+            },
+            wantsLease() ? BEAT_MS : WATCH_MS,
+          );
+        }
+
+        function stop() {
+          if (timer) clearTimeout(timer);
+          timer = null;
+          phase = "off";
+          owner = null;
+          heldUntil = 0;
+          promptedFor = null;
+          wantOverride = false;
+          overrideSawSession = false;
+          forceNext = false;
+          deviceTouchedAt = 0;
+          labels.clear();
+          labelsFetchedAt = 0;
+          closeLeaseModal();
+          notify();
+        }
+
+        /* ── prompts ───────────────────────────────────────────────────── */
+
+        /* Once per holder, not once per beat. Being asked the same question
+           every fifteen seconds is how a prompt becomes something people
+           dismiss without reading. */
+        function offerTakeover() {
+          if (promptedFor === owner) return;
+          promptedFor = owner;
+          const modal = document.getElementById("lease-modal");
+          const text = document.getElementById("lease-modal-text");
+          if (text) {
+            text.textContent =
+              `This session is already running on ${labelFor(owner)}. ` +
+              "Continue it here and that device will stop being the one in charge.";
+          }
+          if (modal) modal.style.display = "flex";
+          notify();
+        }
+
+        function closeLeaseModal() {
+          const modal = document.getElementById("lease-modal");
+          if (modal) modal.style.display = "none";
+        }
+
+        /* ── triggers ──────────────────────────────────────────────────── */
+
+        /* An edge, never a level, and here it is not merely wasteful: every
+           claim folds the server's now_ms into the clock offset, which emits,
+           and a beat fired on that emit would claim again. One heartbeat
+           would become an unbounded loop against the server. */
+        let wasSignedIn = SyncNet.signedIn;
+        SyncNet.onChange(() => {
+          const signedIn = SyncNet.signedIn;
+          if (signedIn === wasSignedIn) return;
+          wasSignedIn = signedIn;
+          if (signedIn) beat("sign-in");
+          else stop();
+        });
+
+        /* saveState fires constantly; the only edge worth a beat is the one
+           where this device starts wanting the lease or stops wanting it —
+           shift start and end, which should both take effect at once rather
+           than up to fifteen seconds later. */
+        Sync.onDirty((kind) => {
+          if (kind !== "session") return;
+          if (wantsLease() !== lastWant) beat("session change");
+        });
+
+        document.addEventListener("visibilitychange", () => {
+          if (!document.hidden) beat("visible");
+        });
+        window.addEventListener("online", () => {
+          beat("online");
+        });
+        window.addEventListener("offline", () => {
+          /* Nothing can be renewed while offline, so stop pretending the
+             lease is still held the instant the network goes. */
+          expireIfStale();
+          notify();
+        });
+
+        Sync.ready.then(() => {
+          if (SyncNet.signedIn) beat("boot");
+        });
+
+        return {
+          beat,
+          stop,
+          closeLeaseModal,
+          TTL_SECONDS,
+          BEAT_MS,
+          /* The user pressed "Continue here": force exactly once, then renew
+             like any other owner. */
+          takeOver() {
+            wantOverride = true;
+            overrideSawSession = false;
+            forceNext = true;
+            closeLeaseModal();
+            return beat("takeover");
+          },
+          /* Called before sign-out, while the tokens still work. */
+          releaseIfOwner() {
+            if (phase !== "owner" || !isEligible() || !navigator.onLine) {
+              return Promise.resolve();
+            }
+            return release().catch(() => {});
+          },
+          renameDevice(label) {
+            const p = Sync.setDeviceLabel(label);
+            deviceTouchedAt = 0;
+            beat("rename");
+            return p;
+          },
+          onChange(fn) {
+            listeners.add(fn);
+            return () => listeners.delete(fn);
+          },
+          /* Exposed for the sync panel and the headless tests, same as
+             Sync._shadow: "why does the prompt say another device" is not
+             answerable from the outside otherwise. */
+          _labels: labels,
+          get _labelFetch() {
+            return labelFetch;
+          },
+          get isOwner() {
+            expireIfStale();
+            return phase === "owner";
+          },
+          /* Distinct from isOwner, and the one phase 5 must gate rendering
+             on. A device that cannot reach the server cannot have handed the
+             session anywhere and cannot push a byte of what it writes;
+             freezing its own timer because a train went into a tunnel would
+             be a worse failure than the one the lease exists to prevent.
+             What ownership actually governs is the right to PUSH. */
+          get mayWriteSession() {
+            expireIfStale();
+            return (
+              phase === "owner" ||
+              phase === "free" ||
+              phase === "off" ||
+              !navigator.onLine
+            );
+          },
+          status() {
+            expireIfStale();
+            return {
+              phase,
+              owner,
+              ownerLabel: labelFor(owner),
+              isOwner: phase === "owner",
+              online: navigator.onLine,
+              generation,
+              wants: wantsLease(),
+              wantOverride,
+              forceArmed: forceNext,
+              heldSince,
+              heldUntil,
+              lastBeatAt,
+              lastReason,
+              lastError,
+              deviceId: Sync.deviceId,
+              prompted:
+                !!document.getElementById("lease-modal") &&
+                document.getElementById("lease-modal").style.display === "flex",
+              totals: Object.assign({}, totals),
+            };
+          },
+        };
+      })();
+      window.SessionLease = SessionLease;
+
+      window.leaseTakeOver = function () {
+        SessionLease.takeOver();
+      };
+      window.closeLeaseModal = function () {
+        SessionLease.closeLeaseModal();
+      };
 
       /**
        * Persists historical logs grouped into chronological chunk blocks.
@@ -26179,6 +26850,7 @@
         "manual-task-modal",
         "edit-task-modal",
         "tab-conflict-modal",
+        "lease-modal",
         "conflict-wizard-modal",
         "heatmap-modal",
         "add-leave-type-modal",
@@ -26425,6 +27097,9 @@
         "manual-task-modal": () => closeManualTaskModal(),
         "edit-task-modal": () => closeEditTaskModal(),
         "heatmap-modal": () => closeHeatmapModal(),
+        /* Dismissible, unlike the tab conflict: declining to move the session
+           leaves everything exactly as it was. */
+        "lease-modal": () => closeLeaseModal(),
         "preset-modal": () => closePresetModal(),
         "add-leave-type-modal": () => closeAddLeaveTypeModal(),
       });
@@ -27466,8 +28141,34 @@
         if (detail) detail.style.display = status.signedIn ? "flex" : "none";
 
         const dev = document.getElementById("sync-device-label");
-        if (dev)
-          dev.textContent = (window.Sync && Sync.deviceLabel) || "unknown";
+        /* Never while the user is typing in it: a background beat firing
+           mid-rename would put the old name back under the cursor. */
+        if (dev && document.activeElement !== dev) {
+          dev.value = (window.Sync && Sync.deviceLabel) || "";
+        }
+
+        const leaseEl = document.getElementById("sync-lease-state");
+        if (leaseEl) {
+          const lease = window.SessionLease
+            ? SessionLease.status()
+            : { phase: "off" };
+          leaseEl.textContent =
+            lease.phase === "owner"
+              ? "running here"
+              : lease.phase === "follower"
+                ? `running on ${lease.ownerLabel}`
+                : lease.phase === "free"
+                  ? "not running anywhere"
+                  : "—";
+          leaseEl.style.color =
+            lease.phase === "owner"
+              ? "var(--accent-work)"
+              : "var(--text-muted)";
+          const takeBtn = document.getElementById("sync-lease-takeover-btn");
+          if (takeBtn) {
+            takeBtn.style.display = lease.phase === "follower" ? "" : "none";
+          }
+        }
 
         const off = document.getElementById("sync-offset");
         if (off) {
@@ -27536,6 +28237,13 @@
         }
       };
 
+      window.syncRenameDevice = function () {
+        const el = document.getElementById("sync-device-label");
+        if (!el || !window.SessionLease) return;
+        SessionLease.renameDevice(el.value);
+        el.value = Sync.deviceLabel;
+      };
+
       window.syncSignOut = async function () {
         const errorEl = document.getElementById("sync-error");
         if (errorEl) {
@@ -27543,6 +28251,9 @@
           errorEl.style.display = "none";
         }
         try {
+          /* Before the tokens go, or the lease sits there until it expires
+             and the user's other device waits 45 seconds for nothing. */
+          if (window.SessionLease) await SessionLease.releaseIfOwner();
           await SyncNet.signOut();
           /* Says plainly what did NOT happen: signing out clearing a year of
              history because the button was ambiguous is unrecoverable. */
@@ -27557,6 +28268,7 @@
       };
 
       if (window.SyncNet) SyncNet.onChange(renderSyncCard);
+      if (window.SessionLease) SessionLease.onChange(renderSyncCard);
 
       function syncSettingsUI() {
         renderSyncCard();

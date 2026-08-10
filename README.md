@@ -23,29 +23,35 @@ It tracks active work hours, rest breaks, daily goals, and weekly workloads with
 ## ✨ Key Features
 
 ### ⏳ Intelligent Tracking & Smart Pacing
+
 - **Adaptive Daily Goals:** The app dynamically calculates your required daily velocity to hit a 40-hour workweek, automatically deducting scheduled leaves and holidays.
 - **Sleep & Idle Detection:** Steps away? The app detects system sleep and user inactivity, pausing your timer and prompting you to recover or discard the time when you return.
 - **Midnight Rollover:** If you work past midnight, nodrift safely slices the shift, saves yesterday's logs, and starts a fresh day.
 
 ### 🧠 The Command Center (HUD)
+
 Press `/` to open a Raycast-inspired, keyboard-first command palette.
+
 - **Natural Language Logging:** Type `add yesterday 9am to 5pm worked on UI` to instantly generate and backdate a shift.
 - **NLP Leave Engine:** Type `leave sick tomorrow` to instantly book time off.
 - **Deep Search:** Type `log bugfix >4h` to instantly pull up past shifts matching your criteria.
 - **Built-in Calculator:** Type math directly (`150 / 60`) and copy the result to your clipboard.
 
 ### 📊 Deep Analytics & Logbook
+
 - **GitHub-Style Heatmap:** Visualize your tracking consistency, streaks, and focus ratios over the entire year.
 - **Virtualized Logbook:** A custom-built 60fps virtual DOM that can render thousands of historical logs without lagging the browser.
 - **Advanced Saved Views:** Filter logs by dates, hours worked, or specific notes, and save them as custom views for one-click access.
 
 ### 🛡️ Bulletproof Data Integrity
+
 - **Snapshot Rollbacks:** Like Apple's Time Machine. Before any major DB write, nodrift takes a snapshot. Made a mistake? Revert your entire database to a previous state instantly.
 - **Multi-Tab Sync Lockout:** `BroadcastChannel` + localStorage leasing ensures only one master tab writes to the DB to prevent data corruption.
 - **Import Conflict Wizard:** When importing a backup, an interactive wizard helps you resolve colliding dates (Keep Local, Overwrite, or Keep Both).
 - **RAM-Only Fallback:** Gracefully degrades to temporary memory if your browser storage quota is exceeded or blocked.
 
 ### 🎨 Design Systems
+
 Instantly switch between four meticulously crafted design tokens:
 **SF Light** (Apple Native) • **SF Dark** • **Vercel Dark** (High Contrast) • **E-Ink** (Brutalist Monochrome)
 
@@ -67,16 +73,16 @@ No build steps. No `npm install`.
 
 Designed for power users, you can drive the entire app without a mouse.
 
-| Shortcut | Action |
-| :--- | :--- |
-| <kbd>Spacebar</kbd> | Toggle Work / Break timers |
-| <kbd>S</kbd> | Submit End of Day (EOD) shift |
-| <kbd>/</kbd> | Open Command Palette (HUD) |
-| <kbd>Ctrl/Cmd</kbd> + <kbd>S</kbd> | Download JSON Backup & Draft Email Summary |
-| <kbd>Alt</kbd> + <kbd>N</kbd> | Open Manual Log Entry Modal |
-| <kbd>Alt</kbd> + <kbd>T</kbd> | Cycle UI Themes |
-| <kbd>Alt</kbd> + <kbd>1</kbd> / <kbd>2</kbd> | Switch between Insights / Logbook tabs |
-| <kbd>E</kbd> / <kbd>D</kbd> / <kbd>C</kbd> | Edit, Delete, or Copy the currently highlighted log |
+| Shortcut                                     | Action                                              |
+| :------------------------------------------- | :-------------------------------------------------- |
+| <kbd>Spacebar</kbd>                          | Toggle Work / Break timers                          |
+| <kbd>S</kbd>                                 | Submit End of Day (EOD) shift                       |
+| <kbd>/</kbd>                                 | Open Command Palette (HUD)                          |
+| <kbd>Ctrl/Cmd</kbd> + <kbd>S</kbd>           | Download JSON Backup & Draft Email Summary          |
+| <kbd>Alt</kbd> + <kbd>N</kbd>                | Open Manual Log Entry Modal                         |
+| <kbd>Alt</kbd> + <kbd>T</kbd>                | Cycle UI Themes                                     |
+| <kbd>Alt</kbd> + <kbd>1</kbd> / <kbd>2</kbd> | Switch between Insights / Logbook tabs              |
+| <kbd>E</kbd> / <kbd>D</kbd> / <kbd>C</kbd>   | Edit, Delete, or Copy the currently highlighted log |
 
 ---
 
@@ -92,7 +98,7 @@ flowchart TD
         MergeEmerg[("Merge Emergency Backup")]
         HydrateLS[("Hydrate Session State")]
         StartWorker[["Start Web Worker Thread"]]
-        
+
         Boot --> LoadDB
         LoadDB --> MergeEmerg
         MergeEmerg --> HydrateLS
@@ -106,7 +112,7 @@ flowchart TD
         UpdateWork["Accumulate Work Time"]
         UpdateBreak["Accumulate Break Time"]
         SaveLS[("Debounced saveState (150ms)")]
-        
+
         Tick --> Delta
         Delta --> CheckMode
         CheckMode -- "work" --> UpdateWork
@@ -123,7 +129,7 @@ flowchart TD
         UserResolve{"User Resolution"}
         Keep["Log as Work/Break"]
         Discard["Discard Idle Gap"]
-        
+
         Activity --> SetLastAct
         SetLastAct --> Heartbeat
         Tick -.-> Heartbeat
@@ -139,7 +145,7 @@ flowchart TD
         WriteDB[("saveLogsToDB (IndexedDB)")]
         WriteEmerg[("Update Emergency Backup")]
         Snap[("Capture Rollback Snapshot")]
-        
+
         ClickSubmit --> Build
         Build --> Snap
         Snap --> WriteDB
@@ -156,7 +162,9 @@ flowchart TD
 ---
 
 ## 🛠️ Data Portability
+
 Your data is yours. Period.
+
 - **JSON Import/Export**: Fully portable state and logbook backups.
 - **CSV Export**: Instantly download your logbook formatted for HR or Excel.
 - **Auto-Timesheets**: The app can compile a daily summary, copy it to your clipboard, and automatically open a Gmail draft ready to send.
