@@ -2541,6 +2541,29 @@
         --emph-accent: var(--accent-break);
       }
 
+      /* Shown only while the live session belongs to another device. Muted
+         on purpose: it is a statement of fact, not a warning. */
+      .remote-session-banner {
+        display: none;
+        align-items: center;
+        justify-content: center;
+        gap: var(--space-3, 12px);
+        flex-wrap: wrap;
+        margin-bottom: var(--space-2, 8px);
+        padding: 8px 14px;
+        border: 1px solid var(--border-soft, rgba(128, 128, 128, 0.28));
+        border-radius: 10px;
+        background: var(--surface-2, rgba(128, 128, 128, 0.08));
+        color: var(--text-muted);
+        font-size: 0.85rem;
+        text-align: center;
+      }
+
+      .remote-session-banner button {
+        padding: 4px 12px;
+        font-size: 0.8rem;
+      }
+
       .btn-log {
         --emph-accent: var(--accent-blue);
       }
@@ -15378,6 +15401,18 @@
         let deviceId = null;
         let deviceLabel = null;
 
+        /* When this device last changed a preference, in SERVER time, and
+           durable — an edit made offline still has to outrank an older one
+           made elsewhere once the tab is reopened.
+
+           Server domain, not local, and that is the whole point. Storing it
+           locally and converting at comparison time compares two different
+           clocks: a device whose offset changes between the edit and the
+           comparison silently rejects preferences newer than its own. The
+           only conversion happens at the moment of stamping, which is
+           exactly where conversion is supposed to live. */
+        let settingsModifiedWire = 0;
+
         /* How far AHEAD this device's clock runs, measured against Postgres
            by the network layer. Zero until then, which makes every
            conversion below the identity function while signed out. */
@@ -15440,6 +15475,7 @@
             },
             { key: "cursors", log: cursor.log, task: cursor.task },
             { key: "device", id: deviceId, label: deviceLabel },
+            { key: "settings", modifiedWire: settingsModifiedWire },
           ];
         }
 
@@ -15547,6 +15583,10 @@
           "goalNotified",
           "lastHeartbeatWall",
           "notes",
+          /* The goal frozen at clock-in. It belongs to the shift, not to
+             preferences: adopting a session without it makes the receiving
+             device render the wrong target for time already worked. */
+          "shiftStartGoalSec",
         ];
 
         /* Any device writes these and the newest edit wins. Preferences are
@@ -15564,6 +15604,71 @@
            on SYNC_INSTANT_KEYS. Listed here so the omission reads as a
            decision rather than an oversight. */
         const LOCAL_ONLY_FIELDS = ["lastActivity", "tabHiddenAt"];
+
+        /* The running task travels with the session because it is part of it:
+           there is one running task in the real world for the same reason
+           there is one running timer. */
+        const TASK_FIELDS = [
+          "isRunning",
+          "isPaused",
+          "startTimeMs",
+          "accumulatedSec",
+          "taskFloorSec",
+          "note",
+        ];
+
+        /* The task timer's only wall-clock instant. accumulatedSec and
+           taskFloorSec are durations — seconds elapsed, not moments — so they
+           have no clock domain and cross the wire unchanged. Same reasoning
+           as activeSegmentFloorSec on the session side. */
+        const TASK_INSTANT_KEYS = ["startTimeMs"];
+
+        /* ── session serialisers ───────────────────────────────────────── */
+
+        /* The whole of the clock-domain discipline lives in these four
+           functions. Nothing else in the app changes how it stamps or reads a
+           timestamp; only the serialiser and the deserialiser know an offset
+           exists at all. Both copy before rebasing, because rebasing in place
+           would silently shift the live session into server time. */
+        function pick(src, fields) {
+          const out = {};
+          if (!src || typeof src !== "object") return out;
+          for (let i = 0; i < fields.length; i++) {
+            const k = fields[i];
+            if (src[k] !== undefined) out[k] = src[k];
+          }
+          return out;
+        }
+
+        function sessionToWire(s) {
+          const out = pick(s, SESSION_FIELDS);
+          rebaseTimestampBag(out, -serverOffsetMs, SYNC_INSTANT_KEYS);
+          return out;
+        }
+
+        function sessionFromWire(payload) {
+          const out = pick(payload, SESSION_FIELDS);
+          rebaseTimestampBag(out, serverOffsetMs, SYNC_INSTANT_KEYS);
+          return out;
+        }
+
+        function taskToWire(t) {
+          const out = pick(t, TASK_FIELDS);
+          rebaseTimestampBag(out, -serverOffsetMs, TASK_INSTANT_KEYS);
+          return out;
+        }
+
+        function taskFromWire(payload) {
+          const out = pick(payload, TASK_FIELDS);
+          rebaseTimestampBag(out, serverOffsetMs, TASK_INSTANT_KEYS);
+          return out;
+        }
+
+        /* Settings carry no instants at all, which is why they need no
+           conversion and why they can be a whole blob rather than a diff. */
+        function settingsToWire(s) {
+          return pick(s, SETTINGS_FIELDS);
+        }
 
         /* Must be deterministic across devices: two browsers deriving
            different stamps for the same legacy record makes LWW oscillate
@@ -15735,8 +15840,28 @@
              reporting a change: loading persisted settings is not an edit. */
           if (settingsPrint !== null && print !== settingsPrint) {
             markDirty("settings");
+            /* Stamped here, at the edit, rather than at push time. A stamp
+               taken when the request is finally sent would let a device that
+               was merely slow to reconnect outrank an edit made after it. */
+            settingsModifiedWire = toWire(Date.now());
+            persistMeta();
           }
           settingsPrint = print;
+        }
+
+        /* Adopting a settings blob must not read back as a local edit on the
+           very next save, or two devices ping-pong the same preferences
+           forever, each one's adoption outranking the other's. */
+        function noteSettingsAdopted(s, modifiedWire) {
+          const picked = {};
+          for (let i = 0; i < SETTINGS_FIELDS.length; i++) {
+            picked[SETTINGS_FIELDS[i]] = s[SETTINGS_FIELDS[i]];
+          }
+          settingsPrint = JSON.stringify(picked);
+          if (Number.isFinite(modifiedWire))
+            settingsModifiedWire = modifiedWire;
+          dirty.delete("settings");
+          persistMeta();
         }
 
         /* ── boot ──────────────────────────────────────────────────────── */
@@ -15744,12 +15869,14 @@
         const ready = (async () => {
           if (!isSupported) return;
           try {
-            const [logMeta, taskMeta, cursors, device] = await Promise.all([
-              readMeta("shadow:log"),
-              readMeta("shadow:task"),
-              readMeta("cursors"),
-              readMeta("device"),
-            ]);
+            const [logMeta, taskMeta, cursors, device, settingsMeta] =
+              await Promise.all([
+                readMeta("shadow:log"),
+                readMeta("shadow:task"),
+                readMeta("cursors"),
+                readMeta("device"),
+                readMeta("settings"),
+              ]);
             if (logMeta && logMeta.map instanceof Map) {
               shadow.log = logMeta.map;
               if (logMeta.deletes instanceof Map)
@@ -15764,6 +15891,8 @@
               cursor.log = Number(cursors.log) || 0;
               cursor.task = Number(cursors.task) || 0;
             }
+            settingsModifiedWire =
+              Number(settingsMeta && settingsMeta.modifiedWire) || 0;
             deviceId = (device && device.id) || newUuid();
             deviceLabel = (device && device.label) || guessLabel();
             if (!device) await flushMeta();
@@ -15792,6 +15921,15 @@
             return () => dirtyHooks.delete(fn);
           },
           deriveOutbox,
+          sessionToWire,
+          sessionFromWire,
+          taskToWire,
+          taskFromWire,
+          settingsToWire,
+          noteSettingsAdopted,
+          get settingsModifiedWire() {
+            return settingsModifiedWire;
+          },
           confirmPushed,
           noteRemote,
           stampPendingDeletes,
@@ -15828,6 +15966,8 @@
           SESSION_FIELDS,
           SETTINGS_FIELDS,
           LOCAL_ONLY_FIELDS,
+          TASK_FIELDS,
+          TASK_INSTANT_KEYS,
           /* Exposed for the sync panel and the headless tests. */
           _shadow: shadow,
           _pendingDeletes: pendingDeletes,
@@ -16062,7 +16202,7 @@
         /* Folds one (t0, serverMs) observation into the running median.
 
            Split out from measureOffset because any call that returns a server
-           clock reading gives this away for free: claim_session ships now_ms
+           clock reading gives this away for free: sync_session ships now_ms
            with every lease heartbeat, and spending a second round trip on
            server_now to learn the same thing would be waste. */
         function noteServerTime(t0, serverMs, t1) {
@@ -16778,6 +16918,10 @@
         let overrideSawSession = false;
         let lastWant = false;
         let promptedFor = null;
+        let adoptedAt = 0;
+        let lastAdoptError = null;
+        let mirroring = false;
+        let adopting = false;
         let deviceTouchedAt = 0;
         let labelsFetchedAt = 0;
         let labelFetch = null;
@@ -16829,9 +16973,15 @@
         /* Ownership follows the session. A device with nothing running does
            not claim, because a phone left open on a kitchen counter should
            not inherit the laptop's session the moment the laptop's wifi
-           drops for a minute. */
+           drops for a minute.
+
+           `mirroring` is what stops that rule eating itself. A follower
+           copies the holder's session so it can render live elapsed, which
+           would otherwise make it look like a device with something running
+           — and it would start competing for a lease nobody asked it to
+           want, prompting the user out of nowhere. A mirror is not a claim. */
         function wantsLease() {
-          return hasLiveSession() || wantOverride;
+          return (hasLiveSession() && !mirroring) || wantOverride;
         }
 
         function labelFor(id) {
@@ -16851,6 +17001,22 @@
             return true;
           }
           return false;
+        }
+
+        /* Distinct from isOwner, and the predicate the whole read-only
+           surface hangs on. A device that cannot reach the server cannot have
+           handed the session anywhere and cannot push a byte of what it
+           writes; freezing its own timer because a train went into a tunnel
+           would be a worse failure than the one the lease exists to prevent.
+           What ownership actually governs is the right to PUSH. */
+        function mayWriteSession() {
+          expireIfStale();
+          return (
+            phase === "owner" ||
+            phase === "free" ||
+            phase === "off" ||
+            !navigator.onLine
+          );
         }
 
         /* ── server calls ──────────────────────────────────────────────── */
@@ -16899,46 +17065,34 @@
           labelFetch.rows = rows.length;
         }
 
-        /* Read-only. Used by every device that does not want the lease, so
-           that watching who holds it never becomes taking it. */
-        async function observe() {
-          const r = await SyncNet.net(
-            "/rest/v1/session_state?select=owner_device,owner_expires_at,generation&limit=1",
-          );
-          if (!r.ok) throw new Error(`lease read failed (${r.status})`);
-          const rows = await r.json();
-          const row = rows && rows[0];
-          if (row && Number.isFinite(Number(row.generation))) {
-            generation = Number(row.generation);
-          }
-          const expires = row ? Date.parse(row.owner_expires_at) : NaN;
-          /* Against the corrected clock, never this device's own: a laptop
-             running five minutes fast would otherwise declare every live
-             lease in the world expired. */
-          const live =
-            !!(row && row.owner_device) &&
-            Number.isFinite(expires) &&
-            expires > Sync.trueNow();
-          owner = live ? row.owner_device : null;
-          phase = live ? "follower" : "free";
-        }
-
         /* Hands the lease back the moment the session that justified it ends,
            so the next device gets it at once instead of waiting out the TTL.
            Scoped to our own device id, so a release racing somebody else's
            takeover cannot clear their fresh claim. */
-        async function release() {
+        async function release(clearSession) {
           const id = Sync.deviceId;
           if (!id) return;
+          const body = { owner_device: null, owner_expires_at: null };
+          /* A shift that ended has to be cleared here, in the same statement
+             that hands the lease back. Nothing else ever writes an empty
+             session: the push only happens while this device still wants the
+             lease, and by the time it stops wanting it the payload is no
+             longer being sent. Leave it and the server keeps the last live
+             shift forever — a device that opens tomorrow morning adopts it
+             and displays a phantom timer for work that finished yesterday.
+
+             Not on sign-out, though. Signing out on the laptop should not
+             end a shift the phone is entitled to carry on. */
+          if (clearSession) {
+            body.payload = {};
+            body.task_payload = {};
+          }
           const r = await SyncNet.net(
             `/rest/v1/session_state?owner_device=eq.${encodeURIComponent(id)}`,
             {
               method: "PATCH",
               headers: { Prefer: "return=minimal" },
-              body: JSON.stringify({
-                owner_device: null,
-                owner_expires_at: null,
-              }),
+              body: JSON.stringify(body),
             },
           );
           if (!r.ok) throw new Error(`lease release failed (${r.status})`);
@@ -16947,18 +17101,177 @@
           heldUntil = 0;
         }
 
+        /* ── adoption ──────────────────────────────────────────────────── */
+
+        /* A session is live if something is actually being measured. Used to
+           decide whether an incoming payload is worth adopting and whether
+           the local one is worth defending. */
+        function payloadIsLive(p) {
+          if (!p || typeof p !== "object") return false;
+          return (
+            p.currentMode !== null ||
+            p.idleLock === true ||
+            (Number(p.workAccumulated) || 0) > 0 ||
+            (Number(p.breakAccumulated) || 0) > 0
+          );
+        }
+
+        /* Two copies of the same shift, or two different shifts?
+
+           `loginTimestamp` is the closest thing the session has to an
+           identity: it is set once when the shift starts and travels with it.
+           Heartbeats cannot answer this — every device with a live session
+           restamps its own on every save, so a follower mirroring a shift
+           looks exactly as fresh as the device authoring it, and "is the
+           remote newer" comes out a coin flip.
+
+           The tolerance absorbs the rounding in a re-measured clock offset.
+           Two genuinely different shifts starting within five seconds of each
+           other on two devices is not a case worth distinguishing, and would
+           not be distinguishable anyway. */
+        function sameSession(a, b) {
+          const la = Number(a && a.loginTimestamp);
+          const lb = Number(b && b.loginTimestamp);
+          if (!(la > 0) || !(lb > 0)) return false;
+          return Math.abs(la - lb) < 5000;
+        }
+
+        /* The blueprint's adoption checklist, in order. Returns a reason
+           string when it refuses, so a refusal is diagnosable rather than
+           looking like nothing happened. */
+        function adoptSession(wirePayload, wireTask) {
+          /* An anchor is only meaningful in a clock domain, and an unmeasured
+             offset means we do not know which one this is. A single bad
+             offset applied to an anchor produces a timer reading of days, and
+             the ratchet floors preserve that number forever. */
+          if (!SyncNet.status().offsetMeasured) return "clock not measured";
+
+          const next = Sync.sessionFromWire(wirePayload);
+          if (!payloadIsLive(next)) return "remote session is empty";
+
+          /* Sanity-check the arithmetic before it reaches the ratchets. */
+          if (Number.isFinite(next.sessionAnchorWall) && !next.idleLock) {
+            const elapsed = (Date.now() - next.sessionAnchorWall) / 1000;
+            if (elapsed < -120 || elapsed > 86400) {
+              return `implausible elapsed (${Math.round(elapsed)}s)`;
+            }
+          }
+          const banked =
+            (Number(next.workAccumulated) || 0) +
+            (Number(next.breakAccumulated) || 0);
+          if (banked < 0 || banked > 86400) {
+            return `implausible accumulated (${Math.round(banked)}s)`;
+          }
+
+          for (let i = 0; i < Sync.SESSION_FIELDS.length; i++) {
+            const k = Sync.SESSION_FIELDS[i];
+            if (next[k] !== undefined) state[k] = next[k];
+          }
+
+          /* The user is demonstrably here — they are looking at this device.
+             Inheriting the other one's idle timestamp would trip the idle
+             lock instantly, and tabHiddenAt described a different browser. */
+          state.lastActivity = Date.now();
+          lastActivity = state.lastActivity;
+          state.tabHiddenAt = null;
+
+          if (wireTask && typeof wireTask === "object") {
+            const t = Sync.taskFromWire(wireTask);
+            for (let i = 0; i < Sync.TASK_FIELDS.length; i++) {
+              const k = Sync.TASK_FIELDS[i];
+              if (t[k] !== undefined) taskState[k] = t[k];
+            }
+          }
+
+          adoptedAt = Date.now();
+          /* Persisted immediately: an adoption that only lives in memory is
+             lost to a refresh, and the user would watch the session jump
+             back to where it was.
+
+             The flag keeps this write from reading as a local edit — the
+             dirty hook uses local edits to decide that a mirror has become
+             this device's own session, and an adoption is the opposite. */
+          adopting = true;
+          try {
+            if (typeof saveState === "function") saveState(true);
+            if (typeof saveTaskState === "function") saveTaskState();
+          } finally {
+            adopting = false;
+          }
+          renderAfterAdoption();
+          return null;
+        }
+
+        function renderAfterAdoption() {
+          try {
+            if (typeof renderStaticUI === "function") renderStaticUI();
+            if (typeof renderTimersOnly === "function") renderTimersOnly();
+            if (typeof syncTaskUI === "function") syncTaskUI();
+          } catch (e) {
+            console.warn("Post-adoption render failed", e);
+          }
+        }
+
+        /* Settings are not lease-gated, so every device applies the newest
+           blob it sees regardless of who holds the session. */
+        function adoptSettings(blob, modifiedWireMs) {
+          if (!blob || typeof blob !== "object") return false;
+          /* Both sides of this comparison are server time. Converting one of
+             them into local time first is the bug this shape exists to avoid:
+             a device whose offset moved between its own edit and this
+             comparison would reject preferences that are genuinely newer. */
+          const remoteWire = Number(modifiedWireMs);
+          if (!Number.isFinite(remoteWire)) return false;
+          if (remoteWire <= Sync.settingsModifiedWire) return false;
+
+          let changed = false;
+          for (let i = 0; i < Sync.SETTINGS_FIELDS.length; i++) {
+            const k = Sync.SETTINGS_FIELDS[i];
+            if (blob[k] === undefined) continue;
+            if (state[k] === blob[k]) continue;
+            state[k] = blob[k];
+            changed = true;
+          }
+          /* The stamp is adopted even when no field moved: this device has
+             now seen that version, and re-adopting it every beat would be
+             noise. */
+          Sync.noteSettingsAdopted(state, remoteWire);
+          if (changed) {
+            if (typeof saveState === "function") saveState(true);
+            if (typeof syncSettingsUI === "function") {
+              try {
+                syncSettingsUI();
+              } catch (e) {}
+            }
+          }
+          return changed;
+        }
+
         /* Returns the transition the caller has to announce, rather than
            announcing it here: naming the other device requires a fetch, and
-           a toast should not be issued before the name is known. */
-        function applyClaim(res, t0) {
+           a toast should not be issued before the name is known.
+
+           `claimed` says whether this beat actually asked for the lease. A
+           watching device is not refused — it never applied — so it must not
+           be counted as refused nor offered a takeover it did not seek. */
+        function applyClaim(res, t0, claimed) {
           const nowMs = Number(res && res.now_ms);
           if (Number.isFinite(nowMs)) {
             SyncNet.noteServerTime(t0, nowMs, Date.now());
           }
           const wasOwner = phase === "owner";
-          owner = (res && res.owner) || null;
           const gen = Number(res && res.generation);
           if (Number.isFinite(gen)) generation = gen;
+
+          /* Judged against the server's own clock, both read in the same
+             statement, so no offset enters the comparison at all. */
+          const expires = Number(res && res.owner_expires_ms);
+          const ownerLive =
+            !!(res && res.owner) &&
+            Number.isFinite(expires) &&
+            Number.isFinite(nowMs) &&
+            expires > nowMs;
+          owner = ownerLive ? res.owner : null;
 
           if (res && res.held) {
             /* Dated from before the request, not after: the server started
@@ -16975,9 +17288,11 @@
             return wasOwner ? null : "claimed";
           }
 
-          totals.refusals++;
           heldUntil = 0;
           phase = owner ? "follower" : "free";
+          if (!claimed) return null;
+
+          totals.refusals++;
           if (wasOwner) {
             totals.demotions++;
             return "demoted";
@@ -17018,43 +17333,128 @@
           }
           const want = wantsLease();
           lastWant = want;
+          /* Read before the round trip: whether this device may write the
+             session is decided by the lease it held when the beat began, not
+             by the one it is about to be granted. */
+          const wasOwner = phase === "owner";
           try {
             await touchDevice();
-            if (want) {
-              /* Consumed before the request rather than after it. An armed
-                 force that survives its own call turns two devices each
-                 taking over once into an unending exchange of takeovers —
-                 the non-forced renew that follows is refused, and that
-                 refusal is what makes the exchange terminate. */
-              const force = forceNext;
-              forceNext = false;
-              const t0 = Date.now();
-              const res = await SyncNet.rpc("claim_session", {
-                p_device: Sync.deviceId,
-                p_force: force,
-                p_ttl_seconds: TTL_SECONDS,
-              });
-              const event = applyClaim(res, t0);
-              await ensureLabel(owner);
-              if (event === "demoted") {
-                /* Already told; do not also offer to take it back. */
-                promptedFor = owner;
-                if (typeof showAppToast === "function") {
-                  showAppToast(
-                    `This session moved to ${labelFor(owner)}`,
-                    "warning",
-                  );
-                }
-              } else if (event === "refused" && owner) {
-                offerTakeover();
-              } else if (event === "claimed") {
-                closeLeaseModal();
-              }
-            } else {
-              if (phase === "owner") await release();
-              await observe();
-              await ensureLabel(owner);
+            /* We held the lease and no longer want it, which means the
+               session ended here. Clear it as we hand it back. */
+            if (!want && phase === "owner") await release(true);
+
+            /* Consumed before the request rather than after it. An armed
+               force that survives its own call turns two devices each taking
+               over once into an unending exchange of takeovers — the
+               non-forced renew that follows is refused, and that refusal is
+               what makes the exchange terminate. */
+            const force = forceNext;
+            forceNext = false;
+
+            const args = {
+              p_device: Sync.deviceId,
+              p_claim: want,
+              p_force: force,
+              p_ttl_seconds: TTL_SECONDS,
+            };
+            /* Only a device that already held the lease sends a session.
+               Sending one on the beat that acquires it would overwrite the
+               very session it is taking over — a phone tapping "Continue
+               here" would replace the laptop's running shift with its own
+               empty state. The server would accept it: the phone does hold
+               the lease by then. So the restraint has to be here.
+
+               And never while forcing, because `wasOwner` is read from local
+               state that can be stale. A device that lost the lease a moment
+               ago but has not beaten since still believes it is the owner; if
+               it then forces, it would push under a claim it wins in the very
+               same statement. Forcing means taking somebody else's session,
+               which means adopting it, never overwriting it. */
+            if (want && wasOwner && !force) {
+              args.p_payload = Sync.sessionToWire(state);
+              args.p_task_payload = Sync.taskToWire(taskState);
             }
+            if (Sync.dirty.has("settings")) {
+              args.p_settings = Sync.settingsToWire(state);
+              args.p_settings_modified = Sync.settingsModifiedWire;
+            }
+
+            const t0 = Date.now();
+            const res = await SyncNet.rpc("sync_session", args);
+            const event = applyClaim(res, t0, want);
+            await ensureLabel(owner);
+
+            /* Ours went out. Whether the server took it or a newer blob beat
+               it, this device is no longer holding an unsent change. */
+            if (args.p_settings) Sync.dirty.delete("settings");
+            /* Not lease-gated, and applied before anything else: a device
+               that is only watching still wants the newest preferences. */
+            adoptSettings(res && res.settings, res && res.settings_modified);
+
+            if (event === "demoted") {
+              /* Already told; do not also offer to take it back. */
+              promptedFor = owner;
+              if (typeof showAppToast === "function") {
+                showAppToast(
+                  `This session moved to ${labelFor(owner)}`,
+                  "warning",
+                );
+              }
+            } else if (event === "refused" && owner) {
+              offerTakeover();
+            } else if (event === "claimed") {
+              closeLeaseModal();
+            }
+
+            /* Who reads the incoming session, and why:
+
+               - A follower renders somebody else's live shift read-only, so
+                 normally it mirrors on every beat.
+               - A device that just acquired the lease adopts once, so a
+                 handoff continues the shift rather than restarting it.
+               - The steady-state owner is the author. It never adopts.
+
+               One rule guards both readers, and it has to. Adopting
+               unconditionally destroys a shift that was started offline on
+               this device the moment it reconnects and finds somebody else
+               holding the lease, and the user watches their morning
+               disappear. So a device is only overwritten when it has nothing
+               of its own to lose, or when what is arriving is the same shift
+               it is already showing. Two genuinely different live sessions
+               are a conflict no merge can resolve: this device keeps its own,
+               goes on wanting the lease, and the user is asked. */
+            const remote = res && res.payload;
+            const remoteLocal = Sync.sessionFromWire(remote);
+            const ownSession = hasLiveSession() && !mirroring;
+            const conflict =
+              ownSession &&
+              payloadIsLive(remoteLocal) &&
+              !sameSession(remoteLocal, state);
+            /* `force` is in here for the same reason it is in the push guard
+               above: local belief about ownership goes stale. A device that
+               lost the lease and has not beaten since still reads as the
+               owner, so applyClaim reports no transition, so nothing would
+               adopt — and the next beat would push its own state over the
+               session it just took. Forcing is the user saying "bring that
+               session here", and it always ends in an adoption. */
+            const shouldAdopt =
+              (phase === "follower" || event === "claimed" || force) &&
+              !conflict;
+            let adoptedNow = false;
+            if (shouldAdopt) {
+              lastAdoptError = adoptSession(remote, res && res.task_payload);
+              adoptedNow = !lastAdoptError;
+            }
+            /* Mirroring means this device is showing a session it took from
+               somewhere else and has no claim on. A follower that kept its
+               own session is not mirroring — it is in conflict, and it goes
+               on wanting the lease so the user gets asked about it. And the
+               moment a holder goes away the phase drops to free, the mirror
+               stops being a mirror, and this device starts wanting the
+               session it is already showing, which is how an abandoned shift
+               gets picked up. */
+            mirroring = phase === "follower" && adoptedNow;
+
             totals.beats++;
             lastBeatAt = Date.now();
             lastError = null;
@@ -17179,6 +17579,12 @@
            than up to fifteen seconds later. */
         Sync.onDirty((kind) => {
           if (kind !== "session") return;
+          /* A local edit means this is no longer somebody else's session
+             being mirrored — the user did something to it here, so this
+             device should be trying to own it. Adoption sets `adopting` to
+             exclude its own write, which is the one write that means the
+             opposite. */
+          if (!adopting) mirroring = false;
           if (wantsLease() !== lastWant) beat("session change");
         });
 
@@ -17219,7 +17625,9 @@
             if (phase !== "owner" || !isEligible() || !navigator.onLine) {
               return Promise.resolve();
             }
-            return release().catch(() => {});
+            /* Hand the lease back but leave the session standing: another
+               device may still want to continue it. */
+            return release(false).catch(() => {});
           },
           renameDevice(label) {
             const p = Sync.setDeviceLabel(label);
@@ -17242,20 +17650,8 @@
             expireIfStale();
             return phase === "owner";
           },
-          /* Distinct from isOwner, and the one phase 5 must gate rendering
-             on. A device that cannot reach the server cannot have handed the
-             session anywhere and cannot push a byte of what it writes;
-             freezing its own timer because a train went into a tunnel would
-             be a worse failure than the one the lease exists to prevent.
-             What ownership actually governs is the right to PUSH. */
           get mayWriteSession() {
-            expireIfStale();
-            return (
-              phase === "owner" ||
-              phase === "free" ||
-              phase === "off" ||
-              !navigator.onLine
-            );
+            return mayWriteSession();
           },
           status() {
             expireIfStale();
@@ -17274,6 +17670,10 @@
               lastBeatAt,
               lastReason,
               lastError,
+              mirroring,
+              adoptedAt,
+              lastAdoptError,
+              mayWrite: mayWriteSession(),
               deviceId: Sync.deviceId,
               prompted:
                 !!document.getElementById("lease-modal") &&
@@ -18647,11 +19047,17 @@
       /**
        * Executes getPSTDate logic.
        */
+      /* Corrected time, not this device's own. Two devices near midnight whose
+         clocks differ by ten minutes would otherwise disagree about which
+         calendar day a shift belongs to and file the same shift under two
+         different dates. A bare subtraction, because this runs every tick,
+         and the identity function while signed out. */
       function getPSTDate() {
-        const nowSec = Math.floor(Date.now() / 1000);
+        const now = window.Sync ? Sync.trueNow() : Date.now();
+        const nowSec = Math.floor(now / 1000);
         if (nowSec !== _cachedPSTDateSec) {
           _cachedPSTDateSec = nowSec;
-          _cachedPSTDateStr = pstDateFormatter.format(new Date(Date.now()));
+          _cachedPSTDateStr = pstDateFormatter.format(new Date(now));
         }
         return _cachedPSTDateStr;
       }
@@ -18662,13 +19068,16 @@
       let _cachedPSTDateObj = null;
       let _cachedPSTDateObjMin = -1;
 
+      /* Corrected time for the same reason as getPSTDate: this decides a
+         calendar day, and two devices must agree on which one it is. */
       function getPSTDateObj() {
-        const currentMin = Math.floor(Date.now() / 60000);
+        const now = window.Sync ? Sync.trueNow() : Date.now();
+        const currentMin = Math.floor(now / 60000);
         if (_cachedPSTDateObj && _cachedPSTDateObjMin === currentMin) {
           return new Date(_cachedPSTDateObj);
         }
         try {
-          _sharedDateForPST.setTime(Date.now());
+          _sharedDateForPST.setTime(now);
           const parts = pstDateObjFormatter.formatToParts(_sharedDateForPST);
           const p = {};
           parts.forEach((part) => (p[part.type] = part.value));
@@ -19097,6 +19506,20 @@
       function switchMode(mode) {
         if (state.currentMode === mode) return;
 
+        /* The session belongs to another device. The buttons are already
+           disabled, so reaching here means a keyboard shortcut or a stale
+           handler — refuse rather than start a shift that this device is not
+           allowed to push and that the next beat would overwrite anyway. */
+        if (window.SessionLease && !SessionLease.mayWriteSession) {
+          if (typeof showAppToast === "function") {
+            showAppToast(
+              `This session is running on ${SessionLease.status().ownerLabel}`,
+              "warning",
+            );
+          }
+          return;
+        }
+
         // Defensive Gate: Prevent break switch requests if session has not legally launched
         if (mode === "break" && !state.loginTimestamp) {
           return;
@@ -19166,22 +19589,61 @@
       /**
        * Updates static button names, states, theme-specific styles, and glows.
        */
+      /* One strip above the timers, created on demand so the markup costs
+         nothing to anyone who never signs in. It says where the session
+         actually is and offers the one action that changes that. */
+      function renderRemoteSessionBanner(show) {
+        let el = document.getElementById("remote-session-banner");
+        if (!show) {
+          if (el) el.style.display = "none";
+          return;
+        }
+        if (!el) {
+          const host = DOM.startBtn && DOM.startBtn.parentElement;
+          if (!host) return;
+          el = document.createElement("div");
+          el.id = "remote-session-banner";
+          el.className = "remote-session-banner";
+          el.innerHTML =
+            '<span id="remote-session-where"></span>' +
+            '<button type="button" class="btn-info-outline" onclick="leaseTakeOver()">Continue here</button>';
+          host.parentElement.insertBefore(el, host);
+        }
+        const where = document.getElementById("remote-session-where");
+        if (where) {
+          where.textContent = `Running on ${SessionLease.status().ownerLabel}`;
+        }
+        el.style.display = "flex";
+      }
+
       function renderStaticUI() {
         const isIdle = !!state.idleLock;
         const hasStarted = !!state.loginTimestamp;
         const mode = state.currentMode;
+        /* The session is running on another device, so this one may look but
+           not touch. The timer keeps ticking from the anchor it pulled — a
+           frozen number would be a worse lie than a read-only one. */
+        const leased = window.SessionLease
+          ? !SessionLease.mayWriteSession
+          : false;
         document.documentElement.setAttribute("data-theme", currentTheme);
         document.documentElement.setAttribute(
           "data-session-mode",
           mode || "idle",
         );
+        if (leased) {
+          document.documentElement.setAttribute("data-session-remote", "1");
+        } else {
+          document.documentElement.removeAttribute("data-session-remote");
+        }
+        renderRemoteSessionBanner(leased);
 
         if (!hasStarted) {
           DOM.startBtn.style.display = "flex";
           DOM.pauseBtn.style.display = "none";
           DOM.submitBtn.style.display = "none";
           DOM.startBtn.innerHTML = SVGs.play + "<span>Work</span>";
-          DOM.startBtn.disabled = isIdle;
+          DOM.startBtn.disabled = isIdle || leased;
         } else {
           DOM.startBtn.style.display = "none";
           DOM.pauseBtn.style.display = "flex";
@@ -19195,8 +19657,8 @@
             DOM.pauseBtn.className = "btn-work";
           }
 
-          DOM.pauseBtn.disabled = isIdle;
-          DOM.submitBtn.disabled = isIdle;
+          DOM.pauseBtn.disabled = isIdle || leased;
+          DOM.submitBtn.disabled = isIdle || leased;
         }
 
         const workSec = getCurrentWorkSeconds();
@@ -28270,6 +28732,18 @@
       if (window.SyncNet) SyncNet.onChange(renderSyncCard);
       if (window.SessionLease) SessionLease.onChange(renderSyncCard);
 
+      /* Losing or gaining the lease changes what the controls are allowed to
+         do, so the control surface has to re-render on the same signal the
+         settings card does. */
+      if (window.SessionLease) {
+        SessionLease.onChange(() => {
+          try {
+            if (typeof renderStaticUI === "function") renderStaticUI();
+            if (typeof syncTaskUI === "function") syncTaskUI();
+          } catch (e) {}
+        });
+      }
+
       function syncSettingsUI() {
         renderSyncCard();
         // Sync existing toggle/slider values
@@ -28976,6 +29450,7 @@
           if (DOM.taskTimerDisplay)
             DOM.taskTimerDisplay.className = "timer-val timer-active";
           DOM.taskStartBtn.style.display = "none";
+          /* fallthrough to the shared read-only pass below */
           if (DOM.taskPauseBtn) {
             DOM.taskPauseBtn.style.display = "inline-flex";
             DOM.taskPauseBtn.innerHTML = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0">${getSprite("sprite-021")}</svg><span>Resume</span>`;
@@ -28985,6 +29460,22 @@
           if (DOM.taskCancelBtn)
             DOM.taskCancelBtn.style.display = "inline-flex";
           DOM.taskNoteInput.disabled = false;
+        }
+
+        /* The running task belongs to the session, so it is read-only for
+           exactly as long as the session is. Applied last so it overrides
+           whichever branch above just enabled these. */
+        if (window.SessionLease && !SessionLease.mayWriteSession) {
+          DOM.taskStartBtn.disabled = true;
+          if (DOM.taskPauseBtn) DOM.taskPauseBtn.disabled = true;
+          if (DOM.taskSaveBtn) DOM.taskSaveBtn.disabled = true;
+          if (DOM.taskCancelBtn) DOM.taskCancelBtn.disabled = true;
+          DOM.taskNoteInput.disabled = true;
+        } else {
+          DOM.taskStartBtn.disabled = false;
+          if (DOM.taskPauseBtn) DOM.taskPauseBtn.disabled = false;
+          if (DOM.taskSaveBtn) DOM.taskSaveBtn.disabled = false;
+          if (DOM.taskCancelBtn) DOM.taskCancelBtn.disabled = false;
         }
       }
 
