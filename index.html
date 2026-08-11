@@ -14443,6 +14443,10 @@
         if (!tickerRunning) return;
         tickerRunning = false;
         tickerWorker.postMessage("stop");
+        /* Nothing is sampling the clocks from here until the ticker restarts, so
+           the window that follows cannot vouch for anything inside it. Declared
+           later in the file; hoisted, and only ever reached at runtime. */
+        breakClockObservation("ticker-stopped");
       }
 
       /* A hidden page has nothing to compute. */
@@ -14815,33 +14819,116 @@
        *
        *   performance.now()   Monotonic clock. Immune to system clock steps, but is
        *                       relative to THIS document (resets to 0 on reload) and
-       *                       may or may not advance across system suspend depending
-       *                       on platform. Never persist it.
+       *                       - decisively - STOPS ADVANCING while the document is
+       *                       suspended on some platforms, WebKit on iOS above all.
+       *                       Never persist it.
        *
-       * Strategy: wall clock remains the basis for all durations (so genuine elapsed
-       * time, including sleep, is preserved and product behaviour is unchanged), and
-       * the monotonic clock is used purely as a DISCONTINUITY DETECTOR. When the two
-       * clocks disagree by more than a threshold over an interval where they should
-       * have advanced together, the difference is a system clock step, and every
-       * in-flight wall timestamp is rebased onto the corrected timeline. Durations
-       * are therefore continuous across clock steps, and absolute labels are pulled
-       * onto true time rather than left on the stale one.
+       * --------------------------------------------------------------------------
+       * WHY THE OBVIOUS ALGORITHM IS UNSOUND
+       *
+       * The natural implementation samples both clocks, compares how far each
+       * advanced, and calls the difference a system clock step. That is wrong,
+       * because these two situations produce identical readings:
+       *
+       *   (a) The system clock jumped forward by D while the page kept running.
+       *   (b) The page was suspended for D and the monotonic clock froze with it.
+       *
+       * In both cases wallDelta is about D and monoDelta is about one tick. NO
+       * further local measurement can separate them: while a document is frozen,
+       * every clock, timer, event and observer the page could consult is frozen
+       * too. The information is not merely hard to obtain, it is absent.
+       *
+       * The two cases demand opposite handling, so guessing is a coin flip on the
+       * user's timesheet - and the costs of the two possible mistakes are wildly
+       * asymmetric:
+       *
+       *   Guessing "step" when it was really a suspend
+       *     -> every in-flight anchor is dragged forward by D, so D of genuine
+       *        on-the-clock time is erased from the shift, AND the login label
+       *        silently moves forward by D. Both are invisible corruption, both
+       *        accumulate over a shift, and the result still looks self-consistent
+       *        afterwards, so nothing downstream can detect it.
+       *
+       *   Guessing "suspend" when it was really a step
+       *     -> D is counted as elapsed time and the login label stays on the
+       *        pre-step timeline. Bounded by a single step, surfaced to the user by
+       *        the idle-lock prompt once it is large, and repairable.
+       *
+       * Therefore this engine applies a FORWARD step only on positive proof that
+       * the window was continuously observed, and never infers one from a bare
+       * divergence. Without proof the divergence is recorded as an unobserved GAP:
+       * nothing is rebased, the ratchets freeze, and the idle-lock system asks the
+       * user rather than deciding on their behalf.
+       *
+       * BACKWARD movement needs no such proof. A wall clock cannot run backwards
+       * on its own, and suspension cannot make it appear to, so a negative
+       * wallDelta is a step under every hypothesis and is always safe to correct.
+       *
+       * --------------------------------------------------------------------------
+       * DEFENCE IN DEPTH
+       *
+       * Correct classification is layer one. Three further layers exist so that a
+       * failure of the first cannot silently corrupt a timesheet:
+       *
+       *   2. Bounded corrections.   A single trusted forward step is capped, and
+       *                             the cumulative correction applied to the login
+       *                             label within one shift is capped separately and
+       *                             measured against an immutable original.
+       *   3. Immutable original.    state.loginTimestampRaw records the instant the
+       *                             shift began and is never rebased by anything.
+       *   4. Commit-time assertion. assertShiftWindow() refuses to persist a log
+       *                             entry whose window contradicts the hours inside
+       *                             it or whose label has drifted past the cap.
+       *
+       * Every correction and every refusal is recorded in the anomaly log, which
+       * survives reload, so a disputed timesheet can always be audited after the
+       * fact rather than argued about.
        * =========================================================================*/
 
       /* Divergence beyond this over a reconciled window is treated as a clock step
          rather than timer jitter. Well above scheduler noise, well below anything a
          user would notice as lost time. */
       const CLOCK_STEP_THRESHOLD_MS = 2000;
-      /* Longest monotonic gap over which a forward divergence can still be
-         attributed to a clock step. Beyond this the tab may have been frozen or the
-         machine suspended, and a forward wall gap is indistinguishable from real
-         elapsed time, so it is left alone and handled by the idle-lock system. */
-      const CLOCK_RECONCILE_MAX_GAP_MS = 30000;
+
+      /* Nominal spacing of the ticker, mirrored here so the reconciler can judge
+         whether a tick arrived on schedule. Kept as its own constant rather than
+         reaching into the ticker: this module must not depend on the ticker's
+         internals, only on its contract. */
+      const CLOCK_TICK_INTERVAL_MS = 1000;
+
+      /* Largest monotonic advance between two consecutive ticks that still counts
+         as continuous observation. Three tick intervals absorbs ordinary scheduler
+         jitter and a busy main thread; beyond it the page was throttled or frozen,
+         and a window we did not actually watch cannot vouch for anything that
+         happened inside it. */
+      const CLOCK_OBSERVED_MAX_MONO_GAP_MS = 3 * CLOCK_TICK_INTERVAL_MS;
+
+      /* Largest FORWARD step this engine will apply from a single observation.
+         Real NTP corrections on a running system are milliseconds to seconds; a
+         forward jump of minutes between two consecutive ticks is far more likely
+         to be a freeze that the observation gate failed to notice. Anything above
+         this is recorded as a gap and left to the idle-lock system. Backward steps
+         are deliberately unbounded - see the header. */
+      const CLOCK_MAX_TRUSTED_FORWARD_STEP_MS = 120000; // 2 minutes
+
+      /* Ceiling on the total correction applied to the login label across one
+         shift, measured against the immutable original rather than accumulated
+         step by step, so a long series of small corrections cannot walk the label
+         anywhere a single large one would have been refused. Durations keep their
+         corrections either way; only the absolute label is pinned. */
+      const CLOCK_MAX_LABEL_CORRECTION_MS = 300000; // 5 minutes
+
+      /* Slack allowed when checking a committed shift window against the hours
+         inside it. Work and break seconds are floored independently before they
+         are written, so a coherent record can still be a shade short. */
+      const SHIFT_WINDOW_TOLERANCE_MS = 2000;
+
       /* Only surface a correction to the user above this magnitude, to avoid
          nagging about sub-minute NTP nudges that were already handled silently. */
       const CLOCK_NOTIFY_THRESHOLD_MS = 10000;
       const CLOCK_NOTIFY_COOLDOWN_MS = 60000;
-      const CLOCK_ANOMALY_LOG_LIMIT = 20;
+      const CLOCK_ANOMALY_LOG_LIMIT = 40;
+      const CLOCK_ANOMALY_LS_KEY = "nodrift_clock_anomalies_v1";
 
       const CLOCK_HAS_PERF =
         typeof performance !== "undefined" &&
@@ -14868,7 +14955,8 @@
          that a genuinely suspended machine resumes banking promptly. */
       const CLOCK_SUSPECT_COOLDOWN_MS = 60000;
 
-      /* Paired wall/monotonic reading from the last reconciliation. Deliberately
+      /* Paired wall/monotonic reading from the last reconciliation, plus whether
+         that reading was taken under continuous observation. Deliberately
          module-scoped and NEVER persisted: a DOMHighResTimeStamp is meaningless
          outside the document that produced it. */
       let clockHeartbeat = null;
@@ -14878,6 +14966,65 @@
          the thing in doubt. Never persisted, for the same reason as the pair
          above. */
       let clockSuspectUntilMono = 0;
+
+      /*--------------------------------------------------------------------------
+       * OBSERVATION LEDGER
+       *
+       * A divergence may only be read as a clock step if the window it spans was
+       * continuously watched. "Watched" is a claim about the past, so it cannot be
+       * reconstructed after the fact from clock readings - the readings are
+       * precisely what is in doubt. It has to be recorded as it happens.
+       *
+       * The ledger starts BROKEN and is cleared only by a tick that arrives while
+       * the page is visible and the ticker is running. Anything that means the
+       * document may have stopped executing breaks it again. Failing closed is the
+       * whole point: an unrecorded suspension must never masquerade as a watched
+       * window, whereas a spuriously broken window costs nothing beyond declining
+       * to correct a clock step that the next observed tick will catch anyway.
+       *------------------------------------------------------------------------*/
+      /* Deliberately `var`, not `let`. stopUITimer() sits earlier in this file
+         than this module and calls breakClockObservation(); the function itself
+         hoists, but a `let` binding it touches would still be in its temporal
+         dead zone if the ticker ever stopped before this line executed. `var`
+         hoists the binding too, so the worst case is a no-op rather than a
+         ReferenceError that takes the whole app down. Both start in the safe
+         state regardless: broken until a tick proves otherwise. */
+      var clockObservationBroken = true;
+      var clockObservationBreakReason = "boot";
+
+      function breakClockObservation(reason) {
+        clockObservationBroken = true;
+        clockObservationBreakReason = reason || "unknown";
+      }
+
+      /* Visibility, page lifecycle and bfcache transitions all indicate that this
+         document may have stopped running. Registered here, at the top of the
+         module, so these handlers run before any feature-level handler that reads
+         the flag: listeners on the same target fire in registration order. */
+      if (typeof document !== "undefined" && document.addEventListener) {
+        document.addEventListener("visibilitychange", function () {
+          if (document.visibilityState !== "visible") {
+            breakClockObservation("hidden");
+          }
+        });
+        /* Page Lifecycle API. Chromium fires these around discard/freeze; Safari
+           does not implement them, which is exactly why they are a supplement to
+           the visibility signal and not a replacement for it. */
+        document.addEventListener("freeze", function () {
+          breakClockObservation("freeze");
+        });
+        document.addEventListener("resume", function () {
+          breakClockObservation("resume");
+        });
+      }
+      if (typeof window !== "undefined" && window.addEventListener) {
+        window.addEventListener("pagehide", function () {
+          breakClockObservation("pagehide");
+        });
+        window.addEventListener("pageshow", function () {
+          breakClockObservation("pageshow");
+        });
+      }
 
       /**
        * Whether the wall clock is currently untrusted.
@@ -14889,10 +15036,8 @@
        * reading outlives the correction that follows it, and since the floor is
        * a maximum it can never be walked back down.
        *
-       * The one divergence reconcileSystemClock refuses to judge - a long
-       * monotonic gap with a forward wall jump, where genuine suspend and a
-       * forward clock step look identical - is exactly the case that can inflate
-       * a reading. So the floors pause there rather than guess.
+       * Every divergence this engine declines to judge is exactly the case that
+       * can inflate a reading, so the floors pause there rather than guess.
        */
       function isClockSuspect() {
         return clockSuspectUntilMono > 0 && monoNow() < clockSuspectUntilMono;
@@ -14905,15 +15050,32 @@
       function clearClockSuspect() {
         clockSuspectUntilMono = 0;
       }
+
       let lastClockNotifyAt = 0;
       let clockAnomalies = [];
 
-      /* Every state field holding a wall-clock instant that is still compared
-         against "now". Committed logbook entries are deliberately excluded: those
-         are historical records, not in-flight measurements. */
-      const CLOCK_REBASE_STATE_KEYS = [
+      /* Total correction this engine has applied to the login label since the
+         current shift began. Compared against the immutable original rather than
+         trusted on its own - see applyLabelStep. */
+      let clockLabelCorrectionMs = 0;
+
+      /* The most recent divergence the engine refused to judge. Read by the wakeup
+         path so a suspension can be surfaced to the user instead of vanishing. */
+      let lastUnobservedGap = null;
+
+      /* Set only while runClockSelfTest() is driving the engine with synthetic
+         inputs. Suppresses logging and toasts so a diagnostic run cannot forge
+         entries in the audit trail it exists to validate. */
+      let clockSelfTestRunning = false;
+
+      /* Measurement anchors: wall instants that are still being compared against
+         "now" to produce a duration. A verified clock step must move all of them
+         together, otherwise the durations derived from them jump.
+
+         Committed logbook entries are deliberately excluded: those are historical
+         records, not in-flight measurements. */
+      const CLOCK_MEASUREMENT_STATE_KEYS = [
         "sessionAnchorWall",
-        "loginTimestamp",
         "idleStart",
         "idleWakeup",
         "lastActivity",
@@ -14921,11 +15083,28 @@
         "tabHiddenAt",
       ];
 
+      /* Absolute labels: wall instants the user reads as a statement about when
+         something happened. Correcting these is legitimate when the clock is
+         proven wrong, but it is not required for any duration to stay accurate,
+         so it goes through applyLabelStep and its caps rather than being rebased
+         blindly alongside the anchors above. */
+      const CLOCK_LABEL_STATE_KEYS = ["loginTimestamp"];
+
+      /* Union of the two, for callers that need every live wall instant - the
+         cross-reload witness scan, above all. */
+      const CLOCK_REBASE_STATE_KEYS = CLOCK_MEASUREMENT_STATE_KEYS.concat(
+        CLOCK_LABEL_STATE_KEYS,
+      );
+
       /* The subset that crosses the wire during cross-device sync. Deliberately
          NOT the same list as CLOCK_REBASE_STATE_KEYS: lastActivity and
          tabHiddenAt describe this browser's own input and visibility, so
          shipping them would make a phone inherit the laptop's idleness the
-         instant it took over the session. */
+         instant it took over the session.
+
+         loginTimestampRaw is absent for a different reason: it is this device's
+         own witness to what it recorded, and a witness imported from elsewhere
+         cannot corroborate anything. Its absence simply skips the check. */
       const SYNC_INSTANT_KEYS = [
         "sessionAnchorWall",
         "loginTimestamp",
@@ -14950,15 +15129,102 @@
         }
       }
 
-      /* Shifts every in-flight wall timestamp by deltaMs so that all live durations
-         survive a system clock step unchanged, and absolute labels land on the
-         corrected timeline. */
+      /**
+       * Resets the per-shift label correction budget. Called when a shift starts,
+       * so the cap governs one shift rather than one browser session.
+       */
+      function resetClockLabelCorrection() {
+        clockLabelCorrectionMs = 0;
+      }
+
+      /**
+       * Moves the login label onto a corrected timeline, within bounds.
+       *
+       * The label is the one value a user reads back and checks against their own
+       * memory of the day, and the one this engine has historically been able to
+       * corrupt without leaving a trace, so it is corrected against the immutable
+       * original rather than by accumulating deltas onto the working copy. Two
+       * rules apply, and both are hard:
+       *
+       *   - the total displacement from loginTimestampRaw may not exceed
+       *     CLOCK_MAX_LABEL_CORRECTION_MS;
+       *   - a shift may not begin in the future.
+       *
+       * A refusal is logged rather than swallowed: the durations are still fully
+       * corrected, so refusing here costs nothing but a slightly stale label, and
+       * the anomaly log records why it is stale.
+       *
+       * @param {number} deltaMs - Verified clock step, already applied to anchors.
+       */
+      function applyLabelStep(deltaMs) {
+        const ceiling = Date.now();
+        const bags = [state, lastStateBackup, lastAdjustmentStateBackup];
+        const proposed = clockLabelCorrectionMs + deltaMs;
+
+        const raw =
+          state && typeof state.loginTimestampRaw === "number"
+            ? state.loginTimestampRaw
+            : null;
+        const current =
+          state && typeof state.loginTimestamp === "number"
+            ? state.loginTimestamp
+            : null;
+
+        /* Preferred measure: displacement from what was actually recorded at
+           login. Falls back to the running total only when this device did not
+           record the shift - a session adopted from another device over sync. */
+        const displacement =
+          raw !== null && current !== null ? current + deltaMs - raw : proposed;
+
+        if (Math.abs(displacement) > CLOCK_MAX_LABEL_CORRECTION_MS) {
+          recordClockAnomaly({
+            deltaMs,
+            applied: 0,
+            reason: "label-correction-refused",
+            verdict: "refused",
+            proof: "cumulative-cap",
+            detail: Math.round(displacement),
+          });
+          return;
+        }
+
+        for (let i = 0; i < bags.length; i++) {
+          const bag = bags[i];
+          if (!bag || typeof bag !== "object") continue;
+          const v = bag.loginTimestamp;
+          if (typeof v !== "number" || !isFinite(v)) continue;
+          bag.loginTimestamp = Math.min(v + deltaMs, ceiling);
+        }
+        clockLabelCorrectionMs = proposed;
+      }
+
+      /**
+       * Shifts every in-flight wall timestamp by deltaMs so that all live
+       * durations survive a system clock step unchanged, and absolute labels land
+       * on the corrected timeline.
+       *
+       * Only ever called with a step this engine has proven, or with a backward
+       * step, which needs no proof. See the header for why that distinction is
+       * the whole design.
+       *
+       * @param {number} deltaMs - The correction to apply, signed.
+       */
       function applyClockStep(deltaMs) {
         if (!deltaMs || !isFinite(deltaMs)) return;
 
-        rebaseTimestampBag(state, deltaMs);
-        rebaseTimestampBag(lastStateBackup, deltaMs);
-        rebaseTimestampBag(lastAdjustmentStateBackup, deltaMs);
+        rebaseTimestampBag(state, deltaMs, CLOCK_MEASUREMENT_STATE_KEYS);
+        rebaseTimestampBag(
+          lastStateBackup,
+          deltaMs,
+          CLOCK_MEASUREMENT_STATE_KEYS,
+        );
+        rebaseTimestampBag(
+          lastAdjustmentStateBackup,
+          deltaMs,
+          CLOCK_MEASUREMENT_STATE_KEYS,
+        );
+
+        applyLabelStep(deltaMs);
 
         if (typeof lastActivity === "number" && isFinite(lastActivity)) {
           lastActivity += deltaMs;
@@ -14986,33 +15252,98 @@
         }
       }
 
-      function recordClockAnomaly(deltaMs, reason) {
+      /*--------------------------------------------------------------------------
+       * ANOMALY LOG
+       *
+       * Persisted, because the most valuable moment to read it is after the app
+       * has been reopened to look at a shift that came out wrong. Capped, guarded
+       * and entirely optional: a storage failure must never break timekeeping, so
+       * every access is wrapped and a failure degrades to an in-memory log.
+       *------------------------------------------------------------------------*/
+
+      function loadClockAnomalies() {
+        try {
+          const raw = localStorage.getItem(CLOCK_ANOMALY_LS_KEY);
+          if (!raw) return;
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) {
+            clockAnomalies = parsed.slice(0, CLOCK_ANOMALY_LOG_LIMIT);
+          }
+        } catch (e) {
+          /* Unavailable storage, a quota wall, or a corrupt payload. None of
+             these are worth failing a shift over. */
+        }
+      }
+
+      function persistClockAnomalies() {
+        try {
+          localStorage.setItem(
+            CLOCK_ANOMALY_LS_KEY,
+            JSON.stringify(clockAnomalies),
+          );
+        } catch (e) {
+          /* See loadClockAnomalies. */
+        }
+      }
+
+      /**
+       * Records one clock event and, when it represents a correction the user's
+       * timers actually underwent, tells them so.
+       *
+       * @param {Object} info
+       * @param {number} info.deltaMs - Divergence observed, signed.
+       * @param {number} info.applied - How much of it was applied. Zero for a
+       *   refusal or an unobserved gap.
+       * @param {string} info.reason - Call-site tag.
+       * @param {string} info.verdict - step | gap | refused | repair.
+       * @param {string} [info.proof] - Which rule decided it.
+       */
+      function recordClockAnomaly(info) {
+        if (clockSelfTestRunning) return;
+
         const entry = {
           at: Date.now(),
-          deltaMs: Math.round(deltaMs),
-          reason: reason || "tick",
+          deltaMs: Math.round(info.deltaMs || 0),
+          applied: Math.round(info.applied || 0),
+          reason: info.reason || "tick",
+          verdict: info.verdict || "step",
+          proof: info.proof || null,
         };
+        if (info.detail !== undefined) entry.detail = info.detail;
+        if (info.wallDeltaMs !== undefined) {
+          entry.wallDeltaMs = Math.round(info.wallDeltaMs);
+        }
+        if (info.monoDeltaMs !== undefined) {
+          entry.monoDeltaMs = Math.round(info.monoDeltaMs);
+        }
+
         clockAnomalies.unshift(entry);
         if (clockAnomalies.length > CLOCK_ANOMALY_LOG_LIMIT) {
           clockAnomalies.length = CLOCK_ANOMALY_LOG_LIMIT;
         }
+        persistClockAnomalies();
+
         console.warn(
-          "System clock step detected: " +
+          "[clock] " +
+            entry.verdict +
+            " " +
             entry.deltaMs +
-            "ms (" +
+            "ms (applied " +
+            entry.applied +
+            "ms, " +
             entry.reason +
-            "). Timers rebased.",
+            (entry.proof ? ", " + entry.proof : "") +
+            ")",
         );
 
-        /* The anomaly is always logged -- diagnostics want every step. The
-           toast is not: it claims "timers corrected", and with no segment in
-           flight there was nothing to correct. Rebasing still happened (it
-           keeps stored timestamps honest), but announcing it to a user who is
-           off the clock is a false alarm, so the reload and idle-lock paths
-           stay silent. */
+        /* Every event is logged - diagnostics want the full picture. The toast is
+           narrower on purpose. It claims "timers corrected", so it may only fire
+           when timers were in fact corrected: not for a gap the engine declined to
+           judge, not for a refusal, and not with no segment in flight. */
+        if (entry.verdict !== "step" || entry.applied === 0) return;
         if (!state || state.currentMode === null || state.idleLock) return;
 
-        const magnitude = Math.abs(deltaMs);
+        const magnitude = Math.abs(entry.applied);
         if (magnitude < CLOCK_NOTIFY_THRESHOLD_MS) return;
         if (entry.at - lastClockNotifyAt < CLOCK_NOTIFY_COOLDOWN_MS) return;
         lastClockNotifyAt = entry.at;
@@ -15031,81 +15362,216 @@
       }
 
       /**
-       * Compares wall-clock and monotonic advance since the last reconciliation and
-       * rebases all in-flight timestamps if the system clock has stepped.
-       * @param {string} reason - Call site tag, recorded in the anomaly log.
-       * @returns {number} The applied correction in ms (0 when the clocks agree).
+       * Decides what a wall/monotonic divergence means.
+       *
+       * Pure and total: no clock reads, no state, no side effects. That is not
+       * incidental tidiness - it is what lets every branch below be exercised
+       * directly by runClockSelfTest(), including the ones that only occur on a
+       * suspended iPhone at the end of a nine-hour shift.
+       *
+       * @param {number} wallDeltaMs - Date.now() advance across the window.
+       * @param {number} monoDeltaMs - performance.now() advance across the window.
+       * @param {boolean} observed - Whether the window was continuously watched.
+       * @param {boolean} [hasPerf=CLOCK_HAS_PERF] - Monotonic clock availability.
+       * @returns {{verdict: string, step: number, proof: string}}
+       *   verdict "stable"       - clocks agree, nothing to do.
+       *   verdict "step"         - proven clock step; step is the correction.
+       *   verdict "gap"          - unattributable divergence; do not rebase.
+       *   verdict "unmeasurable" - no monotonic clock; reconciliation disabled.
+       */
+      function classifyClockDivergence(
+        wallDeltaMs,
+        monoDeltaMs,
+        observed,
+        hasPerf = CLOCK_HAS_PERF,
+      ) {
+        if (!hasPerf) {
+          return { verdict: "unmeasurable", step: 0, proof: "no-monotonic" };
+        }
+
+        const divergence = wallDeltaMs - monoDeltaMs;
+
+        if (Math.abs(divergence) <= CLOCK_STEP_THRESHOLD_MS) {
+          return { verdict: "stable", step: 0, proof: "within-threshold" };
+        }
+
+        /* A wall clock cannot run backwards by itself, and no amount of
+           suspension can make it appear to. Under every hypothesis this is a
+           step, so it needs no observation proof and no magnitude bound: the
+           alternative is erasing time the user genuinely worked. */
+        if (wallDeltaMs < 0) {
+          return { verdict: "step", step: divergence, proof: "backward-wall" };
+        }
+
+        /* Everything below is a FORWARD divergence, which is the ambiguous case
+           described in the header. Each gate is a distinct way of failing to
+           prove it was a clock step. */
+
+        if (!observed) {
+          return { verdict: "gap", step: 0, proof: "unobserved-window" };
+        }
+
+        if (monoDeltaMs < 0 || monoDeltaMs > CLOCK_OBSERVED_MAX_MONO_GAP_MS) {
+          /* The ledger claims we were watching, but the monotonic clock says the
+             tick arrived far off schedule. The ledger is a record of events that
+             may not have fired; the clock is a measurement. Trust the
+             measurement. */
+          return { verdict: "gap", step: 0, proof: "mono-gap" };
+        }
+
+        if (divergence > CLOCK_MAX_TRUSTED_FORWARD_STEP_MS) {
+          /* Watched, on schedule, and still minutes of divergence. Possible, but
+             a frozen document whose visibility event never fired is likelier, and
+             the cost of being wrong here is the corruption this engine exists to
+             prevent. Decline and let the idle-lock system ask. */
+          return { verdict: "gap", step: 0, proof: "forward-step-too-large" };
+        }
+
+        return { verdict: "step", step: divergence, proof: "observed-window" };
+      }
+
+      /**
+       * Compares wall-clock and monotonic advance since the last reconciliation
+       * and rebases all in-flight timestamps if - and only if - the divergence is
+       * provably a system clock step.
+       *
+       * @param {string} reason - Call site tag, recorded in the anomaly log. Only
+       *   "tick" can establish continuous observation; every other call site is a
+       *   one-off that cannot vouch for the window behind it.
+       * @returns {number} The applied correction in ms (0 when nothing was done).
        */
       function reconcileSystemClock(reason) {
         const nowWall = Date.now();
         const nowMono = monoNow();
+        const isTick = reason === "tick";
+        const visible =
+          typeof document === "undefined" ||
+          document.visibilityState === "visible";
+        /* tickerRunning is declared above this module and is the ticker's own
+           record of whether it is armed. A stopped ticker means nobody was
+           watching, whatever the visibility API reported. */
+        const ticking =
+          typeof tickerRunning === "boolean" ? tickerRunning : true;
 
         if (!clockHeartbeat) {
-          clockHeartbeat = { wall: nowWall, mono: nowMono };
+          clockHeartbeat = {
+            wall: nowWall,
+            mono: nowMono,
+            observed: isTick && visible && ticking,
+          };
           return 0;
         }
 
         const monoDelta = nowMono - clockHeartbeat.mono;
         const wallDelta = nowWall - clockHeartbeat.wall;
-        const divergence = wallDelta - monoDelta;
 
-        let step = 0;
-        if (CLOCK_HAS_PERF && Math.abs(divergence) > CLOCK_STEP_THRESHOLD_MS) {
-          if (monoDelta >= 0 && monoDelta <= CLOCK_RECONCILE_MAX_GAP_MS) {
-            /* Both clocks were running and observable across a short window:
-               any divergence is unambiguously a clock step. */
-            step = divergence;
-          } else if (wallDelta < 0) {
-            /* Long or unmeasurable monotonic gap, but the wall clock moved
-               BACKWARD. A wall clock can never legitimately go backward, so this
-               is a step regardless of how long the gap was. */
-            step = divergence;
-          } else {
-            /* Remaining case: long gap with a forward wall jump.
-               Indistinguishable from genuine suspend/freeze, so the reading is
-               left alone and the idle-lock system asks the user rather than
-               guessing. The reading is not corrected, but it may be inflated,
-               so the ratchets stop advancing until the clock proves itself -
-               otherwise a bogus jump gets locked into a floor moments before
-               the correction that would have exposed it. */
-            markClockSuspect();
-          }
-        }
+        /* Observation is a property of the WINDOW, so it needs both ends to
+           qualify: a tick now, a tick then, and nothing in between that could
+           have stopped this document from executing. */
+        const windowObserved =
+          isTick &&
+          visible &&
+          ticking &&
+          clockHeartbeat.observed === true &&
+          !clockObservationBroken;
 
-        if (step !== 0) {
-          applyClockStep(step);
-          recordClockAnomaly(step, reason);
+        const verdict = classifyClockDivergence(
+          wallDelta,
+          monoDelta,
+          windowObserved,
+        );
+
+        let applied = 0;
+
+        if (verdict.verdict === "step" && verdict.step !== 0) {
+          applied = verdict.step;
+          applyClockStep(applied);
+          recordClockAnomaly({
+            deltaMs: verdict.step,
+            applied,
+            reason,
+            verdict: "step",
+            proof: verdict.proof,
+            wallDeltaMs: wallDelta,
+            monoDeltaMs: monoDelta,
+          });
           /* The correction arrived and every in-flight anchor was rebased onto
              it, so the timeline is coherent again and the floors may resume. */
           clearClockSuspect();
+        } else if (verdict.verdict === "gap") {
+          /* Not corrected, and possibly inflated, so the ratchets stop advancing
+             until the clock proves itself - otherwise a bogus reading gets locked
+             into a floor moments before the correction that would have exposed
+             it. The gap itself is published for the wakeup path to adjudicate. */
+          markClockSuspect();
+          lastUnobservedGap = {
+            atWall: nowWall,
+            startedAtWall: clockHeartbeat.wall,
+            wallDeltaMs: wallDelta,
+            monoDeltaMs: monoDelta,
+            proof: verdict.proof,
+            reason,
+          };
+          recordClockAnomaly({
+            deltaMs: wallDelta - monoDelta,
+            applied: 0,
+            reason,
+            verdict: "gap",
+            proof: verdict.proof,
+            wallDeltaMs: wallDelta,
+            monoDeltaMs: monoDelta,
+          });
         }
 
         /* Mutated rather than reallocated: this runs once per second for the
            length of a shift, and a fresh object each tick is pure garbage. */
         clockHeartbeat.wall = nowWall;
         clockHeartbeat.mono = nowMono;
-        return step;
+        clockHeartbeat.observed = isTick && visible && ticking;
+
+        /* The break applied to the window that just closed. A tick taken while
+           visible and ticking opens a fresh, clean window. */
+        if (clockHeartbeat.observed) {
+          clockObservationBroken = false;
+          clockObservationBreakReason = null;
+        }
+
+        return applied;
       }
 
-      /* Re-baselines the heartbeat pair without attempting a correction. Used after
-         deliberate timeline edits so the next reconcile does not misread them. */
+      /* Re-baselines the heartbeat pair without attempting a correction. Used
+         after deliberate timeline edits so the next reconcile does not misread
+         them. The window is marked unobserved because a deliberate edit is
+         exactly the kind of discontinuity the ledger exists to record. */
       function markClockHeartbeat() {
+        const nowWall = Date.now();
+        const nowMono = monoNow();
         if (clockHeartbeat) {
-          clockHeartbeat.wall = Date.now();
-          clockHeartbeat.mono = monoNow();
+          clockHeartbeat.wall = nowWall;
+          clockHeartbeat.mono = nowMono;
+          clockHeartbeat.observed = false;
         } else {
-          clockHeartbeat = { wall: Date.now(), mono: monoNow() };
+          clockHeartbeat = { wall: nowWall, mono: nowMono, observed: false };
         }
+        breakClockObservation("manual-rebaseline");
       }
 
       /**
-       * Cross-reload clock step recovery. performance.now() cannot bridge documents,
-       * so the newest persisted wall timestamp is the only witness to the pre-reload
-       * timeline. If that witness sits in the future, the clock moved backward while
-       * the app was closed; rebasing by the observed difference preserves every
-       * accumulated duration instead of clamping them away.
+       * Cross-reload clock step recovery. performance.now() cannot bridge
+       * documents, so the newest persisted wall timestamp is the only witness to
+       * the pre-reload timeline. If that witness sits in the future, the clock
+       * moved backward while the app was closed; rebasing by the observed
+       * difference preserves every accumulated duration instead of clamping them
+       * away.
+       *
+       * Note the asymmetry, which is the same one the header describes: a witness
+       * in the future is proof of a backward step, because no amount of elapsed
+       * time can produce it. A witness in the PAST proves nothing at all - the app
+       * was simply closed for a while - so no forward correction is attempted.
        */
       function reconcileClockOnLoad() {
+        loadClockAnomalies();
+
         const now = Date.now();
         let witness = 0;
         for (let i = 0; i < CLOCK_REBASE_STATE_KEYS.length; i++) {
@@ -15115,17 +15581,344 @@
         if (witness > now + CLOCK_STEP_THRESHOLD_MS) {
           const step = now - witness;
           applyClockStep(step);
-          recordClockAnomaly(step, "reload");
+          recordClockAnomaly({
+            deltaMs: step,
+            applied: step,
+            reason: "reload",
+            verdict: "step",
+            proof: "witness-in-future",
+          });
         }
         markClockHeartbeat();
       }
 
+      /**
+       * Last line of defence before a shift becomes a permanent record.
+       *
+       * Everything above is designed to keep the in-flight timeline honest. This
+       * checks the result anyway, because the cost of a wrong log entry is a
+       * disputed timesheet weeks later, and the check is arithmetic:
+       *
+       *   - a shift cannot end before it starts;
+       *   - a shift cannot contain more work and break time than its own window;
+       *   - the login label cannot sit further from what this device recorded at
+       *     login than the correction cap allows.
+       *
+       * A violation is repaired rather than rejected: the hours are the thing the
+       * user cares about and they are independently accumulated, so the window is
+       * reconstructed around them and the repair is logged.
+       *
+       * @param {number|null} loginTs
+       * @param {number} logoutTs
+       * @param {number} workSec
+       * @param {number} breakSec
+       * @param {number|null} [rawLoginTs] - Immutable original, when available.
+       * @returns {{loginTs: number, logoutTs: number, repaired: string|null}}
+       */
+      function assertShiftWindow(
+        loginTs,
+        logoutTs,
+        workSec,
+        breakSec,
+        rawLoginTs = null,
+      ) {
+        const trackedMs =
+          (Math.max(0, workSec || 0) + Math.max(0, breakSec || 0)) * 1000;
+
+        const logout =
+          typeof logoutTs === "number" && isFinite(logoutTs)
+            ? logoutTs
+            : Date.now();
+
+        let login =
+          typeof loginTs === "number" && isFinite(loginTs) && loginTs > 0
+            ? loginTs
+            : null;
+        let repaired = null;
+
+        if (login === null) {
+          login = logout - trackedMs;
+          repaired = "login-missing";
+        } else if (login > logout) {
+          login = logout - trackedMs;
+          repaired = "login-after-logout";
+        } else if (logout - login < trackedMs - SHIFT_WINDOW_TOLERANCE_MS) {
+          login = logout - trackedMs;
+          repaired = "window-shorter-than-tracked-time";
+        } else if (
+          typeof rawLoginTs === "number" &&
+          isFinite(rawLoginTs) &&
+          rawLoginTs > 0 &&
+          Math.abs(login - rawLoginTs) > CLOCK_MAX_LABEL_CORRECTION_MS
+        ) {
+          /* The label drifted further from what this device recorded at login
+             than any legitimate chain of corrections allows. The original is the
+             better record. */
+          login = rawLoginTs;
+          repaired = "label-drift-exceeded-cap";
+        }
+
+        if (repaired) {
+          recordClockAnomaly({
+            deltaMs: (loginTs || 0) - login,
+            applied: 0,
+            reason: "shift-commit",
+            verdict: "repair",
+            proof: repaired,
+            detail: Math.round(trackedMs / 1000),
+          });
+        }
+
+        return {
+          loginTs: Math.round(login),
+          logoutTs: Math.round(logout),
+          repaired,
+        };
+      }
+
+      /*--------------------------------------------------------------------------
+       * DIAGNOSTICS AND SELF-TEST
+       *------------------------------------------------------------------------*/
+
       window.getClockDiagnostics = function () {
         return {
           hasMonotonicClock: CLOCK_HAS_PERF,
-          heartbeat: clockHeartbeat,
+          heartbeat: clockHeartbeat ? Object.assign({}, clockHeartbeat) : null,
+          observation: {
+            broken: clockObservationBroken,
+            breakReason: clockObservationBreakReason,
+            visible:
+              typeof document !== "undefined"
+                ? document.visibilityState
+                : "unknown",
+            tickerRunning:
+              typeof tickerRunning === "boolean" ? tickerRunning : null,
+          },
+          clockSuspect: isClockSuspect(),
+          labelCorrectionMs: clockLabelCorrectionMs,
+          loginTimestamp: state ? state.loginTimestamp : null,
+          loginTimestampRaw: state ? state.loginTimestampRaw : null,
+          lastUnobservedGap,
+          thresholds: {
+            stepThresholdMs: CLOCK_STEP_THRESHOLD_MS,
+            observedMaxMonoGapMs: CLOCK_OBSERVED_MAX_MONO_GAP_MS,
+            maxTrustedForwardStepMs: CLOCK_MAX_TRUSTED_FORWARD_STEP_MS,
+            maxLabelCorrectionMs: CLOCK_MAX_LABEL_CORRECTION_MS,
+          },
           anomalies: clockAnomalies.slice(),
         };
+      };
+
+      window.clearClockDiagnostics = function () {
+        clockAnomalies = [];
+        lastUnobservedGap = null;
+        persistClockAnomalies();
+        return true;
+      };
+
+      /**
+       * Executable specification for classifyClockDivergence.
+       *
+       * The classifier is the single point where this app decides whether an hour
+       * of someone's day existed, and its hardest cases cannot be reproduced by
+       * hand: they need a suspended iPhone and a nine-hour shift. Since the
+       * function is pure, they can be reproduced here in a millisecond instead.
+       *
+       * Run in the console: runClockSelfTest()
+       *
+       * @returns {{passed: number, failed: number, results: Array}}
+       */
+      window.runClockSelfTest = function () {
+        const T = CLOCK_TICK_INTERVAL_MS;
+        const cases = [
+          {
+            name: "quiet tick: both clocks advance together",
+            wall: T,
+            mono: T,
+            observed: true,
+            expect: "stable",
+          },
+          {
+            name: "scheduler jitter stays below the step threshold",
+            wall: T + 900,
+            mono: T,
+            observed: true,
+            expect: "stable",
+          },
+          {
+            name: "observed forward NTP nudge is corrected",
+            wall: T + 3000,
+            mono: T,
+            observed: true,
+            expect: "step",
+            expectStep: 3000,
+          },
+          {
+            name: "observed backward NTP correction is corrected",
+            wall: T - 5000,
+            mono: T,
+            observed: true,
+            expect: "step",
+            expectStep: -5000,
+          },
+          {
+            name: "backward wall movement is trusted even unobserved",
+            wall: -600000,
+            mono: T,
+            observed: false,
+            expect: "step",
+          },
+          {
+            /* The incident: iOS screen lock freezes performance.now() while
+               Date.now() keeps running. Before the fix this was read as a
+               forward clock step and cost the shift ten minutes. */
+            name: "iOS screen lock (frozen monotonic) is NOT a clock step",
+            wall: 600000,
+            mono: T,
+            observed: false,
+            expect: "gap",
+            expectProof: "unobserved-window",
+          },
+          {
+            name: "screen lock is still not a step if visibility never fired",
+            wall: 600000,
+            mono: T,
+            observed: true,
+            expect: "gap",
+            expectProof: "forward-step-too-large",
+          },
+          {
+            name: "the 3-minute false positive from the incident report",
+            wall: 180000 + T,
+            mono: T,
+            observed: true,
+            expect: "gap",
+            expectProof: "forward-step-too-large",
+          },
+          {
+            name: "desktop sleep with a running monotonic clock is a gap",
+            wall: 3600000,
+            mono: 3600000 - 4000,
+            observed: false,
+            expect: "gap",
+          },
+          {
+            name: "a late tick cannot vouch for its own window",
+            wall: 45000,
+            mono: 40000,
+            observed: true,
+            expect: "gap",
+            expectProof: "mono-gap",
+          },
+          {
+            name: "no monotonic clock disables reconciliation entirely",
+            wall: 600000,
+            mono: T,
+            observed: true,
+            hasPerf: false,
+            expect: "unmeasurable",
+          },
+        ];
+
+        const results = [];
+        let passed = 0;
+        let failed = 0;
+
+        for (let i = 0; i < cases.length; i++) {
+          const c = cases[i];
+          const got = classifyClockDivergence(
+            c.wall,
+            c.mono,
+            c.observed,
+            c.hasPerf === undefined ? true : c.hasPerf,
+          );
+          let ok = got.verdict === c.expect;
+          if (ok && c.expectStep !== undefined) {
+            ok = Math.abs(got.step - c.expectStep) < 1;
+          }
+          if (ok && c.expectProof !== undefined) {
+            ok = got.proof === c.expectProof;
+          }
+          if (ok) passed++;
+          else failed++;
+          results.push({
+            name: c.name,
+            ok,
+            expected: c.expect,
+            got: got.verdict,
+            proof: got.proof,
+            step: got.step,
+          });
+        }
+
+        /* Layer four gets the same treatment: the arithmetic that decides whether
+           a committed record is internally coherent is worth an assertion. */
+        const windowCases = [
+          {
+            name: "coherent window is left alone",
+            login: 1000000,
+            logout: 1000000 + 8 * 3600000,
+            work: 7 * 3600,
+            brk: 3600,
+            expectRepair: null,
+          },
+          {
+            name: "window shorter than its own hours is rebuilt",
+            login: 1000000 + 3600000,
+            logout: 1000000 + 8 * 3600000,
+            work: 7 * 3600,
+            brk: 3600,
+            expectRepair: "window-shorter-than-tracked-time",
+          },
+          {
+            name: "missing login is derived from the hours",
+            login: null,
+            logout: 1000000 + 8 * 3600000,
+            work: 7 * 3600,
+            brk: 3600,
+            expectRepair: "login-missing",
+          },
+          {
+            name: "label drifted past the cap falls back to the original",
+            login: 1000000 + CLOCK_MAX_LABEL_CORRECTION_MS + 60000,
+            logout: 1000000 + 12 * 3600000,
+            work: 3600,
+            brk: 0,
+            raw: 1000000,
+            expectRepair: "label-drift-exceeded-cap",
+          },
+        ];
+
+        clockSelfTestRunning = true;
+        try {
+          for (let i = 0; i < windowCases.length; i++) {
+            const c = windowCases[i];
+            const got = assertShiftWindow(
+              c.login,
+              c.logout,
+              c.work,
+              c.brk,
+              c.raw === undefined ? null : c.raw,
+            );
+            const ok = got.repaired === c.expectRepair;
+            if (ok) passed++;
+            else failed++;
+            results.push({
+              name: c.name,
+              ok,
+              expected: c.expectRepair,
+              got: got.repaired,
+            });
+          }
+        } finally {
+          clockSelfTestRunning = false;
+        }
+
+        console.table(results);
+        console.log(
+          "[clock self-test] " + passed + " passed, " + failed + " failed",
+        );
+        return { passed, failed, results };
       };
 
       /*==========================================================================
@@ -19560,6 +20353,12 @@
           setSessionAnchor(nowWall);
           if (mode === "work" && !state.loginTimestamp) {
             state.loginTimestamp = nowWall;
+            /* Immutable witness to what this device recorded at login. Never
+               rebased by the clock engine, never sent over the wire, and the
+               yardstick every later correction to the label is measured against.
+               See CLOCK_MAX_LABEL_CORRECTION_MS and assertShiftWindow. */
+            state.loginTimestampRaw = nowWall;
+            resetClockLabelCorrection();
             state.shiftStartGoalSec =
               domWriteCache._goalSecCached ||
               getGoalSeconds(
@@ -20567,10 +21366,29 @@
             DOM.goalSecs.value,
           );
         const diff = workSec - goal;
-        const loginTime = loginTs
-          ? loginFormatter.format(new Date(loginTs))
+
+        /* Same assertion as executeSubmit. This path writes without user
+           involvement, at midnight, on a device that may have just woken up, so
+           if anything it needs the check more. */
+        /* The witness only corroborates the shift it was recorded for. The
+           midnight loop re-anchors the label per day, so it is offered only when
+           it still describes the login instant being committed here. */
+        const rawWitness =
+          loginTs === state.loginTimestamp ? state.loginTimestampRaw : null;
+        const shiftWindow = assertShiftWindow(
+          loginTs,
+          logoutTs,
+          workSec,
+          breakSec,
+          rawWitness,
+        );
+        const loginInstant = shiftWindow.loginTs;
+        const logoutInstant = shiftWindow.logoutTs;
+
+        const loginTime = loginInstant
+          ? loginFormatter.format(new Date(loginInstant))
           : "--";
-        const logoutTime = pstFormatter.format(new Date(logoutTs));
+        const logoutTime = pstFormatter.format(new Date(logoutInstant));
         const displayDate = dateStr.replace(/\/20(\d{2})$/, "/$1");
 
         const parts = dateStr.split("/");
@@ -20597,8 +21415,8 @@
           epochMs,
           login: loginTime,
           logout: logoutTime,
-          loginEpochMs: loginTs || logoutTs - (workSec + breakSec) * 1000,
-          logoutEpochMs: logoutTs,
+          loginEpochMs: loginInstant,
+          logoutEpochMs: logoutInstant,
           workSec: Math.floor(workSec),
           breakSec: Math.floor(breakSec),
 
@@ -20846,15 +21664,29 @@
           );
         const diff = workSeconds - goal;
         const entryDate = overrideDate || state.activeDate || getPSTDate();
-        const loginTime = loginTs
-          ? loginFormatter.format(new Date(loginTs))
-          : "--";
 
         // Formulates logout using last active heartbeat for auto-submissions
-        const logoutTimestamp =
+        const rawLogoutTimestamp =
           overrideDate && state.lastHeartbeatWall
             ? state.lastHeartbeatWall
             : Date.now();
+
+        /* Layer four. Nothing above is allowed to hand the logbook a window that
+           contradicts the hours inside it, so the arithmetic is checked once more
+           at the only point where it becomes permanent. */
+        const shiftWindow = assertShiftWindow(
+          loginTs,
+          rawLogoutTimestamp,
+          workSeconds,
+          breakSeconds,
+          state.loginTimestampRaw,
+        );
+        const loginTimestamp = shiftWindow.loginTs;
+        const logoutTimestamp = shiftWindow.logoutTs;
+
+        const loginTime = loginTimestamp
+          ? loginFormatter.format(new Date(loginTimestamp))
+          : "--";
         const logoutTime = pstFormatter.format(new Date(logoutTimestamp));
 
         const logs = getLogs();
@@ -20880,8 +21712,7 @@
           epochMs,
           login: loginTime,
           logout: logoutTime,
-          loginEpochMs:
-            loginTs || Date.now() - (workSeconds + breakSeconds) * 1000,
+          loginEpochMs: loginTimestamp,
           logoutEpochMs: logoutTimestamp,
           workSec: workSeconds,
           breakSec: breakSeconds,
@@ -21045,6 +21876,10 @@
             (state.workAccumulated || 0) + totalIdleSeconds;
           if (!state.loginTimestamp) {
             state.loginTimestamp = resolutionTime - totalIdleSeconds * 1000;
+            /* A deliberate, user-approved re-anchor. The witness follows it, or
+               the correction cap would later measure this decision as drift. */
+            state.loginTimestampRaw = state.loginTimestamp;
+            resetClockLabelCorrection();
           }
         } else if (choice === "break") {
           state.breakAccumulated =
@@ -21057,6 +21892,8 @@
             );
             if (loginDateStr !== todayStr) {
               state.loginTimestamp = null;
+              state.loginTimestampRaw = null;
+              resetClockLabelCorrection();
             }
           }
         }
@@ -21119,6 +21956,7 @@
           sessionAnchorWall: null,
           activeSegmentFloorSec: 0,
           loginTimestamp: null,
+          loginTimestampRaw: null,
           activeDate: getPSTDate(),
           idleLock: false,
           idleStart: null,
@@ -21146,6 +21984,8 @@
         };
         lastActivity = Date.now();
         lastAdjustmentStateBackup = null;
+        /* The correction cap governs one shift, not one browser session. */
+        resetClockLabelCorrection();
         saveState();
         autoPopulateDailyGoal(state.activeDate);
         DOM.submitModal.style.display = "none";
@@ -26982,10 +27822,16 @@
 
               // Adjust anchors for the loop's next iteration (or continuation)
               // Preserves all other state properties (settings, notes) intact.
+              /* Each branch re-anchors the label to the day boundary on purpose,
+                 so the witness moves with it. A calendar rollover is a deliberate
+                 edit to the timeline, not clock drift, and the correction cap
+                 must not mistake one for the other. */
               if (state.idleLock) {
                 // Also align the login timestamp to midnight so the new day's shift starts cleanly.
                 if (state.loginTimestamp) {
                   state.loginTimestamp = midnightMs;
+                  state.loginTimestampRaw = midnightMs;
+                  resetClockLabelCorrection();
                 }
                 if (state.idleStart && state.idleStart < midnightMs) {
                   state.idleStart = midnightMs;
@@ -26993,11 +27839,15 @@
               } else if (activeMode !== null) {
                 state.currentMode = activeMode;
                 state.loginTimestamp = midnightMs;
+                state.loginTimestampRaw = midnightMs;
+                resetClockLabelCorrection();
                 setSessionAnchor(midnightMs);
                 state.lastHeartbeatWall = midnightMs;
               } else {
                 setSessionAnchor(null);
                 state.loginTimestamp = null;
+                state.loginTimestampRaw = null;
+                resetClockLabelCorrection();
               }
 
               requiresRender = true;
@@ -27179,22 +28029,36 @@
         checkLeaseState();
         if (isTabConflict) return;
 
+        /* ORDER IS LOAD-BEARING.
+           The idle audit below asks "how long was this document away?", and it
+           answers by measuring against lastActivity - one of the references a
+           clock step rebases. Reconciling first can therefore erase the very gap
+           the audit exists to catch, which is how a suspension that should have
+           produced a System Pause prompt used to vanish without one.
+
+           Both readings are taken and the LARGER is used. Before reconciliation
+           is the honest measure of a forward correction; after it is the honest
+           measure of a backward one; and erring towards the larger gap errs
+           towards asking the user, which is the recoverable mistake. */
+        const gapAnchor = lastActivity;
+        const lockAnchor = state.tabHiddenAt || lastActivity;
+        const gapBeforeMs = Date.now() - gapAnchor;
+
         /* The ticker is stopped while the page is hidden, so a clock step may
-           have gone unobserved. Reconcile before reading any timestamp. */
+           have gone unobserved. Reconcile once the reading above is in hand. */
         reconcileSystemClock("wakeup");
 
         const nowWall = Date.now();
+        const observedGapMs = Math.max(gapBeforeMs, nowWall - lastActivity);
 
         // Inactivity audit runs independently of the discrepancy check above.
         if (state.currentMode !== null && !state.idleLock) {
-          const idleGap = nowWall - lastActivity;
           if (
-            !state.idleLock &&
             state.idleTrackingEnabled !== false &&
-            idleGap > _cachedIdleThresholdMs
+            observedGapMs > _cachedIdleThresholdMs
           ) {
             const lockType = state.tabHiddenAt ? "system" : "inactivity";
-            triggerIdleLock(state.tabHiddenAt || lastActivity, lockType);
+            triggerIdleLock(lockAnchor, lockType);
           }
         }
 
@@ -28384,6 +29248,11 @@
             if (state.loginTimestamp > Date.now()) {
               state.loginTimestamp = Date.now();
             }
+            /* An explicit instruction from the user outranks the drift cap, so
+               the witness is re-pointed at their intent rather than left behind
+               to argue with it at commit time. */
+            state.loginTimestampRaw = state.loginTimestamp;
+            resetClockLabelCorrection();
           }
 
           // --- Persist and re-render ---
