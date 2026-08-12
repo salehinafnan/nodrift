@@ -48,10 +48,7 @@
     />
 
     <!-- Inline web app manifest. Kept as a data: URI so the app remains a single file; manifest-src in the CSP above permits it. -->
-    <link
-      rel="manifest"
-      href='data:application/manifest+json,{"name":"nodrift","short_name":"nodrift","display":"standalone","orientation":"any","background_color":"%23f2f2f7","theme_color":"%23f2f2f7","description":"Local-first work session tracker","icons":[{"src":"data:image/svg%2Bxml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 1024 1024%27%3E%3Crect width=%271024%27 height=%271024%27 fill=%27%23000000%27/%3E%3Cg fill=%27%23ffffff%27%3E%3Cpath d=%27M 284 170 H 740 L 512 512 Z%27/%3E%3Cpath d=%27M 284 854 H 740 L 512 512 Z%27/%3E%3C/g%3E%3C/svg%3E","sizes":"512x512","type":"image/svg+xml","purpose":"any"}]}'
-    />
+    <link rel="manifest" href="./manifest.json" />
 
     <style>
       /* =========================================================================
@@ -35252,6 +35249,21 @@
           closeSheet: closeSheet,
         };
       })();
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", () => {
+          navigator.serviceWorker
+            .register("./sw.js")
+            .then((registration) => {
+              console.log(
+                "ServiceWorker registration successful with scope: ",
+                registration.scope,
+              );
+            })
+            .catch((err) => {
+              console.error("ServiceWorker registration failed: ", err);
+            });
+        });
+      }
     </script>
   </body>
 </html>
