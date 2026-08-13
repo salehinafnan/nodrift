@@ -15285,6 +15285,14 @@
          are deliberately unbounded - see the header. */
       const CLOCK_MAX_TRUSTED_FORWARD_STEP_MS = 120000; // 2 minutes
 
+      /* Tolerance band for comparing wall vs monotonic deltas to determine if
+         the system clock genuinely drifted or if real time simply passed (e.g.
+         phone lock, laptop sleep). If both clocks agree within this window, the
+         gap is treated as normal elapsed time and routed through the user's
+         configured idle threshold — not as a clock anomaly. Real NTP syncs on
+         modern devices are 2-10 seconds; 30s absorbs every realistic case. */
+      const CLOCK_AGREEMENT_TOLERANCE_MS = 30000; // 30 seconds
+
       /* Ceiling on the total correction applied to the login label across one
          shift, measured against the immutable original rather than accumulated
          step by step, so a long series of small corrections cannot walk the label
@@ -16007,6 +16015,7 @@
             observedMaxMonoGapMs: CLOCK_OBSERVED_MAX_MONO_GAP_MS,
             maxTrustedForwardStepMs: CLOCK_MAX_TRUSTED_FORWARD_STEP_MS,
             maxLabelCorrectionMs: CLOCK_MAX_LABEL_CORRECTION_MS,
+            agreementToleranceMs: CLOCK_AGREEMENT_TOLERANCE_MS,
           },
           anomalies: clockAnomalies.slice(),
         };
@@ -28065,12 +28074,25 @@
         renewLease();
 
         if (state.currentMode !== null && !state.idleLock) {
-          if (lastUnobservedGap && lastUnobservedGap.wallDeltaMs > 120000) {
-            const jumpTimeAnchor =
-              lastUnobservedGap.startedAtWall || lastActivity;
+          if (lastUnobservedGap) {
+            const clocksDisagree =
+              Math.abs(
+                lastUnobservedGap.wallDeltaMs - lastUnobservedGap.monoDeltaMs,
+              ) > CLOCK_AGREEMENT_TOLERANCE_MS;
+            if (clocksDisagree) {
+              /* Genuine clock anomaly — wall and mono diverged beyond the
+                 tolerance band. Always trigger a system pause regardless of
+                 idle settings so the user can categorise the gap. */
+              const jumpTimeAnchor =
+                lastUnobservedGap.startedAtWall || lastActivity;
+              lastUnobservedGap = null;
+              triggerIdleLock(jumpTimeAnchor, "system");
+              return;
+            }
+            /* Clocks agree — real time simply passed (normal phone lock /
+               tab suspension). Clear the gap and let the idle threshold
+               below decide whether it was long enough to matter. */
             lastUnobservedGap = null;
-            triggerIdleLock(jumpTimeAnchor, "system");
-            return;
           }
           if (
             state.idleTrackingEnabled !== false &&
@@ -28189,11 +28211,18 @@
         const observedGapMs = Math.max(gapBeforeMs, nowWall - lastActivity);
 
         if (state.currentMode !== null && !state.idleLock) {
-          const isGapAbnormal =
-            lastUnobservedGap && lastUnobservedGap.wallDeltaMs > 120000;
-          const isTabAbnormal =
-            state.tabHiddenAt && nowWall - state.tabHiddenAt > 120000;
-          if (isGapAbnormal || isTabAbnormal) {
+          /* Determine if the gap contains a genuine clock anomaly by comparing
+             how far wall and mono clocks diverged. If they agree within the
+             tolerance band, this was a normal phone lock / laptop sleep —
+             real time passed and the idle threshold governs. */
+          const gapClocksDisagree =
+            lastUnobservedGap &&
+            Math.abs(
+              lastUnobservedGap.wallDeltaMs - lastUnobservedGap.monoDeltaMs,
+            ) > CLOCK_AGREEMENT_TOLERANCE_MS;
+
+          if (gapClocksDisagree) {
+            /* Genuine clock anomaly — always surface to the user. */
             const systemPauseAnchor =
               state.tabHiddenAt ||
               (lastUnobservedGap ? lastUnobservedGap.startedAtWall : null) ||
@@ -28202,6 +28231,10 @@
             triggerIdleLock(systemPauseAnchor, "system");
             return;
           }
+
+          /* Clocks agreed — clear the gap record and apply normal idle rules. */
+          if (lastUnobservedGap) lastUnobservedGap = null;
+
           if (
             state.idleTrackingEnabled !== false &&
             observedGapMs > _cachedIdleThresholdMs
