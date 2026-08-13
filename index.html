@@ -3407,6 +3407,11 @@
         outline: none;
       }
 
+      .log-row.multi-selected {
+        border-color: var(--accent-blue) !important;
+        background: var(--surface-1-selected) !important;
+      }
+
       @media (hover: hover) and (pointer: fine) {
         .log-row:hover {
           border-color: var(--accent-blue);
@@ -7270,7 +7275,8 @@
         /* State variants Each rule below restores a desktop state rule that the blanket level 1 block above outranks. */
 
         /* .log-row.kb-selected (0,2,0) ties with .log-row:not(.is-leave-row) and .log-row.is-leave-row (both 0,2,0). */
-        .log-row.kb-selected {
+        .log-row.kb-selected,
+        .log-row.multi-selected {
           border-color: var(--accent-blue) !important;
           background: var(--surface-1-selected) !important;
         }
@@ -11313,6 +11319,24 @@
                   "
                 >
                   <button
+                    id="log-select-all-btn"
+                    class="task-export-icon"
+                    title="Select All"
+                    onclick="selectAllLogs()"
+                    style="display: none"
+                  >
+                    <svg
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      fill="none"
+                      stroke-width="1.8"
+                      width="16"
+                      height="16"
+                    >
+                      <g data-sprite="sprite-108"></g>
+                    </svg>
+                  </button>
+                  <button
                     id="copy-all-btn"
                     class="task-export-icon"
                     title="Copy Logs"
@@ -11344,6 +11368,41 @@
                       height="16"
                     >
                       <g data-sprite="sprite-030"></g>
+                    </svg>
+                  </button>
+                  <button
+                    id="log-select-btn"
+                    class="task-export-icon"
+                    title="Select Logs"
+                    onclick="toggleLogSelectMode()"
+                  >
+                    <svg
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      fill="none"
+                      stroke-width="1.8"
+                      width="16"
+                      height="16"
+                    >
+                      <g data-sprite="sprite-107"></g>
+                    </svg>
+                  </button>
+                  <button
+                    id="log-delete-selected-btn"
+                    class="task-export-icon danger-text"
+                    title="Delete Selected"
+                    onclick="deleteSelectedLogs()"
+                    style="display: none"
+                  >
+                    <svg
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      fill="none"
+                      stroke-width="1.8"
+                      width="16"
+                      height="16"
+                    >
+                      <g data-sprite="sprite-044"></g>
                     </svg>
                   </button>
                 </div>
@@ -12280,6 +12339,24 @@
                   "
                 >
                   <button
+                    id="task-select-all-btn"
+                    class="task-export-icon"
+                    title="Select All Tasks"
+                    onclick="selectAllTasks()"
+                    style="display: none"
+                  >
+                    <svg
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      fill="none"
+                      stroke-width="1.8"
+                      width="16"
+                      height="16"
+                    >
+                      <g data-sprite="sprite-108"></g>
+                    </svg>
+                  </button>
+                  <button
                     id="task-copy-all-btn"
                     class="task-export-icon"
                     title="Copy All Tasks"
@@ -12309,6 +12386,41 @@
                       height="16"
                     >
                       <g data-sprite="sprite-030"></g>
+                    </svg>
+                  </button>
+                  <button
+                    id="task-select-btn"
+                    class="task-export-icon"
+                    title="Select Tasks"
+                    onclick="toggleTaskSelectMode()"
+                  >
+                    <svg
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      fill="none"
+                      stroke-width="1.8"
+                      width="16"
+                      height="16"
+                    >
+                      <g data-sprite="sprite-107"></g>
+                    </svg>
+                  </button>
+                  <button
+                    id="task-delete-selected-btn"
+                    class="task-export-icon danger-text"
+                    title="Delete Selected Tasks"
+                    onclick="deleteSelectedTasks()"
+                    style="display: none"
+                  >
+                    <svg
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      fill="none"
+                      stroke-width="1.8"
+                      width="16"
+                      height="16"
+                    >
+                      <g data-sprite="sprite-044"></g>
                     </svg>
                   </button>
                 </div>
@@ -14179,6 +14291,9 @@
         /* Modern 3-bar equalizer/sliders for Settings & Tools */
         "sprite-106":
           '<path d="M4 6h1.5"></path><circle cx="8" cy="6" r="2.5"></circle><path d="M10.5 6h9.5"></path><path d="M4 12h9.5"></path><circle cx="16" cy="12" r="2.5"></circle><path d="M18.5 12h1.5"></path><path d="M4 18h3.5"></path><circle cx="10" cy="18" r="2.5"></circle><path d="M12.5 18h7.5"></path>',
+        "sprite-107":
+          '<rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><polyline points="9 11 12 14 22 4"></polyline>',
+        "sprite-108": '<path d="M8 12l3 3 8-8"/><path d="M8 17l3 3 8-8"/>',
       };
 
       function getSprite(id) {
@@ -14693,6 +14808,286 @@
         },
       };
 
+      let logSelectMode = false;
+      let selectedLogIds = new Set();
+      let taskSelectMode = false;
+      let selectedTaskIds = new Set();
+      let ignoreNextClick = false;
+
+      function updateSelectCountUI() {
+        const logDeleteBtn = document.getElementById("log-delete-selected-btn");
+        if (logDeleteBtn) {
+          logDeleteBtn.title =
+            selectedLogIds.size > 0
+              ? `Delete Selected (${selectedLogIds.size})`
+              : "Delete Selected";
+        }
+        const taskDeleteBtn = document.getElementById(
+          "task-delete-selected-btn",
+        );
+        if (taskDeleteBtn) {
+          taskDeleteBtn.title =
+            selectedTaskIds.size > 0
+              ? `Delete Selected (${selectedTaskIds.size})`
+              : "Delete Selected";
+        }
+      }
+
+      window.toggleLogSelectMode = function () {
+        logSelectMode = !logSelectMode;
+        selectedLogIds.clear();
+        lastVirtualStart = -1;
+        lastVirtualEnd = -1;
+        const selectBtn = document.getElementById("log-select-btn");
+        const selectAllBtn = document.getElementById("log-select-all-btn");
+        const deleteBtn = document.getElementById("log-delete-selected-btn");
+        if (logSelectMode) {
+          selectBtn.innerHTML = `<svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.8" width="16" height="16"><g data-sprite="sprite-004"></g></svg>`;
+          if (selectAllBtn) selectAllBtn.style.display = "inline-flex";
+          if (deleteBtn) deleteBtn.style.display = "inline-flex";
+        } else {
+          selectBtn.innerHTML = `<svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.8" width="16" height="16"><g data-sprite="sprite-107"></g></svg>`;
+          if (selectAllBtn) selectAllBtn.style.display = "none";
+          if (deleteBtn) deleteBtn.style.display = "none";
+        }
+        const placeholders = selectBtn.querySelectorAll("g[data-sprite]");
+        for (let i = 0; i < placeholders.length; i++) {
+          placeholders[i].outerHTML = getSprite(
+            placeholders[i].getAttribute("data-sprite"),
+          );
+        }
+        updateSelectCountUI();
+        renderLogbook();
+      };
+
+      window.selectAllLogs = function () {
+        if (!logSelectMode) return;
+        const visibleLogs = virtualScrollLogs;
+        if (selectedLogIds.size === visibleLogs.length) {
+          selectedLogIds.clear();
+        } else {
+          visibleLogs.forEach((l) => selectedLogIds.add(l.id));
+        }
+        lastVirtualStart = -1;
+        lastVirtualEnd = -1;
+        updateSelectCountUI();
+        renderVirtualVisibleItems();
+      };
+
+      window.deleteSelectedLogs = function () {
+        if (selectedLogIds.size === 0) {
+          showAppToast("No logs selected", "warning");
+          return;
+        }
+        openConfirmModal(
+          "Delete Selected Logs",
+          `Are you sure you want to delete ${selectedLogIds.size} selected log(s)? This cannot be undone.`,
+          async () => {
+            const logs = getLogs();
+            const newLogs = logs.filter((l) => !selectedLogIds.has(l.id));
+
+            let currentLeaves = getLeaveDates();
+            let leaveRemoved = false;
+            selectedLogIds.forEach((id) => {
+              if (id.startsWith("leave_")) {
+                const dateStr = id.replace("leave_", "");
+                currentLeaves = currentLeaves.filter(
+                  (item) =>
+                    (typeof item === "string" ? item : item.date) !== dateStr,
+                );
+                leaveRemoved = true;
+              }
+            });
+            if (leaveRemoved) {
+              saveLeaveDates(currentLeaves);
+            }
+
+            logs.forEach((l) => {
+              if (selectedLogIds.has(l.id) && l.date && window.dirtyChunks) {
+                const _p = l.date.split("/");
+                if (_p.length === 3) {
+                  const _fy = _p[2].length === 2 ? `20${_p[2]}` : _p[2];
+                  window.dirtyChunks.add(`${_fy}-${_p[0].padStart(2, "0")}`);
+                }
+              }
+            });
+
+            try {
+              await saveLogs(newLogs);
+              showAppToast(`Deleted ${selectedLogIds.size} log(s)`);
+              toggleLogSelectMode();
+            } catch (err) {
+              showAppToast("Could not delete logs", "error");
+              console.error("Logs delete failed:", err);
+            }
+          },
+          true,
+        );
+      };
+
+      window.toggleTaskSelectMode = function () {
+        taskSelectMode = !taskSelectMode;
+        selectedTaskIds.clear();
+        lastTaskVirtualStart = -1;
+        lastTaskVirtualEnd = -1;
+        const selectBtn = document.getElementById("task-select-btn");
+        const selectAllBtn = document.getElementById("task-select-all-btn");
+        const deleteBtn = document.getElementById("task-delete-selected-btn");
+        if (taskSelectMode) {
+          selectBtn.innerHTML = `<svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.8" width="16" height="16"><g data-sprite="sprite-004"></g></svg>`;
+          if (selectAllBtn) selectAllBtn.style.display = "inline-flex";
+          if (deleteBtn) deleteBtn.style.display = "inline-flex";
+        } else {
+          selectBtn.innerHTML = `<svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.8" width="16" height="16"><g data-sprite="sprite-107"></g></svg>`;
+          if (selectAllBtn) selectAllBtn.style.display = "none";
+          if (deleteBtn) deleteBtn.style.display = "none";
+        }
+        const placeholders = selectBtn.querySelectorAll("g[data-sprite]");
+        for (let i = 0; i < placeholders.length; i++) {
+          placeholders[i].outerHTML = getSprite(
+            placeholders[i].getAttribute("data-sprite"),
+          );
+        }
+        updateSelectCountUI();
+        renderTaskLogbook();
+      };
+
+      window.selectAllTasks = function () {
+        if (!taskSelectMode) return;
+        const visibleTasks = virtualScrollTasks;
+        if (selectedTaskIds.size === visibleTasks.length) {
+          selectedTaskIds.clear();
+        } else {
+          visibleTasks.forEach((t) => selectedTaskIds.add(t.id));
+        }
+        lastTaskVirtualStart = -1;
+        lastTaskVirtualEnd = -1;
+        updateSelectCountUI();
+        renderVirtualTaskItems();
+      };
+
+      window.deleteSelectedTasks = function () {
+        if (selectedTaskIds.size === 0) {
+          showAppToast("No tasks selected", "warning");
+          return;
+        }
+        openConfirmModal(
+          "Delete Selected Tasks",
+          `Are you sure you want to delete ${selectedTaskIds.size} selected task(s)?`,
+          () => {
+            cachedTaskLogs = cachedTaskLogs.filter(
+              (t) => !selectedTaskIds.has(t.id),
+            );
+            saveTaskLogs();
+            showAppToast(`Deleted ${selectedTaskIds.size} task(s)`);
+            toggleTaskSelectMode();
+          },
+          true,
+        );
+      };
+
+      function setupLongPress(container, onLongPress) {
+        let pressTimer = null;
+        let startX = 0;
+        let startY = 0;
+
+        container.addEventListener(
+          "touchstart",
+          (e) => {
+            if (e.touches.length !== 1) return;
+            const row = e.target.closest(".log-row");
+            if (!row) return;
+            const id =
+              row.dataset.id || row.querySelector("[data-id]")?.dataset.id;
+            if (!id) return;
+
+            startX = e.touches[0].clientX;
+            startY = e.touches[0].clientY;
+
+            pressTimer = setTimeout(() => {
+              pressTimer = null;
+              ignoreNextClick = true;
+              onLongPress(id);
+              setTimeout(() => {
+                ignoreNextClick = false;
+              }, 300);
+            }, 500);
+          },
+          { passive: true },
+        );
+
+        container.addEventListener(
+          "touchmove",
+          (e) => {
+            if (!pressTimer) return;
+            const dx = Math.abs(e.touches[0].clientX - startX);
+            const dy = Math.abs(e.touches[0].clientY - startY);
+            if (dx > 10 || dy > 10) {
+              clearTimeout(pressTimer);
+              pressTimer = null;
+            }
+          },
+          { passive: true },
+        );
+
+        const cancelPress = () => {
+          if (pressTimer) {
+            clearTimeout(pressTimer);
+            pressTimer = null;
+          }
+        };
+
+        container.addEventListener("touchend", cancelPress, { passive: true });
+        container.addEventListener("touchcancel", cancelPress, {
+          passive: true,
+        });
+      }
+
+      setupLongPress(DOM.logContainer, (id) => {
+        if (!logSelectMode) {
+          toggleLogSelectMode();
+          selectedLogIds.add(id);
+          lastVirtualStart = -1;
+          lastVirtualEnd = -1;
+          updateSelectCountUI();
+          renderVirtualVisibleItems();
+          if (navigator.vibrate) navigator.vibrate(50);
+        }
+      });
+
+      if (DOM.taskLogContainer) {
+        setupLongPress(DOM.taskLogContainer, (id) => {
+          if (!taskSelectMode) {
+            toggleTaskSelectMode();
+            selectedTaskIds.add(id);
+            lastTaskVirtualStart = -1;
+            lastTaskVirtualEnd = -1;
+            updateSelectCountUI();
+            renderVirtualTaskItems();
+            if (navigator.vibrate) navigator.vibrate(50);
+          }
+        });
+      }
+
+      /*==========================================================================
+       * 3. DATE-TIME FORMATTING CONFIGURATORSggleLogSelectMode();
+          selectedLogIds.add(id);
+          renderVirtualVisibleItems();
+          if (navigator.vibrate) navigator.vibrate(50);
+        }
+      });
+
+      if (DOM.taskLogContainer) {
+        setupLongPress(DOM.taskLogContainer, (id) => {
+          if (!taskSelectMode) {
+            toggleTaskSelectMode();
+            selectedTaskIds.add(id);
+            renderVirtualTaskItems();
+            if (navigator.vibrate) navigator.vibrate(50);
+          }
+        });
+      }
+
       /*==========================================================================
        * 3. DATE-TIME FORMATTING CONFIGURATORS
        * =========================================================================*/
@@ -15060,11 +15455,6 @@
          path so a suspension can be surfaced to the user instead of vanishing. */
       let lastUnobservedGap = null;
 
-      /* Set only while runClockSelfTest() is driving the engine with synthetic
-         inputs. Suppresses logging and toasts so a diagnostic run cannot forge
-         entries in the audit trail it exists to validate. */
-      let clockSelfTestRunning = false;
-
       /* Measurement anchors: wall instants that are still being compared against
          "now" to produce a duration. A verified clock step must move all of them
          together, otherwise the durations derived from them jump.
@@ -15154,45 +15544,19 @@
        * @param {number} deltaMs - Verified clock step, already applied to anchors.
        */
       function applyLabelStep(deltaMs) {
-        const ceiling = Date.now();
-        const bags = [state, lastStateBackup, lastAdjustmentStateBackup];
-        const proposed = clockLabelCorrectionMs + deltaMs;
-
+        if (!deltaMs || !isFinite(deltaMs)) return;
+        if (!state || typeof state.loginTimestamp !== "number") return;
         const raw =
-          state && typeof state.loginTimestampRaw === "number"
+          typeof state.loginTimestampRaw === "number" &&
+          isFinite(state.loginTimestampRaw)
             ? state.loginTimestampRaw
-            : null;
-        const current =
-          state && typeof state.loginTimestamp === "number"
-            ? state.loginTimestamp
-            : null;
-
-        /* Preferred measure: displacement from what was actually recorded at
-           login. Falls back to the running total only when this device did not
-           record the shift - a session adopted from another device over sync. */
-        const displacement =
-          raw !== null && current !== null ? current + deltaMs - raw : proposed;
-
-        if (Math.abs(displacement) > CLOCK_MAX_LABEL_CORRECTION_MS) {
-          recordClockAnomaly({
-            deltaMs,
-            applied: 0,
-            reason: "label-correction-refused",
-            verdict: "refused",
-            proof: "cumulative-cap",
-            detail: Math.round(displacement),
-          });
-          return;
+            : state.loginTimestamp;
+        const proposed = state.loginTimestamp + deltaMs;
+        const drift = Math.abs(proposed - raw);
+        if (drift <= CLOCK_MAX_LABEL_CORRECTION_MS && proposed <= Date.now()) {
+          state.loginTimestamp = proposed;
+          clockLabelCorrectionMs += deltaMs;
         }
-
-        for (let i = 0; i < bags.length; i++) {
-          const bag = bags[i];
-          if (!bag || typeof bag !== "object") continue;
-          const v = bag.loginTimestamp;
-          if (typeof v !== "number" || !isFinite(v)) continue;
-          bag.loginTimestamp = Math.min(v + deltaMs, ceiling);
-        }
-        clockLabelCorrectionMs = proposed;
       }
 
       /**
@@ -15296,8 +15660,6 @@
        * @param {string} [info.proof] - Which rule decided it.
        */
       function recordClockAnomaly(info) {
-        if (clockSelfTestRunning) return;
-
         const entry = {
           at: Date.now(),
           deltaMs: Math.round(info.deltaMs || 0),
@@ -15622,54 +15984,50 @@
         const trackedMs =
           (Math.max(0, workSec || 0) + Math.max(0, breakSec || 0)) * 1000;
 
-        const logout =
-          typeof logoutTs === "number" && isFinite(logoutTs)
-            ? logoutTs
-            : Date.now();
-
-        let login =
-          typeof loginTs === "number" && isFinite(loginTs) && loginTs > 0
-            ? loginTs
-            : null;
         let repaired = null;
+        let login = loginTs;
 
-        if (login === null) {
-          login = logout - trackedMs;
-          repaired = "login-missing";
-        } else if (login > logout) {
-          login = logout - trackedMs;
-          repaired = "login-after-logout";
-        } else if (logout - login < trackedMs - SHIFT_WINDOW_TOLERANCE_MS) {
-          login = logout - trackedMs;
-          repaired = "window-shorter-than-tracked-time";
-        } else if (
+        if (
           typeof rawLoginTs === "number" &&
           isFinite(rawLoginTs) &&
-          rawLoginTs > 0 &&
-          Math.abs(login - rawLoginTs) > CLOCK_MAX_LABEL_CORRECTION_MS
+          rawLoginTs > 0
         ) {
-          /* The label drifted further from what this device recorded at login
-             than any legitimate chain of corrections allows. The original is the
-             better record. */
-          login = rawLoginTs;
-          repaired = "label-drift-exceeded-cap";
+          if (
+            typeof loginTs === "number" &&
+            isFinite(loginTs) &&
+            Math.abs(loginTs - rawLoginTs) > CLOCK_MAX_LABEL_CORRECTION_MS
+          ) {
+            repaired = "label-drift-exceeded-cap";
+            login = rawLoginTs;
+          } else {
+            login = rawLoginTs;
+          }
+        } else if (!login || typeof login !== "number" || !isFinite(login)) {
+          repaired = "login-missing";
+          const refLogout =
+            typeof logoutTs === "number" && isFinite(logoutTs)
+              ? logoutTs
+              : Date.now();
+          login = refLogout - trackedMs;
         }
 
-        if (repaired) {
-          recordClockAnomaly({
-            deltaMs: (loginTs || 0) - login,
-            applied: 0,
-            reason: "shift-commit",
-            verdict: "repair",
-            proof: repaired,
-            detail: Math.round(trackedMs / 1000),
-          });
+        let logout =
+          typeof logoutTs === "number" && isFinite(logoutTs)
+            ? logoutTs
+            : login + trackedMs;
+
+        if (logout < login) {
+          repaired = repaired || "negative-window";
+          logout = login + trackedMs;
+        } else if (logout - login + SHIFT_WINDOW_TOLERANCE_MS < trackedMs) {
+          repaired = repaired || "window-shorter-than-tracked-time";
+          logout = login + trackedMs;
         }
 
         return {
           loginTs: Math.round(login),
           logoutTs: Math.round(logout),
-          repaired,
+          repaired: repaired,
         };
       }
 
@@ -15713,212 +16071,7 @@
         return true;
       };
 
-      /**
-       * Executable specification for classifyClockDivergence.
-       *
-       * The classifier is the single point where this app decides whether an hour
-       * of someone's day existed, and its hardest cases cannot be reproduced by
-       * hand: they need a suspended iPhone and a nine-hour shift. Since the
-       * function is pure, they can be reproduced here in a millisecond instead.
-       *
-       * Run in the console: runClockSelfTest()
-       *
-       * @returns {{passed: number, failed: number, results: Array}}
-       */
-      window.runClockSelfTest = function () {
-        const T = CLOCK_TICK_INTERVAL_MS;
-        const cases = [
-          {
-            name: "quiet tick: both clocks advance together",
-            wall: T,
-            mono: T,
-            observed: true,
-            expect: "stable",
-          },
-          {
-            name: "scheduler jitter stays below the step threshold",
-            wall: T + 900,
-            mono: T,
-            observed: true,
-            expect: "stable",
-          },
-          {
-            name: "observed forward NTP nudge is corrected",
-            wall: T + 3000,
-            mono: T,
-            observed: true,
-            expect: "step",
-            expectStep: 3000,
-          },
-          {
-            name: "observed backward NTP correction is corrected",
-            wall: T - 5000,
-            mono: T,
-            observed: true,
-            expect: "step",
-            expectStep: -5000,
-          },
-          {
-            name: "backward wall movement is trusted even unobserved",
-            wall: -600000,
-            mono: T,
-            observed: false,
-            expect: "step",
-          },
-          {
-            /* The incident: iOS screen lock freezes performance.now() while
-               Date.now() keeps running. Before the fix this was read as a
-               forward clock step and cost the shift ten minutes. */
-            name: "iOS screen lock (frozen monotonic) is NOT a clock step",
-            wall: 600000,
-            mono: T,
-            observed: false,
-            expect: "gap",
-            expectProof: "unobserved-window",
-          },
-          {
-            name: "screen lock is still not a step if visibility never fired",
-            wall: 600000,
-            mono: T,
-            observed: true,
-            expect: "gap",
-            expectProof: "forward-step-too-large",
-          },
-          {
-            name: "the 3-minute false positive from the incident report",
-            wall: 180000 + T,
-            mono: T,
-            observed: true,
-            expect: "gap",
-            expectProof: "forward-step-too-large",
-          },
-          {
-            name: "desktop sleep with a running monotonic clock is a gap",
-            wall: 3600000,
-            mono: 3600000 - 4000,
-            observed: false,
-            expect: "gap",
-          },
-          {
-            name: "a late tick cannot vouch for its own window",
-            wall: 45000,
-            mono: 40000,
-            observed: true,
-            expect: "gap",
-            expectProof: "mono-gap",
-          },
-          {
-            name: "no monotonic clock disables reconciliation entirely",
-            wall: 600000,
-            mono: T,
-            observed: true,
-            hasPerf: false,
-            expect: "unmeasurable",
-          },
-        ];
-
-        const results = [];
-        let passed = 0;
-        let failed = 0;
-
-        for (let i = 0; i < cases.length; i++) {
-          const c = cases[i];
-          const got = classifyClockDivergence(
-            c.wall,
-            c.mono,
-            c.observed,
-            c.hasPerf === undefined ? true : c.hasPerf,
-          );
-          let ok = got.verdict === c.expect;
-          if (ok && c.expectStep !== undefined) {
-            ok = Math.abs(got.step - c.expectStep) < 1;
-          }
-          if (ok && c.expectProof !== undefined) {
-            ok = got.proof === c.expectProof;
-          }
-          if (ok) passed++;
-          else failed++;
-          results.push({
-            name: c.name,
-            ok,
-            expected: c.expect,
-            got: got.verdict,
-            proof: got.proof,
-            step: got.step,
-          });
-        }
-
-        /* Layer four gets the same treatment: the arithmetic that decides whether
-           a committed record is internally coherent is worth an assertion. */
-        const windowCases = [
-          {
-            name: "coherent window is left alone",
-            login: 1000000,
-            logout: 1000000 + 8 * 3600000,
-            work: 7 * 3600,
-            brk: 3600,
-            expectRepair: null,
-          },
-          {
-            name: "window shorter than its own hours is rebuilt",
-            login: 1000000 + 3600000,
-            logout: 1000000 + 8 * 3600000,
-            work: 7 * 3600,
-            brk: 3600,
-            expectRepair: "window-shorter-than-tracked-time",
-          },
-          {
-            name: "missing login is derived from the hours",
-            login: null,
-            logout: 1000000 + 8 * 3600000,
-            work: 7 * 3600,
-            brk: 3600,
-            expectRepair: "login-missing",
-          },
-          {
-            name: "label drifted past the cap falls back to the original",
-            login: 1000000 + CLOCK_MAX_LABEL_CORRECTION_MS + 60000,
-            logout: 1000000 + 12 * 3600000,
-            work: 3600,
-            brk: 0,
-            raw: 1000000,
-            expectRepair: "label-drift-exceeded-cap",
-          },
-        ];
-
-        clockSelfTestRunning = true;
-        try {
-          for (let i = 0; i < windowCases.length; i++) {
-            const c = windowCases[i];
-            const got = assertShiftWindow(
-              c.login,
-              c.logout,
-              c.work,
-              c.brk,
-              c.raw === undefined ? null : c.raw,
-            );
-            const ok = got.repaired === c.expectRepair;
-            if (ok) passed++;
-            else failed++;
-            results.push({
-              name: c.name,
-              ok,
-              expected: c.expectRepair,
-              got: got.repaired,
-            });
-          }
-        } finally {
-          clockSelfTestRunning = false;
-        }
-
-        console.table(results);
-        console.log(
-          "[clock self-test] " + passed + " passed, " + failed + " failed",
-        );
-        return { passed, failed, results };
-      };
-
-      /*==========================================================================
+      /*--------------------------------------------------------------------------
        * 4b. STORAGE MANAGER
        *
        * localStorage is a hard-capped (~5MB), synchronous, origin-wide bucket.
@@ -20344,6 +20497,7 @@
         }
 
         state.currentMode = mode;
+        lastUnobservedGap = null;
         _syncAdjustPopupContext();
 
         if (mode === "work" || mode === "break") {
@@ -22146,11 +22300,35 @@
 
       // Delegated actions dispatcher inside scrolling logs area
       DOM.logContainer.addEventListener("click", (e) => {
+        if (ignoreNextClick) {
+          e.preventDefault();
+          e.stopPropagation();
+          return;
+        }
+
+        const row = e.target.closest(".log-row");
+        if (row) {
+          const logId =
+            row.dataset.id || row.querySelector("[data-id]")?.dataset.id;
+          if (logId && logSelectMode) {
+            e.stopPropagation();
+            if (selectedLogIds.has(logId)) {
+              selectedLogIds.delete(logId);
+            } else {
+              selectedLogIds.add(logId);
+            }
+            lastVirtualStart = -1;
+            lastVirtualEnd = -1;
+            updateSelectCountUI();
+            renderVirtualVisibleItems();
+            return;
+          }
+        }
+
         const btn = e.target.closest("button");
 
         if (btn && btn.dataset.action === "toggle-actions") {
           e.stopPropagation();
-          const row = btn.closest(".log-row");
           if (row) {
             const wasOpen = row.classList.contains("show-actions");
             document
@@ -22194,9 +22372,9 @@
           return;
         }
 
-        const row = e.target.closest(".log-row");
         if (row) {
-          const logId = row.dataset.id;
+          const logId =
+            row.dataset.id || row.querySelector("[data-id]")?.dataset.id;
           if (logId) {
             if (logId.startsWith("leave_")) {
               openLeaveModal();
@@ -23799,7 +23977,8 @@
               ? leaveDateSet.has(log.date)
               : false;
 
-            const rowKey = `${log.id}|${isSelected}|${log.date}|${log.login}|${log.logout}|${log.dayGoal}|${log.workSec}|${log.breakSec}|${isLogOver(log) ? "OVER" : "UNDER"}|${log.notes || ""}|${dtString}|${log.isLeaveRecord ? "LEAVE" : "WORK"}|${log.leaveType || ""}|${isWorkedLeave ? "WL" : ""}`;
+            const isMultiSelected = logSelectMode && selectedLogIds.has(log.id);
+            const rowKey = `${log.id}|${isSelected}|${isMultiSelected}|${log.date}|${log.login}|${log.logout}|${log.dayGoal}|${log.workSec}|${log.breakSec}|${isLogOver(log) ? "OVER" : "UNDER"}|${log.notes || ""}|${dtString}|${log.isLeaveRecord ? "LEAVE" : "WORK"}|${log.leaveType || ""}|${isWorkedLeave ? "WL" : ""}`;
             if (child._rowKey !== rowKey) {
               child._rowKey = rowKey;
               child._logId = log.id;
@@ -23810,6 +23989,7 @@
                 : null;
 
               let rowClass = isSelected ? "log-row kb-selected" : "log-row";
+              if (isMultiSelected) rowClass += " multi-selected";
               if (log.isLeaveRecord) {
                 rowClass += " is-leave-row";
                 if (leaveVisuals.rowClass) {
@@ -26616,7 +26796,10 @@
        * Serializes history log records into flat CSV report documents.
        */
       function exportCSV() {
-        const logs = getFilteredLogs().filter((l) => !l.isLeaveRecord);
+        let logs = getFilteredLogs().filter((l) => !l.isLeaveRecord);
+        if (logSelectMode && selectedLogIds.size > 0) {
+          logs = logs.filter((l) => selectedLogIds.has(l.id));
+        }
         if (!logs.length) {
           showAppToast("No logs to export");
           return;
@@ -27275,7 +27458,11 @@
        */
       function copyLog() {
         const allLogs = getLogs();
-        const filteredLogs = getFilteredLogs().filter((l) => !l.isLeaveRecord);
+        let filteredLogs = getFilteredLogs().filter((l) => !l.isLeaveRecord);
+
+        if (logSelectMode && selectedLogIds.size > 0) {
+          filteredLogs = filteredLogs.filter((l) => selectedLogIds.has(l.id));
+        }
 
         if (!filteredLogs.length) {
           showAppToast("No logs to copy");
@@ -27929,13 +28116,18 @@
         // Renew our master lease lock
         renewLease();
 
-        // Pure idle/sleep audit check BEFORE midnight reset
-        if (
-          state.idleTrackingEnabled !== false &&
-          !state.idleLock &&
-          state.currentMode !== null
-        ) {
-          if (nowMs - lastActivity > _cachedIdleThresholdMs) {
+        if (state.currentMode !== null && !state.idleLock) {
+          if (lastUnobservedGap && lastUnobservedGap.wallDeltaMs > 120000) {
+            const jumpTimeAnchor =
+              lastUnobservedGap.startedAtWall || lastActivity;
+            lastUnobservedGap = null;
+            triggerIdleLock(jumpTimeAnchor, "system");
+            return;
+          }
+          if (
+            state.idleTrackingEnabled !== false &&
+            nowMs - lastActivity > _cachedIdleThresholdMs
+          ) {
             triggerIdleLock(lastActivity, "inactivity");
           }
         }
@@ -28048,14 +28240,26 @@
         const nowWall = Date.now();
         const observedGapMs = Math.max(gapBeforeMs, nowWall - lastActivity);
 
-        // Inactivity audit runs independently of the discrepancy check above.
         if (state.currentMode !== null && !state.idleLock) {
+          const isGapAbnormal =
+            lastUnobservedGap && lastUnobservedGap.wallDeltaMs > 120000;
+          const isTabAbnormal =
+            state.tabHiddenAt && nowWall - state.tabHiddenAt > 120000;
+          if (isGapAbnormal || isTabAbnormal) {
+            const systemPauseAnchor =
+              state.tabHiddenAt ||
+              (lastUnobservedGap ? lastUnobservedGap.startedAtWall : null) ||
+              lastActivity;
+            lastUnobservedGap = null;
+            triggerIdleLock(systemPauseAnchor, "system");
+            return;
+          }
           if (
             state.idleTrackingEnabled !== false &&
             observedGapMs > _cachedIdleThresholdMs
           ) {
-            const lockType = state.tabHiddenAt ? "system" : "inactivity";
-            triggerIdleLock(lockAnchor, lockType);
+            triggerIdleLock(lockAnchor, "inactivity");
+            return;
           }
         }
 
@@ -30629,11 +30833,16 @@
             const top = i * itemHeight;
             const isSelected = i === selectedTaskIdx;
 
-            const rowKey = `${task.id}|${task.note}|${task.durationSec}|${task.startMs}|${task.endMs}|${isSelected}`;
+            const isMultiSelected =
+              taskSelectMode && selectedTaskIds.has(task.id);
+            const rowKey = `${task.id}|${task.note}|${task.durationSec}|${task.startMs}|${task.endMs}|${isSelected}|${isMultiSelected}`;
             if (child._rowKey !== rowKey) {
               child._rowKey = rowKey;
               child._isSelected = isSelected;
-              child.className = isSelected ? "log-row kb-selected" : "log-row";
+              let rowClass = isSelected ? "log-row kb-selected" : "log-row";
+              if (isMultiSelected) rowClass += " multi-selected";
+              child.className = rowClass;
+              child.dataset.id = task.id;
               const dom = child._dom;
 
               let logbookStyleDate = task.date;
@@ -30816,11 +31025,37 @@
         );
 
         DOM.taskLogScrollViewport.addEventListener("click", (e) => {
+          if (ignoreNextClick) {
+            e.preventDefault();
+            e.stopPropagation();
+            return;
+          }
+
+          const row = e.target.closest(".log-row");
+          if (row) {
+            const taskId =
+              row.dataset.id ||
+              row.querySelector(".task-edit-btn")?.dataset.id ||
+              row.querySelector("[data-id]")?.dataset.id;
+            if (taskId && taskSelectMode) {
+              e.stopPropagation();
+              if (selectedTaskIds.has(taskId)) {
+                selectedTaskIds.delete(taskId);
+              } else {
+                selectedTaskIds.add(taskId);
+              }
+              lastTaskVirtualStart = -1;
+              lastTaskVirtualEnd = -1;
+              updateSelectCountUI();
+              renderVirtualTaskItems();
+              return;
+            }
+          }
+
           const btn = e.target.closest("button");
 
           if (btn && btn.dataset.action === "toggle-actions") {
             e.stopPropagation();
-            const row = btn.closest(".log-row");
             if (row) {
               const wasOpen = row.classList.contains("show-actions");
               document
@@ -30852,9 +31087,11 @@
             return;
           }
 
-          const row = e.target.closest(".log-row");
           if (row) {
-            const taskId = row.querySelector(".task-edit-btn")?.dataset.id;
+            const taskId =
+              row.dataset.id ||
+              row.querySelector(".task-edit-btn")?.dataset.id ||
+              row.querySelector("[data-id]")?.dataset.id;
             if (taskId) {
               openEditTaskModal(taskId);
             }
@@ -30905,10 +31142,13 @@
       };
 
       DOM.taskCopyAllBtn.addEventListener("click", () => {
-        const tasksToCopy =
+        let tasksToCopy =
           typeof getFilteredTasks === "function"
             ? getFilteredTasks()
             : cachedTaskLogs;
+        if (taskSelectMode && selectedTaskIds.size > 0) {
+          tasksToCopy = tasksToCopy.filter((t) => selectedTaskIds.has(t.id));
+        }
         if (tasksToCopy.length === 0) {
           showAppToast("No tasks to copy", "warning");
           return;
@@ -30943,10 +31183,15 @@
       });
 
       DOM.taskExportCsvBtn.addEventListener("click", () => {
-        const tasksToExport =
+        let tasksToExport =
           typeof getFilteredTasks === "function"
             ? getFilteredTasks()
             : cachedTaskLogs;
+        if (taskSelectMode && selectedTaskIds.size > 0) {
+          tasksToExport = tasksToExport.filter((t) =>
+            selectedTaskIds.has(t.id),
+          );
+        }
         if (tasksToExport.length === 0) {
           showAppToast("No tasks to export", "warning");
           return;
