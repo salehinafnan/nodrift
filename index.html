@@ -28075,23 +28075,27 @@
 
         if (state.currentMode !== null && !state.idleLock) {
           if (lastUnobservedGap) {
+            /* A gap is only a genuine clock anomaly if the monotonic clock
+               itself advanced (proving the device was awake) yet wall advanced
+               by a wildly different amount. If mono barely moved, the device
+               was asleep and performance.now() was frozen — that is normal
+               phone/laptop sleep, not a clock jump. */
+            const monoAdvanced =
+              lastUnobservedGap.monoDeltaMs > CLOCK_AGREEMENT_TOLERANCE_MS;
             const clocksDisagree =
+              monoAdvanced &&
               Math.abs(
                 lastUnobservedGap.wallDeltaMs - lastUnobservedGap.monoDeltaMs,
               ) > CLOCK_AGREEMENT_TOLERANCE_MS;
             if (clocksDisagree) {
-              /* Genuine clock anomaly — wall and mono diverged beyond the
-                 tolerance band. Always trigger a system pause regardless of
-                 idle settings so the user can categorise the gap. */
               const jumpTimeAnchor =
                 lastUnobservedGap.startedAtWall || lastActivity;
               lastUnobservedGap = null;
               triggerIdleLock(jumpTimeAnchor, "system");
               return;
             }
-            /* Clocks agree — real time simply passed (normal phone lock /
-               tab suspension). Clear the gap and let the idle threshold
-               below decide whether it was long enough to matter. */
+            /* Clocks agree or mono was frozen — real time simply passed.
+               Clear the gap and let the idle threshold below decide. */
             lastUnobservedGap = null;
           }
           if (
@@ -28211,18 +28215,21 @@
         const observedGapMs = Math.max(gapBeforeMs, nowWall - lastActivity);
 
         if (state.currentMode !== null && !state.idleLock) {
-          /* Determine if the gap contains a genuine clock anomaly by comparing
-             how far wall and mono clocks diverged. If they agree within the
-             tolerance band, this was a normal phone lock / laptop sleep —
-             real time passed and the idle threshold governs. */
-          const gapClocksDisagree =
+          /* A gap is only a genuine clock anomaly if the monotonic clock
+             itself advanced (proving the device was awake) yet wall advanced
+             by a wildly different amount. If mono barely moved, the device
+             was asleep and performance.now() was frozen — that is normal
+             phone/laptop sleep, not a clock jump. */
+          const monoAdvanced =
             lastUnobservedGap &&
+            lastUnobservedGap.monoDeltaMs > CLOCK_AGREEMENT_TOLERANCE_MS;
+          const gapClocksDisagree =
+            monoAdvanced &&
             Math.abs(
               lastUnobservedGap.wallDeltaMs - lastUnobservedGap.monoDeltaMs,
             ) > CLOCK_AGREEMENT_TOLERANCE_MS;
 
           if (gapClocksDisagree) {
-            /* Genuine clock anomaly — always surface to the user. */
             const systemPauseAnchor =
               state.tabHiddenAt ||
               (lastUnobservedGap ? lastUnobservedGap.startedAtWall : null) ||
@@ -28232,7 +28239,8 @@
             return;
           }
 
-          /* Clocks agreed — clear the gap record and apply normal idle rules. */
+          /* Clocks agreed or mono was frozen — clear the gap and apply
+             normal idle rules. */
           if (lastUnobservedGap) lastUnobservedGap = null;
 
           if (
