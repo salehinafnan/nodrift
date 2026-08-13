@@ -3857,6 +3857,10 @@
         padding: 0.85rem;
         width: 18.5rem;
         /* Expanded width for descriptions */
+        max-height: calc(86vh - 8.5rem);
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        -webkit-overflow-scrolling: touch;
         box-shadow: var(--elev-2);
         z-index: var(--z-modal);
         display: none;
@@ -3909,6 +3913,27 @@
         padding: 6px 10px;
       }
 
+      .settings-card .input-standard {
+        height: 26px;
+        min-height: 26px !important;
+        padding: 0 8px !important;
+        font-size: 0.72rem !important;
+        border-radius: 6px;
+      }
+
+      .settings-card button.btn-info-outline,
+      .settings-card button.btn-secondary {
+        height: 26px;
+        min-height: 26px !important;
+        padding: 0 10px;
+        font-size: 0.72rem;
+        font-weight: 600;
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
       .settings-help-strip {
         height: 2.8rem;
         box-sizing: border-box;
@@ -3935,15 +3960,6 @@
         display: block;
         width: 100%;
         word-wrap: break-word;
-      }
-
-      .idle-popup::before {
-        content: "";
-        position: absolute;
-        bottom: -10px;
-        left: 0;
-        right: 0;
-        height: 10px;
       }
 
       .idle-popup.show {
@@ -6760,8 +6776,9 @@
           box-shadow: var(--elev-3);
           z-index: calc(var(--z-overlay) - 1);
           max-height: 85svh;
-          overflow: visible;
+          overflow-y: auto;
           overscroll-behavior: contain;
+          -webkit-overflow-scrolling: touch;
           box-sizing: border-box;
           transform: none;
           animation: m-sheet-rise 0.25s cubic-bezier(0.32, 0.72, 0, 1);
@@ -12777,11 +12794,10 @@
                   stroke="currentColor"
                   fill="none"
                   stroke-width="1.8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
                 >
-                  <path
-                    d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"
-                  />
-                  <path d="M8 2v15" />
+                  <g data-sprite="sprite-007"></g>
                 </svg>
               </button>
             </div>
@@ -13045,6 +13061,27 @@
                     "
                   ></div>
 
+                  <!-- Row 4.5: Continuous Tab Ticking -->
+                  <div class="settings-row">
+                    <span class="settings-label">Continuous tab ticking</span>
+                    <label class="switch">
+                      <input
+                        type="checkbox"
+                        id="continuous-ticking-toggle"
+                        onchange="onContinuousTickingToggleChange()"
+                      />
+                      <span class="slider-toggle"></span>
+                    </label>
+                  </div>
+
+                  <div
+                    style="
+                      height: 1px;
+                      background: var(--border-main);
+                      margin: 2px 0;
+                    "
+                  ></div>
+
                   <!-- Row 5: Restore Snapshot dropdown -->
                   <div style="display: flex; flex-direction: column; gap: 4px">
                     <span class="settings-label">Restore Snapshot</span>
@@ -13239,7 +13276,7 @@
                   fill="none"
                   stroke-width="1.8"
                 >
-                  <g data-sprite="sprite-038"></g>
+                  <g data-sprite="sprite-044"></g>
                 </svg>
               </button>
             </div>
@@ -14204,7 +14241,7 @@
         "sprite-006":
           '<circle cx="12" cy="12" r="10"></circle> <line x1="12" y1="16" x2="12" y2="12"></line> <line x1="12" y1="8" x2="12.01" y2="8"></line>',
         "sprite-007":
-          '<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path> <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>',
+          '<circle cx="12" cy="12" r="10"></circle> <path d="M9.5 9a2.5 2.5 0 0 1 5 0c0 1.5-1.5 2.25-2.5 3.25V13.5"></path> <line x1="12" y1="17" x2="12.01" y2="17"></line>',
         "sprite-008":
           '<rect x="3" y="4" width="18" height="18" rx="2"></rect> <line x1="16" y1="2" x2="16" y2="6"></line> <line x1="8" y1="2" x2="8" y2="6"></line> <line x1="3" y1="10" x2="21" y2="10"></line>',
         "sprite-009":
@@ -14254,8 +14291,6 @@
           '<circle cx="12" cy="12" r="3"></circle> <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" ></path>',
         "sprite-037":
           '<circle cx="12" cy="12" r="10"></circle> <line x1="12" y1="16" x2="12" y2="12"></line> <line x1="12" y1="8" x2="12" y2="8"></line>',
-        "sprite-038":
-          '<polyline points="3 6 5 6 21 6"></polyline> <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" ></path>',
         "sprite-039": '<path d="M12 19V5M5 12l7-7 7 7" />',
         "sprite-040":
           '<path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" ></path> <rect x="8" y="2" width="8" height="4" rx="1"></rect>',
@@ -14378,6 +14413,8 @@
         idleTrackingEnabled: true,
         idleThresholdMinutes: 60,
         autoBackupEnabled: false, // New property for silent backup
+        autoEmailEnabled: false,
+        continuousTabTickingEnabled: false,
         idleType: null,
         lastHeartbeatWall: null,
         tabHiddenAt: null,
@@ -14570,7 +14607,7 @@
 
       /* A hidden page has nothing to compute. */
       function syncTickerState() {
-        if (document.hidden) stopUITimer();
+        if (document.hidden && !state.continuousTabTickingEnabled) stopUITimer();
         else startUITimer();
       }
 
@@ -14716,6 +14753,7 @@
         idleRangeContainer: document.getElementById("idle-range-container"),
         autoBackupToggle: document.getElementById("auto-backup-toggle"),
         autoEmailToggle: document.getElementById("auto-email-toggle"),
+        continuousTickingToggle: document.getElementById("continuous-ticking-toggle"),
         manualDate: document.getElementById("manual-date"),
         manualWork: document.getElementById("manual-work"),
         manualModal: document.getElementById("manual-modal"),
@@ -16203,6 +16241,7 @@
           "idleThresholdMinutes",
           "autoBackupEnabled",
           "autoEmailEnabled",
+          "continuousTabTickingEnabled",
           "goalAutopopulateEnabled",
         ];
 
@@ -20333,16 +20372,22 @@
             iconColor = "#ffffff";
           }
         } else if (state.currentMode === "work") {
-          activeTitle = `${formatCoarseDuration(workSeconds)} • Working`;
+          activeTitle = state.continuousTabTickingEnabled
+            ? `${formatDuration(workSeconds)} • Working`
+            : "Working";
           iconColor = "#4ade80";
           slashColor = "var(--accent-work)";
         } else if (state.currentMode === "break") {
-          activeTitle = `${formatCoarseDuration(breakSeconds)} • Break`;
+          activeTitle = state.continuousTabTickingEnabled
+            ? `${formatDuration(breakSeconds)} • Break`
+            : "Break";
           iconColor = "#f87171";
           slashColor = "var(--accent-break)";
         } else {
           if (state.loginTimestamp) {
-            activeTitle = `${formatCoarseDuration(workSeconds)} • Paused`;
+            activeTitle = state.continuousTabTickingEnabled
+              ? `${formatDuration(workSeconds)} • Paused`
+              : "Paused";
           } else {
             activeTitle = "nodrift";
           }
@@ -21759,6 +21804,9 @@
         const previousAutoEmail = isFactoryReset
           ? false
           : state.autoEmailEnabled;
+        const previousContinuousTabTicking = isFactoryReset
+          ? false
+          : state.continuousTabTickingEnabled;
         const previousGoalAutopopulate = isFactoryReset
           ? true
           : state.goalAutopopulateEnabled;
@@ -21787,6 +21835,8 @@
             previousAutoBackup !== undefined ? previousAutoBackup : false,
           autoEmailEnabled:
             previousAutoEmail !== undefined ? previousAutoEmail : false,
+          continuousTabTickingEnabled:
+            previousContinuousTabTicking !== undefined ? previousContinuousTabTicking : false,
           goalAutopopulateEnabled:
             previousGoalAutopopulate !== undefined
               ? previousGoalAutopopulate
@@ -26670,6 +26720,12 @@
           ) {
             return "autoEmailEnabled must be a boolean.";
           }
+          if (
+            data.state.continuousTabTickingEnabled !== undefined &&
+            typeof data.state.continuousTabTickingEnabled !== "boolean"
+          ) {
+            return "continuousTabTickingEnabled must be a boolean.";
+          }
         }
 
         return null; // Valid
@@ -26827,6 +26883,10 @@
               data.state.autoEmailEnabled !== undefined
                 ? data.state.autoEmailEnabled
                 : state.autoEmailEnabled;
+            state.continuousTabTickingEnabled =
+              data.state.continuousTabTickingEnabled !== undefined
+                ? data.state.continuousTabTickingEnabled
+                : state.continuousTabTickingEnabled;
             saveState();
           }
           const existingH = safeGetLocalStorage(GOAL_H_KEY);
@@ -29484,6 +29544,11 @@
         if (autoEmailCheckbox)
           autoEmailCheckbox.checked = !!state.autoEmailEnabled;
 
+        // Sync continuous ticking toggle
+        const continuousTickingCheckbox = DOM.continuousTickingToggle;
+        if (continuousTickingCheckbox)
+          continuousTickingCheckbox.checked = !!state.continuousTabTickingEnabled;
+
         // Sync goal auto-populate toggle
         const goalAutopopulateCheckbox = document.getElementById(
           "goal-autopopulate-toggle",
@@ -29754,6 +29819,14 @@
         const checkbox = DOM.autoEmailToggle;
         state.autoEmailEnabled = checkbox.checked;
         saveState();
+      };
+
+      window.onContinuousTickingToggleChange = function () {
+        const checkbox = DOM.continuousTickingToggle;
+        state.continuousTabTickingEnabled = checkbox.checked;
+        saveState();
+        syncTickerState();
+        renderTimersOnly();
       };
 
       /**
@@ -33646,6 +33719,8 @@
             "Auto-Backup: Automatically downloads a secure JSON backup file when your shift is submitted.",
           "auto-email-toggle":
             "Auto-Email: Pre-copies your formatted summary and opens a draft in your mail client.",
+          "continuous-ticking-toggle":
+            "Continuous Ticking: Keeps the tab title timer ticking in the background.",
           "snapshot-restore-select":
             "Snapshot Rollback: Restores your database logs to an automatically captured historical state.",
         };
@@ -33682,6 +33757,7 @@
         bindHover("idle-input-box", DOM.idleInputBox);
         bindHover("auto-backup-toggle", DOM.autoBackupToggle);
         bindHover("auto-email-toggle", DOM.autoEmailToggle);
+        bindHover("continuous-ticking-toggle", DOM.continuousTickingToggle);
         bindHover("snapshot-restore-select", DOM.snapshotRestoreSelect);
 
         const rows = [
@@ -33692,6 +33768,7 @@
           { id: "idle-toggle", select: "#idle-toggle" },
           { id: "auto-backup-toggle", select: "#auto-backup-toggle" },
           { id: "auto-email-toggle", select: "#auto-email-toggle" },
+          { id: "continuous-ticking-toggle", select: "#continuous-ticking-toggle" },
         ];
 
         rows.forEach((row) => {
