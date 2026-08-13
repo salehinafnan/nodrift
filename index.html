@@ -14908,6 +14908,7 @@
                 if (_p.length === 3) {
                   const _fy = _p[2].length === 2 ? `20${_p[2]}` : _p[2];
                   window.dirtyChunks.add(`${_fy}-${_p[0].padStart(2, "0")}`);
+                  window.dirtyChunks.add(`${_fy}-${_p[1].padStart(2, "0")}`);
                 }
               }
             });
@@ -15063,25 +15064,6 @@
             lastTaskVirtualStart = -1;
             lastTaskVirtualEnd = -1;
             updateSelectCountUI();
-            renderVirtualTaskItems();
-            if (navigator.vibrate) navigator.vibrate(50);
-          }
-        });
-      }
-
-      /*==========================================================================
-       * 3. DATE-TIME FORMATTING CONFIGURATORSggleLogSelectMode();
-          selectedLogIds.add(id);
-          renderVirtualVisibleItems();
-          if (navigator.vibrate) navigator.vibrate(50);
-        }
-      });
-
-      if (DOM.taskLogContainer) {
-        setupLongPress(DOM.taskLogContainer, (id) => {
-          if (!taskSelectMode) {
-            toggleTaskSelectMode();
-            selectedTaskIds.add(id);
             renderVirtualTaskItems();
             if (navigator.vibrate) navigator.vibrate(50);
           }
@@ -15446,10 +15428,7 @@
       let lastClockNotifyAt = 0;
       let clockAnomalies = [];
 
-      /* Total correction this engine has applied to the login label since the
-         current shift began. Compared against the immutable original rather than
-         trusted on its own - see applyLabelStep. */
-      let clockLabelCorrectionMs = 0;
+      /* (Removed clockLabelCorrectionMs) */
 
       /* The most recent divergence the engine refused to judge. Read by the wakeup
          path so a suspension can be surfaced to the user instead of vanishing. */
@@ -15521,7 +15500,7 @@
        * so the cap governs one shift rather than one browser session.
        */
       function resetClockLabelCorrection() {
-        clockLabelCorrectionMs = 0;
+        // No-op: Login time is strictly immutable.
       }
 
       /**
@@ -15543,21 +15522,7 @@
        *
        * @param {number} deltaMs - Verified clock step, already applied to anchors.
        */
-      function applyLabelStep(deltaMs) {
-        if (!deltaMs || !isFinite(deltaMs)) return;
-        if (!state || typeof state.loginTimestamp !== "number") return;
-        const raw =
-          typeof state.loginTimestampRaw === "number" &&
-          isFinite(state.loginTimestampRaw)
-            ? state.loginTimestampRaw
-            : state.loginTimestamp;
-        const proposed = state.loginTimestamp + deltaMs;
-        const drift = Math.abs(proposed - raw);
-        if (drift <= CLOCK_MAX_LABEL_CORRECTION_MS && proposed <= Date.now()) {
-          state.loginTimestamp = proposed;
-          clockLabelCorrectionMs += deltaMs;
-        }
-      }
+      // applyLabelStep removed: login is strictly immutable.
 
       /**
        * Shifts every in-flight wall timestamp by deltaMs so that all live
@@ -15585,7 +15550,7 @@
           CLOCK_MEASUREMENT_STATE_KEYS,
         );
 
-        applyLabelStep(deltaMs);
+        // loginTimestamp is strictly immutable, never rebased.
 
         if (typeof lastActivity === "number" && isFinite(lastActivity)) {
           lastActivity += deltaMs;
@@ -15984,50 +15949,33 @@
         const trackedMs =
           (Math.max(0, workSec || 0) + Math.max(0, breakSec || 0)) * 1000;
 
-        let repaired = null;
-        let login = loginTs;
-
+        // Rule 1: Login is immutable. Fallback to the original raw timestamp.
+        let finalLogin = loginTs;
         if (
           typeof rawLoginTs === "number" &&
           isFinite(rawLoginTs) &&
           rawLoginTs > 0
         ) {
-          if (
-            typeof loginTs === "number" &&
-            isFinite(loginTs) &&
-            Math.abs(loginTs - rawLoginTs) > CLOCK_MAX_LABEL_CORRECTION_MS
-          ) {
-            repaired = "label-drift-exceeded-cap";
-            login = rawLoginTs;
-          } else {
-            login = rawLoginTs;
-          }
-        } else if (!login || typeof login !== "number" || !isFinite(login)) {
-          repaired = "login-missing";
+          finalLogin = rawLoginTs;
+        } else if (
+          !finalLogin ||
+          typeof finalLogin !== "number" ||
+          !isFinite(finalLogin)
+        ) {
           const refLogout =
             typeof logoutTs === "number" && isFinite(logoutTs)
               ? logoutTs
               : Date.now();
-          login = refLogout - trackedMs;
+          finalLogin = refLogout - trackedMs;
         }
 
-        let logout =
-          typeof logoutTs === "number" && isFinite(logoutTs)
-            ? logoutTs
-            : login + trackedMs;
-
-        if (logout < login) {
-          repaired = repaired || "negative-window";
-          logout = login + trackedMs;
-        } else if (logout - login + SHIFT_WINDOW_TOLERANCE_MS < trackedMs) {
-          repaired = repaired || "window-shorter-than-tracked-time";
-          logout = login + trackedMs;
-        }
+        // Rule 2: Math must be perfect. Logout is strictly derived from verified tracked time.
+        const finalLogout = finalLogin + trackedMs;
 
         return {
-          loginTs: Math.round(login),
-          logoutTs: Math.round(logout),
-          repaired: repaired,
+          loginTs: Math.round(finalLogin),
+          logoutTs: Math.round(finalLogout),
+          repaired: null,
         };
       }
 
@@ -16050,7 +15998,7 @@
               typeof tickerRunning === "boolean" ? tickerRunning : null,
           },
           clockSuspect: isClockSuspect(),
-          labelCorrectionMs: clockLabelCorrectionMs,
+          labelCorrectionMs: 0,
           loginTimestamp: state ? state.loginTimestamp : null,
           loginTimestampRaw: state ? state.loginTimestampRaw : null,
           lastUnobservedGap,
