@@ -3735,10 +3735,12 @@
         color: var(--accent-blue);
       }
 
-      .danger-text:hover {
-        color: var(--accent-break) !important;
-        border-color: rgba(248, 113, 113, 0.3) !important;
-        background: rgba(248, 113, 113, 0.1) !important;
+      @media (hover: hover) {
+        .danger-text:hover {
+          color: var(--accent-break) !important;
+          border-color: rgba(248, 113, 113, 0.3) !important;
+          background: rgba(248, 113, 113, 0.1) !important;
+        }
       }
 
       /* =========================================================================
@@ -6672,6 +6674,8 @@
         .log-row,
         #task-log-container > * {
           -webkit-touch-callout: none;
+          -webkit-user-select: none;
+          user-select: none;
           touch-action: manipulation;
         }
 
@@ -12078,8 +12082,15 @@
              while the Restore JSON button beside them kept the accent.
              Driven through `color` because the icons stroke with currentColor,
              so one property covers the button and its glyph. */
-          .task-export-icon:hover {
+          @media (hover: hover) {
+            .task-export-icon:hover {
+              color: var(--accent-blue);
+            }
+          }
+
+          .task-export-icon:active {
             color: var(--accent-blue);
+            transform: scale(0.92);
           }
 
           .ios-section-header {
@@ -14555,10 +14566,6 @@
         if (!tickerRunning) return;
         tickerRunning = false;
         tickerWorker.postMessage("stop");
-        /* Nothing is sampling the clocks from here until the ticker restarts, so
-           the window that follows cannot vouch for anything inside it. Declared
-           later in the file; hoisted, and only ever reached at runtime. */
-        breakClockObservation("ticker-stopped");
       }
 
       /* A hidden page has nothing to compute. */
@@ -15270,29 +15277,6 @@
          internals, only on its contract. */
       const CLOCK_TICK_INTERVAL_MS = 1000;
 
-      /* Largest monotonic advance between two consecutive ticks that still counts
-         as continuous observation. Three tick intervals absorbs ordinary scheduler
-         jitter and a busy main thread; beyond it the page was throttled or frozen,
-         and a window we did not actually watch cannot vouch for anything that
-         happened inside it. */
-      const CLOCK_OBSERVED_MAX_MONO_GAP_MS = 3 * CLOCK_TICK_INTERVAL_MS;
-
-      /* Largest FORWARD step this engine will apply from a single observation.
-         Real NTP corrections on a running system are milliseconds to seconds; a
-         forward jump of minutes between two consecutive ticks is far more likely
-         to be a freeze that the observation gate failed to notice. Anything above
-         this is recorded as a gap and left to the idle-lock system. Backward steps
-         are deliberately unbounded - see the header. */
-      const CLOCK_MAX_TRUSTED_FORWARD_STEP_MS = 120000; // 2 minutes
-
-      /* Tolerance band for comparing wall vs monotonic deltas to determine if
-         the system clock genuinely drifted or if real time simply passed (e.g.
-         phone lock, laptop sleep). If both clocks agree within this window, the
-         gap is treated as normal elapsed time and routed through the user's
-         configured idle threshold — not as a clock anomaly. Real NTP syncs on
-         modern devices are 2-10 seconds; 30s absorbs every realistic case. */
-      const CLOCK_AGREEMENT_TOLERANCE_MS = 30000; // 30 seconds
-
       /* Ceiling on the total correction applied to the login label across one
          shift, measured against the immutable original rather than accumulated
          step by step, so a long series of small corrections cannot walk the label
@@ -15312,16 +15296,6 @@
       const CLOCK_ANOMALY_LOG_LIMIT = 40;
       const CLOCK_ANOMALY_LS_KEY = "nodrift_clock_anomalies_v1";
 
-      const CLOCK_HAS_PERF =
-        typeof performance !== "undefined" &&
-        typeof performance.now === "function";
-
-      /* Monotonic reading in ms. Falls back to the wall clock on ancient engines,
-         in which case reconciliation self-disables (divergence is always 0). */
-      function monoNow() {
-        return CLOCK_HAS_PERF ? performance.now() : Date.now();
-      }
-
       /* Wall-clock reading from the host system clock.
          NOTE: this is the local OS clock, NOT a synchronized time source. It is
          correct for absolute labels only after reconcileSystemClock() has had a
@@ -15331,116 +15305,16 @@
         return Date.now();
       }
 
-      /* How long the wall clock stays untrusted after a divergence
-         reconciliation deliberately refused to judge. Long enough for an NTP
-         correction to arrive and be recognised as a backward step, short enough
-         that a genuinely suspended machine resumes banking promptly. */
-      const CLOCK_SUSPECT_COOLDOWN_MS = 60000;
-
-      /* Paired wall/monotonic reading from the last reconciliation, plus whether
-         that reading was taken under continuous observation. Deliberately
-         module-scoped and NEVER persisted: a DOMHighResTimeStamp is meaningless
-         outside the document that produced it. */
+      /* Paired wall/tick reading from the last reconciliation. */
       let clockHeartbeat = null;
-
-      /* Monotonic deadline until which the wall clock is considered unreliable.
-         Held on the monotonic clock for the obvious reason: the wall clock is
-         the thing in doubt. Never persisted, for the same reason as the pair
-         above. */
-      let clockSuspectUntilMono = 0;
 
       /*--------------------------------------------------------------------------
        * OBSERVATION LEDGER
-       *
-       * A divergence may only be read as a clock step if the window it spans was
-       * continuously watched. "Watched" is a claim about the past, so it cannot be
-       * reconstructed after the fact from clock readings - the readings are
-       * precisely what is in doubt. It has to be recorded as it happens.
-       *
-       * The ledger starts BROKEN and is cleared only by a tick that arrives while
-       * the page is visible and the ticker is running. Anything that means the
-       * document may have stopped executing breaks it again. Failing closed is the
-       * whole point: an unrecorded suspension must never masquerade as a watched
-       * window, whereas a spuriously broken window costs nothing beyond declining
-       * to correct a clock step that the next observed tick will catch anyway.
+       * (Removed: Replaced by tick-delta architecture)
        *------------------------------------------------------------------------*/
-      /* Deliberately `var`, not `let`. stopUITimer() sits earlier in this file
-         than this module and calls breakClockObservation(); the function itself
-         hoists, but a `let` binding it touches would still be in its temporal
-         dead zone if the ticker ever stopped before this line executed. `var`
-         hoists the binding too, so the worst case is a no-op rather than a
-         ReferenceError that takes the whole app down. Both start in the safe
-         state regardless: broken until a tick proves otherwise. */
-      var clockObservationBroken = true;
-      var clockObservationBreakReason = "boot";
-
-      function breakClockObservation(reason) {
-        clockObservationBroken = true;
-        clockObservationBreakReason = reason || "unknown";
-      }
-
-      /* Visibility, page lifecycle and bfcache transitions all indicate that this
-         document may have stopped running. Registered here, at the top of the
-         module, so these handlers run before any feature-level handler that reads
-         the flag: listeners on the same target fire in registration order. */
-      if (typeof document !== "undefined" && document.addEventListener) {
-        document.addEventListener("visibilitychange", function () {
-          if (document.visibilityState !== "visible") {
-            breakClockObservation("hidden");
-          }
-        });
-        /* Page Lifecycle API. Chromium fires these around discard/freeze; Safari
-           does not implement them, which is exactly why they are a supplement to
-           the visibility signal and not a replacement for it. */
-        document.addEventListener("freeze", function () {
-          breakClockObservation("freeze");
-        });
-        document.addEventListener("resume", function () {
-          breakClockObservation("resume");
-        });
-      }
-      if (typeof window !== "undefined" && window.addEventListener) {
-        window.addEventListener("pagehide", function () {
-          breakClockObservation("pagehide");
-        });
-        window.addEventListener("pageshow", function () {
-          breakClockObservation("pageshow");
-        });
-      }
-
-      /**
-       * Whether the wall clock is currently untrusted.
-       *
-       * The high-water marks exist to stop a backward clock step from erasing
-       * time that was genuinely worked, and clamping upward is always correct
-       * when the reading below the floor is the lie. The floors are only safe to
-       * ADVANCE while the reading above them is not: one banked from an inflated
-       * reading outlives the correction that follows it, and since the floor is
-       * a maximum it can never be walked back down.
-       *
-       * Every divergence this engine declines to judge is exactly the case that
-       * can inflate a reading, so the floors pause there rather than guess.
-       */
-      function isClockSuspect() {
-        return clockSuspectUntilMono > 0 && monoNow() < clockSuspectUntilMono;
-      }
-
-      function markClockSuspect() {
-        clockSuspectUntilMono = monoNow() + CLOCK_SUSPECT_COOLDOWN_MS;
-      }
-
-      function clearClockSuspect() {
-        clockSuspectUntilMono = 0;
-      }
 
       let lastClockNotifyAt = 0;
       let clockAnomalies = [];
-
-      /* (Removed clockLabelCorrectionMs) */
-
-      /* The most recent divergence the engine refused to judge. Read by the wakeup
-         path so a suspension can be surfaced to the user instead of vanishing. */
-      let lastUnobservedGap = null;
 
       /* Measurement anchors: wall instants that are still being compared against
          "now" to produce a duration. A verified clock step must move all of them
@@ -15645,9 +15519,6 @@
         if (info.wallDeltaMs !== undefined) {
           entry.wallDeltaMs = Math.round(info.wallDeltaMs);
         }
-        if (info.monoDeltaMs !== undefined) {
-          entry.monoDeltaMs = Math.round(info.monoDeltaMs);
-        }
 
         clockAnomalies.unshift(entry);
         if (clockAnomalies.length > CLOCK_ANOMALY_LOG_LIMIT) {
@@ -15694,75 +15565,6 @@
       }
 
       /**
-       * Decides what a wall/monotonic divergence means.
-       *
-       * Pure and total: no clock reads, no state, no side effects. That is not
-       * incidental tidiness - it is what lets every branch below be exercised
-       * directly by runClockSelfTest(), including the ones that only occur on a
-       * suspended iPhone at the end of a nine-hour shift.
-       *
-       * @param {number} wallDeltaMs - Date.now() advance across the window.
-       * @param {number} monoDeltaMs - performance.now() advance across the window.
-       * @param {boolean} observed - Whether the window was continuously watched.
-       * @param {boolean} [hasPerf=CLOCK_HAS_PERF] - Monotonic clock availability.
-       * @returns {{verdict: string, step: number, proof: string}}
-       *   verdict "stable"       - clocks agree, nothing to do.
-       *   verdict "step"         - proven clock step; step is the correction.
-       *   verdict "gap"          - unattributable divergence; do not rebase.
-       *   verdict "unmeasurable" - no monotonic clock; reconciliation disabled.
-       */
-      function classifyClockDivergence(
-        wallDeltaMs,
-        monoDeltaMs,
-        observed,
-        hasPerf = CLOCK_HAS_PERF,
-      ) {
-        if (!hasPerf) {
-          return { verdict: "unmeasurable", step: 0, proof: "no-monotonic" };
-        }
-
-        const divergence = wallDeltaMs - monoDeltaMs;
-
-        if (Math.abs(divergence) <= CLOCK_STEP_THRESHOLD_MS) {
-          return { verdict: "stable", step: 0, proof: "within-threshold" };
-        }
-
-        /* A wall clock cannot run backwards by itself, and no amount of
-           suspension can make it appear to. Under every hypothesis this is a
-           step, so it needs no observation proof and no magnitude bound: the
-           alternative is erasing time the user genuinely worked. */
-        if (wallDeltaMs < 0) {
-          return { verdict: "step", step: divergence, proof: "backward-wall" };
-        }
-
-        /* Everything below is a FORWARD divergence, which is the ambiguous case
-           described in the header. Each gate is a distinct way of failing to
-           prove it was a clock step. */
-
-        if (!observed) {
-          return { verdict: "gap", step: 0, proof: "unobserved-window" };
-        }
-
-        if (monoDeltaMs < 0 || monoDeltaMs > CLOCK_OBSERVED_MAX_MONO_GAP_MS) {
-          /* The ledger claims we were watching, but the monotonic clock says the
-             tick arrived far off schedule. The ledger is a record of events that
-             may not have fired; the clock is a measurement. Trust the
-             measurement. */
-          return { verdict: "gap", step: 0, proof: "mono-gap" };
-        }
-
-        if (divergence > CLOCK_MAX_TRUSTED_FORWARD_STEP_MS) {
-          /* Watched, on schedule, and still minutes of divergence. Possible, but
-             a frozen document whose visibility event never fired is likelier, and
-             the cost of being wrong here is the corruption this engine exists to
-             prevent. Decline and let the idle-lock system ask. */
-          return { verdict: "gap", step: 0, proof: "forward-step-too-large" };
-        }
-
-        return { verdict: "step", step: divergence, proof: "observed-window" };
-      }
-
-      /**
        * Compares wall-clock and monotonic advance since the last reconciliation
        * and rebases all in-flight timestamps if - and only if - the divergence is
        * provably a system clock step.
@@ -15774,99 +15576,23 @@
        */
       function reconcileSystemClock(reason) {
         const nowWall = Date.now();
-        const nowMono = monoNow();
-        const isTick = reason === "tick";
-        const visible =
-          typeof document === "undefined" ||
-          document.visibilityState === "visible";
-        /* tickerRunning is declared above this module and is the ticker's own
-           record of whether it is armed. A stopped ticker means nobody was
-           watching, whatever the visibility API reported. */
-        const ticking =
-          typeof tickerRunning === "boolean" ? tickerRunning : true;
 
         if (!clockHeartbeat) {
-          clockHeartbeat = {
-            wall: nowWall,
-            mono: nowMono,
-            observed: isTick && visible && ticking,
-          };
+          clockHeartbeat = { wall: nowWall, lastTick: nowWall };
           return 0;
         }
 
-        const monoDelta = nowMono - clockHeartbeat.mono;
         const wallDelta = nowWall - clockHeartbeat.wall;
-
-        /* Observation is a property of the WINDOW, so it needs both ends to
-           qualify: a tick now, a tick then, and nothing in between that could
-           have stopped this document from executing. */
-        const windowObserved =
-          isTick &&
-          visible &&
-          ticking &&
-          clockHeartbeat.observed === true &&
-          !clockObservationBroken;
-
-        const verdict = classifyClockDivergence(
-          wallDelta,
-          monoDelta,
-          windowObserved,
-        );
-
+        const timeSinceLastTick = nowWall - clockHeartbeat.lastTick;
         let applied = 0;
 
-        if (verdict.verdict === "step" && verdict.step !== 0) {
-          applied = verdict.step;
+        if (timeSinceLastTick < 2000 && Math.abs(wallDelta) > 5000) {
+          applied = wallDelta;
           applyClockStep(applied);
-          recordClockAnomaly({
-            deltaMs: verdict.step,
-            applied,
-            reason,
-            verdict: "step",
-            proof: verdict.proof,
-            wallDeltaMs: wallDelta,
-            monoDeltaMs: monoDelta,
-          });
-          /* The correction arrived and every in-flight anchor was rebased onto
-             it, so the timeline is coherent again and the floors may resume. */
-          clearClockSuspect();
-        } else if (verdict.verdict === "gap") {
-          /* Not corrected, and possibly inflated, so the ratchets stop advancing
-             until the clock proves itself - otherwise a bogus reading gets locked
-             into a floor moments before the correction that would have exposed
-             it. The gap itself is published for the wakeup path to adjudicate. */
-          markClockSuspect();
-          lastUnobservedGap = {
-            atWall: nowWall,
-            startedAtWall: clockHeartbeat.wall,
-            wallDeltaMs: wallDelta,
-            monoDeltaMs: monoDelta,
-            proof: verdict.proof,
-            reason,
-          };
-          recordClockAnomaly({
-            deltaMs: wallDelta - monoDelta,
-            applied: 0,
-            reason,
-            verdict: "gap",
-            proof: verdict.proof,
-            wallDeltaMs: wallDelta,
-            monoDeltaMs: monoDelta,
-          });
         }
 
-        /* Mutated rather than reallocated: this runs once per second for the
-           length of a shift, and a fresh object each tick is pure garbage. */
         clockHeartbeat.wall = nowWall;
-        clockHeartbeat.mono = nowMono;
-        clockHeartbeat.observed = isTick && visible && ticking;
-
-        /* The break applied to the window that just closed. A tick taken while
-           visible and ticking opens a fresh, clean window. */
-        if (clockHeartbeat.observed) {
-          clockObservationBroken = false;
-          clockObservationBreakReason = null;
-        }
+        clockHeartbeat.lastTick = nowWall;
 
         return applied;
       }
@@ -15877,15 +15603,12 @@
          exactly the kind of discontinuity the ledger exists to record. */
       function markClockHeartbeat() {
         const nowWall = Date.now();
-        const nowMono = monoNow();
         if (clockHeartbeat) {
           clockHeartbeat.wall = nowWall;
-          clockHeartbeat.mono = nowMono;
-          clockHeartbeat.observed = false;
+          clockHeartbeat.lastTick = nowWall;
         } else {
-          clockHeartbeat = { wall: nowWall, mono: nowMono, observed: false };
+          clockHeartbeat = { wall: nowWall, lastTick: nowWall };
         }
-        breakClockObservation("manual-rebaseline");
       }
 
       /**
@@ -15993,29 +15716,13 @@
 
       window.getClockDiagnostics = function () {
         return {
-          hasMonotonicClock: CLOCK_HAS_PERF,
           heartbeat: clockHeartbeat ? Object.assign({}, clockHeartbeat) : null,
-          observation: {
-            broken: clockObservationBroken,
-            breakReason: clockObservationBreakReason,
-            visible:
-              typeof document !== "undefined"
-                ? document.visibilityState
-                : "unknown",
-            tickerRunning:
-              typeof tickerRunning === "boolean" ? tickerRunning : null,
-          },
-          clockSuspect: isClockSuspect(),
           labelCorrectionMs: 0,
           loginTimestamp: state ? state.loginTimestamp : null,
           loginTimestampRaw: state ? state.loginTimestampRaw : null,
-          lastUnobservedGap,
           thresholds: {
             stepThresholdMs: CLOCK_STEP_THRESHOLD_MS,
-            observedMaxMonoGapMs: CLOCK_OBSERVED_MAX_MONO_GAP_MS,
-            maxTrustedForwardStepMs: CLOCK_MAX_TRUSTED_FORWARD_STEP_MS,
             maxLabelCorrectionMs: CLOCK_MAX_LABEL_CORRECTION_MS,
-            agreementToleranceMs: CLOCK_AGREEMENT_TOLERANCE_MS,
           },
           anomalies: clockAnomalies.slice(),
         };
@@ -16023,7 +15730,6 @@
 
       window.clearClockDiagnostics = function () {
         clockAnomalies = [];
-        lastUnobservedGap = null;
         persistClockAnomalies();
         return true;
       };
@@ -20299,7 +20005,7 @@
         const floor = state.activeSegmentFloorSec || 0;
         const elapsed = measured > floor ? measured : floor;
 
-        if (advanceFloor && elapsed > floor && !isClockSuspect()) {
+        if (advanceFloor && elapsed > floor) {
           state.activeSegmentFloorSec = elapsed;
         }
         return elapsed;
@@ -20361,7 +20067,7 @@
         const floor = taskState.taskFloorSec || 0;
         const elapsed = measured > floor ? measured : floor;
 
-        if (advanceFloor && elapsed > floor && !isClockSuspect()) {
+        if (advanceFloor && elapsed > floor) {
           taskState.taskFloorSec = elapsed;
         }
         return elapsed;
@@ -28074,30 +27780,6 @@
         renewLease();
 
         if (state.currentMode !== null && !state.idleLock) {
-          if (lastUnobservedGap) {
-            /* A gap is only a genuine clock anomaly if the monotonic clock
-               itself advanced (proving the device was awake) yet wall advanced
-               by a wildly different amount. If mono barely moved, the device
-               was asleep and performance.now() was frozen — that is normal
-               phone/laptop sleep, not a clock jump. */
-            const monoAdvanced =
-              lastUnobservedGap.monoDeltaMs > CLOCK_AGREEMENT_TOLERANCE_MS;
-            const clocksDisagree =
-              monoAdvanced &&
-              Math.abs(
-                lastUnobservedGap.wallDeltaMs - lastUnobservedGap.monoDeltaMs,
-              ) > CLOCK_AGREEMENT_TOLERANCE_MS;
-            if (clocksDisagree) {
-              const jumpTimeAnchor =
-                lastUnobservedGap.startedAtWall || lastActivity;
-              lastUnobservedGap = null;
-              triggerIdleLock(jumpTimeAnchor, "system");
-              return;
-            }
-            /* Clocks agree or mono was frozen — real time simply passed.
-               Clear the gap and let the idle threshold below decide. */
-            lastUnobservedGap = null;
-          }
           if (
             state.idleTrackingEnabled !== false &&
             nowMs - lastActivity > _cachedIdleThresholdMs
@@ -28203,46 +27885,16 @@
            is the honest measure of a forward correction; after it is the honest
            measure of a backward one; and erring towards the larger gap errs
            towards asking the user, which is the recoverable mistake. */
-        const gapAnchor = lastActivity;
         const lockAnchor = state.tabHiddenAt || lastActivity;
-        const gapBeforeMs = Date.now() - gapAnchor;
 
         /* The ticker is stopped while the page is hidden, so a clock step may
            have gone unobserved. Reconcile once the reading above is in hand. */
         reconcileSystemClock("wakeup");
 
         const nowWall = Date.now();
-        const observedGapMs = Math.max(gapBeforeMs, nowWall - lastActivity);
+        const observedGapMs = nowWall - lastActivity;
 
         if (state.currentMode !== null && !state.idleLock) {
-          /* A gap is only a genuine clock anomaly if the monotonic clock
-             itself advanced (proving the device was awake) yet wall advanced
-             by a wildly different amount. If mono barely moved, the device
-             was asleep and performance.now() was frozen — that is normal
-             phone/laptop sleep, not a clock jump. */
-          const monoAdvanced =
-            lastUnobservedGap &&
-            lastUnobservedGap.monoDeltaMs > CLOCK_AGREEMENT_TOLERANCE_MS;
-          const gapClocksDisagree =
-            monoAdvanced &&
-            Math.abs(
-              lastUnobservedGap.wallDeltaMs - lastUnobservedGap.monoDeltaMs,
-            ) > CLOCK_AGREEMENT_TOLERANCE_MS;
-
-          if (gapClocksDisagree) {
-            const systemPauseAnchor =
-              state.tabHiddenAt ||
-              (lastUnobservedGap ? lastUnobservedGap.startedAtWall : null) ||
-              lastActivity;
-            lastUnobservedGap = null;
-            triggerIdleLock(systemPauseAnchor, "system");
-            return;
-          }
-
-          /* Clocks agreed or mono was frozen — clear the gap and apply
-             normal idle rules. */
-          if (lastUnobservedGap) lastUnobservedGap = null;
-
           if (
             state.idleTrackingEnabled !== false &&
             observedGapMs > _cachedIdleThresholdMs
@@ -34191,14 +33843,14 @@
 
               if (state.tabHiddenAt) {
                 if (now - state.tabHiddenAt > _cachedIdleThresholdMs) {
-                  triggerIdleLock(state.tabHiddenAt, "system");
+                  triggerIdleLock(state.tabHiddenAt, "inactivity");
                 }
                 delete state.tabHiddenAt;
               }
 
               if (!state.idleLock && state.lastHeartbeatWall) {
                 if (now - state.lastHeartbeatWall > _cachedIdleThresholdMs) {
-                  triggerIdleLock(state.lastHeartbeatWall, "system");
+                  triggerIdleLock(state.lastHeartbeatWall, "inactivity");
                 }
               }
 
