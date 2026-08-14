@@ -1762,6 +1762,48 @@
         color: var(--text-main);
       }
 
+      /* The weekly field is the same badge as the daily one, minus the
+         popover the daily field carries for its presets. */
+      .weekly-goal-container {
+        position: relative;
+        display: flex;
+        align-items: stretch;
+      }
+
+      .weekly-goal-inputs input[type="number"] {
+        background: transparent !important;
+        border: none !important;
+        color: var(--text-main);
+        font-weight: 500;
+        font-size: 1rem;
+        width: 4ch;
+        text-align: center;
+        outline: none;
+        padding: 0.1rem 0;
+        border-radius: 0.4rem;
+        cursor: text;
+        font-family: var(--number-font);
+        -moz-appearance: textfield;
+        appearance: textfield;
+      }
+
+      .weekly-goal-inputs input[type="number"]::-webkit-outer-spin-button,
+      .weekly-goal-inputs input[type="number"]::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+      }
+
+      .weekly-goal-container:hover .weekly-goal-inputs,
+      .weekly-goal-container:focus-within .weekly-goal-inputs {
+        border-color: var(--accent-blue);
+        background: var(--element-hover);
+      }
+
+      .weekly-goal-container:hover .weekly-goal-inputs .label,
+      .weekly-goal-container:focus-within .weekly-goal-inputs .label {
+        color: var(--text-main);
+      }
+
       .goal-chevron {
         color: var(--accent-blue);
         margin-left: 0.25rem;
@@ -6361,14 +6403,109 @@
           display: none;
         }
 
-        #m-sheet .goal-inputs {
+        /* Two fields, one row, each labelled above its own box. The daily
+           goal is wider because it carries an hh:mm:ss value; the weekly goal
+           holds at most three characters. The ratio is set so neither reads as
+           an afterthought. */
+        #m-sheet .m-goal-slot {
+          display: flex;
+          flex-direction: row;
+          flex-wrap: wrap;
+          align-items: flex-start;
+          gap: 0.6rem;
+        }
+
+        /* The section heading is a flex item here, so it needs a full-width
+           basis to claim its own line above the two fields. */
+        #m-sheet .m-goal-slot::before {
+          flex: 0 0 100%;
+          margin-bottom: 0;
+        }
+
+        #m-sheet .m-goal-slot .goal-container {
+          order: 1;
+          flex: 1 1 0;
+          width: auto;
+          min-width: 0;
+        }
+
+        #m-sheet .m-goal-slot .weekly-goal-container {
+          order: 2;
+          flex: 1 1 0;
+          display: block;
+          position: static;
+          width: auto;
+          min-width: 0;
+        }
+
+        /* Both fields keep the single-row shape and the 44px height the lone
+           goal badge had before the weekly one joined it: label and value on
+           one line, the pair centred as a unit inside the box. */
+        #m-sheet .goal-inputs,
+        #m-sheet .weekly-goal-inputs {
           width: 100%;
-          justify-content: center;
           height: 44px;
+          flex-direction: row;
+          align-items: center;
+          justify-content: center;
+          gap: 0.1rem;
+          padding: 0 clamp(0.35rem, 1.5vw, 0.6rem) !important;
+        }
+
+        /* Accent blue, unconditionally. The desktop badge shifts its label to
+           the foreground colour on hover and focus to signal that the field is
+           live; in the sheet there is no hover, the field is always live, and
+           the shift only read as the label graying out mid-edit. The id in
+           this selector outranks the two state rules without !important. */
+        #m-sheet .goal-inputs span.label,
+        #m-sheet .weekly-goal-inputs span.label,
+        #m-sheet .goal-container:hover .goal-inputs span.label,
+        #m-sheet .goal-container:focus-within .goal-inputs span.label,
+        #m-sheet .weekly-goal-container:hover .weekly-goal-inputs span.label,
+        #m-sheet
+          .weekly-goal-container:focus-within
+          .weekly-goal-inputs
+          span.label {
+          color: var(--accent-blue);
+          /* "WEEKLY GOAL" plus its value is the widest pair here. At 0.82rem it
+             fits from 360px up; the lower bound keeps it inside a 320px screen
+             instead of overflowing a nowrap box. */
+          font-size: clamp(0.7rem, 3.5vw, 0.82rem);
+          margin-right: 0.4rem;
+          flex: 0 0 auto;
+        }
+
+        /* Sized to their content so the label-plus-value pair stays centred
+           rather than being pushed off-centre by a full-width input. */
+        #m-sheet .goal-inputs input[type="text"] {
+          width: 9ch;
+          text-align: center;
+          padding: 0;
+          flex: 0 0 auto;
+        }
+
+        #m-sheet .weekly-goal-inputs input[type="number"] {
+          width: 3.5ch;
+          text-align: center;
+          padding: 0;
+          flex: 0 0 auto;
+        }
+
+        /* "WEEKLY GOAL" already names the unit, and the two characters it costs
+           are the ones that would push the pair off centre on a 360px screen. */
+        #m-sheet .weekly-goal-inputs .unit {
+          display: none;
         }
 
         #m-sheet .goal-chevron {
           display: none;
+        }
+
+        /* The daily-goal presets are a desktop hover affordance. On a phone
+           they were a second wrapping row of pills under a field that already
+           accepts a typed value. */
+        #m-sheet .goal-presets {
+          display: none !important;
         }
 
         /* De-popovered controls. On the desktop these three are hover
@@ -11026,6 +11163,25 @@
                 </button>
               </div>
             </div>
+            <div class="weekly-goal-container">
+              <div
+                class="status-badge goal-inputs weekly-goal-inputs"
+                style="padding: 0 1rem"
+              >
+                <span class="label">Weekly Goal</span>
+                <input
+                  type="number"
+                  id="weekly-goal-hours"
+                  class="input-standard"
+                  min="1"
+                  max="168"
+                  step="0.5"
+                  onchange="onWeeklyGoalChange()"
+                  onfocus="this.select()"
+                />
+                <span class="unit">h</span>
+              </div>
+            </div>
             <div class="theme-container" onmouseleave="revertThemePreview()">
               <button class="theme-toggle-btn" aria-label="Toggle Theme">
                 <span
@@ -13021,29 +13177,6 @@
 
                   <!-- Row 3: Auto-save JSON Backup -->
                   <div class="settings-row">
-                    <span class="settings-label">Weekly goal (hours)</span>
-                    <input
-                      type="number"
-                      id="weekly-goal-hours"
-                      class="input-standard"
-                      min="1"
-                      max="168"
-                      step="0.5"
-                      style="width: 5.5rem; text-align: right"
-                      onchange="onWeeklyGoalChange()"
-                      onfocus="this.select()"
-                    />
-                  </div>
-
-                  <div
-                    style="
-                      height: 1px;
-                      background: var(--border-main);
-                      margin: 2px 0;
-                    "
-                  ></div>
-
-                  <div class="settings-row">
                     <span class="settings-label">Auto-save JSON backup</span>
                     <label class="switch">
                       <input
@@ -13424,9 +13557,9 @@
       <div id="m-sheet-body">
         <!-- Live nodes (goal / timezone / theme / tool icons) are relocated here by MobileShell.mount() and returned to their original parents by. -->
         <div
-          class="m-sheet-slot"
+          class="m-sheet-slot m-goal-slot"
           data-slot="goal"
-          data-label="Daily Goal"
+          data-label="Goals"
         ></div>
         <div class="m-sheet-slot" data-slot="tz" data-label="Time Zone"></div>
         <div
@@ -25599,6 +25732,7 @@
           let weekendW = 0;
           let weekendB = 0;
           let countedShifts = 0;
+          const weekendDays = new Set();
           let notesList = [];
           bData.logs.forEach((l) => {
             if (
@@ -25615,6 +25749,7 @@
             } else {
               weekendW += l.workSec || 0;
               weekendB += l.breakSec || 0;
+              weekendDays.add(l.date);
             }
             if (l.notes && l.notes.trim()) {
               if (!notesList.includes(l.notes.trim())) {
@@ -25623,8 +25758,13 @@
             }
           });
           const hasWeekendWork = weekendW > 0 || weekendB > 0;
+          /* A count, matching the "1 Day Off" badge beside it. The full figure
+             lives in the tooltip: spelling it out inline produced a string long
+             enough to wrap the meta row and push the O/G stats out of
+             alignment on every phone width. */
+          const weekendCount = weekendDays.size;
           const weekendNote = hasWeekendWork
-            ? `<span class="badge badge-leave" title="Weekend hours are shown for completeness but are not counted toward the weekly target">+${formatFriendlyDuration(weekendW)} weekend · not counted</span>`
+            ? `<span class="badge badge-leave" title="${formatFriendlyDuration(weekendW)} worked on ${weekendCount} weekend day${weekendCount === 1 ? "" : "s"} — shown for completeness, not counted toward the weekly target">${weekendCount} Weekend${weekendCount === 1 ? "" : "s"}</span>`
             : "";
 
           let weekdays = [];
@@ -35235,6 +35375,7 @@
         // exactly where it came from.
         const RELOCATIONS = [
           { slot: "goal", selector: ".goal-container" },
+          { slot: "goal", selector: ".weekly-goal-container" },
           { slot: "tz", selector: ".tz-presets" },
           { slot: "theme", selector: ".theme-container" },
           { slot: "tools", selector: ".footer-icons" },
