@@ -13021,6 +13021,29 @@
 
                   <!-- Row 3: Auto-save JSON Backup -->
                   <div class="settings-row">
+                    <span class="settings-label">Weekly goal (hours)</span>
+                    <input
+                      type="number"
+                      id="weekly-goal-hours"
+                      class="input-standard"
+                      min="1"
+                      max="168"
+                      step="0.5"
+                      style="width: 5.5rem; text-align: right"
+                      onchange="onWeeklyGoalChange()"
+                      onfocus="this.select()"
+                    />
+                  </div>
+
+                  <div
+                    style="
+                      height: 1px;
+                      background: var(--border-main);
+                      margin: 2px 0;
+                    "
+                  ></div>
+
+                  <div class="settings-row">
                     <span class="settings-label">Auto-save JSON backup</span>
                     <label class="switch">
                       <input
@@ -13707,6 +13730,40 @@
         return formatFriendlyDuration(Math.floor(safeSec / 60) * 60, "0m");
       }
 
+      /* Contracted hours per week. 40 is the common case and the previous
+         hardcoded assumption; making it a setting is the only thing that
+         changes here, because a weekly target is a company policy, not a
+         property of this app.
+
+         The daily goal input remains free to differ from this - that is the
+         whole point of the auto-populate feature. Fall six hours behind on
+         Monday and Tuesday's daily goal rises to compensate, but the WEEK
+         still owes what the week owes. */
+      const WEEKLY_GOAL_DEFAULT_HOURS = 40;
+      const WEEKLY_GOAL_WORKDAYS = 5;
+
+      function getWeeklyGoalSec() {
+        const h =
+          typeof state !== "undefined" &&
+          Number.isFinite(state.weeklyGoalHours) &&
+          state.weeklyGoalHours > 0
+            ? state.weeklyGoalHours
+            : WEEKLY_GOAL_DEFAULT_HOURS;
+        return Math.round(h * 3600);
+      }
+
+      /**
+       * What one ordinary working day is worth against the weekly target.
+       * Every "a normal day is eight hours" assumption in the app resolves
+       * through here, so changing the weekly goal moves all of them together
+       * instead of leaving the daily bar and the weekly bar measuring against
+       * different numbers.
+       */
+      function getStandardDayGoalSec() {
+        return Math.round(getWeeklyGoalSec() / WEEKLY_GOAL_WORKDAYS);
+      }
+      window.getStandardDayGoalSec = getStandardDayGoalSec;
+
       function calculatePeriodGoalStats(weekdayDateStrs) {
         const leaveDates =
           typeof getLeaveDates === "function" ? getLeaveDates() : [];
@@ -13723,7 +13780,7 @@
           if (isVacationDate(dateStr)) {
             leaveDays++;
           } else {
-            dynamicGoalSec += 28800; // 8 hours * 3600 seconds
+            dynamicGoalSec += getStandardDayGoalSec();
           }
         }
 
@@ -14386,6 +14443,13 @@
         isRunning: false,
         isPaused: false,
         startTimeMs: null,
+        /* When the task actually began, kept across every pause and resume.
+           startTimeMs is the anchor of the CURRENT segment and moves on every
+           resume, so it cannot answer "when did this task start?". Without a
+           separate witness the save path had to invent one by subtracting the
+           duration from the end, which put the recorded start hours after the
+           real one on any task that was ever paused. */
+        startedAtMs: null,
         accumulatedSec: 0,
         /* High-water mark for the in-flight segment, mirroring
            state.activeSegmentFloorSec. Seconds, not a timestamp. */
@@ -14412,6 +14476,7 @@
         goalNotified: false,
         idleTrackingEnabled: true,
         idleThresholdMinutes: 60,
+        weeklyGoalHours: WEEKLY_GOAL_DEFAULT_HOURS,
         autoBackupEnabled: false, // New property for silent backup
         autoEmailEnabled: false,
         continuousTabTickingEnabled: false,
@@ -14490,7 +14555,7 @@
                 DOM.goalMins.value,
                 DOM.goalSecs.value,
               )
-            : 28800;
+            : getStandardDayGoalSec();
 
         let fallbackGoal;
         if (isToday) {
@@ -14502,7 +14567,9 @@
               : liveGoalSec;
         } else {
           fallbackGoal =
-            state.goalAutopopulateEnabled !== false ? 28800 : liveGoalSec;
+            state.goalAutopopulateEnabled !== false
+              ? getStandardDayGoalSec()
+              : liveGoalSec;
         }
 
         return typeof dailyAnchorMap !== "undefined" &&
@@ -14607,7 +14674,8 @@
 
       /* A hidden page has nothing to compute. */
       function syncTickerState() {
-        if (document.hidden && !state.continuousTabTickingEnabled) stopUITimer();
+        if (document.hidden && !state.continuousTabTickingEnabled)
+          stopUITimer();
         else startUITimer();
       }
 
@@ -14652,6 +14720,7 @@
         goalMins: document.getElementById("goal-mins"),
         goalSecs: document.getElementById("goal-secs"),
         primaryTz: document.getElementById("primary-tz"),
+        weeklyGoalHours: document.getElementById("weekly-goal-hours"),
         submitModal: document.getElementById("submit-modal"),
         modalShiftNotes: document.getElementById("modal-shift-notes"),
         noteModal: document.getElementById("note-modal"),
@@ -14753,7 +14822,9 @@
         idleRangeContainer: document.getElementById("idle-range-container"),
         autoBackupToggle: document.getElementById("auto-backup-toggle"),
         autoEmailToggle: document.getElementById("auto-email-toggle"),
-        continuousTickingToggle: document.getElementById("continuous-ticking-toggle"),
+        continuousTickingToggle: document.getElementById(
+          "continuous-ticking-toggle",
+        ),
         manualDate: document.getElementById("manual-date"),
         manualWork: document.getElementById("manual-work"),
         manualModal: document.getElementById("manual-modal"),
@@ -15153,8 +15224,19 @@
         }
         return _formatTimeOnlyCache[tz];
       }
+      /* The single timezone every stored instant, calendar day boundary and
+         logbook label is expressed in. It is a business rule, not a preference:
+         a shift filed on 03/14 must mean the same day on every device that ever
+         opens this logbook.
+
+         DOM.primaryTz is purely cosmetic - it re-skins the wall clock widget at
+         the top of the screen and nothing else. Anything that reads it to
+         interpret or stamp DATA is a bug, because changing a display preference
+         would silently move existing entries onto a different clock. */
+      const APP_TZ = "America/Los_Angeles";
+
       const pstFormatter = new Intl.DateTimeFormat("en-US", {
-        timeZone: "America/Los_Angeles",
+        timeZone: APP_TZ,
         hour12: true,
         hour: "2-digit",
         minute: "2-digit",
@@ -15162,21 +15244,21 @@
       });
 
       const pstDateFormatter = new Intl.DateTimeFormat("en-US", {
-        timeZone: "America/Los_Angeles",
+        timeZone: APP_TZ,
         year: "2-digit",
         month: "2-digit",
         day: "2-digit",
       });
 
       const exportNameDateFormatter = new Intl.DateTimeFormat("en-CA", {
-        timeZone: "America/Los_Angeles",
+        timeZone: APP_TZ,
         year: "numeric",
         month: "2-digit",
         day: "2-digit",
       });
 
       const pstDateObjFormatter = new Intl.DateTimeFormat("en-US", {
-        timeZone: "America/Los_Angeles",
+        timeZone: APP_TZ,
         year: "numeric",
         month: "numeric",
         day: "numeric",
@@ -15195,7 +15277,7 @@
       });
 
       const loginFormatter = new Intl.DateTimeFormat("en-US", {
-        timeZone: "America/Los_Angeles",
+        timeZone: APP_TZ,
         hour12: true,
         hour: "2-digit",
         minute: "2-digit",
@@ -15226,39 +15308,40 @@
       }
 
       /*==========================================================================
-       * 4. SYSTEM CLOCK RECONCILIATION ENGINE
+       * 4. SYSTEM CLOCK POLICY
        *
-       * Tracks elapsed time across system sleep while safeguarding against
-       * system clock steps (NTP adjustments, manual clock changes, or VM resumes).
+       * This app trusts the host clock, deliberately and in line with every
+       * server-backed tracker on the market: start a shift in Toggl, jump the
+       * OS clock forward thirty minutes, and the timer jumps with it. Modern
+       * devices with automatic date/time are accurate to well inside a second,
+       * and the alternative - cross-checking against performance.now() - is
+       * unworkable in a web app, because a monotonic clock is frozen while the
+       * tab is backgrounded or the phone is locked. Every wake would look like
+       * a clock step and prompt the user about a gap that never happened.
        *
-       * DEFENCE IN DEPTH:
-       *   1. Verified step handling: Steps are applied to in-flight anchors.
-       *   2. Immutable original: state.loginTimestampRaw records the instant the
-       *      shift began and is never rebased by anything.
-       *   3. Commit-time assertion: assertShiftWindow() refuses to persist a log
-       *      entry whose window contradicts the hours inside it.
+       * What IS defended, because it costs nothing and is provable:
+       *
+       *   1. Cross-reload backward steps. A persisted timestamp sitting in the
+       *      future cannot be explained by elapsed time, so it proves the clock
+       *      moved back while the app was closed. reconcileClockOnLoad() rebases
+       *      the in-flight anchors by the observed difference.
+       *   2. Segment monotonicity. activeSegmentFloorSec keeps elapsed inside a
+       *      running segment from ever decreasing across a hard kill.
+       *   3. Commit-time arithmetic. assertShiftWindow() will not persist a
+       *      shift whose window is too short to contain its own hours.
        *
        * Every correction is recorded in the anomaly log, which survives reload,
        * so timekeeping can always be audited after the fact.
        * =========================================================================*/
 
-      /* Divergence beyond this over a reconciled window is treated as a clock step
-         rather than timer jitter. Well above scheduler noise, well below anything a
-         user would notice as lost time. */
+      /* A persisted timestamp further into the future than this is treated as
+         proof of a backward clock step rather than scheduler noise. */
       const CLOCK_STEP_THRESHOLD_MS = 2000;
 
-      /* Nominal spacing of the ticker, mirrored here so the reconciler can judge
-         whether a tick arrived on schedule. Kept as its own constant rather than
-         reaching into the ticker: this module must not depend on the ticker's
-         internals, only on its contract. */
-      const CLOCK_TICK_INTERVAL_MS = 1000;
-
-      /* Ceiling on the total correction applied to the login label across one
-         shift, measured against the immutable original rather than accumulated
-         step by step, so a long series of small corrections cannot walk the label
-         anywhere a single large one would have been refused. Durations keep their
-         corrections either way; only the absolute label is pinned. */
-      const CLOCK_MAX_LABEL_CORRECTION_MS = 300000; // 5 minutes
+      /* How long the app may be absent and still credit the gap without asking.
+         Covers a reload, a crash, or a browser restart - anything longer is a
+         window the app was not running for and cannot vouch for. */
+      const SESSION_RESUME_GRACE_MS = 90000; // 90 seconds
 
       /* Slack allowed when checking a committed shift window against the hours
          inside it. Work and break seconds are floored independently before they
@@ -15272,11 +15355,9 @@
       const CLOCK_ANOMALY_LOG_LIMIT = 40;
       const CLOCK_ANOMALY_LS_KEY = "nodrift_clock_anomalies_v1";
 
-      /* Wall-clock reading from the host system clock.
-         NOTE: this is the local OS clock, NOT a synchronized time source. It is
-         correct for absolute labels only after reconcileSystemClock() has had a
-         chance to rebase. Never derive a duration from it without an anchor that
-         passes through applyClockStep(). */
+      /* Wall-clock reading from the host system clock. Durations are always
+         derived from an anchor that applyClockStep() can rebase, never from a
+         bare pair of readings. */
       function getLocalTime() {
         return Date.now();
       }
@@ -15326,9 +15407,8 @@
          shipping them would make a phone inherit the laptop's idleness the
          instant it took over the session.
 
-         loginTimestampRaw is absent for a different reason: it is this device's
-         own witness to what it recorded, and a witness imported from elsewhere
-         cannot corroborate anything. Its absence simply skips the check. */
+         The login instant does cross, because the receiving device has to
+         render the same shift start the authoring device did. */
       const SYNC_INSTANT_KEYS = [
         "sessionAnchorWall",
         "loginTimestamp",
@@ -15352,35 +15432,6 @@
           if (typeof v === "number" && isFinite(v)) bag[k] = v + deltaMs;
         }
       }
-
-      /**
-       * Resets the per-shift label correction budget. Called when a shift starts,
-       * so the cap governs one shift rather than one browser session.
-       */
-      function resetClockLabelCorrection() {
-        // No-op: Login time is strictly immutable.
-      }
-
-      /**
-       * Moves the login label onto a corrected timeline, within bounds.
-       *
-       * The label is the one value a user reads back and checks against their own
-       * memory of the day, and the one this engine has historically been able to
-       * corrupt without leaving a trace, so it is corrected against the immutable
-       * original rather than by accumulating deltas onto the working copy. Two
-       * rules apply, and both are hard:
-       *
-       *   - the total displacement from loginTimestampRaw may not exceed
-       *     CLOCK_MAX_LABEL_CORRECTION_MS;
-       *   - a shift may not begin in the future.
-       *
-       * A refusal is logged rather than swallowed: the durations are still fully
-       * corrected, so refusing here costs nothing but a slightly stale label, and
-       * the anomaly log records why it is stale.
-       *
-       * @param {number} deltaMs - Verified clock step, already applied to anchors.
-       */
-      // applyLabelStep removed: login is strictly immutable.
 
       /**
        * Shifts every in-flight wall timestamp by deltaMs so that all live
@@ -15540,34 +15591,9 @@
         }
       }
 
-      /**
-       * Compares wall-clock and monotonic advance since the last reconciliation
-       * and rebases all in-flight timestamps if - and only if - the divergence is
-       * provably a system clock step.
-       *
-       * @param {string} reason - Call site tag, recorded in the anomaly log. Only
-       *   "tick" can establish continuous observation; every other call site is a
-       *   one-off that cannot vouch for the window behind it.
-       * @returns {number} The applied correction in ms (0 when nothing was done).
- */
-function reconcileSystemClock(reason) {
-  const nowWall = Date.now();
-
-  if (!clockHeartbeat) {
-    clockHeartbeat = { wall: nowWall, lastTick: nowWall };
-    return 0;
-  }
-
-  clockHeartbeat.wall = nowWall;
-  clockHeartbeat.lastTick = nowWall;
-
-  return 0;
-}
-
-/* Re-baselines the heartbeat pair without attempting a correction. Used
-         after deliberate timeline edits so the next reconcile does not misread
-         them. The window is marked unobserved because a deliberate edit is
-         exactly the kind of discontinuity the ledger exists to record. */
+      /* Re-baselines the heartbeat so the cross-reload witness scan has a
+         recent reading to compare against. Called on every tick and after any
+         deliberate edit to the timeline. */
       function markClockHeartbeat() {
         const nowWall = Date.now();
         if (clockHeartbeat) {
@@ -15616,55 +15642,87 @@ function reconcileSystemClock(reason) {
       /**
        * Last line of defence before a shift becomes a permanent record.
        *
-       * Everything above is designed to keep the in-flight timeline honest. This
-       * checks the result anyway, because the cost of a wrong log entry is a
-       * disputed timesheet weeks later, and the check is arithmetic:
+       * Work and break are independently measured quantities. Neither is ever
+       * recomputed from the window, because the window is the wider of the two
+       * facts: a shift can legitimately span more wall time than it tracked -
+       * discarded idle time, a paused session - and deriving break as
+       * "window minus work" turns every one of those gaps into break time the
+       * user never took. Equally, a work total pushed above the window by a
+       * manual adjustment would silently zero a real break.
+       *
+       * So this checks the window against the hours rather than the reverse:
        *
        *   - a shift cannot end before it starts;
-       *   - a shift cannot contain more work and break time than its own window;
-       *   - the login label cannot sit further from what this device recorded at
-       *     login than the correction cap allows.
+       *   - a window cannot be SHORTER than the time tracked inside it;
+       *   - a missing endpoint is reconstructed from the other plus the hours.
        *
-       * A violation is repaired rather than rejected: the hours are the thing the
-       * user cares about and they are independently accumulated, so the window is
-       * reconstructed around them and the repair is logged.
+       * A violation repairs the window and reports what it did. The hours pass
+       * through untouched - they are what the user is paid for.
        *
        * @param {number|null} loginTs
-       * @param {number} logoutTs
+       * @param {number|null} logoutTs
        * @param {number} workSec
        * @param {number} breakSec
-       * @param {number|null} [rawLoginTs] - Immutable original, when available.
-       * @returns {{loginTs: number, logoutTs: number, repaired: string|null}}
- */
-function assertShiftWindow(
-  loginTs,
-  logoutTs,
-  workSec,
-  breakSec,
-  rawLoginTs = null,
-) {
-  let finalLogin =
-    typeof rawLoginTs === "number" && isFinite(rawLoginTs) && rawLoginTs > 0
-      ? rawLoginTs
-      : loginTs || Date.now() - ((workSec || 0) + (breakSec || 0)) * 1000;
+       * @returns {{loginTs:number, logoutTs:number, workSec:number,
+       *            breakSec:number, untrackedSec:number, repaired:string|null}}
+       */
+      function assertShiftWindow(loginTs, logoutTs, workSec, breakSec) {
+        const finalWork = Math.max(
+          0,
+          Math.round(Number(workSec) > 0 ? Number(workSec) : 0),
+        );
+        const finalBreak = Math.max(
+          0,
+          Math.round(Number(breakSec) > 0 ? Number(breakSec) : 0),
+        );
+        const trackedMs = (finalWork + finalBreak) * 1000;
+        const repairs = [];
 
-  let finalLogout =
-    typeof logoutTs === "number" && isFinite(logoutTs) && logoutTs >= finalLogin
-      ? logoutTs
-      : finalLogin + ((workSec || 0) + (breakSec || 0)) * 1000;
+        let login =
+          typeof loginTs === "number" && isFinite(loginTs) && loginTs > 0
+            ? loginTs
+            : null;
+        let logout =
+          typeof logoutTs === "number" && isFinite(logoutTs) && logoutTs > 0
+            ? logoutTs
+            : null;
 
-  const totalWindowSec = Math.max(0, Math.round((finalLogout - finalLogin) / 1000));
-  const finalWork = Math.max(0, Math.floor(workSec || 0));
-  const finalBreak = Math.max(0, totalWindowSec - finalWork);
+        if (login === null && logout === null) {
+          logout = Date.now();
+          login = logout - trackedMs;
+          repairs.push("window reconstructed from tracked time");
+        } else if (login === null) {
+          login = logout - trackedMs;
+          repairs.push("login reconstructed");
+        } else if (logout === null) {
+          logout = login + trackedMs;
+          repairs.push("logout reconstructed");
+        }
 
-  return {
-    loginTs: Math.round(finalLogin),
-    logoutTs: Math.round(finalLogout),
-    workSec: finalWork,
-    breakSec: finalBreak,
-    repaired: null,
-  };
-}
+        if (logout < login) {
+          logout = login + trackedMs;
+          repairs.push("logout preceded login");
+        }
+
+        /* A window may exceed the hours inside it - that surplus is idle time
+           the user discarded, and it stays visible as untrackedSec rather than
+           being folded into break. It may never fall short of them. */
+        if (logout - login + SHIFT_WINDOW_TOLERANCE_MS < trackedMs) {
+          logout = login + trackedMs;
+          repairs.push("window shorter than tracked time");
+        }
+
+        const windowSec = Math.max(0, Math.round((logout - login) / 1000));
+
+        return {
+          loginTs: Math.round(login),
+          logoutTs: Math.round(logout),
+          workSec: finalWork,
+          breakSec: finalBreak,
+          untrackedSec: Math.max(0, windowSec - finalWork - finalBreak),
+          repaired: repairs.length ? repairs.join("; ") : null,
+        };
+      }
 
       /*--------------------------------------------------------------------------
        * 4b. STORAGE MANAGER
@@ -16133,6 +16191,7 @@ function assertShiftWindow(
         const SETTINGS_FIELDS = [
           "idleTrackingEnabled",
           "idleThresholdMinutes",
+          "weeklyGoalHours",
           "autoBackupEnabled",
           "autoEmailEnabled",
           "continuousTabTickingEnabled",
@@ -16151,6 +16210,7 @@ function assertShiftWindow(
           "isRunning",
           "isPaused",
           "startTimeMs",
+          "startedAtMs",
           "accumulatedSec",
           "taskFloorSec",
           "note",
@@ -16160,7 +16220,7 @@ function assertShiftWindow(
            taskFloorSec are durations — seconds elapsed, not moments — so they
            have no clock domain and cross the wire unchanged. Same reasoning
            as activeSegmentFloorSec on the session side. */
-        const TASK_INSTANT_KEYS = ["startTimeMs"];
+        const TASK_INSTANT_KEYS = ["startTimeMs", "startedAtMs"];
 
         /* ── session serialisers ───────────────────────────────────────── */
 
@@ -16450,6 +16510,56 @@ function assertShiftWindow(
           });
         }
 
+        /**
+         * Erases every trace of the sync layer from this device.
+         *
+         * The shadow lives in sync_meta, a store the factory reset never
+         * touched. Leaving it behind after a wipe meant the next outbox
+         * derivation walked hundreds of record ids, found none of them in the
+         * now-empty logbook, and read that as "the user deleted all of these" -
+         * pushing a tombstone for the entire history and taking the cloud and
+         * every other signed-in device down with it.
+         */
+        async function forgetEverything() {
+          shadow.log.clear();
+          shadow.task.clear();
+          pendingDeletes.log.clear();
+          pendingDeletes.task.clear();
+          cursor.log = 0;
+          cursor.task = 0;
+          settingsModifiedWire = 0;
+          dirty.clear();
+
+          if (!isSupported) return;
+          try {
+            const db = await dbPromise;
+            await new Promise((resolve) => {
+              const tx = db.transaction("sync_meta", "readwrite");
+              tx.objectStore("sync_meta").clear();
+              tx.oncomplete = resolve;
+              tx.onerror = resolve;
+              tx.onabort = resolve;
+            });
+          } catch (e) {
+            console.warn("Could not clear sync_meta", e);
+          }
+        }
+
+        /**
+         * Every record id this device knows of for a kind: what the shadow has
+         * seen, plus whatever is currently in memory.
+         */
+        function knownIds(kind, records) {
+          const ids = new Set(shadow[kind].keys());
+          if (Array.isArray(records)) {
+            for (let i = 0; i < records.length; i++) {
+              const r = records[i];
+              if (r && r.id) ids.add(r.id);
+            }
+          }
+          return [...ids];
+        }
+
         return {
           isSupported,
           ready,
@@ -16459,6 +16569,9 @@ function assertShiftWindow(
             dirtyHooks.add(fn);
             return () => dirtyHooks.delete(fn);
           },
+          forgetEverything,
+          knownIds,
+          toWire,
           deriveOutbox,
           sessionToWire,
           sessionFromWire,
@@ -16991,8 +17104,24 @@ function assertShiftWindow(
         }
 
         function rehydrate(kind, r) {
+          if (kind === "task") {
+            if (!Number.isFinite(r.pausedSec)) {
+              const span =
+                Number.isFinite(r.startMs) && Number.isFinite(r.endMs)
+                  ? Math.round((r.endMs - r.startMs) / 1000)
+                  : 0;
+              r.pausedSec = Math.max(
+                0,
+                span - Math.max(0, Number(r.durationSec) || 0),
+              );
+            }
+            return r;
+          }
           if (kind !== "log") return r;
-          const goal = r.dayGoal != null && r.dayGoal > 0 ? r.dayGoal : 28800;
+          const goal =
+            r.dayGoal != null && r.dayGoal > 0
+              ? r.dayGoal
+              : getStandardDayGoalSec();
           r.dayGoal = goal;
           if (!r.status) r.status = (r.workSec || 0) >= goal ? "OVER" : "UNDER";
           r.searchStr =
@@ -17378,11 +17507,64 @@ function assertShiftWindow(
           syncOnce("boot").catch(() => {});
         }
 
+        /**
+         * Deletes this account's server-side copy, deliberately and on request.
+         *
+         * The full history is pulled from cursor zero first so that records
+         * this device has never seen - written by a phone that last synced a
+         * week ago - are enumerated and tombstoned too. Anything less leaves
+         * orphans for the next device to download back into a logbook the user
+         * believes they emptied.
+         *
+         * @returns {Promise<number>} Records tombstoned.
+         */
+        async function wipeRemote() {
+          if (!SyncNet.signedIn) return 0;
+          let total = 0;
+
+          for (const kind of ["log", "task"]) {
+            let remoteIds = [];
+            try {
+              const remote = await pullKind(kind, 0);
+              remoteIds = remote.map((r) => r.id).filter(Boolean);
+            } catch (e) {
+              /* Enumeration is best-effort; the shadow still covers everything
+                 this device ever pushed. A hard failure surfaces from the push
+                 below, which is deliberately not caught. */
+              console.warn("Remote enumeration failed for " + kind, e);
+            }
+
+            const ids = new Set(
+              Sync.knownIds(kind, recordsOf(kind) || []).concat(remoteIds),
+            );
+            if (!ids.size) continue;
+
+            const stamp = Sync.toWire(Date.now());
+            const rows = [...ids].map((id) => ({
+              kind,
+              id,
+              payload: null,
+              deleted: true,
+              last_modified: stamp,
+            }));
+
+            for (let i = 0; i < rows.length; i += PUSH_BATCH) {
+              await SyncNet.rpc("push_records", {
+                p_rows: rows.slice(i, i + PUSH_BATCH),
+              });
+              total += Math.min(PUSH_BATCH, rows.length - i);
+            }
+          }
+
+          return total;
+        }
+
         return {
           syncOnce,
           schedulePush,
           pushKind,
           pullKind,
+          wipeRemote,
           mergeRows,
           onChange(fn) {
             listeners.add(fn);
@@ -18235,6 +18417,46 @@ function assertShiftWindow(
        * Persists historical logs grouped into chronological chunk blocks.
        * @param {Array} logsData - Full array of log entries to divide and save.
        */
+      /* Last signature successfully written for each chunk. Empty means
+         "assume nothing", which forces a full rewrite - the safe default after
+         a failure or a fresh load. */
+      let persistedChunkSignatures = new Map();
+
+      /**
+       * Cheap content fingerprint for one chunk.
+       *
+       * dirtyChunks is a performance hint supplied by callers, and any caller
+       * that forgets to name a chunk it moved a record out of leaves a stale
+       * duplicate in the database that reappears on the next load. Comparing
+       * signatures makes correctness independent of that bookkeeping: a chunk
+       * is rewritten because its contents changed, not because someone
+       * remembered to say so.
+       */
+      function chunkSignature(rows) {
+        let h = 5381;
+        for (let i = 0; i < rows.length; i++) {
+          const r = rows[i];
+          const s =
+            (r.id || "") +
+            "|" +
+            (r.lastModified || 0) +
+            "|" +
+            (r.workSec || 0) +
+            "|" +
+            (r.breakSec || 0) +
+            "|" +
+            (r.loginEpochMs || 0) +
+            "|" +
+            (r.logoutEpochMs || 0) +
+            "|" +
+            (r.notes || "");
+          for (let j = 0; j < s.length; j++) {
+            h = ((h << 5) + h + s.charCodeAt(j)) | 0;
+          }
+        }
+        return rows.length + ":" + (h >>> 0).toString(36);
+      }
+
       async function saveLogsToDB(
         logsData,
         targetChunks = new Set(["ALL"]),
@@ -18303,17 +18525,36 @@ function assertShiftWindow(
               reqKeys.result.forEach((k) => {
                 if (!newKeySet.has(k)) {
                   store.delete(k);
+                  persistedChunkSignatures.delete(k);
                 }
               });
+
               const rebuildAll = targetChunks.has("ALL");
+              const writtenSignatures = new Map();
+
               newKeySet.forEach((chunkId) => {
-                if (rebuildAll || targetChunks.has(chunkId)) {
+                const sig = chunkSignature(chunks[chunkId]);
+                /* Written when the caller asked for it OR when the contents no
+                   longer match what was last persisted. The second condition is
+                   what makes a forgotten dirtyChunks entry harmless. */
+                const changed = persistedChunkSignatures.get(chunkId) !== sig;
+                if (rebuildAll || targetChunks.has(chunkId) || changed) {
                   store.put({ chunkId, data: chunks[chunkId] });
+                  writtenSignatures.set(chunkId, sig);
                 }
               });
-              tx.oncomplete = () => resolve();
+
+              tx.oncomplete = () => {
+                writtenSignatures.forEach((sig, chunkId) => {
+                  persistedChunkSignatures.set(chunkId, sig);
+                });
+                resolve();
+              };
               tx.onerror = (e) => {
                 console.error("IDB chunk write failed:", e);
+                /* The database no longer matches anything this process
+                   believes about it, so the next save rebuilds from scratch. */
+                persistedChunkSignatures.clear();
                 targetChunks.forEach((c) => {
                   if (window.dirtyChunks) window.dirtyChunks.add(c);
                 });
@@ -18326,6 +18567,7 @@ function assertShiftWindow(
             };
             reqKeys.onerror = (e) => {
               console.error("IndexedDB key read failed:", e);
+              persistedChunkSignatures.clear();
               targetChunks.forEach((c) => {
                 if (window.dirtyChunks) window.dirtyChunks.add(c);
               });
@@ -18510,7 +18752,7 @@ function assertShiftWindow(
           if (wasActiveMaster) {
             if (state.currentMode !== null) {
               if (!state.idleLock) {
-                reconcileSystemClock("takeover");
+                markClockHeartbeat();
                 const nowWall = Date.now();
                 const elapsedSeconds = getActiveSegmentSeconds();
                 if (state.currentMode === "work") {
@@ -18546,6 +18788,11 @@ function assertShiftWindow(
           }
           usingWebLocks = false;
 
+          /* Flush before the flag, not after: saveState returns early once
+             isTabConflict is set. */
+          if (typeof flushStateBeforeEviction === "function") {
+            flushStateBeforeEviction();
+          }
           isTabConflict = true;
           DOM.tabConflictModal.style.display = "flex";
           renderStaticUI();
@@ -18651,6 +18898,7 @@ function assertShiftWindow(
             // A lease exists with another owner. Is it active (unexpired)?
             if (isLeaseFresh(lease, now)) {
               if (!isTabConflict) {
+                flushStateBeforeEviction();
                 isTabConflict = true;
                 if (typeof webLockReleaser === "function") {
                   webLockReleaser();
@@ -18668,6 +18916,7 @@ function assertShiftWindow(
               isLeaseFresh(lease, now)
             ) {
               if (!isTabConflict) {
+                flushStateBeforeEviction();
                 isTabConflict = true;
                 if (typeof webLockReleaser === "function") {
                   webLockReleaser();
@@ -18729,6 +18978,7 @@ function assertShiftWindow(
                   } else {
                     // Lock unavailable — another tab owns it
                     usingWebLocks = false;
+                    flushStateBeforeEviction();
                     isTabConflict = true;
                     document.getElementById(
                       "tab-conflict-modal",
@@ -18897,7 +19147,24 @@ function assertShiftWindow(
             saveState(true);
           }
           loadLogsFromDB().then((logs) => {
+            /* loadLogsFromDB resolves null on a read error or a timeout. Every
+               other caller checks; this one did not, and the consequences ran
+               well past a blank screen: cachedLogs became null, the push guard
+               kept believing the database was healthy, and the sync outbox read
+               "no local records" as "the user deleted all of them" and pushed a
+               tombstone for the entire history. A slow disk during a tab
+               takeover could empty the cloud. */
+            if (logs === null) {
+              isDatabaseHealthy = false;
+              console.error("Takeover aborted: logbook unreadable");
+              showAppToast(
+                "Could not read the logbook — reload the page",
+                "error",
+              );
+              return;
+            }
             cachedLogs = logs;
+            persistedChunkSignatures.clear();
             cachedTodayDate = null;
             rebuildWeeklyCache();
             renderStaticUI();
@@ -19229,6 +19496,19 @@ function assertShiftWindow(
 
         const expectedVersion = dataVersion;
 
+        /* Taken BEFORE cachedLogs is reassigned, and therefore before this
+           mutation is visible anywhere.
+
+           The day's restore point used to be captured immediately after the
+           first change of the day landed, which meant the one thing it could
+           never undo was that change. Deleting a month at 09:10 created a
+           snapshot containing the deletion, and restoring it brought nothing
+           back. A restore point that contains the accident is not a restore
+           point. */
+        if (typeof triggerAutoSnapshot === "function") {
+          triggerAutoSnapshot(getLogs());
+        }
+
         cachedLogs = logs;
         cachedTodayDate = null;
         filterCache = null; // Invalidate filter cache on data change
@@ -19237,11 +19517,6 @@ function assertShiftWindow(
         dataVersion = expectedVersion + 1; // Bump version for all derivative caches
         await rebuildWeeklyCache();
         autoPopulateDailyGoal(state.activeDate);
-
-        // Take standard failsafe snapshot on log operations
-        if (typeof triggerAutoSnapshot === "function") {
-          triggerAutoSnapshot();
-        }
 
         /* SYNCHRONOUS EMERGENCY MIRROR.
            Skipped while another tab is wiping: on file:// this mirror is the
@@ -19906,24 +20181,32 @@ function assertShiftWindow(
        * Elapsed seconds inside the currently running work/break segment.
        *
        * Single source of truth for live duration. The wall clock supplies the
-       * reading (so genuine elapsed time, including system suspend, is counted),
-       * but the anchor it is measured against is continuously rebased by
-       * reconcileSystemClock(), so system clock steps cannot add or erase time.
+       * reading, so genuine elapsed time - including system suspend - is
+       * counted, matching how every server-side tracker treats a running timer.
        *
-       * A persisted high-water mark guards the one window reconciliation cannot
-       * observe: a hard process kill followed by a backward clock change before
-       * the next launch. Elapsed within a segment is physically monotonic, so
-       * clamping upward to the floor is always correct.
+       * A persisted high-water mark (activeSegmentFloorSec) guards one specific
+       * window: a hard process kill followed by a backward system clock change
+       * before the next launch. Elapsed inside a segment is physically
+       * monotonic, so clamping upward is correct for any reading taken "now".
+       *
+       * It is NOT correct for a reading taken as of an earlier instant. An idle
+       * lock deliberately rewinds to the last keystroke so the inactive gap is
+       * excluded; applying the floor there would hand back the very gap the
+       * rewind exists to remove. Such callers pass ignoreFloor.
        *
        * @param {boolean} [advanceFloor=false] - Raise the persisted high-water
-       *   mark to the current reading. Only the save path should do this, and
-       *   only while the wall clock is trusted - see isClockSuspect.
+       *   mark to this reading. Only the save path does this.
        * @param {number} [nowMs=null] - Evaluate the segment as of this instant
-       *   instead of now. Lets boundary events (idle lock) measure up to the
-       *   moment they represent rather than the moment they were noticed.
+       *   instead of now.
+       * @param {boolean} [ignoreFloor=false] - Bypass the high-water mark. Only
+       *   for boundary events measuring to a deliberately earlier instant.
        * @returns {number} Active segment duration in seconds.
        */
-      function getActiveSegmentSeconds(advanceFloor = false, nowMs = null) {
+      function getActiveSegmentSeconds(
+        advanceFloor = false,
+        nowMs = null,
+        ignoreFloor = false,
+      ) {
         if (
           state.idleLock ||
           state.sessionAnchorWall === null ||
@@ -19935,6 +20218,9 @@ function assertShiftWindow(
         const ref =
           typeof nowMs === "number" && isFinite(nowMs) ? nowMs : Date.now();
         const measured = Math.max(0, (ref - state.sessionAnchorWall) / 1000);
+
+        if (ignoreFloor) return measured;
+
         const floor = state.activeSegmentFloorSec || 0;
         const elapsed = measured > floor ? measured : floor;
 
@@ -20064,9 +20350,6 @@ function assertShiftWindow(
           return;
         }
 
-        /* Absorb any pending clock step before the segment is committed:
-           whatever is banked here becomes permanent. */
-        reconcileSystemClock("switchMode");
         const nowWall = Date.now();
 
         // Finalize the current chunk through the single elapsed source of truth
@@ -20093,19 +20376,12 @@ function assertShiftWindow(
         }
 
         state.currentMode = mode;
-        lastUnobservedGap = null;
         _syncAdjustPopupContext();
 
         if (mode === "work" || mode === "break") {
           setSessionAnchor(nowWall);
           if (mode === "work" && !state.loginTimestamp) {
             state.loginTimestamp = nowWall;
-            /* Immutable witness to what this device recorded at login. Never
-               rebased by the clock engine, never sent over the wire, and the
-               yardstick every later correction to the label is measured against.
-               See CLOCK_MAX_LABEL_CORRECTION_MS and assertShiftWindow. */
-            state.loginTimestampRaw = nowWall;
-            resetClockLabelCorrection();
             state.shiftStartGoalSec =
               domWriteCache._goalSecCached ||
               getGoalSeconds(
@@ -20362,7 +20638,8 @@ function assertShiftWindow(
           const tProgFill = ht.querySelector("#tooltip-progress-fill");
 
           if (tVarVal && tVarBadge && tProgFill) {
-            const goalSec = window.tooltipCurrentGoalSec || 28800;
+            const goalSec =
+              window.tooltipCurrentGoalSec || getStandardDayGoalSec();
             const diffSec = liveTodayWork - goalSec;
             const isOver = diffSec >= 0;
             const progressPercent =
@@ -20591,7 +20868,9 @@ function assertShiftWindow(
               DOM.goalSecs.value,
             );
           const baselineDailyGoalSec =
-            state.goalAutopopulateEnabled !== false ? 28800 : liveGoalSec;
+            state.goalAutopopulateEnabled !== false
+              ? getStandardDayGoalSec()
+              : liveGoalSec;
 
           for (let i = 0; i < 5; i++) {
             const checkIdx = i + 1;
@@ -20607,7 +20886,7 @@ function assertShiftWindow(
               reusableDate.setUTCDate(mondayUTC.getUTCDate() + i);
               const dateStr = formatUTCDayStr(reusableDate);
               if (!isVacationDate(dateStr)) {
-                expectedSecSoFar += 28800;
+                expectedSecSoFar += getStandardDayGoalSec();
               }
             }
           }
@@ -20758,7 +21037,8 @@ function assertShiftWindow(
             : domWriteCache._goalSecCached
           : domWriteCache._goalSecCached;
         if (uiGoalSec < 0) {
-          uiGoalSec = anchorGoalSec > 0 ? anchorGoalSec : 28800;
+          uiGoalSec =
+            anchorGoalSec > 0 ? anchorGoalSec : getStandardDayGoalSec();
         }
         const loggedSec = getTodayLoggedWorkSeconds();
         const totalWorkToday = loggedSec + workSeconds;
@@ -21110,7 +21390,13 @@ function assertShiftWindow(
         loginTs,
         logoutTs,
       ) {
-        if (!workSec || workSec <= 0) return Promise.resolve();
+        /* A day that contained only break time is still a day that happened.
+           Bailing on work alone used to drop it outright at the midnight
+           boundary. */
+        const hasWork = Number(workSec) > 0;
+        const hasBreak = Number(breakSec) > 0;
+        if (!hasWork && !hasBreak) return Promise.resolve();
+
         const goal =
           state.shiftStartGoalSec ??
           getGoalSeconds(
@@ -21118,25 +21404,25 @@ function assertShiftWindow(
             DOM.goalMins.value,
             DOM.goalSecs.value,
           );
-        const diff = workSec - goal;
 
         /* Same assertion as executeSubmit. This path writes without user
            involvement, at midnight, on a device that may have just woken up, so
            if anything it needs the check more. */
-        /* The witness only corroborates the shift it was recorded for. The
-           midnight loop re-anchors the label per day, so it is offered only when
-           it still describes the login instant being committed here. */
-        const rawWitness =
-          loginTs === state.loginTimestamp ? state.loginTimestampRaw : null;
         const shiftWindow = assertShiftWindow(
           loginTs,
           logoutTs,
           workSec,
           breakSec,
-          rawWitness,
         );
         const loginInstant = shiftWindow.loginTs;
         const logoutInstant = shiftWindow.logoutTs;
+        if (shiftWindow.repaired) {
+          console.warn(
+            "[shift] rollover window repaired:",
+            shiftWindow.repaired,
+          );
+        }
+        const diff = shiftWindow.workSec - goal;
 
         const loginTime = loginInstant
           ? loginFormatter.format(new Date(loginInstant))
@@ -21170,8 +21456,8 @@ function assertShiftWindow(
           logout: logoutTime,
           loginEpochMs: loginInstant,
           logoutEpochMs: logoutInstant,
-          workSec: Math.floor(workSec),
-          breakSec: Math.floor(breakSec),
+          workSec: shiftWindow.workSec,
+          breakSec: shiftWindow.breakSec,
 
           diff: formatDuration(Math.abs(diff)),
           notes: "Auto-submitted (Midnight Reset)",
@@ -21424,20 +21710,26 @@ function assertShiftWindow(
             ? state.lastHeartbeatWall
             : Date.now();
 
-        /* Layer four. Nothing above is allowed to hand the logbook a window that
-           contradicts the hours inside it, so the arithmetic is checked once more
-           at the only point where it becomes permanent. */
+        /* Nothing above is allowed to hand the logbook a window that
+           contradicts the hours inside it, so the arithmetic is checked once
+           more at the only point where it becomes permanent. */
         const shiftWindow = assertShiftWindow(
           loginTs,
           rawLogoutTimestamp,
           workSeconds,
           breakSeconds,
-          state.loginTimestampRaw,
         );
         const loginTimestamp = shiftWindow.loginTs;
         const logoutTimestamp = shiftWindow.logoutTs;
-        const finalWorkSec = shiftWindow.workSec !== undefined ? shiftWindow.workSec : workSeconds;
-        const finalBreakSec = shiftWindow.breakSec !== undefined ? shiftWindow.breakSec : breakSeconds;
+        const finalWorkSec = shiftWindow.workSec;
+        const finalBreakSec = shiftWindow.breakSec;
+        if (shiftWindow.repaired) {
+          console.warn("[shift] window repaired:", shiftWindow.repaired);
+          showAppToast(
+            "Shift times adjusted to match tracked hours",
+            "warning",
+          );
+        }
 
         const loginTime = loginTimestamp
           ? loginFormatter.format(new Date(loginTimestamp))
@@ -21540,13 +21832,17 @@ function assertShiftWindow(
           !state.idleLock &&
           state.sessionAnchorWall !== null
         ) {
-          /* Time banked at the idle boundary, never below the ratchet floor:
-             the user genuinely worked at least that long before going idle.
-             Measured as of the idle instant, not of now - the gap between the
-             two is exactly the inactivity that must not be counted. */
+          /* Time banked at the idle boundary, measured as of the idle
+             instant rather than of now: the gap between the two is exactly the
+             inactivity that must not be counted. The ratchet floor is bypassed
+             on purpose - the periodic save has been advancing it right up to
+             the moment of detection, so honouring it here would bank the whole
+             idle gap as work and make the user's Work/Break/Discard choice
+             meaningless. */
           const elapsedBeforeIdle = getActiveSegmentSeconds(
             false,
             timeOfIdleWall,
+            true,
           );
 
           if (state.currentMode === "work") {
@@ -21605,8 +21901,7 @@ function assertShiftWindow(
         headerEl.insertAdjacentHTML("afterbegin", iconHtml);
 
         if (state.idleStart) {
-          const tz = DOM.primaryTz.value || "America/Los_Angeles";
-          const timeFormatter = getCachedTimeOnlyFormatter(tz);
+          const timeFormatter = getCachedTimeOnlyFormatter(APP_TZ);
           lastActiveEl.textContent = timeFormatter.format(
             new Date(state.idleStart),
           );
@@ -21631,10 +21926,6 @@ function assertShiftWindow(
             (state.workAccumulated || 0) + totalIdleSeconds;
           if (!state.loginTimestamp) {
             state.loginTimestamp = resolutionTime - totalIdleSeconds * 1000;
-            /* A deliberate, user-approved re-anchor. The witness follows it, or
-               the correction cap would later measure this decision as drift. */
-            state.loginTimestampRaw = state.loginTimestamp;
-            resetClockLabelCorrection();
           }
         } else if (choice === "break") {
           state.breakAccumulated =
@@ -21647,8 +21938,6 @@ function assertShiftWindow(
             );
             if (loginDateStr !== todayStr) {
               state.loginTimestamp = null;
-              state.loginTimestampRaw = null;
-              resetClockLabelCorrection();
             }
           }
         }
@@ -21679,8 +21968,21 @@ function assertShiftWindow(
         switchMode(targetMode);
 
         if (state.sessionAnchorWall) {
-          setSessionAnchor(resolutionTime);
-          state.lastHeartbeatWall = resolutionTime;
+          /* Where the resumed segment starts depends on what the user just
+             decided about the gap.
+
+             Work and Break: the gap up to resolutionTime has already been
+             banked into the chosen bucket, so the new segment must pick up
+             exactly there or the two would leave a hole between them.
+
+             Discard: the gap does not exist. Anchoring at resolutionTime -
+             which is when the app first noticed the user was back, not when
+             they answered - would quietly credit everything between the two.
+             A machine that woke at 06:00 and a user who answered at 09:00 was
+             three hours of "discarded" time counted as work. */
+          const resumeFrom = choice === "discard" ? nowWall : resolutionTime;
+          setSessionAnchor(resumeFrom);
+          state.lastHeartbeatWall = resumeFrom;
         }
       }
 
@@ -21694,6 +21996,9 @@ function assertShiftWindow(
         const previousIdleThreshold = isFactoryReset
           ? 60
           : state.idleThresholdMinutes;
+        const previousWeeklyGoal = isFactoryReset
+          ? WEEKLY_GOAL_DEFAULT_HOURS
+          : state.weeklyGoalHours;
         const previousAutoBackup = isFactoryReset
           ? false
           : state.autoBackupEnabled;
@@ -21714,7 +22019,6 @@ function assertShiftWindow(
           sessionAnchorWall: null,
           activeSegmentFloorSec: 0,
           loginTimestamp: null,
-          loginTimestampRaw: null,
           activeDate: getPSTDate(),
           idleLock: false,
           idleStart: null,
@@ -21727,12 +22031,18 @@ function assertShiftWindow(
             previousIdleEnabled !== undefined ? previousIdleEnabled : true,
           idleThresholdMinutes:
             previousIdleThreshold !== undefined ? previousIdleThreshold : 60,
+          weeklyGoalHours:
+            previousWeeklyGoal !== undefined
+              ? previousWeeklyGoal
+              : WEEKLY_GOAL_DEFAULT_HOURS,
           autoBackupEnabled:
             previousAutoBackup !== undefined ? previousAutoBackup : false,
           autoEmailEnabled:
             previousAutoEmail !== undefined ? previousAutoEmail : false,
           continuousTabTickingEnabled:
-            previousContinuousTabTicking !== undefined ? previousContinuousTabTicking : false,
+            previousContinuousTabTicking !== undefined
+              ? previousContinuousTabTicking
+              : false,
           goalAutopopulateEnabled:
             previousGoalAutopopulate !== undefined
               ? previousGoalAutopopulate
@@ -21744,8 +22054,6 @@ function assertShiftWindow(
         };
         lastActivity = Date.now();
         lastAdjustmentStateBackup = null;
-        /* The correction cap governs one shift, not one browser session. */
-        resetClockLabelCorrection();
         saveState();
         autoPopulateDailyGoal(state.activeDate);
         DOM.submitModal.style.display = "none";
@@ -23759,7 +24067,7 @@ function assertShiftWindow(
                       DOM.goalMins.value,
                       DOM.goalSecs.value,
                     )
-                  : 28800),
+                  : getStandardDayGoalSec()),
             };
           }
           window._dailyTotalsMap[dKey].w += l.workSec || 0;
@@ -23881,17 +24189,29 @@ function assertShiftWindow(
           totalB += l.breakSec || 0;
           if (l.notes) notesList.push(l.notes);
 
-          const logLoginMin = parseTimeToMinutes(l.login);
-          const logLogoutMin = parseTimeToMinutes(l.logout);
-          if (logLoginMin !== null) {
-            if (loginMin === null || logLoginMin < loginMin) {
-              loginMin = logLoginMin;
+          /* Ordered by absolute instant, falling back to time-of-day only
+             for legacy rows that predate the epoch fields.
+
+             Minutes-past-midnight cannot order a shift that crosses midnight:
+             a 22:00 -> 02:00 shift logs out at minute 120, lower than any
+             daytime login, so the group header picked an earlier shift's
+             endpoint and showed a day that ended before it began. */
+          const logLoginKey = Number.isFinite(l.loginEpochMs)
+            ? l.loginEpochMs
+            : parseTimeToMinutes(l.login);
+          const logLogoutKey = Number.isFinite(l.logoutEpochMs)
+            ? l.logoutEpochMs
+            : parseTimeToMinutes(l.logout);
+
+          if (logLoginKey !== null && logLoginKey !== undefined) {
+            if (loginMin === null || logLoginKey < loginMin) {
+              loginMin = logLoginKey;
               loginStr = l.login;
             }
           }
-          if (logLogoutMin !== null) {
-            if (logoutMin === null || logLogoutMin > logoutMin) {
-              logoutMin = logLogoutMin;
+          if (logLogoutKey !== null && logLogoutKey !== undefined) {
+            if (logoutMin === null || logLogoutKey > logoutMin) {
+              logoutMin = logLogoutKey;
               logoutStr = l.logout;
             }
           }
@@ -24098,7 +24418,7 @@ function assertShiftWindow(
             heatmapMap[l.date] = {
               w: 0,
               b: 0,
-              goal: 28800,
+              goal: getStandardDayGoalSec(),
               isLeave: true,
               type: l.type,
               notes: "",
@@ -24265,7 +24585,6 @@ function assertShiftWindow(
         // Calculate YTD stats
         let ytdWorkSec = 0;
         let ytdBreakSec = 0;
-        let ytdDaysCount = 0;
         const parseYearFromDate = (dateStr) => {
           if (!dateStr) return NaN;
           if (dateStr.includes("-")) {
@@ -24285,7 +24604,6 @@ function assertShiftWindow(
           if (!isNaN(fullY) && fullY === currentYear) {
             ytdWorkSec += l.workSec || 0;
             ytdBreakSec += l.breakSec || 0;
-            ytdDaysCount++;
           }
         });
 
@@ -25081,7 +25399,9 @@ function assertShiftWindow(
         const isPastWeek = weekStartMs < todayWeekStartMs;
         const isWeekend = todayDay === 0 || todayDay === 6;
         const trendBaselineDailyGoalSec =
-          state.goalAutopopulateEnabled !== false ? 28800 : liveGoalSec;
+          state.goalAutopopulateEnabled !== false
+            ? getStandardDayGoalSec()
+            : liveGoalSec;
 
         for (let i = 0; i < 5; i++) {
           const checkIdx = i + 1;
@@ -25101,7 +25421,7 @@ function assertShiftWindow(
             reusableDate.setUTCDate(mondayUTC.getUTCDate() + i);
             const dateStr = formatUTCDayStr(reusableDate);
             if (!isVacationDate(dateStr)) {
-              expectedSecSoFar += 28800;
+              expectedSecSoFar += getStandardDayGoalSec();
             }
           }
         }
@@ -25270,6 +25590,15 @@ function assertShiftWindow(
         macroBuckets.forEach((bData, key) => {
           let bucketW = 0;
           let bucketB = 0;
+          /* Weekend work is excluded from every target and every total by
+             design - the contracted week is Monday to Friday. It is still
+             tracked here so it can be SHOWN. Counting it nowhere and showing it
+             nowhere is what made a Saturday shift appear in the logbook, colour
+             a square in the heatmap, and then render as a blank "—" row in the
+             breakdown as though the day had never happened. */
+          let weekendW = 0;
+          let weekendB = 0;
+          let countedShifts = 0;
           let notesList = [];
           bData.logs.forEach((l) => {
             if (
@@ -25282,6 +25611,10 @@ function assertShiftWindow(
             if (dWk >= 1 && dWk <= 5) {
               bucketW += l.workSec || 0;
               bucketB += l.breakSec || 0;
+              countedShifts++;
+            } else {
+              weekendW += l.workSec || 0;
+              weekendB += l.breakSec || 0;
             }
             if (l.notes && l.notes.trim()) {
               if (!notesList.includes(l.notes.trim())) {
@@ -25289,6 +25622,10 @@ function assertShiftWindow(
               }
             }
           });
+          const hasWeekendWork = weekendW > 0 || weekendB > 0;
+          const weekendNote = hasWeekendWork
+            ? `<span class="badge badge-leave" title="Weekend hours are shown for completeness but are not counted toward the weekly target">+${formatFriendlyDuration(weekendW)} weekend · not counted</span>`
+            : "";
 
           let weekdays = [];
           if (viewType === "monthly") {
@@ -25365,6 +25702,7 @@ function assertShiftWindow(
           const isEmptyBucket =
             bucketW === 0 &&
             bucketB === 0 &&
+            !hasWeekendWork &&
             (!isCurrentRow || !state.loginTimestamp);
 
           if (isEmptyBucket) {
@@ -25393,7 +25731,10 @@ function assertShiftWindow(
                   </div>
                 </div>`;
           } else {
-            const shiftText = `${bData.logs.length} Shift${bData.logs.length !== 1 ? "s" : ""}`;
+            /* The count of shifts that fed the numbers beside it. Using the
+               raw bucket length let a row read "3 Shifts" above totals derived
+               from one. */
+            const shiftText = `${countedShifts} Shift${countedShifts !== 1 ? "s" : ""}`;
 
             breakdownHTML += `
                 <div class="${rowClass}">
@@ -25411,7 +25752,7 @@ function assertShiftWindow(
                     </div>
                   </div>
                   <div class="breakdown-row-meta">
-                    <span style="color: var(--text-muted);">${shiftText}</span>
+                    <span style="color: var(--text-muted);">${shiftText}${weekendNote}</span>
                     <div class="font-mono stats-alignment-wrapper" style="font-size: var(--font-size-entry-stats); color: var(--text-muted); display: flex; gap: 12px;">
                       <div class="stat-column work-col flex-center">
                         <span ${isCurrentRow ? 'id="today-variance-badge"' : ""} class="badge ${badgeClass}">${ouLetter}</span><span ${isCurrentRow ? 'id="today-variance-val"' : ""}>${formatFriendlyDuration(Math.abs(diffSec), "0m")}</span>
@@ -25455,7 +25796,9 @@ function assertShiftWindow(
           DOM.goalSecs.value,
         );
         const baselineDailyGoalSec =
-          state.goalAutopopulateEnabled !== false ? 28800 : liveGoalSec;
+          state.goalAutopopulateEnabled !== false
+            ? getStandardDayGoalSec()
+            : liveGoalSec;
 
         if (isTodayInView) {
           let limitMs =
@@ -25488,7 +25831,7 @@ function assertShiftWindow(
               const ds = formatUTCDayStr(loopDate);
               if (!isVacationDate(ds)) {
                 activeDaysRemaining++;
-                futureAndTodayGoalSec += 28800;
+                futureAndTodayGoalSec += getStandardDayGoalSec();
               }
             }
             loopDate.setUTCDate(loopDate.getUTCDate() + 1);
@@ -26005,6 +26348,15 @@ function assertShiftWindow(
         task.startMs = startMs;
         task.endMs = endMs;
         task.durationSec = durSec !== null ? durSec : 0;
+        /* Recomputed, never carried over. The edit may have moved either
+           endpoint or the duration, and a stale paused figure would leave the
+           row claiming a span its own numbers no longer add up to. */
+        task.pausedSec = Math.max(
+          0,
+          (Number.isFinite(startMs) && Number.isFinite(endMs)
+            ? Math.round((endMs - startMs) / 1000)
+            : 0) - task.durationSec,
+        );
         task.note = noteStr;
         /* Without this the outbox diff sees an unchanged stamp and skips the
            record entirely, so the edit would never leave this device.
@@ -26210,6 +26562,8 @@ function assertShiftWindow(
             newDate,
             newLogout,
           );
+          const editHadBothEndpoints =
+            derivedLoginEpochMs !== null && derivedLogoutEpochMs !== null;
 
           if (derivedLoginEpochMs !== null && derivedLogoutEpochMs !== null) {
             if (derivedLogoutEpochMs < derivedLoginEpochMs) {
@@ -26231,6 +26585,24 @@ function assertShiftWindow(
 
           derivedLoginEpochMs = Math.floor(derivedLoginEpochMs / 1000) * 1000;
           derivedLogoutEpochMs = Math.floor(derivedLogoutEpochMs / 1000) * 1000;
+
+          /* Same check as the manual and tracked paths. An edit is just as
+             capable of producing a window too short to hold its own hours. */
+          const editWindow = assertShiftWindow(
+            derivedLoginEpochMs,
+            derivedLogoutEpochMs,
+            wSec,
+            bSec,
+          );
+          if (editHadBothEndpoints && editWindow.repaired) {
+            showAppToast(
+              `${formatFriendlyDuration(wSec + bSec)} of work and break will not fit between ${newLogin} and ${newLogout}`,
+              "warning",
+            );
+            return;
+          }
+          derivedLoginEpochMs = editWindow.loginTs;
+          derivedLogoutEpochMs = editWindow.logoutTs;
 
           if (epochMs > Date.now() + 172800000) {
             showAppToast("Date is too far in the future", "warning");
@@ -26295,9 +26667,9 @@ function assertShiftWindow(
               log.displayDate = newDate.replace(/\/20(\d{2})$/, "/$1");
               log.login = newLogin;
               log.logout = newLogout;
-              log.workSec = wSec;
-              log.breakSec = bSec;
-              log.totalSeconds = wSec + bSec;
+              log.workSec = editWindow.workSec;
+              log.breakSec = editWindow.breakSec;
+              log.totalSeconds = editWindow.workSec + editWindow.breakSec;
               log.dayGoal = goal;
 
               log.diff = formatDuration(Math.abs(wSec - goal));
@@ -26420,7 +26792,14 @@ function assertShiftWindow(
         logs.forEach((l) => {
           const workDec = (l.workSec / 3600).toFixed(4);
           const breakDec = (l.breakSec / 3600).toFixed(4);
-          const goalSec = resolveGoalSecForDate(l.date);
+          /* The shift's own frozen goal, which is what the logbook renders.
+             Re-deriving it from the day map returned the OLDEST goal recorded
+             for that date, so a day holding two shifts with different targets
+             exported a delta that contradicted the screen. */
+          const goalSec =
+            l.dayGoal != null && l.dayGoal >= 0
+              ? l.dayGoal
+              : resolveGoalSecForDate(l.date);
           const deltaDec = ((l.workSec - goalSec) / 3600).toFixed(4);
           const notes = l.notes
             ? l.notes.replace(/"/g, '""').replace(/\n/g, " ")
@@ -26605,6 +26984,15 @@ function assertShiftWindow(
             return "idleThresholdMinutes must be a number.";
           }
           if (
+            data.state.weeklyGoalHours !== undefined &&
+            (typeof data.state.weeklyGoalHours !== "number" ||
+              !isFinite(data.state.weeklyGoalHours) ||
+              data.state.weeklyGoalHours <= 0 ||
+              data.state.weeklyGoalHours > 168)
+          ) {
+            return "weeklyGoalHours must be a number between 0 and 168.";
+          }
+          if (
             data.state.idleTrackingEnabled !== undefined &&
             typeof data.state.idleTrackingEnabled !== "boolean"
           ) {
@@ -26771,6 +27159,9 @@ function assertShiftWindow(
               data.state.idleTrackingEnabled !== undefined
                 ? data.state.idleTrackingEnabled
                 : state.idleTrackingEnabled;
+            if (Number.isFinite(data.state.weeklyGoalHours)) {
+              state.weeklyGoalHours = data.state.weeklyGoalHours;
+            }
             state.idleThresholdMinutes =
               data.state.idleThresholdMinutes !== undefined
                 ? data.state.idleThresholdMinutes
@@ -26885,7 +27276,29 @@ function assertShiftWindow(
           }
           if (data.taskLogs) {
             if (resolutionType === "overwrite") {
-              cachedTaskLogs = [...data.taskLogs].sort(
+              /* Overwrite means "the backup wins where the two disagree", not
+                 "discard everything the backup does not happen to contain".
+                 Replacing the array outright deleted every task recorded since
+                 the backup was taken. */
+              const mergedTasks = new Map();
+              for (let i = 0; i < cachedTaskLogs.length; i++) {
+                const t = cachedTaskLogs[i];
+                if (t && t.id) mergedTasks.set(t.id, t);
+              }
+              for (let i = 0; i < data.taskLogs.length; i++) {
+                const t = data.taskLogs[i];
+                if (!t) continue;
+                if (!t.id) {
+                  t.id =
+                    "task_" +
+                    Math.random().toString(36).substring(2, 11) +
+                    Date.now().toString(36);
+                }
+                mergedTasks.set(t.id, t);
+              }
+              cachedTaskLogs = backfillTaskPausedSec([
+                ...mergedTasks.values(),
+              ]).sort(
                 (a, b) => (Number(b.startMs) || 0) - (Number(a.startMs) || 0),
               );
             } else if (resolutionType === "keep-local") {
@@ -26893,10 +27306,10 @@ function assertShiftWindow(
               const newNonConflictingTasks = data.taskLogs.filter(
                 (t) => !localTaskIds.has(t.id),
               );
-              cachedTaskLogs = [
+              cachedTaskLogs = backfillTaskPausedSec([
                 ...newNonConflictingTasks,
                 ...cachedTaskLogs,
-              ].sort(
+              ]).sort(
                 (a, b) => (Number(b.startMs) || 0) - (Number(a.startMs) || 0),
               );
             } else {
@@ -26907,7 +27320,10 @@ function assertShiftWindow(
                   Math.random().toString(36).substring(2, 11) +
                   Date.now().toString(36),
               }));
-              cachedTaskLogs = [...incomingTasks, ...cachedTaskLogs].sort(
+              cachedTaskLogs = backfillTaskPausedSec([
+                ...incomingTasks,
+                ...cachedTaskLogs,
+              ]).sort(
                 (a, b) => (Number(b.startMs) || 0) - (Number(a.startMs) || 0),
               );
             }
@@ -26947,33 +27363,74 @@ function assertShiftWindow(
             });
 
             const currentLogs = getLogs();
-            let mergedLogs = [];
 
-            if (resolutionType === "keep-local") {
-              const localDates = new Set(currentLogs.map((l) => l.date));
-              const filteredBackupLogs = validatedLogs.filter(
-                (l) => !localDates.has(l.date),
-              );
-              mergedLogs = [...filteredBackupLogs, ...currentLogs];
-              logsAddedCount = filteredBackupLogs.length;
-            } else if (resolutionType === "overwrite") {
-              const backupDates = new Set(validatedLogs.map((l) => l.date));
-              const filteredLocalLogs = currentLogs.filter(
-                (l) => !backupDates.has(l.date),
-              );
-              mergedLogs = [...validatedLogs, ...filteredLocalLogs];
-              logsAddedCount = validatedLogs.length;
-              logsOverwrittenCount =
-                currentLogs.length - filteredLocalLogs.length;
-            } else if (resolutionType === "keep-both") {
-              mergedLogs = [...validatedLogs, ...currentLogs];
-              logsAddedCount = validatedLogs.length;
+            /* THE UNIT OF AN IMPORT IS A SHIFT, NOT A DAY.
+               The merge used to resolve whole calendar dates: "overwrite"
+               dropped every local shift sharing a date with the backup, so a
+               Tuesday holding a morning, an afternoon and an evening shift lost
+               two of them to a backup that only carried the morning - and the
+               conflict wizard showed a single line for that day, never
+               mentioning the other two. Records carry stable ids, so identity
+               is what merges here, and a date collision is no longer a reason
+               to delete anything. */
+            const newLogId = () =>
+              "log_" +
+              Math.random().toString(36).substring(2, 11) +
+              Date.now().toString(36);
+
+            const byId = new Map();
+            for (let i = 0; i < currentLogs.length; i++) {
+              const l = currentLogs[i];
+              if (!l) continue;
+              if (!l.id) l.id = newLogId();
+              byId.set(l.id, l);
             }
 
+            for (let i = 0; i < validatedLogs.length; i++) {
+              const incoming = validatedLogs[i];
+              const local = byId.get(incoming.id);
+
+              if (!local) {
+                byId.set(incoming.id, incoming);
+                logsAddedCount++;
+                continue;
+              }
+
+              if (resolutionType === "keep-local") {
+                // A record this device already holds stays exactly as it is.
+                continue;
+              }
+
+              if (resolutionType === "keep-both") {
+                /* Kept side by side under a fresh id, so neither version is
+                   lost and neither silently replaces the other. */
+                incoming.id = newLogId();
+                byId.set(incoming.id, incoming);
+                logsAddedCount++;
+                continue;
+              }
+
+              // overwrite: the backup wins this record, and only this record.
+              byId.set(incoming.id, incoming);
+              logsOverwrittenCount++;
+            }
+
+            /* Exact-duplicate collapse, for backups written before records
+               carried ids. Notes are part of the key: two shifts with matching
+               times but different notes are two different shifts, and folding
+               them together discarded one along with whatever it recorded. */
             const uniqueMap = new Map();
-            mergedLogs.forEach((l) => {
-              const key = `${l.epochMs}_${l.loginEpochMs}_${l.logoutEpochMs}_${l.workSec}_${l.breakSec}`;
-              if (!uniqueMap.has(key)) {
+            byId.forEach((l) => {
+              const key = `${l.epochMs}_${l.loginEpochMs}_${l.logoutEpochMs}_${l.workSec}_${l.breakSec}_${l.notes || ""}`;
+              const existing = uniqueMap.get(key);
+              if (!existing) {
+                uniqueMap.set(key, l);
+                return;
+              }
+              /* Two byte-identical shifts. The more recently edited one
+                 survives, so the outcome is deterministic rather than a
+                 consequence of array order. */
+              if ((l.lastModified || 0) > (existing.lastModified || 0)) {
                 uniqueMap.set(key, l);
               }
             });
@@ -26981,11 +27438,8 @@ function assertShiftWindow(
             const finalLogs = Array.from(uniqueMap.values());
             const usedIds = new Set();
             finalLogs.forEach((l) => {
-              if (usedIds.has(l.id)) {
-                l.id =
-                  "log_" +
-                  Math.random().toString(36).substring(2, 11) +
-                  Date.now().toString(36);
+              if (!l.id || usedIds.has(l.id)) {
+                l.id = newLogId();
               }
               usedIds.add(l.id);
             });
@@ -27224,12 +27678,20 @@ function assertShiftWindow(
                   if (db.objectStoreNames.contains("snapshots")) {
                     stores.push("snapshots");
                   }
+                  /* The sync shadow is data too. Leaving it behind is what
+                     turned a local wipe into a remote one. */
+                  if (db.objectStoreNames.contains("sync_meta")) {
+                    stores.push("sync_meta");
+                  }
                   const tx = db.transaction(stores, "readwrite");
                   tx.objectStore("logs").clear();
                   tx.objectStore("logs_chunked").clear();
                   if (db.objectStoreNames.contains("snapshots")) {
                     tx.objectStore("snapshots").clear();
                     snapshotIndex = [];
+                  }
+                  if (db.objectStoreNames.contains("sync_meta")) {
+                    tx.objectStore("sync_meta").clear();
                   }
                   tx.oncomplete = finish;
                   tx.onerror = finish;
@@ -27292,11 +27754,92 @@ function assertShiftWindow(
       /**
        * Triggers destructive cleanup operations to factory state.
        */
+      /**
+       * Applies an edited weekly goal.
+       *
+       * Every derived target - the weekly bar, the monthly and yearly
+       * breakdowns, the pace figure, the auto-populated daily goal - reads
+       * through getStandardDayGoalSec(), so a full re-render is all that is
+       * needed to bring them into line with each other.
+       */
+      function onWeeklyGoalChange() {
+        const el = DOM.weeklyGoalHours;
+        if (!el) return;
+
+        const raw = parseFloat(el.value);
+        if (!isFinite(raw) || raw <= 0 || raw > 168) {
+          el.value = String(state.weeklyGoalHours || WEEKLY_GOAL_DEFAULT_HOURS);
+          showAppToast(
+            "Weekly goal must be between 1 and 168 hours",
+            "warning",
+          );
+          return;
+        }
+
+        state.weeklyGoalHours = Math.round(raw * 2) / 2;
+        el.value = String(state.weeklyGoalHours);
+        if (window.Sync) window.Sync.markDirty("settings");
+        saveState(true);
+
+        insightsCacheKey = null;
+        if (typeof renderInsights === "function") renderInsights();
+        if (typeof renderLogbook === "function") renderLogbook();
+        if (typeof updateProgress === "function") updateProgress();
+
+        showAppToast(
+          `Weekly goal set to ${state.weeklyGoalHours}h (${formatFriendlyDuration(getStandardDayGoalSec())}/day)`,
+          "success",
+        );
+      }
+      window.onWeeklyGoalChange = onWeeklyGoalChange;
+
       function clearAllData() {
+        const signedIn = !!(window.SyncNet && SyncNet.signedIn);
+        const account = signedIn ? SyncNet.email || "your account" : null;
+
+        /* The old copy said "ALL logs and settings" and stopped there, which
+           describes a local wipe. Signed in, the wipe reaches the cloud and
+           every other device on the account - so it says so, and offers the
+           escape hatch for anyone who wanted only this device gone. */
+        const message = signedIn
+          ? `This permanently deletes every shift, task and setting from this device AND from ${account} — including any other device signed in to it. ` +
+            `To clear only this device, cancel, sign out first, then wipe. The app reloads when it is done. This is irreversible.`
+          : "This permanently deletes every shift, task and setting stored on this device. " +
+            "You are not signed in, so nothing in the cloud is touched. The app reloads when it is done. This is irreversible.";
+
         openConfirmModal(
           "Factory Reset",
-          "Are you sure you want to permanently delete ALL logs and settings? The app will reload itself once everything is gone. This is irreversible.",
-          () => {
+          message,
+          async () => {
+            /* The cloud goes first, while the shadow that enumerates it still
+               exists. If it fails, nothing local has been touched and the user
+               still has both copies. */
+            if (signedIn) {
+              if (!navigator.onLine) {
+                showAppToast(
+                  "Offline — reconnect to wipe the cloud, or sign out to wipe this device only",
+                  "error",
+                );
+                return;
+              }
+              showAppToast("Deleting cloud data…");
+              try {
+                await SyncEngine.wipeRemote();
+              } catch (err) {
+                console.error("Remote wipe failed", err);
+                showAppToast(
+                  "Could not delete cloud data — nothing was wiped",
+                  "error",
+                );
+                return;
+              }
+              try {
+                await SyncNet.signOut();
+              } catch (e) {
+                console.warn("Sign-out after wipe failed", e);
+              }
+            }
+
             isFactoryResetting = true;
 
             // Sent before saveLogs so it lands ahead of the database_mutated broadcast that write emits
@@ -27318,9 +27861,15 @@ function assertShiftWindow(
             filterCacheKey = null;
             cachedTaskLogs = [];
             _cachedIdleThresholdMs = 3600000;
+            persistedChunkSignatures.clear();
 
             saveLogs([])
               .then(clearAllDatabaseStores)
+              .then(() =>
+                window.Sync && typeof Sync.forgetEverything === "function"
+                  ? Sync.forgetEverything()
+                  : null,
+              )
               .then(() => {
                 // The data is already gone by this point, so a hiccup while repainting must not cost us the
                 // reboot below — the reload is what.
@@ -27393,12 +27942,18 @@ function assertShiftWindow(
         if (isFactoryResetting) return;
         window.isRollingOver = true;
         try {
+          /* getPSTDate() is the single answer to "what day is it", and it
+             reads the server-corrected clock. Formatting the raw local clock
+             here made two: around midnight on a skewed device the rollover
+             could fire on one calendar day while today's totals, the goal
+             lookup and resetSession() all used another, and a shift could be
+             filed against the wrong date in the gap between them. */
           const currentEpochMin = Math.floor(now.getTime() / 60000);
           if (
             currentEpochMin !== _lastMidnightCheckMin ||
             !_cachedCurrentDatePST
           ) {
-            _cachedCurrentDatePST = pstDateFormatter.format(now);
+            _cachedCurrentDatePST = getPSTDate();
             _lastMidnightCheckMin = currentEpochMin;
           }
           let currentDatePST = _cachedCurrentDatePST;
@@ -27446,7 +28001,7 @@ function assertShiftWindow(
             : null;
 
           const rolloverFormatter = new Intl.DateTimeFormat("en-US", {
-            timeZone: "America/Los_Angeles",
+            timeZone: APP_TZ,
             hour: "numeric",
             hour12: false,
             hourCycle: "h23",
@@ -27454,14 +28009,19 @@ function assertShiftWindow(
 
           // Process sleep gaps iteratively to prevent date skipping (Phase 2, Item 3)
           while (state.activeDate !== currentDatePST && safetyCounter++ < 366) {
-            const hasAccumulatedWork =
+            /* Break counts here too. A shift that crossed midnight while on
+               break has real time to file, and testing work alone used to send
+               it down the "nothing happened, just advance the date" path where
+               the break was discarded. */
+            const hasAccumulatedTime =
               (state.workAccumulated || 0) +
-              (state.currentMode === "work" ? getActiveSegmentSeconds() : 0);
+              (state.breakAccumulated || 0) +
+              (state.currentMode ? getActiveSegmentSeconds() : 0);
 
-            // NO active session and NO meaningful accumulated work — just advance the date
+            // NO active session and NO meaningful accumulated time — just advance the date
             if (
               state.currentMode === null &&
-              hasAccumulatedWork < 1 &&
+              hasAccumulatedTime < 1 &&
               !state.idleLock
             ) {
               const parsedActive = parseDateStringLocal(state.activeDate);
@@ -27492,7 +28052,7 @@ function assertShiftWindow(
               state.activeDate = pstDateFormatter.format(nextDayObj);
               requiresRender = true;
             } else if (
-              hasAccumulatedWork >= 1 ||
+              hasAccumulatedTime >= 1 ||
               state.currentMode !== null ||
               state.idleLock
             ) {
@@ -27594,7 +28154,7 @@ function assertShiftWindow(
               // Create the log entry for the prior day using our safe atomic helper
               const activeWork = state.workAccumulated || 0;
               const activeBreak = state.breakAccumulated || 0;
-              if (activeWork > 0) {
+              if (activeWork > 0 || activeBreak > 0) {
                 await createShiftLogEntry(
                   state.activeDate,
                   activeWork,
@@ -27633,8 +28193,6 @@ function assertShiftWindow(
                 // Also align the login timestamp to midnight so the new day's shift starts cleanly.
                 if (state.loginTimestamp) {
                   state.loginTimestamp = midnightMs;
-                  state.loginTimestampRaw = midnightMs;
-                  resetClockLabelCorrection();
                 }
                 if (state.idleStart && state.idleStart < midnightMs) {
                   state.idleStart = midnightMs;
@@ -27642,20 +28200,16 @@ function assertShiftWindow(
               } else if (activeMode !== null) {
                 state.currentMode = activeMode;
                 state.loginTimestamp = midnightMs;
-                state.loginTimestampRaw = midnightMs;
-                resetClockLabelCorrection();
                 setSessionAnchor(midnightMs);
                 state.lastHeartbeatWall = midnightMs;
               } else {
                 setSessionAnchor(null);
                 state.loginTimestamp = null;
-                state.loginTimestampRaw = null;
-                resetClockLabelCorrection();
               }
 
               requiresRender = true;
 
-              if (activeWork > 0) {
+              if (activeWork > 0 || activeBreak > 0) {
                 showSyncToast(
                   "Midnight rollover — yesterday's shift saved",
                   true,
@@ -27724,9 +28278,7 @@ function assertShiftWindow(
       function tick() {
         if (isTabConflict) return;
 
-        /* Detect and absorb any system clock step BEFORE any timestamp is read
-           this tick, so every downstream duration sees a corrected timeline. */
-        reconcileSystemClock("tick");
+        markClockHeartbeat();
 
         const nowMs = Date.now();
         sharedTickDate.setTime(nowMs);
@@ -27798,10 +28350,9 @@ function assertShiftWindow(
                 setText(labelEl, "Current Time:");
               }
 
-              const tz = DOM.primaryTz.value || "America/Los_Angeles";
-              if (cachedIdleTz !== tz || !cachedIdleFormatter) {
-                cachedIdleTz = tz;
-                cachedIdleFormatter = getCachedTimeOnlyFormatter(tz);
+              if (cachedIdleTz !== APP_TZ || !cachedIdleFormatter) {
+                cachedIdleTz = APP_TZ;
+                cachedIdleFormatter = getCachedTimeOnlyFormatter(APP_TZ);
               }
               setText(currentTimeEl, cachedIdleFormatter.format(targetDate));
             }
@@ -27830,22 +28381,15 @@ function assertShiftWindow(
         checkLeaseState();
         if (isTabConflict) return;
 
-        /* ORDER IS LOAD-BEARING.
-           The idle audit below asks "how long was this document away?", and it
-           answers by measuring against lastActivity - one of the references a
-           clock step rebases. Reconciling first can therefore erase the very gap
-           the audit exists to catch, which is how a suspension that should have
-           produced a System Pause prompt used to vanish without one.
-
-           Both readings are taken and the LARGER is used. Before reconciliation
-           is the honest measure of a forward correction; after it is the honest
-           measure of a backward one; and erring towards the larger gap errs
-           towards asking the user, which is the recoverable mistake. */
-        const lockAnchor = state.tabHiddenAt || lastActivity;
-
-        /* The ticker is stopped while the page is hidden, so a clock step may
-           have gone unobserved. Reconcile once the reading above is in hand. */
-        reconcileSystemClock("wakeup");
+        /* The gap is measured from whichever reference is the more recent
+           evidence that this document was alive: the moment it was hidden, or
+           the last input it saw. Whichever it is, the time since is time the
+           app cannot vouch for. */
+        const lockAnchor = Math.max(
+          Number(state.tabHiddenAt) || 0,
+          Number(state.lastHeartbeatWall) || 0,
+          Number(lastActivity) || 0,
+        );
 
         const nowWall = Date.now();
         const observedGapMs = nowWall - lastActivity;
@@ -27855,7 +28399,18 @@ function assertShiftWindow(
             state.idleTrackingEnabled !== false &&
             observedGapMs > _cachedIdleThresholdMs
           ) {
-            triggerIdleLock(lockAnchor, "inactivity");
+            /* A tab that was hidden or suspended did not merely go quiet - the
+               whole document was parked. That is a system pause, and the modal
+               has copy that says so; classifying it as plain inactivity was
+               what left that copy unreachable. */
+            const wasSuspended =
+              Number(state.tabHiddenAt) > 0 ||
+              nowWall - (Number(state.lastHeartbeatWall) || nowWall) >
+                SESSION_RESUME_GRACE_MS;
+            triggerIdleLock(
+              lockAnchor || lastActivity,
+              wasSuspended ? "system" : "inactivity",
+            );
             return;
           }
         }
@@ -28986,42 +29541,26 @@ function assertShiftWindow(
             setSessionAnchor(nowWall);
           }
 
-          // --- Calculate start-anchor over-subtraction deficit if applicable ---
           const targetMode = selectedAdjustTarget;
-          let deficitSec = 0;
           let actualSubtractedBreakVal = 0;
-          if (!isAdd && targetMode === "work") {
-            const currentAccumulator = state.workAccumulated || 0;
-            if (totalSec > currentAccumulator) {
-              deficitSec = totalSec - currentAccumulator;
-            }
-          }
+          let actualSubtractedWorkVal = 0;
 
-          // Prevent deficit shifting from compressing the active shift duration below the accumulated break timer
-          if (deficitSec > 0 && state.loginTimestamp) {
-            const totalElapsedSec = (nowWall - state.loginTimestamp) / 1000;
-            const maxPermissibleDeficit = Math.max(
-              0,
-              totalElapsedSec - (state.breakAccumulated || 0),
-            );
-            if (deficitSec > maxPermissibleDeficit) {
-              deficitSec = maxPermissibleDeficit;
-              showAppToast(
-                "Adjustment capped to protect break records",
-                "warning",
-              );
-            }
-          }
-
-          // --- Apply the delta to the correct bucket ---
+          /* --- Apply the delta to the correct bucket ---
+             A subtraction can only remove time that is actually banked. What
+             cannot be removed is reported back rather than silently discarded:
+             the old code computed the shortfall, capped it, and then never
+             applied it, so a user subtracting 30m from a 10m timer was told
+             "30m subtracted" and lost 20m with no trace. */
           if (targetMode === "work") {
             if (isAdd) {
               state.workAccumulated = (state.workAccumulated || 0) + totalSec;
             } else {
-              state.workAccumulated = Math.max(
-                0,
-                (state.workAccumulated || 0) - totalSec,
+              actualSubtractedWorkVal = Math.min(
+                totalSec,
+                state.workAccumulated || 0,
               );
+              state.workAccumulated =
+                (state.workAccumulated || 0) - actualSubtractedWorkVal;
             }
           } else if (targetMode === "break") {
             if (isAdd) {
@@ -29038,7 +29577,7 @@ function assertShiftWindow(
             // Mode is null (should not happen given the guard above, but be safe)
             showAppToast("No active timer to adjust", "warning");
             return false;
-          }          
+          }
 
           // --- Persist and re-render ---
           saveState(true);
@@ -29053,16 +29592,20 @@ function assertShiftWindow(
           const sPart = parsed.ss > 0 ? `${Math.round(parsed.ss)}s` : "";
           const timeFormattedStr = `${hPart}${mPart}${sPart}`.trim();
 
-          if (targetMode === "break" && !isAdd) {
-            if (actualSubtractedBreakVal === 0) {
-              toastMsg = "Break is already 0.";
-            } else if (totalSec > actualSubtractedBreakVal) {
-              const formattedActual = formatFriendlyDuration(
-                actualSubtractedBreakVal,
-              );
-              toastMsg = `${formattedActual} subtracted (Break capped at 0).`;
+          if (!isAdd && (targetMode === "break" || targetMode === "work")) {
+            const isBreak = targetMode === "break";
+            const label = isBreak ? "Break" : "Production";
+            const actual = isBreak
+              ? actualSubtractedBreakVal
+              : actualSubtractedWorkVal;
+
+            if (actual === 0) {
+              toastMsg = `${label} is already 0.`;
+            } else if (totalSec > actual) {
+              const formattedActual = formatFriendlyDuration(actual);
+              toastMsg = `${formattedActual} subtracted (${label} capped at 0).`;
             } else {
-              toastMsg = `${timeFormattedStr} subtracted from break timer.`;
+              toastMsg = `${timeFormattedStr} subtracted from ${isBreak ? "break" : "production"} timer.`;
             }
           } else {
             const verb = isAdd ? "added to" : "subtracted from";
@@ -29399,6 +29942,13 @@ function assertShiftWindow(
       }
 
       function syncSettingsUI() {
+        if (DOM.weeklyGoalHours) {
+          DOM.weeklyGoalHours.value = String(
+            Number.isFinite(state.weeklyGoalHours) && state.weeklyGoalHours > 0
+              ? state.weeklyGoalHours
+              : WEEKLY_GOAL_DEFAULT_HOURS,
+          );
+        }
         renderSyncCard();
         // Sync existing toggle/slider values
         const isIdleEnabled = state.idleTrackingEnabled !== false;
@@ -29430,7 +29980,8 @@ function assertShiftWindow(
         // Sync continuous ticking toggle
         const continuousTickingCheckbox = DOM.continuousTickingToggle;
         if (continuousTickingCheckbox)
-          continuousTickingCheckbox.checked = !!state.continuousTabTickingEnabled;
+          continuousTickingCheckbox.checked =
+            !!state.continuousTabTickingEnabled;
 
         // Sync goal auto-populate toggle
         const goalAutopopulateCheckbox = document.getElementById(
@@ -29627,13 +30178,27 @@ function assertShiftWindow(
       }
 
       // Creates daily backup snapshots
-      function triggerAutoSnapshot() {
+      /**
+       * Captures the day's restore point: the logbook as it stood before the
+       * first change of that day.
+       *
+       * @param {Array} [preImage] - The state to preserve. Callers pass the
+       *   pre-mutation array explicitly; the parameter exists so this can never
+       *   silently snapshot whatever getLogs() happens to return after a caller
+       *   has already swapped it out.
+       */
+      function triggerAutoSnapshot(preImage) {
         if (isFactoryResetting) return;
         const todayStr = getPSTDate();
         if (snapshotIndex.some((s) => s.date === todayStr)) return;
 
-        const currentLogs = getLogs();
-        if (!currentLogs.length) return;
+        const source = Array.isArray(preImage) ? preImage : getLogs();
+        if (!Array.isArray(source) || !source.length) return;
+
+        /* A copy, not a reference. The IndexedDB write below happens after an
+           await, and the live array is mutated in place by several paths, so
+           holding a reference would let later edits leak into the snapshot. */
+        const currentLogs = source.map((l) => ({ ...l }));
 
         const record = {
           date: todayStr,
@@ -29819,6 +30384,10 @@ function assertShiftWindow(
             dateStr,
             logoutStr,
           );
+          /* Both endpoints typed means the user asserted a window. Only one, or
+             neither, means the window is ours to derive from the hours. */
+          const manualHadBothEndpoints =
+            derivedLoginEpochMs !== null && derivedLogoutEpochMs !== null;
 
           if (derivedLoginEpochMs !== null && derivedLogoutEpochMs !== null) {
             if (derivedLogoutEpochMs < derivedLoginEpochMs) {
@@ -29840,6 +30409,28 @@ function assertShiftWindow(
 
           derivedLoginEpochMs = Math.floor(derivedLoginEpochMs / 1000) * 1000;
           derivedLogoutEpochMs = Math.floor(derivedLogoutEpochMs / 1000) * 1000;
+
+          /* The same arithmetic every tracked shift is held to. A hand-typed
+             entry used to skip it entirely, so "09:00 to 10:00, 8h work" saved
+             without complaint - two rulebooks for one logbook. */
+          const manualWindow = assertShiftWindow(
+            derivedLoginEpochMs,
+            derivedLogoutEpochMs,
+            wSec,
+            bSec,
+          );
+          if (manualHadBothEndpoints && manualWindow.repaired) {
+            /* Refused rather than repaired. Silently moving the logout epoch
+               would leave it contradicting the logout string the user typed,
+               which is the value the logbook renders. */
+            showAppToast(
+              `${formatFriendlyDuration(wSec + bSec)} of work and break will not fit between ${loginStr} and ${logoutStr}`,
+              "warning",
+            );
+            return;
+          }
+          derivedLoginEpochMs = manualWindow.loginTs;
+          derivedLogoutEpochMs = manualWindow.logoutTs;
 
           const activeSessionInProgress = !!state.loginTimestamp;
           let hasOverlap = false;
@@ -29897,8 +30488,8 @@ function assertShiftWindow(
               logout: logoutStr,
               loginEpochMs: derivedLoginEpochMs,
               logoutEpochMs: derivedLogoutEpochMs,
-              workSec: wSec,
-              breakSec: bSec,
+              workSec: manualWindow.workSec,
+              breakSec: manualWindow.breakSec,
 
               diff: formatDuration(Math.abs(diff)),
               notes: notes,
@@ -30008,7 +30599,7 @@ function assertShiftWindow(
           }
           const savedLogs = safeGetLocalStorage(TASK_LOGS_KEY);
           if (savedLogs) {
-            cachedTaskLogs = JSON.parse(savedLogs);
+            cachedTaskLogs = backfillTaskPausedSec(JSON.parse(savedLogs));
             /* The same normalisation the shift logbook gets during
                hydration. A task with no id is invisible to the outbox and
                would never sync at all; a task with no lastModified would be
@@ -30052,6 +30643,30 @@ function assertShiftWindow(
           window.storageWriteError = true;
           console.warn("Task state storage write failed", e);
         }
+      }
+
+      /**
+       * Derives pausedSec for records written before the field existed, so the
+       * renderer and the exporter never have to guess. A legacy task whose span
+       * matches its duration simply gets 0, which is the truthful answer for
+       * every task that was never paused.
+       */
+      function backfillTaskPausedSec(list) {
+        if (!Array.isArray(list)) return list;
+        for (let i = 0; i < list.length; i++) {
+          const t = list[i];
+          if (!t || typeof t !== "object") continue;
+          if (Number.isFinite(t.pausedSec)) continue;
+          const span =
+            Number.isFinite(t.startMs) && Number.isFinite(t.endMs)
+              ? Math.round((t.endMs - t.startMs) / 1000)
+              : 0;
+          t.pausedSec = Math.max(
+            0,
+            span - Math.max(0, Number(t.durationSec) || 0),
+          );
+        }
+        return list;
       }
 
       function saveTaskLogs() {
@@ -30148,10 +30763,12 @@ function assertShiftWindow(
 
       DOM.taskStartBtn.addEventListener("click", () => {
         if (!taskState.isRunning && !taskState.isPaused) {
+          const startedAt = Date.now();
           taskState.isRunning = true;
           taskState.isPaused = false;
           taskState.accumulatedSec = 0;
-          setTaskAnchor(Date.now());
+          taskState.startedAtMs = startedAt;
+          setTaskAnchor(startedAt);
           taskState.note = DOM.taskNoteInput.value.trim() || "Untitled Task";
           saveTaskState();
           syncTaskUI();
@@ -30187,7 +30804,7 @@ function assertShiftWindow(
 
       if (DOM.taskSaveBtn) {
         DOM.taskSaveBtn.addEventListener("click", () => {
-          const totalSec = getTaskTotalSeconds();
+          const totalSec = Math.max(0, Math.round(getTaskTotalSeconds()));
 
           if (totalSec > 0) {
             const finalNote =
@@ -30195,7 +30812,29 @@ function assertShiftWindow(
               taskState.note ||
               "Untitled Task";
             const endMs = Date.now();
-            const startMs = endMs - totalSec * 1000;
+
+            /* Real endpoints, not endpoints reverse-engineered from the
+               duration. Legacy state saved before startedAtMs existed has no
+               witness, so it falls back to the old derivation rather than
+               recording a start it cannot know. */
+            let startMs = Number.isFinite(taskState.startedAtMs)
+              ? taskState.startedAtMs
+              : endMs - totalSec * 1000;
+
+            /* The span can never be shorter than the time tracked inside it.
+               Only a corrupt or imported witness can produce that, and the
+               duration is the thing worth keeping. */
+            if (endMs - startMs < totalSec * 1000) {
+              startMs = endMs - totalSec * 1000;
+            }
+
+            /* Everything inside the span that the timer was not running for.
+               Stored rather than displayed-only so the record stays
+               self-consistent: startMs + durationSec + pausedSec === endMs. */
+            const pausedSec = Math.max(
+              0,
+              Math.round((endMs - startMs) / 1000) - totalSec,
+            );
 
             const newTask = {
               id:
@@ -30206,6 +30845,7 @@ function assertShiftWindow(
               startMs: startMs,
               endMs: endMs,
               durationSec: totalSec,
+              pausedSec: pausedSec,
               note: finalNote,
               /* Merge key for cross-device sync. Shifts already carry this;
                  task records did not, which would leave them unmergeable. */
@@ -30231,6 +30871,7 @@ function assertShiftWindow(
         taskState.isRunning = false;
         taskState.isPaused = false;
         setTaskAnchor(null);
+        taskState.startedAtMs = null;
         taskState.accumulatedSec = 0;
         taskState.note = "";
         saveTaskState();
@@ -30471,7 +31112,13 @@ function assertShiftWindow(
 
               dom.noteText.textContent = task.note || "";
               dom.durText.textContent = formatDuration(task.durationSec || 0);
-              dom.metaText.textContent = `${logbookStyleDate} ${startStr} - ${endStr}`;
+              /* Without this the row reads as a contradiction: a start and end
+                 an hour apart above a duration of twenty minutes. */
+              const pausedNote =
+                Number(task.pausedSec) > 0
+                  ? ` · ${formatFriendlyDuration(task.pausedSec)} paused`
+                  : "";
+              dom.metaText.textContent = `${logbookStyleDate} ${startStr} - ${endStr}${pausedNote}`;
 
               dom.editBtn.dataset.id = task.id;
               dom.copyBtn.dataset.id = task.id;
@@ -30793,16 +31440,16 @@ function assertShiftWindow(
           showAppToast("No tasks to export", "warning");
           return;
         }
-        const tz = DOM.primaryTz.value || "America/Los_Angeles";
+        /* Exported data carries business time, not the viewer's clock skin. */
         const timeFormatter = new Intl.DateTimeFormat("en-US", {
-          timeZone: tz,
+          timeZone: APP_TZ,
           hour: "2-digit",
           minute: "2-digit",
           second: "2-digit",
           hour12: true,
         });
 
-        let csv = "Date,Start,End,Duration,Notes\n";
+        let csv = "Date,Start,End,Duration,Paused,Notes\n";
         tasksToExport.forEach((task) => {
           let startStr = "—";
           let endStr = "—";
@@ -30813,10 +31460,11 @@ function assertShiftWindow(
               endStr = timeFormatter.format(new Date(task.endMs));
           } catch (e) {}
           const durStr = formatDuration(task.durationSec);
+          const pausedStr = formatDuration(Number(task.pausedSec) || 0);
           const safeNote = task.note
             ? task.note.replace(/"/g, '""').replace(/\n/g, " ")
             : "";
-          csv += `"${task.date}","${startStr}","${endStr}","${durStr}","${safeNote}"\n`;
+          csv += `"${task.date}","${startStr}","${endStr}","${durStr}","${pausedStr}","${safeNote}"\n`;
         });
 
         const a = document.createElement("a");
@@ -32496,7 +33144,11 @@ function assertShiftWindow(
         const timeSec = parseClockTimeToSeconds(timeStr);
         if (timeSec === null) return null;
 
-        const tz = DOM.primaryTz ? DOM.primaryTz.value : _cachedResolvedTz;
+        /* Manual entries are interpreted in the business timezone, exactly
+           like automatic ones. Reading the cosmetic dropdown here meant a user
+           who switched the clock to their home zone got manual shifts stamped
+           hours away from the automatic ones sitting next to them. */
+        const tz = APP_TZ;
         const localH = Math.floor(timeSec / 3600);
         const localM = Math.floor((timeSec % 3600) / 60);
         const localS = timeSec % 60;
@@ -33432,6 +34084,30 @@ function assertShiftWindow(
        */
       let saveStateTimeout = null;
       let idleSaveHandle = null;
+      /**
+       * Writes the live session straight to storage, bypassing the debounce.
+       *
+       * Called at the moment a tab discovers it has lost the lease. Saves are
+       * normally deferred through requestIdleCallback with a 2000ms ceiling, so
+       * a tab evicted inside that window used to drop whatever had not flushed
+       * - and because the eviction path sets isTabConflict first, the ordinary
+       * save that would have rescued it returned early.
+       */
+      function flushStateBeforeEviction() {
+        if (isFactoryResetting) return;
+        try {
+          if (state.currentMode !== null && !state.idleLock) {
+            state.lastHeartbeatWall = Date.now();
+            getActiveSegmentSeconds(true);
+          }
+          state.lastActivity = lastActivity;
+          localStorage.setItem(STATE_KEY, JSON.stringify(state));
+        } catch (e) {
+          console.warn("Pre-eviction flush failed", e);
+        }
+      }
+      window.flushStateBeforeEviction = flushStateBeforeEviction;
+
       function saveState(forceSync = false) {
         if (isTabConflict) return; // Prevent uninitialized or evicted tabs from writing stale state!
         if (isFactoryResetting) return; // A wipe is reloading; never re-seed the keys it removed.
@@ -33565,23 +34241,85 @@ function assertShiftWindow(
              replacing the old per-field clamp which discarded them. */
           reconcileClockOnLoad();
 
-          const now = Date.now();
+          /* Deliberately no rollover, no auto-submit and no idle audit here.
+             loadState is a pure read: it used to submit a stale shift straight
+             from the parse, which measured the in-flight segment from
+             yesterday's anchor all the way to now and filed an entire night as
+             work. Recovery is ordered explicitly in recoverSessionOnBoot(),
+             after the lease is held. */
+        }
+      }
 
-          const currentDate = getPSTDate();
+      /**
+       * Brings a persisted session back to life safely, in a fixed order.
+       *
+       * Called once at startup, and only by the tab that holds the lease.
+       *
+       *   1. Close the in-flight segment at the last instant the app was
+       *      demonstrably alive. Wall time keeps accruing while the app runs -
+       *      that is the design, and it matches every server-backed tracker -
+       *      but time while the app was CLOSED is not observed time, and
+       *      crediting it is how reopening the laptop in the morning used to
+       *      bank the whole night.
+       *   2. Offer the unobserved gap to the user through the normal idle
+       *      prompt, so they decide whether it was work, break, or nothing.
+       *   3. Only then roll the calendar forward, which caps each day at its
+       *      own midnight and files one entry per day.
+       */
+      async function recoverSessionOnBoot() {
+        const nowWall = Date.now();
+        const hasLiveSegment =
+          state.currentMode !== null &&
+          !state.idleLock &&
+          Number.isFinite(state.sessionAnchorWall);
 
-          if (state.activeDate && state.activeDate !== currentDate) {
-            const accumulatedWorkSec = state.workAccumulated || 0;
-            if (accumulatedWorkSec > 60) {
-              executeSubmit(
-                null,
-                "Auto-submitted (Page Load)",
-                state.activeDate,
-              );
+        if (hasLiveSegment) {
+          /* The newest proof of life. lastHeartbeatWall is stamped every tick
+             and on every save; tabHiddenAt marks a deliberate backgrounding. */
+          const lastAlive = Math.max(
+            Number(state.lastHeartbeatWall) || 0,
+            Number(state.tabHiddenAt) || 0,
+            Number(state.lastActivity) || 0,
+            Number(state.sessionAnchorWall) || 0,
+          );
+          const gapMs = nowWall - lastAlive;
+
+          if (gapMs > SESSION_RESUME_GRACE_MS) {
+            if (state.idleTrackingEnabled !== false) {
+              /* Bank up to the last proof of life and hand the gap to the
+                 user. triggerIdleLock measures to that instant with the
+                 ratchet bypassed, so the gap itself is not banked. */
+              triggerIdleLock(lastAlive, "system");
             } else {
-              resetSession();
+              /* Idle tracking is off: the user asked for wall time to be
+                 credited unconditionally, so it is. The rollover below still
+                 caps each calendar day at its own midnight. */
+              state.lastHeartbeatWall = nowWall;
             }
+          } else {
+            state.lastHeartbeatWall = nowWall;
           }
         }
+
+        if (state.tabHiddenAt) delete state.tabHiddenAt;
+
+        await checkMidnightReset(new Date(Date.now()));
+
+        /* A session whose shift produced nothing and whose day has passed is
+           finished, not paused. Clearing it prevents a stale anchor from
+           following the user into a new day. */
+        if (
+          !state.currentMode &&
+          !state.idleLock &&
+          !state.loginTimestamp &&
+          (state.workAccumulated || 0) < 1 &&
+          (state.breakAccumulated || 0) < 1 &&
+          state.activeDate !== getPSTDate()
+        ) {
+          state.activeDate = getPSTDate();
+        }
+
+        saveState(true);
       }
 
       function initSettingsHoverHelp() {
@@ -33648,7 +34386,10 @@ function assertShiftWindow(
           { id: "idle-toggle", select: "#idle-toggle" },
           { id: "auto-backup-toggle", select: "#auto-backup-toggle" },
           { id: "auto-email-toggle", select: "#auto-email-toggle" },
-          { id: "continuous-ticking-toggle", select: "#continuous-ticking-toggle" },
+          {
+            id: "continuous-ticking-toggle",
+            select: "#continuous-ticking-toggle",
+          },
         ];
 
         rows.forEach((row) => {
@@ -33790,31 +34531,15 @@ function assertShiftWindow(
               .clientHeight;
           }
 
-          acquireLease().then(() => {
-            if (
-              state.idleTrackingEnabled !== false &&
-              state.currentMode !== null &&
-              !state.idleLock
-            ) {
-              const now = Date.now();
-
-              if (state.tabHiddenAt) {
-                if (now - state.tabHiddenAt > _cachedIdleThresholdMs) {
-                  triggerIdleLock(state.tabHiddenAt, "inactivity");
-                }
-                delete state.tabHiddenAt;
-              }
-
-              if (!state.idleLock && state.lastHeartbeatWall) {
-                if (now - state.lastHeartbeatWall > _cachedIdleThresholdMs) {
-                  triggerIdleLock(state.lastHeartbeatWall, "inactivity");
-                }
-              }
-
-              if (!state.idleLock && lastActivity) {
-                if (now - lastActivity > _cachedIdleThresholdMs) {
-                  triggerIdleLock(lastActivity, "inactivity");
-                }
+          /* The lease is acquired BEFORE any recovery runs. Recovery writes to
+             the logbook - it can roll a shift over and file entries - and a tab
+             that does not own the session must never do that. */
+          acquireLease().then(async (owns) => {
+            if (owns !== false && !isTabConflict) {
+              try {
+                await recoverSessionOnBoot();
+              } catch (e) {
+                console.error("Session recovery failed", e);
               }
             }
 
@@ -33869,7 +34594,9 @@ function assertShiftWindow(
             }
             if (!l.status) {
               const goal =
-                l.dayGoal != null && l.dayGoal > 0 ? l.dayGoal : 28800;
+                l.dayGoal != null && l.dayGoal > 0
+                  ? l.dayGoal
+                  : getStandardDayGoalSec();
               l.dayGoal = goal;
               l.status = l.workSec >= goal ? "OVER" : "UNDER";
               mutated = true;
