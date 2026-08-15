@@ -13341,6 +13341,18 @@
                     id="sync-account-detail"
                     style="display: none; flex-direction: column; gap: 6px"
                   >
+                    <!-- Every row of the failure matrix has to land somewhere a
+                         person can read it. Until phase 7 builds the full
+                         panel, this one line carries all of them: offline with
+                         a backlog, a storage fault degrading to pull-only, a
+                         server that has been refusing for long enough to
+                         mention, and how long until the next attempt. -->
+                    <div class="settings-row">
+                      <span class="settings-label" style="font-weight: 500"
+                        >Status</span
+                      >
+                      <span class="settings-label" id="sync-state"></span>
+                    </div>
                     <div class="settings-row">
                       <span class="settings-label" style="font-weight: 500"
                         >This device</span
@@ -13389,6 +13401,18 @@
                       onclick="syncSignOut()"
                     >
                       Sign out
+                    </button>
+                    <!-- Two labelled buttons rather than a question asked on
+                         every sign-out. The common case should not have to
+                         answer "and shall I delete a year of history?", and
+                         the rare case should not be reachable by misreading
+                         a dialog. -->
+                    <button
+                      type="button"
+                      class="btn-danger-outline"
+                      onclick="syncSignOutAndErase()"
+                    >
+                      Sign out &amp; erase this device
                     </button>
                   </div>
 
@@ -17212,15 +17236,32 @@
            ninety leaves a month of slack. */
         const STALE_CURSOR_MS = 60 * 864e5;
         const POLL_IDLE_MS = 60000;
+        /* Most failures are one dropped request rather than a broken server,
+           so the first retry is quick. The cap is what matters: a project
+           paused on the free tier then costs twelve requests an hour instead
+           of sixty, indefinitely, on every device signed in to it. */
+        const BACKOFF_BASE_MS = 5000;
+        const BACKOFF_CAP_MS = 300000;
+        /* Below this a failure is noise - a tunnel, a sleeping laptop - and
+           saying so trains the user to ignore the one that matters. */
+        const FAILURES_BEFORE_VISIBLE = 3;
+        /* A day of failing is no longer a glitch. Nothing here can tell a
+           paused project from a revoked key from a DNS outage, so it reports
+           the one fact it does know: how long it has been like this. */
+        const UNREACHABLE_LOUD_MS = 864e5;
 
         let running = false;
         let pushTimer = null;
         let pollTimer = null;
+        let retryTimer = null;
         let failures = 0;
+        let nextAttemptAt = 0;
+        let failingSince = 0;
         let lastSyncAt = 0;
         let lastError = null;
         let lastReport = null;
         let announcedFirstSync = false;
+        let announcedRebuild = false;
 
         /* Running totals across every cycle, background ones included. The
            sync panel reports them, and they are the only race-free way to
@@ -17240,6 +17281,31 @@
 
         function recordsOf(kind) {
           return kind === "task" ? cachedTaskLogs : getLogs();
+        }
+
+        /* ── backoff ───────────────────────────────────────────────────── */
+
+        /* Half jitter, not none. Every device signed in to one account fails
+           against the same outage at the same moment, so an unjittered
+           schedule has them all come back together and reproduce it. */
+        function backoffDelay(n) {
+          const exp = Math.min(
+            BACKOFF_CAP_MS,
+            BACKOFF_BASE_MS * Math.pow(2, Math.max(0, n - 1)),
+          );
+          return Math.round(exp * (0.5 + Math.random() * 0.5));
+        }
+
+        function clearRetry() {
+          if (retryTimer) clearTimeout(retryTimer);
+          retryTimer = null;
+        }
+
+        function resetBackoff() {
+          failures = 0;
+          failingSince = 0;
+          nextAttemptAt = 0;
+          clearRetry();
         }
 
         /* ── local shaping ─────────────────────────────────────────────── */
@@ -17512,8 +17578,17 @@
 
         /* ── the cycle ─────────────────────────────────────────────────── */
 
-        async function syncOnce(reason) {
+        async function syncOnce(reason, force) {
           if (running || !canSync()) return null;
+          /* The backoff gate sits here rather than only in the poll timer,
+             because a local edit, a tab becoming visible and the boot cycle
+             all reach the network by their own routes and would each hammer a
+             server that is already refusing. force is for the two events that
+             carry genuinely new information - the user signing in, and the
+             network coming back - plus the retry timer, which IS the wait. */
+          if (!force && nextAttemptAt && Date.now() < nextAttemptAt) {
+            return null;
+          }
           running = true;
           /* An empty shadow with no cursor means this device has never
              reconciled with the server. Worth telling the user about once,
@@ -17538,6 +17613,16 @@
               let from = Sync.cursor[kind] || 0;
               const stale = from > 0 && Date.now() - from > STALE_CURSOR_MS;
               if (stale) from = 0;
+              /* A device away longer than the tombstone retention cannot be
+                 caught up with a delta, so this cycle is a full download and
+                 may remove records. Worth one line of explanation, once, and
+                 not once per kind. */
+              if (stale && !announcedRebuild) {
+                announcedRebuild = true;
+                if (typeof showAppToast === "function") {
+                  showAppToast("Rebuilding from cloud…");
+                }
+              }
 
               /* Before the pull, not after: the merge has to be able to
                  tell "never seen this" from "deleted this, not yet sent". */
@@ -17567,7 +17652,7 @@
             }
 
             Sync.flushMeta();
-            failures = 0;
+            resetBackoff();
             lastError = null;
             lastSyncAt = Date.now();
             lastReport = report;
@@ -17591,8 +17676,18 @@
           } catch (e) {
             failures++;
             lastError = (e && e.message) || String(e);
-            /* Phase 6 replaces this with jittered exponential backoff. For
-               now it is enough not to hammer a server that is refusing. */
+            if (!failingSince) failingSince = Date.now();
+            const delay = backoffDelay(failures);
+            nextAttemptAt = Date.now() + delay;
+            /* Armed rather than left to the poll. The poll is a flat sixty
+               seconds, which is simultaneously too eager for a project that
+               has been paused for a week and far too slow for a single
+               dropped request. */
+            clearRetry();
+            retryTimer = setTimeout(() => {
+              retryTimer = null;
+              syncOnce("retry", true).catch(() => {});
+            }, delay);
             console.warn("Sync cycle failed", e);
             notify();
             throw e;
@@ -17626,15 +17721,12 @@
 
         function startPolling() {
           stopPolling();
+          /* Nothing to poll for while offline, and canSync would refuse every
+             tick anyway - a timer whose only job is to be turned away is a
+             wakeup a phone in a pocket pays for once a minute. The shadow
+             accrues the backlog regardless, and reconnecting is an event. */
+          if (!navigator.onLine) return;
           pollTimer = setInterval(() => {
-            /* Back off crudely while failing rather than polling into a
-               wall every minute. */
-            if (
-              failures > 0 &&
-              Date.now() - lastSyncAt < failures * POLL_IDLE_MS
-            ) {
-              return;
-            }
             syncOnce("poll").catch(() => {});
           }, POLL_IDLE_MS);
         }
@@ -17642,6 +17734,7 @@
         function stopPolling() {
           if (pollTimer) clearInterval(pollTimer);
           pollTimer = null;
+          clearRetry();
         }
 
         Sync.onDirty((kind) => {
@@ -17659,11 +17752,14 @@
           if (signedIn === wasSignedIn) return;
           wasSignedIn = signedIn;
           if (signedIn) {
+            resetBackoff();
             startPolling();
-            syncOnce("sign-in").catch(() => {});
+            syncOnce("sign-in", true).catch(() => {});
           } else {
             stopPolling();
+            resetBackoff();
             announcedFirstSync = false;
+            announcedRebuild = false;
           }
         });
 
@@ -17671,8 +17767,16 @@
         document.addEventListener("visibilitychange", () => {
           if (!document.hidden) syncOnce("visible").catch(() => {});
         });
+        window.addEventListener("offline", () => {
+          stopPolling();
+          notify();
+        });
         window.addEventListener("online", () => {
-          syncOnce("online").catch(() => {});
+          /* Reconnecting is new information, so whatever the backoff had
+             concluded about the last outage no longer applies. */
+          resetBackoff();
+          startPolling();
+          syncOnce("online", true).catch(() => {});
         });
 
         if (SyncNet.signedIn) {
@@ -17732,6 +17836,52 @@
           return total;
         }
 
+        /* ── what to tell the user ─────────────────────────────────────── */
+
+        /* One sentence for the state sync is in, written here rather than in
+           the render so each threshold sits beside the constant that defines
+           it. Section 10 of SYNC-BLUEPRINT.md is the specification for every
+           branch below, and the order of the branches is the priority order:
+           a storage fault matters more than a backlog, and being offline
+           explains a backlog rather than competing with it. */
+        function describe(pending) {
+          if (!SyncNet.signedIn) return { text: "Signed out", tone: "muted" };
+          const backlog = pending
+            ? ` — ${pending} change${pending === 1 ? "" : "s"} pending`
+            : "";
+
+          /* Not an error, and deliberately never a toast: the app is
+             local-first, so nothing is waiting except the upload. */
+          if (!navigator.onLine) {
+            return { text: "Offline" + backlog, tone: "muted" };
+          }
+          if (!isDatabaseHealthy) {
+            return {
+              text: "Sync paused — storage error, receiving only",
+              tone: "error",
+            };
+          }
+          if (failingSince && Date.now() - failingSince > UNREACHABLE_LOUD_MS) {
+            const since = new Date(failingSince).toLocaleDateString();
+            return { text: `Cloud unreachable since ${since}`, tone: "error" };
+          }
+          if (failures >= FAILURES_BEFORE_VISIBLE) {
+            const wait = Math.max(
+              0,
+              Math.round((nextAttemptAt - Date.now()) / 1000),
+            );
+            return {
+              text: `Can't reach the cloud — retrying in ${wait}s`,
+              tone: "warn",
+            };
+          }
+          if (pending) {
+            return { text: backlog.slice(3), tone: "muted" };
+          }
+          if (!lastSyncAt) return { text: "Connecting…", tone: "muted" };
+          return { text: "Up to date", tone: "ok" };
+        }
+
         return {
           syncOnce,
           schedulePush,
@@ -17744,17 +17894,30 @@
             return () => listeners.delete(fn);
           },
           status() {
+            /* deriveOutbox walks the whole logbook, so it runs once here and
+               is handed to describe rather than being called again inside
+               it. status() is polled by the settings card. */
+            const pending = {
+              log: Sync.deriveOutbox("log", recordsOf("log")).length,
+              task: Sync.deriveOutbox("task", recordsOf("task")).length,
+            };
             return {
               running,
               failures,
               lastError,
               lastSyncAt,
               lastReport,
+              nextAttemptAt,
+              failingSince,
+              polling: !!pollTimer,
+              online: navigator.onLine,
+              /* Pull-only. A view built on a failed read must never be
+                 pushed, so a storage fault degrades sync rather than
+                 stopping it - and says which of the two happened. */
+              pushPaused: !isDatabaseHealthy,
               totals: Object.assign({}, totals),
-              pending: {
-                log: Sync.deriveOutbox("log", recordsOf("log")).length,
-                task: Sync.deriveOutbox("task", recordsOf("task")).length,
-              },
+              pending,
+              summary: describe(pending.log + pending.task),
             };
           },
         };
@@ -28034,6 +28197,97 @@
       }
       window.onWeeklyGoalChange = onWeeklyGoalChange;
 
+      /**
+       * Erases everything this browser holds and reboots into a clean install.
+       *
+       * Deliberately says nothing about the cloud. Two callers reach it and
+       * they have opposite intentions - the factory reset has already deleted
+       * the server copy, while "sign out and erase this device" is keeping it
+       * on purpose - so the account side of the decision is made before the
+       * call and never re-litigated here.
+       */
+      function wipeThisDevice() {
+        isFactoryResetting = true;
+
+        // Sent before saveLogs so it lands ahead of the database_mutated broadcast that write emits
+        // — that message is what would otherwise.
+        tabSyncChannel.postMessage({
+          type: "factory_reset",
+          phase: "begin",
+          fromTabId: myTabId,
+        });
+
+        if (window.dirtyChunks) window.dirtyChunks.add("ALL");
+
+        purgeFactoryKeys();
+
+        _leaveDatesRaw = null;
+        _leaveDatesParsed = [];
+        _leaveDatesSet = null;
+        filterCache = null;
+        filterCacheKey = null;
+        cachedTaskLogs = [];
+        _cachedIdleThresholdMs = 3600000;
+        persistedChunkSignatures.clear();
+
+        saveLogs([])
+          .then(clearAllDatabaseStores)
+          .then(() =>
+            window.Sync && typeof Sync.forgetEverything === "function"
+              ? Sync.forgetEverything()
+              : null,
+          )
+          .then(() => {
+            // The data is already gone by this point, so a hiccup while repainting must not cost us the
+            // reboot below — the reload is what.
+            try {
+              resetTaskUI();
+              clearFilters();
+              clearTaskFilters();
+              loadSavedFilterViews();
+              renderPresets();
+              // THEME_KEY was just removed above;
+              applySystemTheme();
+              selectPresetTZ("America/Los_Angeles");
+              resetSession(true);
+              syncSettingsUI();
+
+              if (typeof renderTaskLogbook === "function") renderTaskLogbook();
+            } catch (e) {
+              console.warn("Post-wipe repaint failed; reloading anyway", e);
+            }
+
+            // Second pass.
+            purgeFactoryKeys();
+
+            // Storage is empty and settled — the other tabs can stop
+            // holding still and reboot into the clean install too.
+            tabSyncChannel.postMessage({
+              type: "factory_reset",
+              phase: "complete",
+              fromTabId: myTabId,
+            });
+
+            showAppToast("All data wiped. Reloading…");
+            hardReloadApp();
+          })
+          .catch((err) => {
+            // The logbook write failed, so settings are gone but the logs are not.
+            isFactoryResetting = false;
+            tabSyncChannel.postMessage({
+              type: "factory_reset",
+              phase: "aborted",
+              fromTabId: myTabId,
+            });
+            console.error("Factory reset aborted", err);
+            showAppToast(
+              "Wipe incomplete — logs could not be deleted",
+              "error",
+            );
+          });
+      }
+      window.wipeThisDevice = wipeThisDevice;
+
       function clearAllData() {
         const signedIn = !!(window.SyncNet && SyncNet.signedIn);
         const account = signedIn ? SyncNet.email || "your account" : null;
@@ -28044,7 +28298,7 @@
            escape hatch for anyone who wanted only this device gone. */
         const message = signedIn
           ? `This permanently deletes every shift, task and setting from this device AND from ${account} — including any other device signed in to it. ` +
-            `To clear only this device, cancel, sign out first, then wipe. The app reloads when it is done. This is irreversible.`
+            `To clear only this device and keep the cloud copy, cancel and use "Sign out & erase this device" under Cloud sync. The app reloads when it is done. This is irreversible.`
           : "This permanently deletes every shift, task and setting stored on this device. " +
             "You are not signed in, so nothing in the cloud is touched. The app reloads when it is done. This is irreversible.";
 
@@ -28081,85 +28335,7 @@
               }
             }
 
-            isFactoryResetting = true;
-
-            // Sent before saveLogs so it lands ahead of the database_mutated broadcast that write emits
-            // — that message is what would otherwise.
-            tabSyncChannel.postMessage({
-              type: "factory_reset",
-              phase: "begin",
-              fromTabId: myTabId,
-            });
-
-            if (window.dirtyChunks) window.dirtyChunks.add("ALL");
-
-            purgeFactoryKeys();
-
-            _leaveDatesRaw = null;
-            _leaveDatesParsed = [];
-            _leaveDatesSet = null;
-            filterCache = null;
-            filterCacheKey = null;
-            cachedTaskLogs = [];
-            _cachedIdleThresholdMs = 3600000;
-            persistedChunkSignatures.clear();
-
-            saveLogs([])
-              .then(clearAllDatabaseStores)
-              .then(() =>
-                window.Sync && typeof Sync.forgetEverything === "function"
-                  ? Sync.forgetEverything()
-                  : null,
-              )
-              .then(() => {
-                // The data is already gone by this point, so a hiccup while repainting must not cost us the
-                // reboot below — the reload is what.
-                try {
-                  resetTaskUI();
-                  clearFilters();
-                  clearTaskFilters();
-                  loadSavedFilterViews();
-                  renderPresets();
-                  // THEME_KEY was just removed above;
-                  applySystemTheme();
-                  selectPresetTZ("America/Los_Angeles");
-                  resetSession(true);
-                  syncSettingsUI();
-
-                  if (typeof renderTaskLogbook === "function")
-                    renderTaskLogbook();
-                } catch (e) {
-                  console.warn("Post-wipe repaint failed; reloading anyway", e);
-                }
-
-                // Second pass.
-                purgeFactoryKeys();
-
-                // Storage is empty and settled — the other tabs can stop
-                // holding still and reboot into the clean install too.
-                tabSyncChannel.postMessage({
-                  type: "factory_reset",
-                  phase: "complete",
-                  fromTabId: myTabId,
-                });
-
-                showAppToast("All data wiped. Reloading…");
-                hardReloadApp();
-              })
-              .catch((err) => {
-                // The logbook write failed, so settings are gone but the logs are not.
-                isFactoryResetting = false;
-                tabSyncChannel.postMessage({
-                  type: "factory_reset",
-                  phase: "aborted",
-                  fromTabId: myTabId,
-                });
-                console.error("Factory reset aborted", err);
-                showAppToast(
-                  "Wipe incomplete — logs could not be deleted",
-                  "error",
-                );
-              });
+            wipeThisDevice();
           },
           true,
         );
@@ -30036,6 +30212,15 @@
       function renderSyncCard() {
         const card = document.getElementById("sync-account-card");
         if (!card) return;
+        /* This runs on every lease heartbeat - four times a minute, forever -
+           and the card is only on screen while the settings popup is open.
+           SyncEngine.status() walks the whole logbook to count the backlog,
+           which is cheap but not free and entirely invisible from behind a
+           closed popup. Opening it calls syncSettingsUI, which calls this, so
+           skipping the closed case loses nothing. */
+        const popup = window.DOM && DOM.settingsConfigPopup;
+        if (popup && !popup.classList.contains("show")) return;
+
         const status = window.SyncNet
           ? SyncNet.status()
           : { signedIn: false, online: true };
@@ -30050,6 +30235,23 @@
           chip.style.color = status.signedIn
             ? "var(--accent-work)"
             : "var(--text-muted)";
+        }
+
+        const stateEl = document.getElementById("sync-state");
+        if (stateEl) {
+          const summary =
+            window.SyncEngine && typeof SyncEngine.status === "function"
+              ? SyncEngine.status().summary
+              : null;
+          stateEl.textContent = summary ? summary.text : "—";
+          stateEl.style.color =
+            !summary || summary.tone === "muted"
+              ? "var(--text-muted)"
+              : summary.tone === "ok"
+                ? "var(--accent-work)"
+                : summary.tone === "warn"
+                  ? "var(--accent-warning)"
+                  : "var(--accent-break)";
         }
 
         const form = document.getElementById("sync-signin-form");
@@ -30184,6 +30386,40 @@
         renderSyncCard();
       };
 
+      /**
+       * Signs out and erases this browser, leaving the cloud copy intact.
+       *
+       * The opposite of the factory reset, which erases the cloud copy and
+       * every other device with it. Both are irreversible from where the user
+       * is standing, so both say which one they are before they run.
+       */
+      window.syncSignOutAndErase = function () {
+        const account =
+          (window.SyncNet && SyncNet.email) || "your cloud account";
+        openConfirmModal(
+          "Sign out & erase this device?",
+          `This deletes every shift, task and setting from this device only. ` +
+            `Your data stays in ${account}, so signing in again downloads it back. The app reloads when it is done.`,
+          async () => {
+            try {
+              /* Before the tokens go. Handing the lease back releases the
+                 running session for the user's other device; leaving it to
+                 expire costs them 45 seconds of a timer nobody owns. */
+              if (window.SessionLease) await SessionLease.releaseIfOwner();
+              await SyncNet.signOut();
+            } catch (e) {
+              /* The local wipe is the instruction. A network that will not
+                 confirm the sign-out must not block it - the tokens are
+                 cleared locally either way, and this device is about to have
+                 nothing left to sync. */
+              console.warn("Sign-out before erase failed", e);
+            }
+            wipeThisDevice();
+          },
+          true,
+        );
+      };
+
       if (window.SyncNet) SyncNet.onChange(renderSyncCard);
       if (window.SessionLease) SessionLease.onChange(renderSyncCard);
 
@@ -30296,6 +30532,20 @@
             `Are you sure you want to restore the snapshot from ${target.date}? This will overwrite your current active logbook logs.`,
             () => {
               if (window.dirtyChunks) window.dirtyChunks.add("ALL");
+              /* A snapshot's records carry the lastModified they had when it
+                 was written, which is old by definition. Saved verbatim, the
+                 cloud's copies are newer under LWW, so the next pull puts
+                 them all back and the restore undoes itself a minute after
+                 the user watched it succeed. Restamping states the truth:
+                 this restore is the most recent edit to every record in it.
+
+                 Deletions need no equivalent. Records the snapshot does not
+                 contain but the shadow still knows about become tombstones on
+                 the next outbox derivation, without any code here. */
+              const restoredAt = Date.now();
+              for (let i = 0; i < target.logs.length; i++) {
+                if (target.logs[i]) target.logs[i].lastModified = restoredAt;
+              }
               saveLogs(target.logs);
               renderStaticUI();
               renderTimersOnly();
