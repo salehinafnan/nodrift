@@ -28237,6 +28237,17 @@
             saveTaskState();
             syncTaskUI();
           }
+          /* One instant for every record this import writes, shared by the
+             task logs here and the shift logs below. A backup carries the
+             stamps it was written with, which are old by definition: saved
+             verbatim they lose LWW to the cloud's copies, the push is
+             rejected, and the next pull puts the old records back - the
+             import undoes itself minutes after the user watched it succeed.
+             Stamping states the truth, that this import is the most recent
+             edit to every record it brought in. Records it does not touch
+             keep their own stamps, because nothing about them changed. */
+          const importedAt = Date.now();
+
           if (data.taskLogs) {
             if (resolutionType === "overwrite") {
               /* Overwrite means "the backup wins where the two disagree", not
@@ -28257,6 +28268,7 @@
                     Math.random().toString(36).substring(2, 11) +
                     Date.now().toString(36);
                 }
+                t.lastModified = importedAt;
                 mergedTasks.set(t.id, t);
               }
               cachedTaskLogs = backfillTaskPausedSec([
@@ -28266,9 +28278,9 @@
               );
             } else if (resolutionType === "keep-local") {
               const localTaskIds = new Set(cachedTaskLogs.map((t) => t.id));
-              const newNonConflictingTasks = data.taskLogs.filter(
-                (t) => !localTaskIds.has(t.id),
-              );
+              const newNonConflictingTasks = data.taskLogs
+                .filter((t) => !localTaskIds.has(t.id))
+                .map((t) => Object.assign({}, t, { lastModified: importedAt }));
               cachedTaskLogs = backfillTaskPausedSec([
                 ...newNonConflictingTasks,
                 ...cachedTaskLogs,
@@ -28282,6 +28294,7 @@
                   "task_" +
                   Math.random().toString(36).substring(2, 11) +
                   Date.now().toString(36),
+                lastModified: importedAt,
               }));
               cachedTaskLogs = backfillTaskPausedSec([
                 ...incomingTasks,
@@ -28349,12 +28362,18 @@
               byId.set(l.id, l);
             }
 
+            /* Exactly the records this import wrote, so the restamp after the
+               collapse below can touch those and leave everything else
+               alone. */
+            const importedLogIds = new Set();
+
             for (let i = 0; i < validatedLogs.length; i++) {
               const incoming = validatedLogs[i];
               const local = byId.get(incoming.id);
 
               if (!local) {
                 byId.set(incoming.id, incoming);
+                importedLogIds.add(incoming.id);
                 logsAddedCount++;
                 continue;
               }
@@ -28369,12 +28388,14 @@
                    lost and neither silently replaces the other. */
                 incoming.id = newLogId();
                 byId.set(incoming.id, incoming);
+                importedLogIds.add(incoming.id);
                 logsAddedCount++;
                 continue;
               }
 
               // overwrite: the backup wins this record, and only this record.
               byId.set(incoming.id, incoming);
+              importedLogIds.add(incoming.id);
               logsOverwrittenCount++;
             }
 
@@ -28399,6 +28420,31 @@
             });
 
             const finalLogs = Array.from(uniqueMap.values());
+
+            /* The restamp has to happen HERE, after the collapse, and only
+               for the ids the import wrote.
+
+               Doing it on the way in instead - the one-liner the snapshot
+               restore got - would make every incoming record the most
+               recently edited copy of its shift, and the collapse above
+               breaks ties on exactly that. So a backup record that is
+               byte-identical to a local one would start winning the tie it
+               used to lose: the local id disappears from the logbook and the
+               backup's id takes its place. The sync layer reads a vanished
+               id as a delete and an unseen id as a create, which is the
+               cross-device duplication that stable record ids exist to
+               prevent. Restamping after the survivors are chosen leaves that
+               decision resting on the stamps the two copies really had.
+
+               A survivor that came from the backup is restamped; a survivor
+               the import never touched, including one that beat an incoming
+               duplicate, keeps its own stamp. */
+            for (let i = 0; i < finalLogs.length; i++) {
+              if (importedLogIds.has(finalLogs[i].id)) {
+                finalLogs[i].lastModified = importedAt;
+              }
+            }
+
             const usedIds = new Set();
             finalLogs.forEach((l) => {
               if (!l.id || usedIds.has(l.id)) {
