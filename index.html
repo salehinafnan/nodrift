@@ -14576,6 +14576,12 @@
          dirty only buys a cycle that finds nothing to send. */
       function persistLeaveRecords(announce) {
         _leaveDatesSet = null;
+        /* Here rather than at the call sites: this is the one funnel every
+           leave write passes through - the leave editor, an import, and the
+           cloud merge alike - so a caller cannot render stale by forgetting
+           to invalidate. See invalidateDerivedCaches for what went wrong
+           when each caller did it itself. */
+        invalidateDerivedCaches();
         const json = JSON.stringify(_leaveDatesParsed);
         /* Kept in step with what was written, or the next read sees a raw
            string it does not recognise and reparses over the merge. */
@@ -14953,6 +14959,30 @@
       let filterCacheKey = null; // Serialized filter state for cache invalidation
       let insightsCacheKey = null; // Force invalidate insights cache immediately to prevent race conditions
       let dataVersion = 0; // Incremented on every data mutation; used for cache keys
+
+      /* Every cache derived from the logbook, dropped together.
+
+         Leave days are not a separate list as far as the logbook is
+         concerned: getFilteredLogs injects them as rows and renderInsights
+         counts them, so changing them has to invalidate exactly what changing
+         a shift does. This used to be three assignments copied into each
+         leave handler, and the copy is what failed - the sync merge is a
+         caller written later, in another module, and it wrote new leaves to
+         storage and then redrew from a cache still keyed to the previous
+         dataVersion. The data was correct and invisible, and only a page
+         reload could clear it, which a home-screen PWA cannot do.
+
+         dataVersion is bumped as well as the three cleared, because it is
+         what _todayRowCache keys on too. Safe against saveLogs' rollback
+         guard: that captures expectedVersion and assigns
+         expectedVersion + 1 with no await in between, so nothing can
+         interleave. */
+      function invalidateDerivedCaches() {
+        dataVersion++;
+        filterCache = null;
+        filterCacheKey = null;
+        insightsCacheKey = null;
+      }
       const faviconLink = document.querySelector("link[rel='icon']");
       let lastFaviconKey = "";
       // Reusable Date objects to minimize garbage collection overhead in high-frequency loops
@@ -17817,8 +17847,14 @@
             if (typeof renderLeaveDatesList === "function") {
               renderLeaveDatesList();
             }
-            /* The logbook draws a badge on every leave day. */
+            /* All three surfaces, because a leave day appears on all three:
+               the logbook injects it as a row, insights counts it against the
+               week, and the leave list is its own tab. persistLeaveRecords
+               has already dropped the derived caches, so these redraw from
+               the merged data rather than from what was on screen before the
+               pull. */
             if (typeof renderLogbook === "function") renderLogbook();
+            if (typeof renderInsights === "function") renderInsights();
             return;
           }
           if (kind === "view") {
@@ -18344,10 +18380,20 @@
             /* deriveOutbox walks the whole logbook, so it runs once here and
                is handed to describe rather than being called again inside
                it. status() is polled by the settings card. */
-            const pending = {
-              log: Sync.deriveOutbox("log", recordsOf("log")).length,
-              task: Sync.deriveOutbox("task", recordsOf("task")).length,
-            };
+            /* Every kind, derived from KINDS rather than named here: listing
+               them by hand is how leave and view came to be missing from this
+               count while syncing perfectly well, so the panel reported
+               "nothing pending" with leaves waiting to go. */
+            const pending = {};
+            let pendingTotal = 0;
+            for (let i = 0; i < KINDS.length; i++) {
+              const n = Sync.deriveOutbox(
+                KINDS[i],
+                recordsOf(KINDS[i]),
+              ).length;
+              pending[KINDS[i]] = n;
+              pendingTotal += n;
+            }
             return {
               running,
               failures,
@@ -18367,7 +18413,8 @@
               pushPaused: !isDatabaseHealthy,
               totals: Object.assign({}, totals),
               pending,
-              summary: describe(pending.log + pending.task),
+              pendingTotal,
+              summary: describe(pendingTotal),
             };
           },
         };
@@ -23826,6 +23873,65 @@
         showAppToast(`Saved view "${cleanName}"`);
       };
 
+      /* Shipped with the app and identical on every device, and
+         deleteCurrentSavedView refuses to remove them by name: furniture
+         rather than the user's data. */
+      const DEFAULT_FILTER_VIEWS = [
+        {
+          name: "Overtime Shifts",
+          time: "ALL",
+          status: "OVER",
+          search: "",
+          dateStart: "",
+          dateEnd: "",
+          hoursOp: "ALL",
+          hoursVal: "",
+          hasNotes: false,
+        },
+        {
+          name: "Logged Notes Only",
+          time: "ALL",
+          status: "ALL",
+          search: "",
+          dateStart: "",
+          dateEnd: "",
+          hoursOp: "ALL",
+          hoursVal: "",
+          hasNotes: true,
+        },
+      ];
+
+      /* What the dropdown shows: the built-in views, then whatever the user
+         actually saved, with a saved view of the same name replacing the
+         built-in one it shadows.
+
+         The defaults used to be WRITTEN to storage the first time this list
+         was read, which put app furniture into the user's synced records and
+         caused both halves of a reported bug. A device that signed in to a
+         freshly emptied account announced "Sync - uploaded 2" for two records
+         the user had never created and could not find anywhere in the app;
+         and because saveFilterViews stamps anything new with the current
+         time, furniture generated seconds ago could outrank the same view
+         genuinely customised on another device.
+
+         Rendering them from a constant instead fixes every ordering at once,
+         including seeding while signed out and signing in afterwards, which
+         is exactly what a factory reset leaves behind. Nothing generated by
+         the app is a record, so nothing generated by the app is uploaded.
+         Rows already persisted by older builds stay where they are and simply
+         shadow their own defaults, so no migration is needed. */
+      function listFilterViews() {
+        const saved = getFilterViews();
+        const byId = new Set();
+        for (let i = 0; i < saved.length; i++) byId.add(saved[i].id);
+        const out = [];
+        const defaults = normalizeViewShape(DEFAULT_FILTER_VIEWS);
+        for (let i = 0; i < defaults.length; i++) {
+          if (!byId.has(defaults[i].id)) out.push(defaults[i]);
+        }
+        return out.concat(saved);
+      }
+
       /**
        * Executes loadSavedFilterViews logic.
        */
@@ -23833,33 +23939,7 @@
         const select = DOM.filterViewPresets;
         if (!select) return;
 
-        const views = getFilterViews();
-
-        if (views.length === 0) {
-          views.push({
-            name: "Overtime Shifts",
-            time: "ALL",
-            status: "OVER",
-            search: "",
-            dateStart: "",
-            dateEnd: "",
-            hoursOp: "ALL",
-            hoursVal: "",
-            hasNotes: false,
-          });
-          views.push({
-            name: "Logged Notes Only",
-            time: "ALL",
-            status: "ALL",
-            search: "",
-            dateStart: "",
-            dateEnd: "",
-            hoursOp: "ALL",
-            hoursVal: "",
-            hasNotes: true,
-          });
-          saveFilterViews(views);
-        }
+        const views = listFilterViews();
 
         select.innerHTML = "";
         const defaultOpt = document.createElement("option");
@@ -23879,7 +23959,10 @@
         const selectedName = DOM.filterViewPresets.value;
         if (!selectedName) return;
 
-        const view = getFilterViews().find((v) => v.name === selectedName);
+        /* listFilterViews, not getFilterViews: the built-in views are no
+           longer stored, so looking them up in storage would find nothing and
+           selecting one would silently do nothing. */
+        const view = listFilterViews().find((v) => v.name === selectedName);
         if (view) {
           DOM.filterTime.value = view.time || "ALL";
           DOM.filterStatus.value = view.status || "ALL";
@@ -31037,10 +31120,7 @@
         put("sync-last-sync", engine ? formatAgo(engine.lastSyncAt) : "—");
         put("sync-last-push", engine ? formatAgo(engine.lastPushAt) : "—");
         put("sync-last-pull", engine ? formatAgo(engine.lastPullAt) : "—");
-        put(
-          "sync-pending",
-          engine ? String(engine.pending.log + engine.pending.task) : "—",
-        );
+        put("sync-pending", engine ? String(engine.pendingTotal) : "—");
         put(
           "sync-offset",
           status.offsetMeasured
@@ -31133,7 +31213,11 @@
           [
             "pending",
             engine
-              ? `${engine.pending.log + engine.pending.task} (${engine.pending.log} log, ${engine.pending.task} task)`
+              ? `${engine.pendingTotal} (` +
+                Object.keys(engine.pending)
+                  .map((k) => `${engine.pending[k]} ${k}`)
+                  .join(", ") +
+                ")"
               : "?",
           ],
           [
@@ -33629,10 +33713,8 @@
           renderLeaveBalances();
         }
 
-        // Invalidates cached insights key to force a visual update
-        insightsCacheKey = null;
-        filterCache = null;
-        filterCacheKey = null;
+        /* The cache drop lives in persistLeaveRecords, which saveLeaveDates
+           above already went through. */
         renderInsights();
         renderLogbook();
         autoPopulateDailyGoal(state.activeDate);
@@ -33658,10 +33740,8 @@
           renderLeaveBalances();
         }
 
-        // Invalidates cached insights key to force a visual update
-        insightsCacheKey = null;
-        filterCache = null;
-        filterCacheKey = null;
+        /* As in addLeaveDate: saveLeaveDates -> persistLeaveRecords has
+           already dropped the derived caches. */
         renderInsights();
         renderLogbook();
         autoPopulateDailyGoal(state.activeDate);
