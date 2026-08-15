@@ -14600,6 +14600,13 @@
         sessionAnchorWall: null, // This is our single primary Wall-clock anchor
         activeSegmentFloorSec: 0, // Ratchet: elapsed inside a segment never decreases
         loginTimestamp: null,
+        /* Opaque identity for the running shift, minted once at clock-in and
+           compared only for equality - never re-converted, never rebased. It
+           exists because loginTimestamp cannot answer "is this the same shift"
+           across devices: it is immutable locally but converts at the wire, so
+           a device whose clock moves reads its own mirrored session as a
+           stranger's and stops adopting. See sameSession. */
+        sessionIdWire: null,
         activeDate: null,
         idleLock: false,
         idleStart: null,
@@ -15567,6 +15574,28 @@
       }
 
       /**
+       * Mints the identity token for a shift, in server time where possible.
+       *
+       * Server time only so the number is a meaningful instant when read in a
+       * log; nothing depends on it being one. What everything depends on is
+       * that it is minted exactly once per shift and then copied verbatim -
+       * it is compared with `===` and never converted again, which is what
+       * makes it survive a clock change that loginTimestamp cannot.
+       *
+       * @param {number} wallMs Local wall instant the shift began.
+       * @returns {number} The token.
+       */
+      function mintSessionId(wallMs) {
+        const base = Number.isFinite(wallMs) ? wallMs : Date.now();
+        try {
+          if (window.Sync && typeof Sync.toWire === "function") {
+            return Sync.toWire(base);
+          }
+        } catch (e) {}
+        return Math.round(base);
+      }
+
+      /**
        * Shifts every in-flight wall timestamp by deltaMs so that all live
        * durations survive a system clock step unchanged, and absolute labels land
        * on the corrected timeline.
@@ -16302,6 +16331,10 @@
           "sessionAnchorWall",
           "activeSegmentFloorSec",
           "loginTimestamp",
+          /* Deliberately NOT in SYNC_INSTANT_KEYS. It is a token, not a
+             measurement: it crosses the wire byte for byte so that both
+             devices hold the identical value and equality means something. */
+          "sessionIdWire",
           "activeDate",
           "idleLock",
           "idleStart",
@@ -16334,7 +16367,14 @@
         /* lastActivity and tabHiddenAt never leave the device — see the note
            on SYNC_INSTANT_KEYS. Listed here so the omission reads as a
            decision rather than an oversight. */
-        const LOCAL_ONLY_FIELDS = ["lastActivity", "tabHiddenAt"];
+        const LOCAL_ONLY_FIELDS = [
+          "lastActivity",
+          "tabHiddenAt",
+          /* Describes this device's relationship to the session rather than
+             anything about the session, so shipping it would tell the next
+             device it is mirroring itself. */
+          "sessionMirrored",
+        ];
 
         /* The running task travels with the session because it is part of it:
            there is one running task in the real world for the same reason
@@ -17972,28 +18012,54 @@
 
         /* Two copies of the same shift, or two different shifts?
 
-           `loginTimestamp` is the closest thing the session has to an
-           identity: it is set once when the shift starts and travels with it.
            Heartbeats cannot answer this — every device with a live session
            restamps its own on every save, so a follower mirroring a shift
            looks exactly as fresh as the device authoring it, and "is the
            remote newer" comes out a coin flip.
 
-           The tolerance absorbs the rounding in a re-measured clock offset.
-           Two genuinely different shifts starting within five seconds of each
-           other on two devices is not a case worth distinguishing, and would
-           not be distinguishable anyway. */
+           `sessionIdWire` answers it, and it is compared exactly because it
+           is a token rather than a measurement: minted once at clock-in and
+           copied verbatim from device to device.
+
+           It replaced a windowed comparison of `loginTimestamp`, which was
+           wrong in a way no tolerance could fix. That field converts at the
+           wire but is deliberately never rebased locally, so the two rules
+           disagree the moment a device's clock moves: the stored value stays
+           in the old domain while the arriving one is converted through the
+           new offset, and the gap is the size of the clock change, not the
+           size of a rounding error. An eight-minute correction made a device
+           read its OWN mirrored shift as a stranger's, refuse to adopt, and
+           sit in permanent conflict with the device authoring it.
+
+           Absence is not a match. A shift that predates this field, or one
+           half-written by an older build, is treated as unrecognised — which
+           makes the caller keep its own copy and ask the user, rather than
+           overwrite a live session on a guess. */
         function sameSession(a, b) {
-          const la = Number(a && a.loginTimestamp);
-          const lb = Number(b && b.loginTimestamp);
-          if (!(la > 0) || !(lb > 0)) return false;
-          return Math.abs(la - lb) < 5000;
+          const ia = Number(a && a.sessionIdWire);
+          const ib = Number(b && b.sessionIdWire);
+          if (!(ia > 0) || !(ib > 0)) return false;
+          return ia === ib;
+        }
+
+        /**
+         * Retires the persisted "this shift came from elsewhere" mark.
+         *
+         * Idempotent on purpose, and that is load-bearing rather than tidy:
+         * it saves, the save marks the session dirty, and the dirty hook calls
+         * straight back here. The early return is what makes that terminate
+         * after one hop instead of looping.
+         */
+        function clearMirrorMark() {
+          if (!state || state.sessionMirrored !== true) return;
+          delete state.sessionMirrored;
+          if (typeof saveState === "function") saveState(true);
         }
 
         /* The blueprint's adoption checklist, in order. Returns a reason
            string when it refuses, so a refusal is diagnosable rather than
            looking like nothing happened. */
-        function adoptSession(wirePayload, wireTask) {
+        function adoptSession(wirePayload, wireTask, asMirror) {
           /* An anchor is only meaningful in a clock domain, and an unmeasured
              offset means we do not know which one this is. A single bad
              offset applied to an anchor produces a timer reading of days, and
@@ -18038,6 +18104,14 @@
           }
 
           adoptedAt = Date.now();
+          /* Written before the save below, and inside the `adopting` window,
+             so it rides along with the session it describes. `mirroring` is
+             module state and dies with the page; this is the part that has to
+             outlive a reload, because boot recovery runs long before the
+             lease has been heard from and would otherwise treat somebody
+             else's shift as this device's own. See recoverSessionOnBoot. */
+          if (asMirror) state.sessionMirrored = true;
+          else delete state.sessionMirrored;
           /* Persisted immediately: an adoption that only lives in memory is
              lost to a refresh, and the user would watch the session jump
              back to where it was.
@@ -18296,7 +18370,11 @@
               !conflict;
             let adoptedNow = false;
             if (shouldAdopt) {
-              lastAdoptError = adoptSession(remote, res && res.task_payload);
+              lastAdoptError = adoptSession(
+                remote,
+                res && res.task_payload,
+                phase === "follower",
+              );
               adoptedNow = !lastAdoptError;
             }
             /* Mirroring means this device is showing a session it took from
@@ -18308,6 +18386,9 @@
                session it is already showing, which is how an abandoned shift
                gets picked up. */
             mirroring = phase === "follower" && adoptedNow;
+            /* Owning it, or holding a session of its own, both mean this
+               device is no longer looking at somebody else's shift. */
+            if (!mirroring) clearMirrorMark();
 
             totals.beats++;
             lastBeatAt = Date.now();
@@ -18439,6 +18520,14 @@
              exclude its own write, which is the one write that means the
              opposite. */
           if (!adopting) mirroring = false;
+          /* Deliberately NOT clearing the persisted mark here. This hook runs
+             on every session save, and a mirroring device saves constantly -
+             the tick stamps a heartbeat several times a minute. The runtime
+             flag can be rebuilt by the next beat a second later, so losing it
+             costs nothing; the mark is what has to still be there after a
+             reload, so anything that clears it on a timer defeats it entirely.
+             Authorship changes in exactly two places, and both say so
+             explicitly: switchMode, and the beat that resolves ownership. */
           if (wantsLease() !== lastWant) beat("session change");
         });
 
@@ -20478,6 +20567,14 @@
           return;
         }
 
+        /* Past the gate, so this is the user deliberately driving the session
+           on this device. Whatever it was before, it is now theirs to recover
+           on the next boot. This is the offline half of the rule: the beat
+           below retires the mark when the lease says so, but a device with no
+           connection never gets that beat, and the user's own hand on the
+           controls is the other thing that settles ownership. */
+        delete state.sessionMirrored;
+
         // Defensive Gate: Prevent break switch requests if session has not legally launched
         if (mode === "break" && !state.loginTimestamp) {
           return;
@@ -20515,6 +20612,7 @@
           setSessionAnchor(nowWall);
           if (mode === "work" && !state.loginTimestamp) {
             state.loginTimestamp = nowWall;
+            state.sessionIdWire = mintSessionId(nowWall);
             state.shiftStartGoalSec =
               domWriteCache._goalSecCached ||
               getGoalSeconds(
@@ -22059,6 +22157,7 @@
             (state.workAccumulated || 0) + totalIdleSeconds;
           if (!state.loginTimestamp) {
             state.loginTimestamp = resolutionTime - totalIdleSeconds * 1000;
+            state.sessionIdWire = mintSessionId(state.loginTimestamp);
           }
         } else if (choice === "break") {
           state.breakAccumulated =
@@ -22071,6 +22170,7 @@
             );
             if (loginDateStr !== todayStr) {
               state.loginTimestamp = null;
+              state.sessionIdWire = null;
             }
           }
         }
@@ -22152,6 +22252,7 @@
           sessionAnchorWall: null,
           activeSegmentFloorSec: 0,
           loginTimestamp: null,
+          sessionIdWire: null,
           activeDate: getPSTDate(),
           idleLock: false,
           idleStart: null,
@@ -28080,6 +28181,18 @@
         // A reset is mid-reboot; a rollover here would write a shift back into
         // the logbook that was just emptied.
         if (isFactoryResetting) return;
+        /* Rolling over a shift this device only mirrored files somebody else's
+           work into this logbook - and the logbook is not lease-gated, so the
+           phantom is pushed and lands back on the device still running the
+           real shift, beside the entry it will file for itself.
+
+           Gated here rather than at the callers because there are three of
+           them - the tick, the visibility wakeup and boot recovery - and this
+           is the one place that actually writes. The device that owns the
+           session rolls it over; the mirrors watch. If the session is truly
+           abandoned, a mirror claims the lease first, which retires the mark
+           and puts it back on this path as the author. */
+        if (state.sessionMirrored === true) return;
         window.isRollingOver = true;
         try {
           /* getPSTDate() is the single answer to "what day is it", and it
@@ -28345,6 +28458,11 @@
               } else {
                 setSessionAnchor(null);
                 state.loginTimestamp = null;
+                /* The shift is over, so the identity retires with it. The
+                   two branches above deliberately keep theirs: a shift that
+                   crosses midnight is still the same shift, and re-minting
+                   would make each device roll over into a different one. */
+                state.sessionIdWire = null;
               }
 
               requiresRender = true;
@@ -34412,6 +34530,26 @@
           state.currentMode !== null &&
           !state.idleLock &&
           Number.isFinite(state.sessionAnchorWall);
+
+        /* A shift this device adopted from another one is not this device's to
+           recover. Everything below writes: it banks time, raises an idle lock
+           over the gap, and rolls the day over into the logbook — and whatever
+           it files gets pushed, landing on the authoring device as a duplicate
+           of a shift that was never interrupted.
+
+           The lease cannot be asked yet. SessionLease starts at phase "off",
+           and mayWriteSession() answers "off" and "offline" with true by
+           design, because refusing to let a device write its own session in a
+           tunnel is worse than the race it would prevent. That predicate
+           answers "may I go on writing my session"; this one is "is this
+           session mine at all", and only the mark saved at adoption knows.
+
+           The mark clears itself: once online, a device that finds the shift
+           abandoned claims the lease and stops being a mirror. */
+        if (hasLiveSegment && state.sessionMirrored === true) {
+          delete state.tabHiddenAt;
+          return;
+        }
 
         if (hasLiveSegment) {
           /* The newest proof of life. lastHeartbeatWall is stamped every tick
