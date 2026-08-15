@@ -14478,11 +14478,43 @@
         _leaveDatesSet = null;
         try {
           const parsed = saved ? JSON.parse(saved) : [];
-          _leaveDatesParsed = Array.isArray(parsed) ? parsed : [];
+          _leaveDatesParsed = Array.isArray(parsed)
+            ? normalizeLeaveShape(parsed)
+            : [];
         } catch (err) {
           console.error("Error reading leave dates:", err);
           _leaveDatesParsed = [];
         }
+      }
+
+      /* Brings every stored shape up to the one sync needs, in memory only.
+         Deliberately not written back on read: a normalisation that persisted
+         would look like an edit on every boot and let a device that changed
+         nothing win last-writer-wins races it never entered.
+
+         The id is the date because there is exactly one leave per date -
+         which is already how getLeaveDateSet and every badge lookup treat
+         them - so nothing had to be invented, and two devices logging the
+         same day converge on one row instead of duplicating it. */
+      function normalizeLeaveShape(list) {
+        const out = [];
+        for (let i = 0; i < list.length; i++) {
+          const entry = list[i];
+          const date = getLeaveRecordDate(entry);
+          if (!date) continue;
+          out.push({
+            id: date,
+            date,
+            type: getLeaveRecordType(entry),
+            /* Zero, not now: see lastModifiedOf. An entry that predates sync
+               must not outrank a real edit made on another device. */
+            lastModified:
+              entry && Number.isFinite(entry.lastModified)
+                ? entry.lastModified
+                : 0,
+          });
+        }
+        return out;
       }
 
       /**
@@ -14512,7 +14544,45 @@
        * Executes saveLeaveDates logic.
        */
       function saveLeaveDates(dates) {
-        return safeSetLocalStorage(LEAVE_DATES_KEY, JSON.stringify(dates));
+        /* Stamped only where something actually moved. Restamping the whole
+           list on every save would make removing one leave on this device
+           overwrite a different leave edited more recently on another. */
+        _syncLeaveDatesCache();
+        const before = new Map();
+        for (let i = 0; i < _leaveDatesParsed.length; i++) {
+          before.set(_leaveDatesParsed[i].id, _leaveDatesParsed[i]);
+        }
+        const now = Date.now();
+        const next = normalizeLeaveShape(Array.isArray(dates) ? dates : []);
+        for (let i = 0; i < next.length; i++) {
+          const prior = before.get(next[i].id);
+          next[i].lastModified =
+            prior && prior.type === next[i].type ? prior.lastModified : now;
+        }
+        _leaveDatesParsed = next;
+        return persistLeaveRecords();
+      }
+
+      /* The live array, not the defensive copy getLeaveDates hands out: the
+         sync merge edits the list in place, and a copy would take every
+         change from the cloud straight to the garbage collector. */
+      function getLeaveRecordsLive() {
+        _syncLeaveDatesCache();
+        return _leaveDatesParsed;
+      }
+
+      /* announce=false when the write IS the merge landing: the records just
+         adopted are already in the shadow, so telling the engine they are
+         dirty only buys a cycle that finds nothing to send. */
+      function persistLeaveRecords(announce) {
+        _leaveDatesSet = null;
+        const json = JSON.stringify(_leaveDatesParsed);
+        /* Kept in step with what was written, or the next read sees a raw
+           string it does not recognise and reparses over the merge. */
+        _leaveDatesRaw = json;
+        const ok = safeSetLocalStorage(LEAVE_DATES_KEY, json);
+        if (announce !== false && window.Sync) Sync.markDirty("leave");
+        return ok;
       }
 
       /* Leave records exist in two shapes: a bare "MM/DD/YY" string (legacy) and
@@ -16307,16 +16377,34 @@
            which is deliberate: an empty shadow derives every record as an
            edit and no record as a delete, which is exactly right for a first
            sync on a device that already has history. */
-        const shadow = { log: new Map(), task: new Map() };
+        /* Every collection that syncs per row. One list, and the three
+           structures below are derived from it, because the first version of
+           this named log and task separately in seven places - the shadow,
+           the tombstones, the cursors, the meta writer, the meta reader, the
+           reset, and the engine's own copy - and a kind added to six of them
+           is a kind that silently never syncs.
+
+           leave and view joined in phase 8. Both are keyed collections a
+           person edits from either device: a leave is identified by its date
+           and a saved filter view by its name, so neither needed an id
+           invented for it. */
+        const RECORD_KINDS = ["log", "task", "leave", "view"];
+
+        const shadow = {};
 
         /* When this device first observed a record was gone. Stamped once
            and persisted rather than recomputed per derivation: a tombstone
            whose timestamp advanced on every retry would eventually out-rank
            a genuinely newer edit from another device and win a conflict it
            is supposed to lose. */
-        const pendingDeletes = { log: new Map(), task: new Map() };
+        const pendingDeletes = {};
 
-        const cursor = { log: 0, task: 0 };
+        const cursor = {};
+        for (let i = 0; i < RECORD_KINDS.length; i++) {
+          shadow[RECORD_KINDS[i]] = new Map();
+          pendingDeletes[RECORD_KINDS[i]] = new Map();
+          cursor[RECORD_KINDS[i]] = 0;
+        }
         const dirty = new Set();
         let deviceId = null;
         let deviceLabel = null;
@@ -16386,17 +16474,21 @@
         /* Maps survive structured clone, so the shadow is stored as-is
            instead of being marshalled through an object on every write. */
         function metaRecords() {
-          return [
-            { key: "shadow:log", map: shadow.log, deletes: pendingDeletes.log },
-            {
-              key: "shadow:task",
-              map: shadow.task,
-              deletes: pendingDeletes.task,
-            },
-            { key: "cursors", log: cursor.log, task: cursor.task },
-            { key: "device", id: deviceId, label: deviceLabel },
-            { key: "settings", modifiedWire: settingsModifiedWire },
-          ];
+          const out = [];
+          const cursors = { key: "cursors" };
+          for (let i = 0; i < RECORD_KINDS.length; i++) {
+            const kind = RECORD_KINDS[i];
+            out.push({
+              key: `shadow:${kind}`,
+              map: shadow[kind],
+              deletes: pendingDeletes[kind],
+            });
+            cursors[kind] = cursor[kind];
+          }
+          out.push(cursors);
+          out.push({ key: "device", id: deviceId, label: deviceLabel });
+          out.push({ key: "settings", modifiedWire: settingsModifiedWire });
+          return out;
         }
 
         /* Debounced: the shadow is the largest thing this module owns and a
@@ -16600,8 +16692,86 @@
 
         /* Settings carry no instants at all, which is why they need no
            conversion and why they can be a whole blob rather than a diff. */
+        /* Preferences that live in their own localStorage key instead of in
+           state. settingsToWire could only ever see state, which is the
+           whole reason the daily goal, the timezone, the theme, the presets
+           and the leave allowance ledger never reached a second device: they
+           were not records, not session, and structurally invisible to the
+           settings picker. */
+        const PREF_KEYS = {
+          dailyGoalH: { key: GOAL_H_KEY, json: false },
+          dailyGoalM: { key: GOAL_M_KEY, json: false },
+          dailyGoalS: { key: GOAL_S_KEY, json: false },
+          tzPref: { key: TZ_KEY, json: false },
+          themePref: { key: THEME_KEY, json: false },
+          presets: { key: PRESET_VALUES_KEY, json: true },
+          leaveAllowances: { key: LEAVE_ALLOWANCES_KEY, json: true },
+        };
+
+        function readPrefs() {
+          const out = {};
+          for (const name in PREF_KEYS) {
+            const spec = PREF_KEYS[name];
+            let raw = null;
+            try {
+              raw = localStorage.getItem(spec.key);
+            } catch (e) {}
+            if (raw === null || raw === undefined) {
+              out[name] = null;
+              continue;
+            }
+            if (!spec.json) {
+              out[name] = raw;
+              continue;
+            }
+            try {
+              out[name] = JSON.parse(raw);
+            } catch (e) {
+              out[name] = null;
+            }
+          }
+          return out;
+        }
+
+        /**
+         * Writes an adopted preference blob back to localStorage.
+         *
+         * Returns whether anything actually changed, so the caller can skip
+         * a reload of the UI that nothing moved. A key absent from the blob
+         * is left alone rather than deleted: an older device that predates a
+         * preference must not be able to erase it by omission.
+         */
+        function applyPrefs(prefs) {
+          if (!prefs || typeof prefs !== "object") return false;
+          let changed = false;
+          for (const name in PREF_KEYS) {
+            if (!(name in prefs)) continue;
+            const spec = PREF_KEYS[name];
+            const incoming = prefs[name];
+            const next =
+              incoming === null || incoming === undefined
+                ? null
+                : spec.json
+                  ? JSON.stringify(incoming)
+                  : String(incoming);
+            let current = null;
+            try {
+              current = localStorage.getItem(spec.key);
+            } catch (e) {}
+            if (current === next) continue;
+            try {
+              if (next === null) localStorage.removeItem(spec.key);
+              else localStorage.setItem(spec.key, next);
+              changed = true;
+            } catch (e) {
+              console.warn("Could not apply synced preference " + name, e);
+            }
+          }
+          return changed;
+        }
+
         function settingsToWire(s) {
-          return pick(s, SETTINGS_FIELDS);
+          return Object.assign(pick(s, SETTINGS_FIELDS), readPrefs());
         }
 
         /* Must be deterministic across devices: two browsers deriving
@@ -16610,6 +16780,12 @@
            backfill, so this ladder is a fallback rather than the hot path. */
         function lastModifiedOf(kind, r) {
           if (Number.isFinite(r.lastModified)) return r.lastModified;
+          /* Leaves and views predate sync entirely and carry no stamp of
+             their own. Zero rather than a derived one: any real edit on
+             either device outranks it, and two devices holding the same
+             unedited entry agree on zero instead of inventing two different
+             numbers and trading the row back and forth forever. */
+          if (kind === "leave" || kind === "view") return 0;
           const fallback =
             kind === "task"
               ? r.endMs || r.startMs || 0
@@ -16761,37 +16937,75 @@
            and let an untouched device keep winning LWW races it never
            entered. Session is always dirty; settings only when a settings
            field actually moved. */
+        /* Two baselines, deliberately independent.
+
+           The state half is established by the first saveState, which happens
+           early in boot. The preference half CANNOT share that baseline: the
+           app writes its own defaults to those keys during initialisation -
+           a missing daily goal becomes "6" - and anything written after the
+           baseline reads as a user edit. Both devices then push a settings
+           blob they never meant to, and the one that happens to beat last
+           overwrites the other's real preferences with its own defaults.
+
+           So the preference baseline is taken on the first beat instead, by
+           which point boot has settled, and that first observation only ever
+           records. */
         let settingsPrint = null;
+        let prefsPrint = null;
+
+        function statePrint(s) {
+          const picked = {};
+          for (let i = 0; i < SETTINGS_FIELDS.length; i++) {
+            picked[SETTINGS_FIELDS[i]] = s ? s[SETTINGS_FIELDS[i]] : undefined;
+          }
+          return JSON.stringify(picked);
+        }
+
+        function markSettingsEdited() {
+          markDirty("settings");
+          /* Stamped here, at the edit, rather than at push time. A stamp
+             taken when the request is finally sent would let a device that
+             was merely slow to reconnect outrank an edit made after it. */
+          settingsModifiedWire = toWire(Date.now());
+          persistMeta();
+        }
+
         function noteStateSaved(s) {
           markDirty("session");
           if (!s) return;
-          const picked = {};
-          for (let i = 0; i < SETTINGS_FIELDS.length; i++) {
-            picked[SETTINGS_FIELDS[i]] = s[SETTINGS_FIELDS[i]];
-          }
-          const print = JSON.stringify(picked);
+          const print = statePrint(s);
           /* The first call after boot establishes the baseline instead of
              reporting a change: loading persisted settings is not an edit. */
           if (settingsPrint !== null && print !== settingsPrint) {
-            markDirty("settings");
-            /* Stamped here, at the edit, rather than at push time. A stamp
-               taken when the request is finally sent would let a device that
-               was merely slow to reconnect outrank an edit made after it. */
-            settingsModifiedWire = toWire(Date.now());
-            persistMeta();
+            markSettingsEdited();
           }
           settingsPrint = print;
+        }
+
+        /* The theme, the timezone, the daily goal, the presets and the leave
+           allowances are written straight to localStorage by a dozen call
+           sites and never pass through saveState, so there is nothing to
+           hang a dirty flag on. The lease beat calls this once per beat
+           instead, which catches every writer including the next one
+           somebody adds. */
+        function notePrefsChanged() {
+          const print = JSON.stringify(readPrefs());
+          if (prefsPrint !== null && print !== prefsPrint) {
+            markSettingsEdited();
+          }
+          prefsPrint = print;
         }
 
         /* Adopting a settings blob must not read back as a local edit on the
            very next save, or two devices ping-pong the same preferences
            forever, each one's adoption outranking the other's. */
         function noteSettingsAdopted(s, modifiedWire) {
-          const picked = {};
-          for (let i = 0; i < SETTINGS_FIELDS.length; i++) {
-            picked[SETTINGS_FIELDS[i]] = s[SETTINGS_FIELDS[i]];
-          }
-          settingsPrint = JSON.stringify(picked);
+          /* Both baselines, taken after applyPrefs has run so they describe
+             what is actually on the device now. Read back from storage
+             rather than from the incoming blob, because a key the blob
+             omitted was deliberately left alone. */
+          settingsPrint = statePrint(s);
+          prefsPrint = JSON.stringify(readPrefs());
           if (Number.isFinite(modifiedWire))
             settingsModifiedWire = modifiedWire;
           dirty.delete("settings");
@@ -16803,27 +17017,29 @@
         const ready = (async () => {
           if (!isSupported) return;
           try {
-            const [logMeta, taskMeta, cursors, device, settingsMeta] =
-              await Promise.all([
-                readMeta("shadow:log"),
-                readMeta("shadow:task"),
-                readMeta("cursors"),
-                readMeta("device"),
-                readMeta("settings"),
-              ]);
-            if (logMeta && logMeta.map instanceof Map) {
-              shadow.log = logMeta.map;
-              if (logMeta.deletes instanceof Map)
-                pendingDeletes.log = logMeta.deletes;
-            }
-            if (taskMeta && taskMeta.map instanceof Map) {
-              shadow.task = taskMeta.map;
-              if (taskMeta.deletes instanceof Map)
-                pendingDeletes.task = taskMeta.deletes;
+            const shadows = await Promise.all(
+              RECORD_KINDS.map((kind) => readMeta(`shadow:${kind}`)),
+            );
+            const [cursors, device, settingsMeta] = await Promise.all([
+              readMeta("cursors"),
+              readMeta("device"),
+              readMeta("settings"),
+            ]);
+            for (let i = 0; i < RECORD_KINDS.length; i++) {
+              const kind = RECORD_KINDS[i];
+              const meta = shadows[i];
+              /* A kind added after this device last synced has no stored
+                 shadow, which is the correct starting point rather than an
+                 error: an empty shadow costs one full reconciliation. */
+              if (!meta || !(meta.map instanceof Map)) continue;
+              shadow[kind] = meta.map;
+              if (meta.deletes instanceof Map)
+                pendingDeletes[kind] = meta.deletes;
             }
             if (cursors) {
-              cursor.log = Number(cursors.log) || 0;
-              cursor.task = Number(cursors.task) || 0;
+              for (let i = 0; i < RECORD_KINDS.length; i++) {
+                cursor[RECORD_KINDS[i]] = Number(cursors[RECORD_KINDS[i]]) || 0;
+              }
             }
             settingsModifiedWire =
               Number(settingsMeta && settingsMeta.modifiedWire) || 0;
@@ -16856,12 +17072,12 @@
          * every other signed-in device down with it.
          */
         async function forgetEverything() {
-          shadow.log.clear();
-          shadow.task.clear();
-          pendingDeletes.log.clear();
-          pendingDeletes.task.clear();
-          cursor.log = 0;
-          cursor.task = 0;
+          for (let i = 0; i < RECORD_KINDS.length; i++) {
+            const kind = RECORD_KINDS[i];
+            shadow[kind].clear();
+            pendingDeletes[kind].clear();
+            cursor[kind] = 0;
+          }
           settingsModifiedWire = 0;
           dirty.clear();
 
@@ -16898,8 +17114,12 @@
         return {
           isSupported,
           ready,
+          RECORD_KINDS,
           markDirty,
           noteStateSaved,
+          notePrefsChanged,
+          applyPrefs,
+          readPrefs,
           onDirty(fn) {
             dirtyHooks.add(fn);
             return () => dirtyHooks.delete(fn);
@@ -17383,7 +17603,9 @@
          leader between themselves, so three open tabs produce one poller
          rather than three racing ones. */
       const SyncEngine = (() => {
-        const KINDS = ["log", "task"];
+        /* Taken from the change-detection layer rather than restated, so a
+           kind can never exist in one and not the other. */
+        const KINDS = Sync.RECORD_KINDS;
         const PULL_PAGE = 500;
         const PUSH_BATCH = 200;
         /* clock_timestamp() is assigned before the commit lands, so a row
@@ -17447,8 +17669,14 @@
           );
         }
 
+        /* Every one of these returns the LIVE array. mergeRows edits the list
+           in place, so a defensive copy here would send everything the cloud
+           just handed over straight to the garbage collector. */
         function recordsOf(kind) {
-          return kind === "task" ? cachedTaskLogs : getLogs();
+          if (kind === "task") return cachedTaskLogs;
+          if (kind === "leave") return getLeaveRecordsLive();
+          if (kind === "view") return getFilterViewsLive();
+          return getLogs();
         }
 
         /* ── backoff ───────────────────────────────────────────────────── */
@@ -17511,6 +17739,10 @@
         }
 
         function rehydrate(kind, r) {
+          /* Nothing to derive: both are exactly what was stored. Returned
+             before the log branch below, which would otherwise stamp a
+             dayGoal and a searchStr onto a leave date. */
+          if (kind === "leave" || kind === "view") return r;
           if (kind === "task") {
             if (!Number.isFinite(r.pausedSec)) {
               const span =
@@ -17536,18 +17768,34 @@
           return r;
         }
 
+        /* Dispatched on every kind explicitly rather than falling through to
+           the logbook. The else branch used to mean "log", which for a kind
+           added later would have quietly sorted and then SAVED the wrong
+           collection over the user's history. */
         function sortKind(kind) {
           if (kind === "task") {
             cachedTaskLogs.sort(
               (a, b) => (Number(b.startMs) || 0) - (Number(a.startMs) || 0),
             );
-          } else {
-            getLogs().sort(
-              (a, b) =>
-                (b.epochMs || 0) - (a.epochMs || 0) ||
-                (b.loginEpochMs || 0) - (a.loginEpochMs || 0),
-            );
+            return;
           }
+          if (kind === "leave") {
+            /* Newest leave first, matching how the history list reads. */
+            getLeaveRecordsLive().sort(
+              (a, b) => (Date.parse(b.date) || 0) - (Date.parse(a.date) || 0),
+            );
+            return;
+          }
+          if (kind === "view") {
+            getFilterViewsLive().sort((a, b) => a.id.localeCompare(b.id));
+            return;
+          }
+          if (kind !== "log") return;
+          getLogs().sort(
+            (a, b) =>
+              (b.epochMs || 0) - (a.epochMs || 0) ||
+              (b.loginEpochMs || 0) - (a.loginEpochMs || 0),
+          );
         }
 
         function replaceAll(list, next) {
@@ -17561,6 +17809,26 @@
             if (typeof renderTaskLogbook === "function") renderTaskLogbook();
             return;
           }
+          if (kind === "leave") {
+            /* announce=false: these rows arrived FROM the cloud and are
+               already in the shadow, so calling them dirty buys a cycle that
+               finds nothing to send. */
+            persistLeaveRecords(false);
+            if (typeof renderLeaveDatesList === "function") {
+              renderLeaveDatesList();
+            }
+            /* The logbook draws a badge on every leave day. */
+            if (typeof renderLogbook === "function") renderLogbook();
+            return;
+          }
+          if (kind === "view") {
+            persistFilterViews(false);
+            if (typeof loadSavedFilterViews === "function") {
+              loadSavedFilterViews();
+            }
+            return;
+          }
+          if (kind !== "log") return;
           await saveLogs(getLogs());
           if (typeof renderLogbook === "function") renderLogbook();
           if (typeof renderInsights === "function") renderInsights();
@@ -17975,7 +18243,10 @@
           if (!SyncNet.signedIn) return 0;
           let total = 0;
 
-          for (const kind of ["log", "task"]) {
+          /* KINDS, not a second hardcoded list: a factory reset that wiped
+             the logs and left the leave dates in the cloud would put them
+             all back on the next sync. */
+          for (const kind of KINDS) {
             let remoteIds = [];
             try {
               const remote = await pullKind(kind, 0);
@@ -18503,19 +18774,37 @@
             state[k] = blob[k];
             changed = true;
           }
+          /* The half of the blob that does not live in state: the daily
+             goal, the timezone, the theme, the presets and the leave
+             allowance ledger, each in its own localStorage key. Applied
+             before the fingerprint below is taken, or the very next save
+             would read them back as a local edit and push them again. */
+          const prefsChanged = Sync.applyPrefs(blob);
+
           /* The stamp is adopted even when no field moved: this device has
              now seen that version, and re-adopting it every beat would be
              noise. */
           Sync.noteSettingsAdopted(state, remoteWire);
           if (changed) {
             if (typeof saveState === "function") saveState(true);
+          }
+          if (changed || prefsChanged) {
             if (typeof syncSettingsUI === "function") {
               try {
                 syncSettingsUI();
               } catch (e) {}
             }
           }
-          return changed;
+          /* A preference that only exists in localStorage is read at render
+             time, so the screen has to be told to look again. */
+          if (prefsChanged && typeof applySyncedPrefsToUI === "function") {
+            try {
+              applySyncedPrefsToUI();
+            } catch (e) {
+              console.warn("Could not apply synced preferences", e);
+            }
+          }
+          return changed || prefsChanged;
         }
 
         /* Returns the transition the caller has to announce, rather than
@@ -18645,6 +18934,15 @@
               args.p_payload = Sync.sessionToWire(state);
               args.p_task_payload = Sync.taskToWire(taskState);
             }
+            /* The theme, the timezone, the daily goal, the presets and the
+               leave allowances are written straight to localStorage by a
+               dozen call sites and never pass through saveState, so there is
+               nothing to hang a dirty flag on. Rather than annotate every
+               writer - and silently miss the next one somebody adds - the
+               fingerprint is re-taken here, once per beat. Seven
+               localStorage reads every fifteen seconds, against a class of
+               bug that cannot come back. */
+            Sync.notePrefsChanged();
             if (Sync.dirty.has("settings")) {
               args.p_settings = Sync.settingsToWire(state);
               args.p_settings_modified = Sync.settingsModifiedWire;
@@ -23386,7 +23684,103 @@
       // ========================================== PERSISTENT SAVED FILTER VIEWS
       // ==========================================
       const VIEWS_KEY = "production_saved_filter_views";
+      /* Which filters are applied right now, deliberately NOT synced. It is
+         what this browser is currently looking at rather than something the
+         user made, and pushing it would rearrange the laptop's logbook
+         because somebody filtered on their phone. */
       const FILTERS_PREF_KEY = "production_active_filters_pref";
+
+      let _viewsRaw = null;
+      let _viewsParsed = [];
+
+      /* Views are keyed by name because the app already treats the name as
+         the identity - saveCurrentFilterView replaces a view of the same
+         name rather than adding a second. Lowercased for the id so two
+         devices cannot end up with "Overtime" and "overtime" as separate
+         rows that neither can reconcile. */
+      function normalizeViewShape(list) {
+        const out = [];
+        const seen = new Set();
+        for (let i = 0; i < list.length; i++) {
+          const v = list[i];
+          if (!v || typeof v.name !== "string" || !v.name.trim()) continue;
+          const id = v.name.trim().toLowerCase();
+          if (seen.has(id)) continue;
+          seen.add(id);
+          out.push(
+            Object.assign({}, v, {
+              id,
+              name: v.name.trim(),
+              lastModified: Number.isFinite(v.lastModified)
+                ? v.lastModified
+                : 0,
+            }),
+          );
+        }
+        return out;
+      }
+
+      function _syncViewsCache() {
+        let saved = null;
+        try {
+          saved = safeGetLocalStorage(VIEWS_KEY);
+        } catch (err) {
+          saved = null;
+        }
+        if (saved === _viewsRaw) return;
+        _viewsRaw = saved;
+        try {
+          const parsed = saved ? JSON.parse(saved) : [];
+          _viewsParsed = Array.isArray(parsed)
+            ? normalizeViewShape(parsed)
+            : [];
+        } catch (err) {
+          console.error("Error reading saved views:", err);
+          _viewsParsed = [];
+        }
+      }
+
+      function getFilterViews() {
+        _syncViewsCache();
+        return _viewsParsed.slice();
+      }
+
+      /* The live array the sync merge edits in place. */
+      function getFilterViewsLive() {
+        _syncViewsCache();
+        return _viewsParsed;
+      }
+
+      function persistFilterViews(announce) {
+        const json = JSON.stringify(_viewsParsed);
+        _viewsRaw = json;
+        const ok = safeSetLocalStorage(VIEWS_KEY, json);
+        if (announce !== false && window.Sync) Sync.markDirty("view");
+        return ok;
+      }
+
+      function saveFilterViews(views) {
+        _syncViewsCache();
+        const before = new Map();
+        for (let i = 0; i < _viewsParsed.length; i++) {
+          before.set(_viewsParsed[i].id, _viewsParsed[i]);
+        }
+        const now = Date.now();
+        const next = normalizeViewShape(Array.isArray(views) ? views : []);
+        for (let i = 0; i < next.length; i++) {
+          const prior = before.get(next[i].id);
+          /* Compared on the filter the view describes, with the two sync
+             fields excluded, so re-saving an identical view does not restamp
+             it and outrank a real edit elsewhere. */
+          const same =
+            prior &&
+            JSON.stringify(Object.assign({}, prior, { lastModified: 0 })) ===
+              JSON.stringify(Object.assign({}, next[i], { lastModified: 0 }));
+          next[i].lastModified = same ? prior.lastModified : now;
+        }
+        _viewsParsed = next;
+        return persistFilterViews();
+      }
 
       window.saveCurrentFilterView = function () {
         let name;
@@ -23413,13 +23807,7 @@
           hasNotes: DOM.filterNotes.checked,
         };
 
-        let views = [];
-        try {
-          const saved = safeGetLocalStorage(VIEWS_KEY);
-          if (saved) views = JSON.parse(saved);
-        } catch (err) {
-          console.error("Error reading saved views:", err);
-        }
+        const views = getFilterViews();
 
         const existingIdx = views.findIndex(
           (v) => v.name.toLowerCase() === cleanName.toLowerCase(),
@@ -23430,7 +23818,7 @@
           views.push(newView);
         }
 
-        localStorage.setItem(VIEWS_KEY, JSON.stringify(views));
+        saveFilterViews(views);
         loadSavedFilterViews();
 
         DOM.filterViewPresets.value = cleanName;
@@ -23445,13 +23833,7 @@
         const select = DOM.filterViewPresets;
         if (!select) return;
 
-        let views = [];
-        try {
-          const saved = safeGetLocalStorage(VIEWS_KEY);
-          if (saved) views = JSON.parse(saved);
-        } catch (err) {
-          console.error("Error reading saved views:", err);
-        }
+        const views = getFilterViews();
 
         if (views.length === 0) {
           views.push({
@@ -23476,7 +23858,7 @@
             hoursVal: "",
             hasNotes: true,
           });
-          localStorage.setItem(VIEWS_KEY, JSON.stringify(views));
+          saveFilterViews(views);
         }
 
         select.innerHTML = "";
@@ -23497,13 +23879,7 @@
         const selectedName = DOM.filterViewPresets.value;
         if (!selectedName) return;
 
-        let views = [];
-        try {
-          const saved = safeGetLocalStorage(VIEWS_KEY);
-          if (saved) views = JSON.parse(saved);
-        } catch (err) {}
-
-        const view = views.find((v) => v.name === selectedName);
+        const view = getFilterViews().find((v) => v.name === selectedName);
         if (view) {
           DOM.filterTime.value = view.time || "ALL";
           DOM.filterStatus.value = view.status || "ALL";
@@ -23542,14 +23918,9 @@
           "Delete Saved View?",
           `Are you sure you want to permanently delete the saved view "${selectedName}"?`,
           () => {
-            let views = [];
-            try {
-              const saved = safeGetLocalStorage(VIEWS_KEY);
-              if (saved) views = JSON.parse(saved);
-            } catch (err) {}
-
-            views = views.filter((v) => v.name !== selectedName);
-            localStorage.setItem(VIEWS_KEY, JSON.stringify(views));
+            saveFilterViews(
+              getFilterViews().filter((v) => v.name !== selectedName),
+            );
             loadSavedFilterViews();
             clearFilters();
             showAppToast(`Deleted view "${selectedName}"`);
@@ -27822,12 +28193,17 @@
             );
           }
           if (data.leaves) {
-            localStorage.setItem(
-              LEAVE_DATES_KEY,
+            /* Through saveLeaveDates rather than straight to the key, so the
+               restored entries are stamped as written NOW. A backup's leaves
+               carry no stamp of their own, and writing them raw would leave
+               them at zero - which loses every conflict against whatever is
+               already in the cloud, and quietly undoes the restore on the
+               next pull. */
+            const raw =
               typeof data.leaves === "string"
-                ? data.leaves
-                : JSON.stringify(data.leaves),
-            );
+                ? JSON.parse(data.leaves)
+                : data.leaves;
+            saveLeaveDates(Array.isArray(raw) ? raw : []);
           }
           if (data.leaveAllowances) {
             localStorage.setItem(
@@ -27848,12 +28224,12 @@
             console.warn("Could not reset leave allowance migration latch", e);
           }
           if (data.views) {
-            localStorage.setItem(
-              VIEWS_KEY,
+            /* Same reasoning as the leaves above. */
+            const raw =
               typeof data.views === "string"
-                ? data.views
-                : JSON.stringify(data.views),
-            );
+                ? JSON.parse(data.views)
+                : data.views;
+            saveFilterViews(Array.isArray(raw) ? raw : []);
           }
 
           if (data.taskState) {
@@ -28217,6 +28593,57 @@
         }
       }
 
+      /**
+       * Re-reads every preference that lives in its own localStorage key and
+       * puts it back on the screen.
+       *
+       * syncSettingsUI covers the settings that live in `state`. These do
+       * not, so without this a theme or timezone arriving from another
+       * device would sit in storage until the next reload.
+       */
+      function applySyncedPrefsToUI() {
+        try {
+          const stored = safeGetLocalStorage(THEME_KEY);
+          /* currentTheme is the live value every renderer reads, so it has
+             to move with the stored one or the two disagree until reload. */
+          if (stored && stored !== currentTheme) {
+            currentTheme = stored;
+            syncColorSchemeMeta(currentTheme);
+            document.documentElement.setAttribute("data-theme", currentTheme);
+            if (typeof renderThemeToggle === "function") renderThemeToggle();
+          }
+        } catch (e) {}
+
+        try {
+          const tz = safeGetLocalStorage(TZ_KEY, "America/Los_Angeles");
+          if (DOM.primaryTz && DOM.primaryTz.value !== tz) {
+            DOM.primaryTz.value = tz;
+            if (typeof updatePrimaryFormatter === "function") {
+              updatePrimaryFormatter();
+            }
+            if (typeof updateTZLabel === "function") updateTZLabel();
+          }
+        } catch (e) {}
+
+        /* The daily goal feeds every derived figure on the dashboard, and
+           the presets and allowances have their own lists. */
+        const redraws = [
+          "renderPresets",
+          "renderLeaveDatesList",
+          "renderStaticUI",
+          "renderLogbook",
+        ];
+        for (let i = 0; i < redraws.length; i++) {
+          const fn = window[redraws[i]];
+          if (typeof fn !== "function") continue;
+          try {
+            fn();
+          } catch (e) {
+            console.warn("Could not redraw after a synced preference", e);
+          }
+        }
+      }
+
       /* Every localStorage key the app owns. */
       function purgeFactoryKeys() {
         const keys = [
@@ -28407,6 +28834,11 @@
         _leaveDatesRaw = null;
         _leaveDatesParsed = [];
         _leaveDatesSet = null;
+        /* The views cache is keyed on the raw string it parsed, and the wipe
+           has just removed that key. Without this the in-memory copy outlives
+           the erase and the next save writes it all back. */
+        _viewsRaw = null;
+        _viewsParsed = [];
         filterCache = null;
         filterCacheKey = null;
         cachedTaskLogs = [];
@@ -35532,6 +35964,23 @@
 
             autoPopulateDailyGoal(state.activeDate || getPSTDate());
             syncTickerState();
+
+            /* The preference baseline, taken here and nowhere else.
+               Everything above that writes a default into one of those keys -
+               autoPopulateDailyGoal is the loud one - has now run, and no
+               user interaction is possible before this line. Leaving it to
+               whichever lease beat happened to land first was a race: a beat
+               that arrived after a real edit adopted that edit as the
+               baseline and the change was never sent. */
+            if (window.Sync && typeof Sync.notePrefsChanged === "function") {
+              Sync.notePrefsChanged();
+            }
+            /* The app has finished starting. Set last, after the baseline
+               above, so anything waiting on it is waiting for exactly that:
+               a person cannot change a preference before this point, but an
+               automated driver reaches the page long before it and would
+               otherwise have its writes adopted as the baseline. */
+            window.bootCompletedAt = Date.now();
           });
         }
 
