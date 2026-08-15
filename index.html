@@ -4037,6 +4037,63 @@
         letter-spacing: 0.02em;
       }
 
+      /* The sync card's diagnostics disclosure. Shaped like the settings rows
+         it sits among rather than like a button, because it introduces them:
+         reading as a control in its own right would put it in competition with
+         the two it is stacked between. */
+      .sync-details-toggle {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        width: 100%;
+        padding: 0;
+        background: none;
+        border: none;
+        border-radius: 0;
+        color: inherit;
+        font: inherit;
+      }
+
+      .sync-details-toggle svg {
+        width: 13px;
+        height: 13px;
+        color: var(--text-muted);
+        flex-shrink: 0;
+        transition: transform 0.18s ease;
+      }
+
+      .sync-details-toggle[aria-expanded="true"] svg {
+        transform: rotate(180deg);
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .sync-details-toggle svg {
+          transition: none;
+        }
+      }
+
+      /* Read-outs rather than labels. These are numbers meant to be compared
+         down the column and read aloud to somebody else, so they take the same
+         mono face every other figure in the app uses. */
+      .sync-detail-value {
+        font-family: var(--font-mono);
+        font-size: 0.7rem;
+        font-weight: 600;
+        color: var(--text-muted);
+        letter-spacing: 0.02em;
+        text-align: right;
+        max-width: 64%;
+        overflow-wrap: anywhere;
+      }
+
+      /* Labels lighter than the values they introduce, which is the weight
+         relationship the three rows above the disclosure already use - and
+         the reason those three set it inline rather than taking the class
+         default. */
+      #sync-details .settings-label {
+        font-weight: 500;
+      }
+
       .idle-popup-val {
         font-family: var(--font-mono);
         font-size: 0.75rem;
@@ -13342,18 +13399,18 @@
                     style="display: none; flex-direction: column; gap: 6px"
                   >
                     <!-- Every row of the failure matrix has to land somewhere a
-                         person can read it. Until phase 7 builds the full
-                         panel, this one line carries all of them: offline with
-                         a backlog, a storage fault degrading to pull-only, a
-                         server that has been refusing for long enough to
-                         mention, and how long until the next attempt. -->
-                    <div class="settings-row">
+                         person can read it, and this one line carries all of
+                         them: offline with a backlog, a storage fault degrading
+                         to pull-only, a server that has been refusing for long
+                         enough to mention, and how long until the next
+                         attempt. -->
+                    <div class="settings-row" id="sync-row-status">
                       <span class="settings-label" style="font-weight: 500"
                         >Status</span
                       >
                       <span class="settings-label" id="sync-state"></span>
                     </div>
-                    <div class="settings-row">
+                    <div class="settings-row" id="sync-row-device">
                       <span class="settings-label" style="font-weight: 500"
                         >This device</span
                       >
@@ -13371,7 +13428,7 @@
                         onkeydown="if (event.key === 'Enter') this.blur();"
                       />
                     </div>
-                    <div class="settings-row">
+                    <div class="settings-row" id="sync-row-live">
                       <span class="settings-label" style="font-weight: 500"
                         >Live session</span
                       >
@@ -13389,12 +13446,93 @@
                     >
                       Continue session here
                     </button>
-                    <div class="settings-row">
+
+                    <!-- Collapsed, because on an ordinary day the three rows
+                         above are the whole story. Present at all, because on
+                         the day it is not, somebody is reading these numbers
+                         out over a chat window and the alternative is guessing
+                         from a description. -->
+                    <button
+                      type="button"
+                      class="sync-details-toggle"
+                      id="sync-details-toggle"
+                      aria-expanded="false"
+                      aria-controls="sync-details"
+                      onclick="syncToggleDetails()"
+                    >
                       <span class="settings-label" style="font-weight: 500"
-                        >Clock offset</span
+                        >Sync details</span
                       >
-                      <span class="settings-label" id="sync-offset"></span>
+                      <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        aria-hidden="true"
+                      >
+                        <polyline points="6 9 12 15 18 9"></polyline>
+                      </svg>
+                    </button>
+                    <div
+                      id="sync-details"
+                      style="display: none; flex-direction: column; gap: 6px"
+                    >
+                      <!-- No account row: the chip at the top of the card
+                           names it, in full, on one line, whether or not this
+                           device can reach the cloud. -->
+                      <div class="settings-row" id="sync-row-lastsync">
+                        <span class="settings-label">Last sync</span>
+                        <span
+                          class="sync-detail-value"
+                          id="sync-last-sync"
+                        ></span>
+                      </div>
+                      <div class="settings-row" id="sync-row-push">
+                        <span class="settings-label">Last push</span>
+                        <span
+                          class="sync-detail-value"
+                          id="sync-last-push"
+                        ></span>
+                      </div>
+                      <div class="settings-row" id="sync-row-pull">
+                        <span class="settings-label">Last pull</span>
+                        <span
+                          class="sync-detail-value"
+                          id="sync-last-pull"
+                        ></span>
+                      </div>
+                      <div class="settings-row" id="sync-row-pending">
+                        <span class="settings-label">Pending</span>
+                        <span
+                          class="sync-detail-value"
+                          id="sync-pending"
+                        ></span>
+                      </div>
+                      <div class="settings-row" id="sync-row-offset">
+                        <span class="settings-label">Clock offset</span>
+                        <span class="sync-detail-value" id="sync-offset"></span>
+                      </div>
+                      <div class="settings-row" id="sync-row-generation">
+                        <span class="settings-label">Lease</span>
+                        <span
+                          class="sync-detail-value"
+                          id="sync-lease-detail"
+                        ></span>
+                      </div>
+                      <!-- The panel is only half the answer if the numbers on
+                           it have to be retyped by hand. -->
+                      <button
+                        type="button"
+                        class="btn-secondary"
+                        id="sync-copy-btn"
+                        onclick="syncCopyDiagnostics()"
+                      >
+                        Copy diagnostics
+                      </button>
                     </div>
+
                     <button
                       type="button"
                       class="btn-secondary"
@@ -16848,6 +16986,7 @@
         let inFlightRefresh = null;
         let offsetMeasured = false;
         let lastError = null;
+        let lastErrorAt = 0;
         const offsetSamples = [];
         const listeners = new Set();
 
@@ -16859,6 +16998,20 @@
               console.warn("Sync listener failed", e);
             }
           }
+        }
+
+        /* Always as a pair, never assigned directly. An error string without
+           its time reads as happening right now no matter how old it is, and
+           the sync panel exists precisely so somebody can tell "this broke a
+           moment ago" from "this broke on Tuesday". */
+        function noteError(e) {
+          lastError = (e && e.message) || String(e);
+          lastErrorAt = Date.now();
+        }
+
+        function clearError() {
+          lastError = null;
+          lastErrorAt = 0;
         }
 
         /* ── token storage ─────────────────────────────────────────────── */
@@ -16910,7 +17063,7 @@
               (data.user && data.user.id) || (session && session.user_id) || "",
           };
           persistSession(session);
-          lastError = null;
+          clearError();
           scheduleRefresh();
           emit();
           return session;
@@ -16946,7 +17099,7 @@
           const delay = Math.max(5000, session.expires_at - lead - Date.now());
           refreshTimer = setTimeout(() => {
             refresh().catch((e) => {
-              lastError = e.message;
+              noteError(e);
               emit();
             });
           }, delay);
@@ -16988,12 +17141,18 @@
             if (!r.ok) {
               /* The refresh token itself was rejected. No retry recovers
                  from that, so stop cleanly rather than looping. */
-              clearSession("Signed out — sign in again to resume syncing");
-              throw new Error(
+              const why =
                 data.error_description ||
-                  data.msg ||
-                  `Session refresh rejected (${r.status})`,
-              );
+                data.msg ||
+                `Session refresh rejected (${r.status})`;
+              /* Recorded here rather than left to whichever module happened
+                 to be making the call when it happened. This is the one
+                 moment the reason is known, and a caller that swallows the
+                 throw would otherwise leave the panel saying "Signed out"
+                 with no account of why it signed itself out. */
+              noteError(new Error(why));
+              clearSession("Signed out — sign in again to resume syncing");
+              throw new Error(why);
             }
             return adoptTokens(data);
           })().finally(() => {
@@ -17086,7 +17245,7 @@
             throw new Error("server_now returned no usable time");
           }
           const out = noteServerTime(t0, serverMs, Date.now());
-          lastError = null;
+          clearError();
           emit();
           return out;
         }
@@ -17116,7 +17275,7 @@
           }
           adoptTokens(data);
           await measureOffset().catch((e) => {
-            lastError = e.message;
+            noteError(e);
             emit();
           });
           return session;
@@ -17142,12 +17301,12 @@
             refresh()
               .then(() => measureOffset())
               .catch((e) => {
-                lastError = e.message;
+                noteError(e);
                 emit();
               });
           } else {
             measureOffset().catch((e) => {
-              lastError = e.message;
+              noteError(e);
               emit();
             });
           }
@@ -17205,6 +17364,7 @@
               offsetMeasured,
               online: navigator.onLine,
               lastError,
+              lastErrorAt,
             };
           },
         };
@@ -17258,7 +17418,15 @@
         let nextAttemptAt = 0;
         let failingSince = 0;
         let lastSyncAt = 0;
+        /* Three different questions, and a panel that answered only the first
+           could not tell "nothing has changed all week" from "this device has
+           not managed to upload all week". lastSyncAt is the last cycle that
+           completed; these two are the last cycle that actually moved records,
+           in each direction. */
+        let lastPushAt = 0;
+        let lastPullAt = 0;
         let lastError = null;
+        let lastErrorAt = 0;
         let lastReport = null;
         let announcedFirstSync = false;
         let announcedRebuild = false;
@@ -17654,7 +17822,14 @@
             Sync.flushMeta();
             resetBackoff();
             lastError = null;
+            lastErrorAt = 0;
             lastSyncAt = Date.now();
+            if (report.pushed) lastPushAt = lastSyncAt;
+            /* Deliberately applied+removed rather than pulled. Every row this
+               device uploads comes back on the next pull and merges as a tie,
+               which counts as neither - so this stamp is the cloud genuinely
+               handing something over, not an echo of our own upload. */
+            if (report.applied || report.removed) lastPullAt = lastSyncAt;
             lastReport = report;
             totals.cycles++;
             totals.pushed += report.pushed;
@@ -17676,6 +17851,7 @@
           } catch (e) {
             failures++;
             lastError = (e && e.message) || String(e);
+            lastErrorAt = Date.now();
             if (!failingSince) failingSince = Date.now();
             const delay = backoffDelay(failures);
             nextAttemptAt = Date.now() + delay;
@@ -17905,7 +18081,10 @@
               running,
               failures,
               lastError,
+              lastErrorAt,
               lastSyncAt,
+              lastPushAt,
+              lastPullAt,
               lastReport,
               nextAttemptAt,
               failingSince,
@@ -17967,6 +18146,7 @@
         let lastBeatAt = 0;
         let lastReason = null;
         let lastError = null;
+        let lastErrorAt = 0;
         let timer = null;
         let active = null;
         let queuedReason = null;
@@ -18556,8 +18736,10 @@
             totals.beats++;
             lastBeatAt = Date.now();
             lastError = null;
+            lastErrorAt = 0;
           } catch (e) {
             lastError = (e && e.message) || String(e);
+            lastErrorAt = Date.now();
             /* An unrenewable lease is a lost lease; say so rather than
                letting a stale "owner" outlive the connection. */
             expireIfStale();
@@ -18776,6 +18958,7 @@
               lastBeatAt,
               lastReason,
               lastError,
+              lastErrorAt,
               mirroring,
               adoptedAt,
               lastAdoptError,
@@ -30209,49 +30392,128 @@
         return `${sign}${(abs / 60000).toFixed(1)} min`;
       }
 
+      /* Relative, because the question this panel answers is always "how long
+         ago", never "at what time" - until it is far enough back that the
+         distance stops being the useful part and the date is. */
+      function formatAgo(ts) {
+        if (!Number.isFinite(ts) || ts <= 0) return "never";
+        const d = Date.now() - ts;
+        /* Also catches a negative: a clock stepped backwards puts recent
+           events in the future, and "in -4s" is nonsense where "just now" is
+           at least true. */
+        if (d < 10000) return "just now";
+        if (d < 60000) return `${Math.floor(d / 1000)}s ago`;
+        if (d < 3600000) return `${Math.floor(d / 60000)}m ago`;
+        if (d < 864e5) return `${Math.floor(d / 3600000)}h ago`;
+        return new Date(ts).toLocaleDateString();
+      }
+
+      function syncToneColor(tone) {
+        return tone === "ok"
+          ? "var(--accent-work)"
+          : tone === "warn"
+            ? "var(--accent-warning)"
+            : tone === "error"
+              ? "var(--accent-break)"
+              : "var(--text-muted)";
+      }
+
+      /* Three modules keep an error each, and the card has one line. The most
+         recent one is the right one to show: of two errors the older may
+         already have been fixed by the time the newer lands, and sending
+         somebody after a problem that no longer exists is worse than saying
+         nothing at all. Ties go to whichever is listed first - the transport -
+         because when all three fail in the same instant it is the one holding
+         the specific reason and the other two are reporting its consequences. */
+      function mostRecentSyncError(net, engine, lease) {
+        let best = null;
+        for (const s of [net, engine, lease]) {
+          if (!s || !s.lastError) continue;
+          const at = Number.isFinite(s.lastErrorAt) ? s.lastErrorAt : 0;
+          if (!best || at > best.at) best = { text: s.lastError, at };
+        }
+        return best;
+      }
+
+      /* Half of this panel is an elapsed time and nothing re-renders when a
+         second passes, so it ticks while it is on screen. It stops itself on
+         the first render that finds the popup shut, rather than being stopped
+         by closeSettingsPopup: the timer's life then rests on one condition in
+         one place, instead of on every future route out of this popup
+         remembering to say so. */
+      let syncCardTicker = null;
+      function startSyncCardTicker() {
+        if (syncCardTicker) return;
+        syncCardTicker = setInterval(() => {
+          try {
+            renderSyncCard();
+          } catch (e) {}
+        }, 1000);
+      }
+      function stopSyncCardTicker() {
+        if (syncCardTicker) clearInterval(syncCardTicker);
+        syncCardTicker = null;
+      }
+
       function renderSyncCard() {
         const card = document.getElementById("sync-account-card");
         if (!card) return;
-        /* This runs on every lease heartbeat - four times a minute, forever -
-           and the card is only on screen while the settings popup is open.
-           SyncEngine.status() walks the whole logbook to count the backlog,
-           which is cheap but not free and entirely invisible from behind a
-           closed popup. Opening it calls syncSettingsUI, which calls this, so
-           skipping the closed case loses nothing. */
-        const popup = window.DOM && DOM.settingsConfigPopup;
-        if (popup && !popup.classList.contains("show")) return;
+        /* This runs on every lease heartbeat and every sync cycle - several
+           times a minute, forever - and the card is only on screen while the
+           settings popup is open. SyncEngine.status() walks the whole logbook
+           to count the backlog, which is cheap but not free and entirely
+           invisible from behind a closed popup. Opening it calls
+           syncSettingsUI, which calls this, so skipping the closed case loses
+           nothing.
 
+           DOM, not window.DOM. It is declared with const, and a top-level
+           const in a classic script is a lexical binding rather than a
+           property of the global object - so `window.DOM` is undefined, this
+           guard was never once true, and the skip it describes had never
+           actually happened. Nothing caught it because the card renders
+           correctly either way; the only symptom was the work. */
+        const popup = DOM && DOM.settingsConfigPopup;
+        if (popup && !popup.classList.contains("show")) {
+          stopSyncCardTicker();
+          return;
+        }
+        startSyncCardTicker();
+
+        /* Each status() read once and passed down. SyncEngine's walks the
+           logbook, and this function used to call it twice. */
         const status = window.SyncNet
           ? SyncNet.status()
           : { signedIn: false, online: true };
+        const engine =
+          window.SyncEngine && typeof SyncEngine.status === "function"
+            ? SyncEngine.status()
+            : null;
+        const lease = window.SessionLease
+          ? SessionLease.status()
+          : { phase: "off" };
 
         const chip = document.getElementById("sync-status-chip");
         if (chip) {
-          chip.textContent = !status.signedIn
-            ? "Signed out"
-            : status.online
-              ? status.email || "Signed in"
-              : "Offline";
-          chip.style.color = status.signedIn
-            ? "var(--accent-work)"
-            : "var(--text-muted)";
+          /* Which account, not which connection. The Status row underneath
+             already reports being offline and what is waiting because of it,
+             and a chip that swaps the address for the word "Offline" takes
+             away the one fact that row cannot carry - exactly when somebody
+             is looking at the card to work out what is wrong. The colour
+             still says it. */
+          chip.textContent = status.signedIn
+            ? status.email || "Signed in"
+            : "Signed out";
+          chip.style.color =
+            status.signedIn && status.online
+              ? "var(--accent-work)"
+              : "var(--text-muted)";
         }
 
         const stateEl = document.getElementById("sync-state");
         if (stateEl) {
-          const summary =
-            window.SyncEngine && typeof SyncEngine.status === "function"
-              ? SyncEngine.status().summary
-              : null;
+          const summary = engine ? engine.summary : null;
           stateEl.textContent = summary ? summary.text : "—";
-          stateEl.style.color =
-            !summary || summary.tone === "muted"
-              ? "var(--text-muted)"
-              : summary.tone === "ok"
-                ? "var(--accent-work)"
-                : summary.tone === "warn"
-                  ? "var(--accent-warning)"
-                  : "var(--accent-break)";
+          stateEl.style.color = syncToneColor(summary && summary.tone);
         }
 
         const form = document.getElementById("sync-signin-form");
@@ -30268,9 +30530,6 @@
 
         const leaseEl = document.getElementById("sync-lease-state");
         if (leaseEl) {
-          const lease = window.SessionLease
-            ? SessionLease.status()
-            : { phase: "off" };
           leaseEl.textContent =
             lease.phase === "owner"
               ? "running here"
@@ -30289,23 +30548,163 @@
           }
         }
 
-        const off = document.getElementById("sync-offset");
-        if (off) {
-          off.textContent = status.offsetMeasured
+        /* ── the diagnostics ─────────────────────────────────────────────
+           Everything section 9's phase 7 asks for that the three rows above
+           do not already carry. Em dash rather than a blank for anything not
+           known yet: an empty row reads as a broken render. */
+        const put = (id, text) => {
+          const el = document.getElementById(id);
+          if (el) el.textContent = text;
+        };
+        put("sync-last-sync", engine ? formatAgo(engine.lastSyncAt) : "—");
+        put("sync-last-push", engine ? formatAgo(engine.lastPushAt) : "—");
+        put("sync-last-pull", engine ? formatAgo(engine.lastPullAt) : "—");
+        put(
+          "sync-pending",
+          engine ? String(engine.pending.log + engine.pending.task) : "—",
+        );
+        put(
+          "sync-offset",
+          status.offsetMeasured
             ? formatClockOffset(status.offsetMs)
-            : "measuring...";
-        }
+            : "measuring...",
+        );
+        /* The generation is the only way to tell one takeover from another
+           after the fact, so it is reported even when nobody holds the lease -
+           it counts handovers, not holders. */
+        const holder =
+          lease.phase === "owner"
+            ? "this device"
+            : lease.phase === "follower"
+              ? lease.ownerLabel
+              : lease.phase === "free"
+                ? "nobody"
+                : null;
+        put(
+          "sync-lease-detail",
+          holder === null ? "—" : `${holder} · gen ${lease.generation || 0}`,
+        );
 
         const errorEl = document.getElementById("sync-error");
         if (errorEl && !errorEl.dataset.sticky) {
-          if (status.lastError) {
-            errorEl.textContent = status.lastError;
+          const err = mostRecentSyncError(status, engine, lease);
+          if (err) {
+            /* With its time. "Failed to fetch" on its own cannot be told from
+               the one that is still happening, which is the difference
+               between a tunnel this morning and a project that is paused. */
+            errorEl.textContent = err.at
+              ? `${err.text} · ${formatAgo(err.at)}`
+              : err.text;
             errorEl.style.display = "block";
           } else {
             errorEl.style.display = "none";
           }
         }
       }
+
+      /* The open state lives on the button rather than in a variable, so the
+         markup and the behaviour cannot disagree about which it is. */
+      window.syncToggleDetails = function () {
+        const btn = document.getElementById("sync-details-toggle");
+        const panel = document.getElementById("sync-details");
+        if (!btn || !panel) return false;
+        const open = btn.getAttribute("aria-expanded") !== "true";
+        btn.setAttribute("aria-expanded", open ? "true" : "false");
+        panel.style.display = open ? "flex" : "none";
+        /* Opened by hand, so the values behind it may be a tick old. */
+        if (open) renderSyncCard();
+        return open;
+      };
+
+      /**
+       * The whole panel as one block of text, for pasting into a bug report.
+       *
+       * Separate from the copying so the thing under test is a pure function.
+       * Deliberately carries no token, access or refresh: this is written to
+       * be pasted into a chat window by someone who should not have to audit
+       * it first.
+       */
+      window.syncDiagnosticsText = function () {
+        const net = window.SyncNet
+          ? SyncNet.status()
+          : { signedIn: false, online: navigator.onLine };
+        const engine =
+          window.SyncEngine && typeof SyncEngine.status === "function"
+            ? SyncEngine.status()
+            : null;
+        const lease = window.SessionLease
+          ? SessionLease.status()
+          : { phase: "off" };
+        const err = mostRecentSyncError(net, engine, lease);
+        const stamp = (ts) =>
+          Number.isFinite(ts) && ts > 0
+            ? `${formatAgo(ts)} (${new Date(ts).toISOString()})`
+            : "never";
+
+        const lines = [
+          ["copied", new Date().toISOString()],
+          ["account", net.email || "signed out"],
+          [
+            "device",
+            `${(window.Sync && Sync.deviceLabel) || "?"} [${(window.Sync && Sync.deviceId) || "?"}]`,
+          ],
+          ["status", engine ? engine.summary.text : "?"],
+          ["last sync", engine ? stamp(engine.lastSyncAt) : "?"],
+          ["last push", engine ? stamp(engine.lastPushAt) : "?"],
+          ["last pull", engine ? stamp(engine.lastPullAt) : "?"],
+          [
+            "pending",
+            engine
+              ? `${engine.pending.log + engine.pending.task} (${engine.pending.log} log, ${engine.pending.task} task)`
+              : "?",
+          ],
+          [
+            "clock",
+            net.offsetMeasured
+              ? formatClockOffset(net.offsetMs)
+              : "not measured",
+          ],
+          [
+            /* On lease.owner, not on ownerLabel: labelFor falls back to
+               "another device" for a null id, which would report an
+               unheld lease as "free (another device)". */
+            "lease",
+            `${lease.phase}${lease.owner ? ` (${lease.ownerLabel})` : ""} gen ${lease.generation || 0}`,
+          ],
+          [
+            "totals",
+            engine
+              ? `${engine.totals.cycles} cycles, ${engine.totals.pushed} pushed, ${engine.totals.applied} applied, ${engine.totals.removed} removed`
+              : "?",
+          ],
+          [
+            "state",
+            `online ${net.online ? "yes" : "no"}, polling ${engine && engine.polling ? "yes" : "no"}, push ${engine && engine.pushPaused ? "paused" : "on"}, failures ${engine ? engine.failures : "?"}`,
+          ],
+          ["error", err ? `${err.text} at ${stamp(err.at)}` : "none"],
+        ];
+        const pad = lines.reduce((w, l) => Math.max(w, l[0].length), 0);
+        return (
+          "nodrift sync diagnostics\n" +
+          lines.map((l) => `${l[0].padEnd(pad)}  ${l[1]}`).join("\n")
+        );
+      };
+
+      window.syncCopyDiagnostics = function () {
+        const text = syncDiagnosticsText();
+        const done = () => showAppToast("Diagnostics copied", "success");
+        /* Says so rather than failing silently: a copy button that does
+           nothing visible is indistinguishable from one that worked, and the
+           person using it is already trying to report a problem. */
+        const failed = () =>
+          showAppToast("Couldn't copy — read the values above", "warning");
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).then(done).catch(failed);
+        } else {
+          failed();
+        }
+        return text;
+      };
 
       window.syncSignIn = async function () {
         const emailEl = document.getElementById("sync-email");
@@ -30422,6 +30821,13 @@
 
       if (window.SyncNet) SyncNet.onChange(renderSyncCard);
       if (window.SessionLease) SessionLease.onChange(renderSyncCard);
+      /* The one signal that was missing. Everything the panel reports about
+         sync itself - what it last moved, what it is waiting on, what it last
+         failed with - changes when a cycle ends, and until phase 7 the card
+         only heard about auth and the lease. A backlog that had just cleared
+         went on being reported until the next heartbeat happened to redraw
+         it. */
+      if (window.SyncEngine) SyncEngine.onChange(renderSyncCard);
 
       /* Losing or gaining the lease changes what the controls are allowed to
          do, so the control surface has to re-render on the same signal the
@@ -34869,6 +35275,28 @@
             "Continuous Ticking: Keeps the tab title timer ticking in the background.",
           "snapshot-restore-select":
             "Snapshot Rollback: Restores your database logs to an automatically captured historical state.",
+          /* The sync panel. Each row is a number whose meaning is not obvious
+             from a two-word label in a column 18rem wide, and the strip is
+             directly beneath the card, so this is where the precision goes
+             instead of into the label. */
+          "sync-row-status":
+            "Sync Status: What cloud sync is doing right now, including why it has stopped if it has.",
+          "sync-row-device":
+            "Device Name: How this browser identifies itself to your other devices. Quoted by name when one of them offers to take over the session.",
+          "sync-row-live":
+            "Live Session: Which device is allowed to run the timer. Only one may, or two half-sessions merge into a total that is true of neither.",
+          "sync-row-lastsync":
+            "Last Sync: When a full sync cycle last completed, whether or not it had anything to carry.",
+          "sync-row-push":
+            "Last Push: When this device last uploaded records. Long ago with a backlog pending means uploads are failing.",
+          "sync-row-pull":
+            "Last Pull: When the cloud last handed this device a change. Long ago simply means nothing changed elsewhere.",
+          "sync-row-pending":
+            "Pending: Records edited here and not yet uploaded. Nothing is lost while this is above zero, it is only waiting.",
+          "sync-row-offset":
+            "Clock Offset: How far this device's clock sits from the server's. Measured, not assumed, and applied to every timestamp that crosses between devices.",
+          "sync-row-generation":
+            "Lease: Who holds the right to write the session, and how many times it has changed hands.",
         };
 
         const defaultText = "Hover over any setting to view its description.";
@@ -34905,6 +35333,15 @@
         bindHover("auto-email-toggle", DOM.autoEmailToggle);
         bindHover("continuous-ticking-toggle", DOM.continuousTickingToggle);
         bindHover("snapshot-restore-select", DOM.snapshotRestoreSelect);
+
+        /* The sync rows are read-outs rather than controls, so they carry the
+           id on the row itself and hover as a whole row. Driven off the
+           description keys so adding a row is one edit, not two. */
+        for (const id of Object.keys(descriptions)) {
+          if (id.indexOf("sync-row-") === 0) {
+            bindHover(id, document.getElementById(id));
+          }
+        }
 
         const rows = [
           {
