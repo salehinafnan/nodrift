@@ -1762,27 +1762,18 @@
         color: var(--text-main);
       }
 
-      /* The weekly field is the same badge as the daily one, minus the
-         popover the daily field carries for its presets. */
+      /* The weekly field has two homes and no layout of its own: a settings
+         row in the popup on the desktop, a status badge beside the daily goal
+         in the phone sheet. Each home sets its own box; all this carries is
+         the positioning context. */
       .weekly-goal-container {
         position: relative;
-        display: flex;
-        align-items: stretch;
       }
 
+      /* Firefox has no ::-webkit-*-spin-button, so its arrows only go away
+         through the appearance property. Wanted in both homes: the field
+         takes one number, typed. */
       .weekly-goal-inputs input[type="number"] {
-        background: transparent !important;
-        border: none !important;
-        color: var(--text-main);
-        font-weight: 500;
-        font-size: 1rem;
-        width: 4ch;
-        text-align: center;
-        outline: none;
-        padding: 0.1rem 0;
-        border-radius: 0.4rem;
-        cursor: text;
-        font-family: var(--number-font);
         -moz-appearance: textfield;
         appearance: textfield;
       }
@@ -4035,6 +4026,52 @@
         text-transform: none;
         /* Changed from uppercase to respect standard capitalization */
         letter-spacing: 0.02em;
+      }
+
+      /* The weekly goal, dressed as a settings row.
+
+         The field is shared with the phone sheet, which still wants it as a
+         status badge, so the badge classes stay on the markup and this
+         undresses them for the popup: no box of its own, a label that reads
+         like the ones it sits among, and the value in the same input every
+         other field in a settings card gets. */
+      #settings-config-popup .weekly-goal-inputs {
+        width: 100%;
+        height: auto;
+        padding: 0;
+        background: none;
+        border: 0;
+        border-radius: 0;
+        gap: 6px;
+      }
+
+      #settings-config-popup .weekly-goal-inputs span.label {
+        font-family: inherit;
+        font-size: 0.7rem;
+        font-weight: 600;
+        color: var(--text-muted);
+        text-transform: none;
+        letter-spacing: 0.02em;
+        margin-right: 0;
+      }
+
+      /* Value and unit ride the right edge together, so the row reads
+         label-left value-right like the toggle above it. 10ch matches the idle
+         threshold's declaration, the only other typed value in the panel; it
+         measures a few pixels wider because every number input in the app is
+         set in the number font, and the threshold is a text field. */
+      #settings-config-popup .weekly-goal-inputs input[type="number"] {
+        width: 10ch;
+        flex: 0 0 auto;
+        margin-left: auto;
+        text-align: center;
+      }
+
+      #settings-config-popup .weekly-goal-inputs span.unit {
+        font-size: 0.7rem;
+        font-weight: 600;
+        color: var(--text-muted);
+        margin: 0;
       }
 
       /* The sync card's diagnostics disclosure. Shaped like the settings rows
@@ -6541,10 +6578,24 @@
           flex: 0 0 auto;
         }
 
+        /* The badge treatment: the value typed straight onto the badge, with
+           no box of its own. This used to be unscoped, back when the desktop
+           carried the same badge in its status bar. The desktop's copy now
+           sits in the settings popup as an ordinary settings input, so the
+           chromeless look belongs to the sheet. */
         #m-sheet .weekly-goal-inputs input[type="number"] {
+          background: transparent;
+          border: none;
+          color: var(--text-main);
+          font-weight: 500;
+          font-size: 1rem;
           width: 3.5ch;
           text-align: center;
+          outline: none;
           padding: 0;
+          border-radius: 0.4rem;
+          cursor: text;
+          font-family: var(--number-font);
           flex: 0 0 auto;
         }
 
@@ -9444,6 +9495,12 @@
               running.
             </li>
             <li>
+              <strong>Weekly goal</strong> — the hours a full week should add up
+              to, 40 unless you change it. Everything measured against a week
+              reads from it: the auto-populated daily goal, the pace figure, and
+              the weekly bar in Insights.
+            </li>
+            <li>
               <strong>Enable idle lock</strong> — turns the inactivity and
               system-pause prompts on or off. Off is usually the right choice on
               a phone.
@@ -11218,25 +11275,6 @@
                 >
                   +15m
                 </button>
-              </div>
-            </div>
-            <div class="weekly-goal-container">
-              <div
-                class="status-badge goal-inputs weekly-goal-inputs"
-                style="padding: 0 1rem"
-              >
-                <span class="label">Weekly Goal</span>
-                <input
-                  type="number"
-                  id="weekly-goal-hours"
-                  class="input-standard"
-                  min="1"
-                  max="168"
-                  step="0.5"
-                  onchange="onWeeklyGoalChange()"
-                  onfocus="this.select()"
-                />
-                <span class="unit">h</span>
               </div>
             </div>
             <div class="theme-container" onmouseleave="revertThemePreview()">
@@ -13141,7 +13179,11 @@
                   </button>
                 </div>
                 <!-- Card 1: Tracking Behavior -->
-                <div class="settings-card">
+                <div
+                  class="settings-card"
+                  style="display: flex; flex-direction: column; gap: 6px"
+                >
+                  <!-- Row 1: Auto-populate daily goal -->
                   <div class="settings-row">
                     <span class="settings-label">Auto-populate daily goal</span>
                     <label class="switch">
@@ -13153,6 +13195,34 @@
                       />
                       <span class="slider-toggle"></span>
                     </label>
+                  </div>
+
+                  <!-- Row 2: Weekly goal. The number the row above paces
+                       towards, so it belongs directly under it.
+
+                       There is one of these in the document, not one per
+                       layout: the phone sheet borrows this very node into its
+                       goal slot (see MobileShell's RELOCATIONS), where it is
+                       still drawn as a status badge next to the daily goal.
+                       That is why the badge classes stay on it here, and why
+                       the stylesheet undresses them for this popup rather than
+                       the markup dropping them. A second copy would mean a
+                       duplicate id and two fields to keep in step. -->
+                  <div class="weekly-goal-container settings-row">
+                    <div class="status-badge goal-inputs weekly-goal-inputs">
+                      <span class="label">Weekly goal</span>
+                      <input
+                        type="number"
+                        id="weekly-goal-hours"
+                        class="input-standard"
+                        min="1"
+                        max="168"
+                        step="0.5"
+                        onchange="onWeeklyGoalChange()"
+                        onfocus="this.select()"
+                      />
+                      <span class="unit">h</span>
+                    </div>
                   </div>
                 </div>
 
@@ -35876,6 +35946,8 @@
         const descriptions = {
           "goal-autopopulate-toggle":
             "Auto-Populate: Adjusts your daily target dynamically to pace you toward a 40-hour work week.",
+          "weekly-goal-hours":
+            "Weekly Goal: The hours a full week should add up to. Every daily target, pace figure and weekly bar is measured against it.",
           "idle-toggle":
             "Idle Lock: Pauses tracking automatically when keyboard/mouse are inactive beyond the threshold.",
           "idle-input-box":
@@ -35940,6 +36012,7 @@
         };
 
         bindHover("goal-autopopulate-toggle", DOM.goalAutopopulateToggle);
+        bindHover("weekly-goal-hours", DOM.weeklyGoalHours);
         bindHover("idle-toggle", DOM.idleToggle);
         bindHover("idle-input-box", DOM.idleInputBox);
         bindHover("auto-backup-toggle", DOM.autoBackupToggle);
@@ -35961,6 +36034,7 @@
             id: "goal-autopopulate-toggle",
             select: "#goal-autopopulate-toggle",
           },
+          { id: "weekly-goal-hours", select: "#weekly-goal-hours" },
           { id: "idle-toggle", select: "#idle-toggle" },
           { id: "auto-backup-toggle", select: "#auto-backup-toggle" },
           { id: "auto-email-toggle", select: "#auto-email-toggle" },
