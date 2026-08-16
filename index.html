@@ -13439,6 +13439,27 @@
               </div>
             </div>
 
+            <div class="icon-stack sync-icon-stack">
+              <button
+                title="Cloud Sync"
+                aria-label="Cloud Sync"
+                class="icon-btn sq-btn"
+                id="sync-config-btn"
+                onclick="toggleSyncPopup(event)"
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  fill="none"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <g data-sprite="sprite-109"></g>
+                </svg>
+              </button>
+            </div>
+
             <div class="icon-stack">
               <button
                 title="Application Settings"
@@ -13736,27 +13757,6 @@
               </div>
             </div>
 
-            <div class="icon-stack sync-icon-stack">
-              <button
-                title="Cloud Sync"
-                aria-label="Cloud Sync"
-                class="icon-btn sq-btn"
-                id="sync-config-btn"
-                onclick="toggleSyncPopup(event)"
-              >
-                <svg
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  fill="none"
-                  stroke-width="1.8"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                >
-                  <g data-sprite="sprite-109"></g>
-                </svg>
-              </button>
-            </div>
-
             <div class="icon-stack">
               <button
                 title="Wipe"
@@ -13778,11 +13778,12 @@
             <!-- Cloud sync, in a panel of its own.
 
                  A sibling of the icon stacks rather than a child of one:
-                 the phone hides the button below and opens this from a row
+                 the phone hides .sync-icon-stack and opens this from a row
                  in the sheet instead, and a panel nested inside a hidden
                  trigger would be hidden with it. Both homes anchor to
                  .footer-icons, so it lands exactly where the settings
-                 popup does. -->
+                 popup does -- which is also why the two triggers can be
+                 reordered in the row without either panel moving. -->
             <div id="sync-config-popup" class="idle-popup" style="gap: 0.35rem">
               <div class="idle-popup-header">
                 <span class="idle-popup-title">Cloud Sync</span>
