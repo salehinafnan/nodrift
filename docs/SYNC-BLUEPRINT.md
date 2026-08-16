@@ -175,18 +175,21 @@ pasting the ~120 KB minified bundle into a file you maintain by hand.
 Neither is necessary. Supabase is Postgres behind two ordinary REST APIs, and
 everything this design needs is a handful of JSON calls:
 
-| Need                     | Endpoint                                       | Notes                            |
-| ------------------------ | ---------------------------------------------- | -------------------------------- |
-| Request a sign-in code   | `POST /auth/v1/otp`                            | GoTrue                           |
-| Exchange code for tokens | `POST /auth/v1/verify`                         | Returns access + refresh         |
-| Refresh access token     | `POST /auth/v1/token?grant_type=refresh_token` | Rotating refresh                 |
-| Pull changed records     | `GET /rest/v1/records?updated_at=gt....`       | PostgREST; RLS scopes it         |
-| Push records             | `POST /rest/v1/rpc/push_records`               | Server-side LWW guard            |
-| Claim / renew lease      | `POST /rest/v1/rpc/claim_session`              | Atomic; also returns server time |
+| Need                       | Endpoint                                       | Notes                            |
+| -------------------------- | ---------------------------------------------- | -------------------------------- |
+| Sign in                    | `POST /auth/v1/token?grant_type=password`      | GoTrue; returns access + refresh |
+| Create an account          | `POST /auth/v1/signup`                         | A session, or a code to confirm  |
+| Send a reset code          | `POST /auth/v1/recover`                        | Same answer for any address      |
+| Exchange a code for tokens | `POST /auth/v1/verify`                         | `type` is `signup` or `recovery` |
+| Set a new password         | `PUT /auth/v1/user`                            | Needs the session the code gave  |
+| Refresh access token       | `POST /auth/v1/token?grant_type=refresh_token` | Rotating refresh                 |
+| Pull changed records       | `GET /rest/v1/records?updated_at=gt....`       | PostgREST; RLS scopes it         |
+| Push records               | `POST /rest/v1/rpc/push_records`               | Server-side LWW guard            |
+| Claim / renew lease        | `POST /rest/v1/rpc/claim_session`              | Atomic; also returns server time |
 
-That is one `fetch` wrapper and six call sites — call it 90 lines. It is
-readable, it is debuggable in the Network tab, and it adds nothing to the file
-that you didn't write.
+That is one `fetch` wrapper and nine call sites. It is readable, it is
+debuggable in the Network tab, and it adds nothing to the file that you didn't
+write.
 
 ### Skip Realtime too
 
@@ -984,6 +987,27 @@ The catch: Supabase's built-in SMTP is rate-limited to a handful of messages an
 hour, which is fine for two devices but will infuriate you while testing. Either
 configure custom SMTP in phase 0, or use email + password, which is one call and
 no email dependency at all.
+
+**What was built (2026-08-16).** Email and password, for the reason above: it
+was the half with no mail dependency, and for a single author creating his own
+account in the dashboard there was nothing to confirm and nothing to reset.
+Opening the app to other people brought both back, so the code path now returns
+for exactly the two moments that need one — confirming a new address, and
+resetting a forgotten password — while ordinary sign-in stays a password.
+
+Codes, not the `{{ .ConfirmationURL }}` links those templates ship with. The
+argument above about redirects turns out to apply just as hard to a link in an
+email: on iOS, tapping one opens **Safari**, which has a different storage
+container from the installed app, so the user would confirm or reset in a
+browser that is not the one they were signed out of. A code is typed into the
+pane already on screen. It also keeps the token layer untouched, since
+`/auth/v1/verify` answers with a full session including the user, which a URL
+fragment does not.
+
+The SMTP catch is therefore no longer a testing annoyance but a release
+prerequisite: with the built-in sender, the third sign-up of any hour fails and
+the app looks broken rather than rate-limited. Configure custom SMTP before
+enabling sign-ups, not after.
 
 ### What sign-out does to local data
 
