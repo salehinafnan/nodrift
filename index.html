@@ -6734,6 +6734,69 @@
           height: 20px !important;
         }
 
+        /* The footer's cloud button is the desktop's way into the sync panel.
+           On a phone the sheet has a row for it, so the square would be a
+           second door to the same place -- and a ninth tile in a four-across
+           grid. The panel is a sibling of this stack, not a child, so hiding
+           the stack hides only the trigger. */
+        #m-sheet .sync-icon-stack {
+          display: none;
+        }
+
+        /* The sheet's one navigational row: a section that leads somewhere
+           rather than a control that does something. Same level-1 surface,
+           hairline and radius as the pills and tool squares it sits between,
+           at the same 48px the tool squares use, laid out label / value /
+           chevron the way a settings row is everywhere else in the app. */
+        #m-sheet .m-sheet-row {
+          display: flex;
+          align-items: center;
+          gap: 0.6rem;
+          width: 100%;
+          min-height: 48px;
+          padding: 0 0.85rem;
+          background: var(--surface-1);
+          border: var(--hairline);
+          border-radius: var(--radius-md);
+          color: var(--text-main);
+          font: inherit;
+          text-align: left;
+          box-shadow: none;
+          -webkit-tap-highlight-color: transparent;
+          touch-action: manipulation;
+        }
+
+        #m-sheet .m-sheet-row:active {
+          background: var(--element-hover);
+        }
+
+        #m-sheet .m-sheet-row-label {
+          font-size: var(--field-text-touch);
+          font-weight: 600;
+          flex: 0 0 auto;
+        }
+
+        /* The account line. It can be a long address, so it takes the slack
+           and gives it back by truncating rather than pushing the chevron off
+           the row. */
+        #m-sheet .m-sheet-row-value {
+          margin-left: auto;
+          min-width: 0;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+          font-size: 0.8rem;
+          font-weight: 500;
+          color: var(--text-muted);
+        }
+
+        #m-sheet .m-sheet-row-chevron {
+          width: 16px;
+          height: 16px;
+          flex: 0 0 auto;
+          color: var(--text-muted);
+        }
+
         /* Timer pane The timer is the hero of this screen. */
         :root {
           --timer-size: clamp(4.5rem, 19.5vw, 6.8rem);
@@ -8567,6 +8630,11 @@
             margin-bottom: 1rem;
           "
         >
+          <!-- A screen, not the pair of circling arrows the tab-conflict
+               dialog above uses. The two were drawn identically while saying
+               different things: that one is about another tab of this browser
+               and reads as a warning; this one is about another device, and
+               the icon is the fastest part of the dialog to read. -->
           <svg
             viewBox="0 0 24 24"
             width="48"
@@ -8574,8 +8642,10 @@
             fill="none"
             stroke="currentColor"
             stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
           >
-            <g data-sprite="sprite-084"></g>
+            <g data-sprite="sprite-050"></g>
           </svg>
         </div>
         <h3 class="modal-header warning" style="justify-content: center">
@@ -9536,6 +9606,35 @@
             mistakes, not lost devices. A JSON backup is what covers that.
           </p>
           <hr />
+          <h4>Cloud sync</h4>
+          <p>
+            The cloud button in the toolbar opens its own panel, separate from
+            Settings. On a phone it is the <strong>Cloud sync</strong> row in
+            Settings &amp; Tools. Sign in there and this device keeps its
+            shifts, tasks, leave and preferences in step with your others.
+          </p>
+          <ul>
+            <li>
+              <strong>This device</strong> — the name your other devices see.
+              Rename it to something you will recognise; the prompt below quotes
+              it.
+            </li>
+            <li>
+              <strong>Live session</strong> — which device is currently allowed
+              to run the timer.
+            </li>
+            <li>
+              <strong>Sync details</strong> — the last push and pull, anything
+              still waiting to upload, and the measured clock offset. Worth
+              opening only when something looks wrong.
+            </li>
+            <li>
+              <strong>Sign out</strong> leaves this device's copy alone.
+              <strong>Sign out &amp; erase this device</strong> also clears it
+              here, leaving the cloud and your other devices untouched.
+            </li>
+          </ul>
+          <hr />
           <h4>Theme, time zone and goal presets</h4>
           <ul>
             <li>
@@ -9564,6 +9663,14 @@
             <strong>Multiple Tabs Detected</strong>. Press
             <strong>Take Over Here</strong> in the tab you actually want to use
             and it takes control, bringing the current state with it.
+          </p>
+          <p>
+            The same idea across devices reads differently, because it is an
+            offer rather than a fault:
+            <strong>Session Running Elsewhere</strong> names the device holding
+            the shift and lets you continue it here. It waits until you are on
+            the timer with nothing else open, so it never interrupts something
+            unrelated, and it asks once per device rather than on every check.
           </p>
           <hr />
           <h4>Starting over</h4>
@@ -13413,225 +13520,7 @@
                   </div>
                 </div>
 
-                <!-- Card 3: Cloud sync account -->
-                <div
-                  class="settings-card"
-                  id="sync-account-card"
-                  style="
-                    display: flex;
-                    flex-direction: column;
-                    gap: 6px;
-                    margin-top: 0.35rem;
-                  "
-                >
-                  <div class="settings-row">
-                    <span class="settings-label">Cloud sync</span>
-                    <span
-                      class="settings-label"
-                      id="sync-status-chip"
-                      style="font-weight: 500"
-                      >Signed out</span
-                    >
-                  </div>
-
-                  <div
-                    id="sync-signin-form"
-                    style="display: flex; flex-direction: column; gap: 6px"
-                  >
-                    <input
-                      type="email"
-                      id="sync-email"
-                      class="input-standard"
-                      placeholder="Email"
-                      autocomplete="username"
-                      spellcheck="false"
-                    />
-                    <input
-                      type="password"
-                      id="sync-password"
-                      class="input-standard"
-                      placeholder="Password"
-                      autocomplete="current-password"
-                      onkeydown="if (event.key === 'Enter') syncSignIn();"
-                    />
-                    <button
-                      type="button"
-                      class="btn-info-outline"
-                      id="sync-signin-btn"
-                      onclick="syncSignIn()"
-                    >
-                      Sign in
-                    </button>
-                  </div>
-
-                  <div
-                    id="sync-account-detail"
-                    style="display: none; flex-direction: column; gap: 6px"
-                  >
-                    <!-- Every row of the failure matrix has to land somewhere a
-                         person can read it, and this one line carries all of
-                         them: offline with a backlog, a storage fault degrading
-                         to pull-only, a server that has been refusing for long
-                         enough to mention, and how long until the next
-                         attempt. -->
-                    <div class="settings-row" id="sync-row-status">
-                      <span class="settings-label" style="font-weight: 500"
-                        >Status</span
-                      >
-                      <span class="settings-label" id="sync-state"></span>
-                    </div>
-                    <div class="settings-row" id="sync-row-device">
-                      <span class="settings-label" style="font-weight: 500"
-                        >This device</span
-                      >
-                      <!-- Editable because the takeover prompt on the other
-                           device quotes it, and "Chrome on Windows" is only
-                           useful until there are two of them. -->
-                      <input
-                        type="text"
-                        id="sync-device-label"
-                        class="input-standard"
-                        maxlength="60"
-                        spellcheck="false"
-                        style="max-width: 58%; text-align: right"
-                        onchange="syncRenameDevice()"
-                        onkeydown="if (event.key === 'Enter') this.blur();"
-                      />
-                    </div>
-                    <div class="settings-row" id="sync-row-live">
-                      <span class="settings-label" style="font-weight: 500"
-                        >Live session</span
-                      >
-                      <span class="settings-label" id="sync-lease-state"></span>
-                    </div>
-                    <!-- The only way in for a device with nothing running of
-                         its own: the takeover prompt can't appear until this
-                         device already wants the lease. -->
-                    <button
-                      type="button"
-                      class="btn-info-outline"
-                      id="sync-lease-takeover-btn"
-                      style="display: none"
-                      onclick="leaseTakeOver()"
-                    >
-                      Continue session here
-                    </button>
-
-                    <!-- Collapsed, because on an ordinary day the three rows
-                         above are the whole story. Present at all, because on
-                         the day it is not, somebody is reading these numbers
-                         out over a chat window and the alternative is guessing
-                         from a description. -->
-                    <button
-                      type="button"
-                      class="sync-details-toggle"
-                      id="sync-details-toggle"
-                      aria-expanded="false"
-                      aria-controls="sync-details"
-                      onclick="syncToggleDetails()"
-                    >
-                      <span class="settings-label" style="font-weight: 500"
-                        >Sync details</span
-                      >
-                      <svg
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        aria-hidden="true"
-                      >
-                        <polyline points="6 9 12 15 18 9"></polyline>
-                      </svg>
-                    </button>
-                    <div
-                      id="sync-details"
-                      style="display: none; flex-direction: column; gap: 6px"
-                    >
-                      <!-- No account row: the chip at the top of the card
-                           names it, in full, on one line, whether or not this
-                           device can reach the cloud. -->
-                      <div class="settings-row" id="sync-row-lastsync">
-                        <span class="settings-label">Last sync</span>
-                        <span
-                          class="sync-detail-value"
-                          id="sync-last-sync"
-                        ></span>
-                      </div>
-                      <div class="settings-row" id="sync-row-push">
-                        <span class="settings-label">Last push</span>
-                        <span
-                          class="sync-detail-value"
-                          id="sync-last-push"
-                        ></span>
-                      </div>
-                      <div class="settings-row" id="sync-row-pull">
-                        <span class="settings-label">Last pull</span>
-                        <span
-                          class="sync-detail-value"
-                          id="sync-last-pull"
-                        ></span>
-                      </div>
-                      <div class="settings-row" id="sync-row-pending">
-                        <span class="settings-label">Pending</span>
-                        <span
-                          class="sync-detail-value"
-                          id="sync-pending"
-                        ></span>
-                      </div>
-                      <div class="settings-row" id="sync-row-offset">
-                        <span class="settings-label">Clock offset</span>
-                        <span class="sync-detail-value" id="sync-offset"></span>
-                      </div>
-                      <div class="settings-row" id="sync-row-generation">
-                        <span class="settings-label">Lease</span>
-                        <span
-                          class="sync-detail-value"
-                          id="sync-lease-detail"
-                        ></span>
-                      </div>
-                      <!-- The panel is only half the answer if the numbers on
-                           it have to be retyped by hand. -->
-                      <button
-                        type="button"
-                        class="btn-secondary"
-                        id="sync-copy-btn"
-                        onclick="syncCopyDiagnostics()"
-                      >
-                        Copy diagnostics
-                      </button>
-                    </div>
-
-                    <button
-                      type="button"
-                      class="btn-secondary"
-                      onclick="syncSignOut()"
-                    >
-                      Sign out
-                    </button>
-                    <!-- Two labelled buttons rather than a question asked on
-                         every sign-out. The common case should not have to
-                         answer "and shall I delete a year of history?", and
-                         the rare case should not be reachable by misreading
-                         a dialog. -->
-                    <button
-                      type="button"
-                      class="btn-danger-outline"
-                      onclick="syncSignOutAndErase()"
-                    >
-                      Sign out &amp; erase this device
-                    </button>
-                  </div>
-
-                  <span
-                    class="settings-help-text"
-                    id="sync-error"
-                    style="display: none; color: var(--accent-break)"
-                  ></span>
-                </div>
-
-                <!-- Card 4: Help Description Strip (Fixed Height for CPU efficiency) -->
+                <!-- Card 3: Help Description Strip (Fixed Height for CPU efficiency) -->
                 <div class="settings-card settings-help-strip">
                   <svg
                     class="settings-help-icon"
@@ -13644,11 +13533,34 @@
                   >
                     <g data-sprite="sprite-037"></g>
                   </svg>
-                  <span id="settings-help-text" class="settings-help-text"
+                  <span
+                    id="settings-help-text"
+                    class="settings-help-text settings-help-out"
                     >Hover over any setting to view its description.</span
                   >
                 </div>
               </div>
+            </div>
+
+            <div class="icon-stack sync-icon-stack">
+              <button
+                title="Cloud Sync"
+                aria-label="Cloud Sync"
+                class="icon-btn sq-btn"
+                id="sync-config-btn"
+                onclick="toggleSyncPopup(event)"
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  fill="none"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <g data-sprite="sprite-109"></g>
+                </svg>
+              </button>
             </div>
 
             <div class="icon-stack">
@@ -13667,6 +13579,265 @@
                   <g data-sprite="sprite-044"></g>
                 </svg>
               </button>
+            </div>
+
+            <!-- Cloud sync, in a panel of its own.
+
+                 A sibling of the icon stacks rather than a child of one:
+                 the phone hides the button below and opens this from a row
+                 in the sheet instead, and a panel nested inside a hidden
+                 trigger would be hidden with it. Both homes anchor to
+                 .footer-icons, so it lands exactly where the settings
+                 popup does. -->
+            <div id="sync-config-popup" class="idle-popup" style="gap: 0.35rem">
+              <div class="idle-popup-header">
+                <span class="idle-popup-title">Cloud Sync</span>
+                <button
+                  type="button"
+                  class="modal-close-btn"
+                  onclick="closeSyncPopup()"
+                  aria-label="Close"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                  </svg>
+                </button>
+              </div>
+
+              <!-- The account itself. -->
+              <div
+                class="settings-card"
+                id="sync-account-card"
+                style="display: flex; flex-direction: column; gap: 6px"
+              >
+                <div class="settings-row">
+                  <span class="settings-label">Account</span>
+                  <span
+                    class="settings-label"
+                    id="sync-status-chip"
+                    style="font-weight: 500"
+                    >Signed out</span
+                  >
+                </div>
+
+                <div
+                  id="sync-signin-form"
+                  style="display: flex; flex-direction: column; gap: 6px"
+                >
+                  <input
+                    type="email"
+                    id="sync-email"
+                    class="input-standard"
+                    placeholder="Email"
+                    autocomplete="username"
+                    spellcheck="false"
+                  />
+                  <input
+                    type="password"
+                    id="sync-password"
+                    class="input-standard"
+                    placeholder="Password"
+                    autocomplete="current-password"
+                    onkeydown="if (event.key === 'Enter') syncSignIn();"
+                  />
+                  <button
+                    type="button"
+                    class="btn-info-outline"
+                    id="sync-signin-btn"
+                    onclick="syncSignIn()"
+                  >
+                    Sign in
+                  </button>
+                </div>
+
+                <div
+                  id="sync-account-detail"
+                  style="display: none; flex-direction: column; gap: 6px"
+                >
+                  <!-- Every row of the failure matrix has to land somewhere a
+                       person can read it, and this one line carries all of
+                       them: offline with a backlog, a storage fault degrading
+                       to pull-only, a server that has been refusing for long
+                       enough to mention, and how long until the next
+                       attempt. -->
+                  <div class="settings-row" id="sync-row-status">
+                    <span class="settings-label" style="font-weight: 500"
+                      >Status</span
+                    >
+                    <span class="settings-label" id="sync-state"></span>
+                  </div>
+                  <div class="settings-row" id="sync-row-device">
+                    <span class="settings-label" style="font-weight: 500"
+                      >This device</span
+                    >
+                    <!-- Editable because the takeover prompt on the other
+                         device quotes it, and "Chrome on Windows" is only
+                         useful until there are two of them. -->
+                    <input
+                      type="text"
+                      id="sync-device-label"
+                      class="input-standard"
+                      maxlength="60"
+                      spellcheck="false"
+                      style="max-width: 58%; text-align: right"
+                      onchange="syncRenameDevice()"
+                      onkeydown="if (event.key === 'Enter') this.blur();"
+                    />
+                  </div>
+                  <div class="settings-row" id="sync-row-live">
+                    <span class="settings-label" style="font-weight: 500"
+                      >Live session</span
+                    >
+                    <span class="settings-label" id="sync-lease-state"></span>
+                  </div>
+                  <!-- The only way in for a device with nothing running of
+                       its own: the takeover prompt can't appear until this
+                       device already wants the lease. -->
+                  <button
+                    type="button"
+                    class="btn-info-outline"
+                    id="sync-lease-takeover-btn"
+                    style="display: none"
+                    onclick="leaseTakeOver()"
+                  >
+                    Continue session here
+                  </button>
+
+                  <!-- Collapsed, because on an ordinary day the three rows
+                       above are the whole story. Present at all, because on
+                       the day it is not, somebody is reading these numbers
+                       out over a chat window and the alternative is guessing
+                       from a description. -->
+                  <button
+                    type="button"
+                    class="sync-details-toggle"
+                    id="sync-details-toggle"
+                    aria-expanded="false"
+                    aria-controls="sync-details"
+                    onclick="syncToggleDetails()"
+                  >
+                    <span class="settings-label" style="font-weight: 500"
+                      >Sync details</span
+                    >
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      aria-hidden="true"
+                    >
+                      <polyline points="6 9 12 15 18 9"></polyline>
+                    </svg>
+                  </button>
+                  <div
+                    id="sync-details"
+                    style="display: none; flex-direction: column; gap: 6px"
+                  >
+                    <!-- No account row: the chip at the top of the card
+                         names it, in full, on one line, whether or not this
+                         device can reach the cloud. -->
+                    <div class="settings-row" id="sync-row-lastsync">
+                      <span class="settings-label">Last sync</span>
+                      <span
+                        class="sync-detail-value"
+                        id="sync-last-sync"
+                      ></span>
+                    </div>
+                    <div class="settings-row" id="sync-row-push">
+                      <span class="settings-label">Last push</span>
+                      <span
+                        class="sync-detail-value"
+                        id="sync-last-push"
+                      ></span>
+                    </div>
+                    <div class="settings-row" id="sync-row-pull">
+                      <span class="settings-label">Last pull</span>
+                      <span
+                        class="sync-detail-value"
+                        id="sync-last-pull"
+                      ></span>
+                    </div>
+                    <div class="settings-row" id="sync-row-pending">
+                      <span class="settings-label">Pending</span>
+                      <span
+                        class="sync-detail-value"
+                        id="sync-pending"
+                      ></span>
+                    </div>
+                    <div class="settings-row" id="sync-row-offset">
+                      <span class="settings-label">Clock offset</span>
+                      <span class="sync-detail-value" id="sync-offset"></span>
+                    </div>
+                    <div class="settings-row" id="sync-row-generation">
+                      <span class="settings-label">Lease</span>
+                      <span
+                        class="sync-detail-value"
+                        id="sync-lease-detail"
+                      ></span>
+                    </div>
+                    <!-- The panel is only half the answer if the numbers on
+                         it have to be retyped by hand. -->
+                    <button
+                      type="button"
+                      class="btn-secondary"
+                      id="sync-copy-btn"
+                      onclick="syncCopyDiagnostics()"
+                    >
+                      Copy diagnostics
+                    </button>
+                  </div>
+
+                  <button
+                    type="button"
+                    class="btn-secondary"
+                    onclick="syncSignOut()"
+                  >
+                    Sign out
+                  </button>
+                  <!-- Two labelled buttons rather than a question asked on
+                       every sign-out. The common case should not have to
+                       answer "and shall I delete a year of history?", and
+                       the rare case should not be reachable by misreading
+                       a dialog. -->
+                  <button
+                    type="button"
+                    class="btn-danger-outline"
+                    onclick="syncSignOutAndErase()"
+                  >
+                    Sign out &amp; erase this device
+                  </button>
+                </div>
+
+                <span
+                  class="settings-help-text"
+                  id="sync-error"
+                  style="display: none; color: var(--accent-break)"
+                ></span>
+              </div>
+
+              <!-- The same strip the settings panel carries. Each panel owns
+                   one, and a hovered row writes to the one in its own panel. -->
+              <div class="settings-card settings-help-strip">
+                <svg
+                  class="settings-help-icon"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <g data-sprite="sprite-037"></g>
+                </svg>
+                <span
+                  id="sync-help-text"
+                  class="settings-help-text settings-help-out"
+                  >Hover over any setting to view its description.</span
+                >
+              </div>
             </div>
           </div>
           <input
@@ -13799,6 +13970,38 @@
           data-slot="theme"
           data-label="Appearance"
         ></div>
+
+        <!-- The one section here that is written rather than borrowed. Cloud
+             sync is an account, not a tool, so it reads as a row that leads
+             somewhere instead of a square in the tool grid; the panel it opens
+             is the same one the desktop's footer button opens, which is why
+             that button is hidden at this width. -->
+        <div class="m-sheet-slot" data-label="Cloud">
+          <button
+            type="button"
+            id="m-sync-row"
+            class="m-sheet-row"
+            onclick="toggleSyncPopup(event)"
+          >
+            <span class="m-sheet-row-label">Cloud sync</span>
+            <span class="m-sheet-row-value" id="m-sync-row-status"
+              >Signed out</span
+            >
+            <svg
+              class="m-sheet-row-chevron"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <g data-sprite="sprite-029"></g>
+            </svg>
+          </button>
+        </div>
+
         <div class="m-sheet-slot" data-slot="tools" data-label="Tools"></div>
       </div>
     </section>
@@ -14838,6 +15041,11 @@
         "sprite-107":
           '<rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><polyline points="9 11 12 14 22 4"></polyline>',
         "sprite-108": '<path d="M8 12l3 3 8-8"/><path d="M8 17l3 3 8-8"/>',
+        /* Cloud, for the sync panel's own footer button. Drawn as one outline
+           at the same weight as the rest of the footer so it reads as a peer
+           of the gear beside it, not as a status light. */
+        "sprite-109":
+          '<path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"></path>',
       };
 
       function getSprite(id) {
@@ -15322,6 +15530,7 @@
         editNotes: document.getElementById("edit-notes"),
         editModal: document.getElementById("edit-modal"),
         settingsConfigPopup: document.getElementById("settings-config-popup"),
+        syncConfigPopup: document.getElementById("sync-config-popup"),
         idleInputBox: document.getElementById("idle-input-box"),
         goalAutopopulateToggle: document.getElementById(
           "goal-autopopulate-toggle",
@@ -15368,7 +15577,6 @@
         leaveDatePicker: document.getElementById("leave-date-picker"),
         appToastContent: document.getElementById("app-toast-content"),
         confirmDesc: document.getElementById("confirm-desc"),
-        settingsHelpText: document.getElementById("settings-help-text"),
         adjustTimeBtn: document.getElementById("adjust-time-btn"),
         adjustTimePopup: document.getElementById("adjust-time-popup"),
         adjustTargetWork: document.getElementById("adjust-target-work"),
@@ -18543,6 +18751,8 @@
         let overrideSawSession = false;
         let lastWant = false;
         let promptedFor = null;
+        /* An offer that was due but had nowhere to land. See offerTakeover. */
+        let deferredOffer = null;
         let adoptedAt = 0;
         let lastAdoptError = null;
         let mirroring = false;
@@ -18962,6 +19172,8 @@
             }
             phase = "owner";
             promptedFor = null;
+            /* Holding it makes the question moot. */
+            deferredOffer = null;
             return wasOwner ? null : "claimed";
           }
 
@@ -19219,6 +19431,7 @@
           owner = null;
           heldUntil = 0;
           promptedFor = null;
+          deferredOffer = null;
           wantOverride = false;
           overrideSawSession = false;
           forceNext = false;
@@ -19231,11 +19444,58 @@
 
         /* ── prompts ───────────────────────────────────────────────────── */
 
+        /* Whether the offer would land somewhere the user is actually looking.
+
+           On the desktop the timer is never off screen, so the only thing
+           worth waiting for is a dialog that is already up. On a phone the
+           timer is one tab of four, and this prompt is about the session on
+           that tab: thrown over the logbook, or on top of an open sheet, it
+           interrupts something unrelated to answer a question the user cannot
+           see the subject of. That is how a prompt becomes something people
+           dismiss without reading, which is the same failure the once-per-
+           holder rule below exists to prevent. */
+        function promptSurfaceReady() {
+          if (otherDialogUp()) return false;
+          const shell = window.MobileShell;
+          if (!shell || !shell.active) return true;
+          if (shell.pane !== "timer") return false;
+          /* The footer panels are bottom sheets at this width and cover the
+             timer as thoroughly as a dialog would. They need no test of their
+             own: closing the Settings & Tools sheet closes them with it, so
+             one of them being up implies the sheet is up. */
+          return !document.body.classList.contains("m-sheet-open");
+        }
+
+        /* Any dialog at all, rather than only the ones the keyboard layer
+           arbitrates between: every scrim-bearing overlay in the document is a
+           .modal-overlay by construction, whereas MODAL_IDS carries deliberate
+           omissions. The offer's own dialog is excluded -- it is the thing
+           being raised, not something standing in its way. */
+        function otherDialogUp() {
+          const overlays = document.querySelectorAll(".modal-overlay");
+          for (let i = 0; i < overlays.length; i++) {
+            const el = overlays[i];
+            if (el.id === "lease-modal") continue;
+            if (el.style.display === "flex" || el.style.display === "block") {
+              return true;
+            }
+          }
+          return false;
+        }
+
         /* Once per holder, not once per beat. Being asked the same question
            every fifteen seconds is how a prompt becomes something people
            dismiss without reading. */
         function offerTakeover() {
           if (promptedFor === owner) return;
+          if (!promptSurfaceReady()) {
+            /* Held rather than dropped, and deliberately not latched: the beat
+               goes on reporting the refusal, so the next one asks again by
+               itself, and retryOffer() asks the moment the screen clears. */
+            deferredOffer = owner;
+            return;
+          }
+          deferredOffer = null;
           promptedFor = owner;
           const modal = document.getElementById("lease-modal");
           const text = document.getElementById("lease-modal-text");
@@ -19246,6 +19506,27 @@
           }
           if (modal) modal.style.display = "flex";
           notify();
+        }
+
+        /* Called when the screen that was in the way moves: a tab change, a
+           sheet closing, a panel dismissed. An offer held back because the
+           user was somewhere else is exactly the thing that should appear the
+           moment they are not, rather than up to a heartbeat later. */
+        function retryDeferredOffer() {
+          if (!deferredOffer) return;
+          expireIfStale();
+          /* Stale in any of three ways: a different device holds it now, this
+             one took it in the meantime, or this one stopped wanting it
+             because the shift ended. None of those is still worth asking. */
+          if (
+            deferredOffer !== owner ||
+            phase !== "follower" ||
+            !wantsLease()
+          ) {
+            deferredOffer = null;
+            return;
+          }
+          offerTakeover();
         }
 
         function closeLeaseModal() {
@@ -19312,6 +19593,8 @@
           beat,
           stop,
           closeLeaseModal,
+          /* The phone shell calls this whenever the visible surface changes. */
+          retryOffer: retryDeferredOffer,
           TTL_SECONDS,
           BEAT_MS,
           /* The user pressed "Continue here": force exactly once, then renew
@@ -30041,8 +30324,8 @@
           closeAddLeaveTypeModal();
 
         // Both helpers are idempotent, so the previous contains("show") guards are redundant.
-        if (typeof window.closeSettingsPopup === "function")
-          window.closeSettingsPopup();
+        if (typeof window.closeFooterPopups === "function")
+          window.closeFooterPopups();
         if (typeof window.closeAdjustPopup === "function")
           window.closeAdjustPopup();
 
@@ -30938,52 +31221,78 @@
       /*==========================================================================
        * 19. MANUAL LOG INSERTION UTILITIES
        * =========================================================================*/
-      let settingsPopupAbortController = null;
+      /* Two panels hang off the footer now, Settings and Cloud Sync. They
+         share one anchor on the desktop and one bottom-sheet slot on the
+         phone, so opening either has to close the other, and each needs its
+         dismiss-on-outside-click listener torn down again on close. One
+         controller, rather than a second copy of the same dance per panel. */
+      const footerPopupControllers = new Map();
+
+      /** Idempotent: closing a panel that is already closed is a no-op. */
+      function closeFooterPopup(popup) {
+        if (!popup) return;
+        popup.classList.remove("show");
+        const ctrl = footerPopupControllers.get(popup);
+        if (ctrl) {
+          footerPopupControllers.delete(popup);
+          ctrl.abort();
+        }
+      }
+
+      /* Snapshot the keys first: closeFooterPopup deletes as it goes. */
+      function closeAllFooterPopups(except) {
+        const open = Array.from(footerPopupControllers.keys());
+        for (let i = 0; i < open.length; i++) {
+          if (open[i] !== except) closeFooterPopup(open[i]);
+        }
+      }
+      window.closeFooterPopups = closeAllFooterPopups;
+
+      function toggleFooterPopup(popup, onOpen) {
+        if (!popup) return;
+        if (popup.classList.contains("show")) {
+          closeFooterPopup(popup);
+          return;
+        }
+        /* Each trigger stops its own click from reaching the window, so the
+           other panel's outside-click listener never sees it. This is the only
+           thing that closes the one already open. */
+        closeAllFooterPopups(popup);
+        popup.classList.add("show");
+        if (typeof onOpen === "function") onOpen();
+
+        const ctrl = new AbortController();
+        footerPopupControllers.set(popup, ctrl);
+        // Registered synchronously, unlike the adjust popup's deferred one, so the signal read below
+        // cannot see a nulled variable.
+        window.addEventListener(
+          "click",
+          (event) => {
+            if (!popup.contains(event.target)) closeFooterPopup(popup);
+          },
+          { signal: ctrl.signal },
+        );
+      }
 
       /** Counterpart to closeAdjustPopup. Idempotent. */
       window.closeSettingsPopup = function () {
-        const popup = DOM.settingsConfigPopup;
-        if (popup) popup.classList.remove("show");
-        if (settingsPopupAbortController) {
-          settingsPopupAbortController.abort();
-          settingsPopupAbortController = null;
-        }
+        closeFooterPopup(DOM.settingsConfigPopup);
       };
 
       window.toggleSettingsPopup = function (e) {
-        e.stopPropagation();
-        const popup = DOM.settingsConfigPopup;
-        if (!popup) return;
+        if (e) e.stopPropagation();
+        toggleFooterPopup(DOM.settingsConfigPopup, syncSettingsUI);
+      };
 
-        const isShowing = popup.classList.contains("show");
-        if (isShowing) {
-          window.closeSettingsPopup();
-        } else {
-          popup.classList.add("show");
-          syncSettingsUI();
+      window.closeSyncPopup = function () {
+        closeFooterPopup(DOM.syncConfigPopup);
+      };
 
-          if (settingsPopupAbortController) {
-            settingsPopupAbortController.abort();
-          }
-
-          settingsPopupAbortController = new AbortController();
-
-          // Registered synchronously, unlike the adjust popup's deferred one, so the signal read below
-          // cannot see a nulled variable.
-          const openController = settingsPopupAbortController;
-
-          window.addEventListener(
-            "click",
-            (event) => {
-              if (!popup.contains(event.target)) {
-                // Was an inline copy of closeSettingsPopup(), identical to it --
-                // no bug, just a second definition that could drift.
-                window.closeSettingsPopup();
-              }
-            },
-            { signal: openController.signal },
-          );
-        }
+      /* Opened from two places that never coexist: the footer button on the
+         desktop, the sheet's Cloud row on the phone. */
+      window.toggleSyncPopup = function (e) {
+        if (e) e.stopPropagation();
+        toggleFooterPopup(DOM.syncConfigPopup, renderSyncCard);
       };
 
       window.onIdleToggleChange = function () {
@@ -31124,7 +31433,7 @@
       /* Half of this panel is an elapsed time and nothing re-renders when a
          second passes, so it ticks while it is on screen. It stops itself on
          the first render that finds the popup shut, rather than being stopped
-         by closeSettingsPopup: the timer's life then rests on one condition in
+         by closeSyncPopup: the timer's life then rests on one condition in
          one place, instead of on every future route out of this popup
          remembering to say so. */
       let syncCardTicker = null;
@@ -31142,15 +31451,33 @@
       }
 
       function renderSyncCard() {
+        /* Each status() read once and passed down. SyncEngine's walks the
+           logbook, and this function used to call it twice. SyncNet's is a
+           struct read, which is why it can sit above the gate below. */
+        const status = window.SyncNet
+          ? SyncNet.status()
+          : { signedIn: false, online: true };
+
+        /* The phone's sheet carries the same account line on its Cloud row,
+           and that row is on screen in exactly the case the panel is not.
+           Two writes of a string already in hand, so it stays live without
+           reopening the expensive half below. */
+        const row = document.getElementById("m-sync-row-status");
+        if (row) {
+          const label = status.signedIn
+            ? status.email || "Signed in"
+            : "Signed out";
+          if (row.textContent !== label) row.textContent = label;
+        }
+
         const card = document.getElementById("sync-account-card");
         if (!card) return;
         /* This runs on every lease heartbeat and every sync cycle - several
            times a minute, forever - and the card is only on screen while the
-           settings popup is open. SyncEngine.status() walks the whole logbook
+           sync popup is open. SyncEngine.status() walks the whole logbook
            to count the backlog, which is cheap but not free and entirely
            invisible from behind a closed popup. Opening it calls
-           syncSettingsUI, which calls this, so skipping the closed case loses
-           nothing.
+           renderSyncCard, so skipping the closed case loses nothing.
 
            DOM, not window.DOM. It is declared with const, and a top-level
            const in a classic script is a lexical binding rather than a
@@ -31158,18 +31485,13 @@
            guard was never once true, and the skip it describes had never
            actually happened. Nothing caught it because the card renders
            correctly either way; the only symptom was the work. */
-        const popup = DOM && DOM.settingsConfigPopup;
+        const popup = DOM && DOM.syncConfigPopup;
         if (popup && !popup.classList.contains("show")) {
           stopSyncCardTicker();
           return;
         }
         startSyncCardTicker();
 
-        /* Each status() read once and passed down. SyncEngine's walks the
-           logbook, and this function used to call it twice. */
-        const status = window.SyncNet
-          ? SyncNet.status()
-          : { signedIn: false, online: true };
         const engine =
           window.SyncEngine && typeof SyncEngine.status === "function"
             ? SyncEngine.status()
@@ -35940,9 +36262,6 @@
       }
 
       function initSettingsHoverHelp() {
-        const helpText = DOM.settingsHelpText;
-        if (!helpText) return;
-
         const descriptions = {
           "goal-autopopulate-toggle":
             "Auto-Populate: Adjusts your daily target dynamically to pace you toward a 40-hour work week.",
@@ -35986,29 +36305,42 @@
 
         const defaultText = "Hover over any setting to view its description.";
 
-        const updateHelp = (id) => {
-          const text = descriptions[id] || defaultText;
-          if (helpText.textContent !== text) {
-            helpText.textContent = text;
-          }
+        /* These rows live in two panels now, Settings and Cloud Sync, and each
+           panel carries its own strip along the bottom. Writing to "the" strip
+           would put the sync descriptions on a panel the reader cannot see, so
+           the strip is resolved from the row that was hovered. The hook is
+           narrower than .settings-help-text because #sync-error carries that
+           class too, and it sits inside the sync panel. */
+        const stripFor = (el) => {
+          const panel = el && el.closest(".idle-popup");
+          return panel ? panel.querySelector(".settings-help-out") : null;
         };
 
-        const resetHelp = () => {
-          if (helpText.textContent !== defaultText) {
-            helpText.textContent = defaultText;
-          }
+        const writeHelp = (el, text) => {
+          const strip = stripFor(el);
+          if (strip && strip.textContent !== text) strip.textContent = text;
         };
+
+        const updateHelp = (id, el) =>
+          writeHelp(el, descriptions[id] || defaultText);
+        const resetHelp = (el) => writeHelp(el, defaultText);
 
         const bindHover = (id, targetEl) => {
           if (!targetEl) return;
-          targetEl.addEventListener("mouseenter", () => updateHelp(id), {
+          targetEl.addEventListener(
+            "mouseenter",
+            () => updateHelp(id, targetEl),
+            { passive: true },
+          );
+          targetEl.addEventListener("mouseleave", () => resetHelp(targetEl), {
             passive: true,
           });
-          targetEl.addEventListener("mouseleave", resetHelp, { passive: true });
-          targetEl.addEventListener("focus", () => updateHelp(id), {
+          targetEl.addEventListener("focus", () => updateHelp(id, targetEl), {
             passive: true,
           });
-          targetEl.addEventListener("blur", resetHelp, { passive: true });
+          targetEl.addEventListener("blur", () => resetHelp(targetEl), {
+            passive: true,
+          });
         };
 
         bindHover("goal-autopopulate-toggle", DOM.goalAutopopulateToggle);
@@ -36029,87 +36361,50 @@
           }
         }
 
-        const rows = [
-          {
-            id: "goal-autopopulate-toggle",
-            select: "#goal-autopopulate-toggle",
-          },
-          { id: "weekly-goal-hours", select: "#weekly-goal-hours" },
-          { id: "idle-toggle", select: "#idle-toggle" },
-          { id: "auto-backup-toggle", select: "#auto-backup-toggle" },
-          { id: "auto-email-toggle", select: "#auto-email-toggle" },
-          {
-            id: "continuous-ticking-toggle",
-            select: "#continuous-ticking-toggle",
-          },
-        ];
+        /* Hovering anywhere on a row explains it, not just the control at the
+           end of it. Same four listeners as bindHover on a container rather
+           than a control, so focusin/focusout, which bubble, stand in for
+           focus/blur, which do not. */
+        const bindRowHover = (id, rowEl) => {
+          if (!rowEl) return;
+          rowEl.addEventListener("mouseenter", () => updateHelp(id, rowEl), {
+            passive: true,
+          });
+          rowEl.addEventListener("mouseleave", () => resetHelp(rowEl), {
+            passive: true,
+          });
+          rowEl.addEventListener("focusin", () => updateHelp(id, rowEl), {
+            passive: true,
+          });
+          rowEl.addEventListener("focusout", () => resetHelp(rowEl), {
+            passive: true,
+          });
+        };
 
-        rows.forEach((row) => {
-          const input = document.getElementById(row.id);
-          if (input) {
-            const parentRow = input.closest(".settings-row");
-            if (parentRow) {
-              parentRow.addEventListener(
-                "mouseenter",
-                () => updateHelp(row.id),
-                { passive: true },
-              );
-              parentRow.addEventListener("mouseleave", resetHelp, {
-                passive: true,
-              });
-              parentRow.addEventListener("focusin", () => updateHelp(row.id), {
-                passive: true,
-              });
-              parentRow.addEventListener("focusout", resetHelp, {
-                passive: true,
-              });
-            }
-          }
+        const rowIds = [
+          "goal-autopopulate-toggle",
+          "weekly-goal-hours",
+          "idle-toggle",
+          "auto-backup-toggle",
+          "auto-email-toggle",
+          "continuous-ticking-toggle",
+        ];
+        rowIds.forEach((id) => {
+          const input = document.getElementById(id);
+          bindRowHover(id, input && input.closest(".settings-row"));
         });
 
-        const thresholdRow = DOM.idleRangeContainer;
-        if (thresholdRow) {
-          thresholdRow.addEventListener(
-            "mouseenter",
-            () => updateHelp("idle-slider"),
-            { passive: true },
-          );
-          thresholdRow.addEventListener("mouseleave", resetHelp, {
-            passive: true,
-          });
-          thresholdRow.addEventListener(
-            "focusin",
-            () => updateHelp("idle-slider"),
-            { passive: true },
-          );
-          thresholdRow.addEventListener("focusout", resetHelp, {
-            passive: true,
-          });
-        }
-
+        /* The two that are not shaped like a settings row: the threshold is a
+           disclosure under the idle toggle, and the snapshot list is a label
+           stacked over a dropdown. */
+        bindRowHover("idle-slider", DOM.idleRangeContainer);
         const snapshotSelect = document.getElementById(
           "snapshot-restore-select",
         );
-        if (snapshotSelect && snapshotSelect.parentElement) {
-          snapshotSelect.parentElement.addEventListener(
-            "mouseenter",
-            () => updateHelp("snapshot-restore-select"),
-            { passive: true },
-          );
-          snapshotSelect.parentElement.addEventListener(
-            "mouseleave",
-            resetHelp,
-            { passive: true },
-          );
-          snapshotSelect.parentElement.addEventListener(
-            "focusin",
-            () => updateHelp("snapshot-restore-select"),
-            { passive: true },
-          );
-          snapshotSelect.parentElement.addEventListener("focusout", resetHelp, {
-            passive: true,
-          });
-        }
+        bindRowHover(
+          "snapshot-restore-select",
+          snapshotSelect && snapshotSelect.parentElement,
+        );
       }
 
       /**
@@ -36969,8 +37264,8 @@
           if (btn) btn.setAttribute("aria-expanded", "false");
           if (typeof window.closeAdjustPopup === "function")
             window.closeAdjustPopup();
-          if (typeof window.closeSettingsPopup === "function")
-            window.closeSettingsPopup();
+          if (typeof window.closeFooterPopups === "function")
+            window.closeFooterPopups();
           syncPane(state.pane);
         }
 
@@ -37023,6 +37318,17 @@
               "aria-selected",
               tabs[i].dataset.pane === selectedPane ? "true" : "false",
             );
+          }
+
+          /* Every route through this shell ends here -- tab taps, the sheet
+             opening and closing, mount. The offer to continue a session
+             running on another device waits for the timer to be the tab in
+             front of the user, and this is the moment that can become true. */
+          if (
+            window.SessionLease &&
+            typeof SessionLease.retryOffer === "function"
+          ) {
+            SessionLease.retryOffer();
           }
         }
 
@@ -37273,11 +37579,16 @@
               const btn = e.target.closest("button");
               if (!btn) return;
               if (e.target.closest(".idle-popup")) return;
-              // These two open an in-sheet popover rather than a dialog. They
-              // live inside the sheet, so dismissing it would take them with it.
+              // These open an in-sheet popover rather than a dialog. They live
+              // inside the sheet, so dismissing it would take them with it.
+              // m-sync-row is named here as well as covered by the tools test
+              // below, because it is the one of the three that sits outside
+              // that section and the exemption should not depend on where it
+              // happens to be filed.
               if (
                 btn.id === "adjust-time-btn" ||
-                btn.id === "settings-config-btn"
+                btn.id === "settings-config-btn" ||
+                btn.id === "m-sync-row"
               )
                 return;
               // Preset pills in the goal / timezone / appearance sections are adjustments rather than
