@@ -420,6 +420,24 @@
           transparent
         );
         --tab-transition: color 0.15s ease, background-color 0.15s ease;
+
+        /* Motion. Two durations and one curve, taken from the values already
+           in use across the sheet rather than invented, so anything added
+           later inherits the house feel instead of picking its own number.
+
+           Everything built on these is composited work only -- opacity and
+           transform -- and every one of them is an *entrance*. Nothing here
+           animates on the way out: a dismissal that lingers reads as lag, and
+           on the phone an overlay that outlives its own display change breaks
+           the scrim handoff documented at #m-sheet-backdrop.
+
+           The reduced-motion block at the end of the sheet is what switches
+           all of this off, so no rule below needs its own guard. */
+        --motion-fast: 0.15s;
+        --motion-base: 0.2s;
+        /* Decelerating -- fast to settle, no overshoot. Already the curve on
+           .scroll-top-btn and .advanced-filters. */
+        --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
       }
 
       /* =========================================================================
@@ -1011,6 +1029,11 @@
         font-size: var(--text-sm);
         outline: none;
         box-sizing: border-box;
+        /* Named rather than `all`: these inputs are resized by rem-based rules
+           on several breakpoints, and `all` would animate that reflow too. */
+        transition:
+          border-color var(--motion-fast) ease,
+          background-color var(--motion-fast) ease;
       }
 
       /* Custom dropdown style */
@@ -2833,6 +2856,31 @@
         overflow-anchor: none;
       }
 
+      /* Pane entrance, for the desktop sidebar tabs and the phone panes alike
+         -- MobileShell routes through switchTab(), so both get it from here.
+
+         switchTab() swaps inline `display` on .tab-content, and an element
+         re-entering the render tree restarts its animations. That is the whole
+         mechanism: no class to add, no timer to clear, no JS touched, and a
+         pane that is switched away from mid-animation simply stops existing.
+
+         The pane is the animated element rather than its rows deliberately.
+         Both lists here are virtualised, so per-row entrances would re-fire on
+         every scroll recycle -- this is one composited layer for 200ms instead
+         of fifty that never settle. Only opacity and transform, so it runs off
+         the main thread and cannot trigger layout; the pane's own measurements
+         in switchTab() read clientHeight, which transforms do not affect. */
+      @keyframes tab-pane-in {
+        from {
+          opacity: 0;
+          transform: translate3d(0, 4px, 0);
+        }
+      }
+
+      .tab-content {
+        animation: tab-pane-in var(--motion-base) var(--ease-out);
+      }
+
       #logbook-scroll-viewport,
       #task-log-scroll-viewport {
         display: flex;
@@ -3850,12 +3898,21 @@
         justify-content: center;
         cursor: pointer;
         box-sizing: border-box;
-        transition: none;
+        /* Paint only. These were the last chrome buttons in the app whose
+           hover snapped -- .icon-btn and .header-icon-btn have always faded --
+           and the blanket `none` that was here is why. transform stays out of
+           the list on purpose, so the `transform: none !important` opt-out
+           from the global press-scale below still lands in a single frame. */
+        transition:
+          background-color var(--motion-fast) ease,
+          border-color var(--motion-fast) ease,
+          color var(--motion-fast) ease;
       }
 
       .sidebar-footer .sq-btn svg {
         width: clamp(15px, 1.2vw, 19px);
         height: clamp(15px, 1.2vw, 19px);
+        transition: stroke var(--motion-fast) ease;
       }
 
       .sidebar-footer .sq-btn:hover {
@@ -3879,7 +3936,11 @@
         bottom: 110%;
         right: 0;
         left: auto;
-        transform: translate3d(0, -0.625rem, 0);
+        /* Resting offset, named so the entrance keyframe can start relative to
+           it instead of restating the number. Move this and the animation
+           follows; the two cannot drift apart. */
+        --popup-rest-y: -0.625rem;
+        transform: translate3d(0, var(--popup-rest-y), 0);
         /* Level 3. --dropdown-bg is now an alias of the same pigment, so this
            and .custom-select-panel and .modal-container finally agree. */
         background: var(--surface-3);
@@ -3995,8 +4056,28 @@
         word-wrap: break-word;
       }
 
+      /* These panels used to appear with no motion at all on the desktop while
+         the phone gave the same markup a full sheet rise -- the one place in
+         the app where the two layouts disagreed about whether opening
+         something is an event.
+
+         Keyed off .show rather than a JS hook: the class both displays the
+         panel and starts the animation, so toggleFooterPopup() is untouched
+         and there is no state to unwind on close. Dismissal stays instant, by
+         design -- a panel that fades out sits over the thing you clicked next.
+
+         Rises the last 0.4rem of the gap it already sits in, which is why the
+         start is expressed against --popup-rest-y rather than as a number. */
+      @keyframes footer-popup-in {
+        from {
+          opacity: 0;
+          transform: translate3d(0, calc(var(--popup-rest-y) + 0.4rem), 0);
+        }
+      }
+
       .idle-popup.show {
         display: flex;
+        animation: footer-popup-in var(--motion-fast) var(--ease-out);
       }
 
       .settings-row {
@@ -4163,7 +4244,15 @@
         bottom: 0;
         /* --track-bg is the theme's own unfilled-track colour, already used by the progress rail; */
         background-color: var(--track-bg);
-        transition: 0.2s;
+        /* Named properties, not the bare `0.2s` that was here: that is
+           `transition: all`, and every box value on this control and its knob
+           is in rem and restated per breakpoint, so `all` had the switch
+           animating its own geometry -- a quarter second of layout on each
+           frame -- every time the window was resized or the root size changed.
+           Only the two things that actually represent state are listed. */
+        transition:
+          background-color var(--motion-base) ease,
+          border-color var(--motion-base) ease;
         border-radius: 1.125rem;
         /* Scales dynamically on window resize */
         border: 1px solid var(--border-main);
@@ -4181,7 +4270,13 @@
         bottom: 0.125rem;
         /* Scales dynamically on window resize */
         background-color: var(--text-muted);
-        transition: 0.2s;
+        /* transform, so the knob travels on the compositor rather than being
+           re-laid-out; the decelerating curve is what makes it read as a
+           throw that settles instead of a linear slide. Same `all` problem as
+           the track above -- see the note there. */
+        transition:
+          transform var(--motion-base) var(--ease-out),
+          background-color var(--motion-base) ease;
         border-radius: 50%;
       }
 
@@ -4740,7 +4835,29 @@
         margin: -1px !important;
       }
 
-      /* Heatmap cell hover: CSS-only replacement for inline JS handlers */
+      /* Heatmap cell hover: CSS-only replacement for inline JS handlers.
+
+         The class this targets was never applied, so until now the rule was
+         dead and every one of the ~365 interactive cells did the job itself --
+         an onmouseover and an onmouseout that each wrote element.style, plus a
+         copy of the transition in its own style attribute. renderHeatmap()
+         now tags the interactive cells with .heatmap-cell and the grid is one
+         shared rule: no per-cell handler to compile, no inline style write per
+         hover, and the scale runs on the compositor instead of arriving
+         through a style invalidation.
+
+         The tooltip handlers stay inline -- they need the date key, which is
+         genuinely per-cell. Only the part that was always presentational moved.
+
+         scale is 1.1, the figure this rule was written with before it was
+         wired up. The inline handlers it replaces used 1.3, which on a 14px
+         cell in a grid with a 3px gutter grew the cell over its neighbours.
+         Padding cells outside the year get no tooltip and so no class, which
+         is what keeps them inert. */
+      .heatmap-cell {
+        transition: transform 0.1s ease;
+      }
+
       .heatmap-cell:hover {
         transform: scale(1.1);
       }
@@ -4806,6 +4923,62 @@
         box-shadow: var(--elev-2);
         position: relative;
         overflow: visible;
+      }
+
+      /* Dialog entrance, desktop only.
+
+         Deliberately inside a min-width query rather than left to the base
+         layer, because the phone forbids exactly this: #m-sheet-backdrop hands
+         its scrim to whichever dialog is raised and takes it back in a single
+         frame, and a scrim that ramps instead of switching is a visible
+         brightness pulse behind the sheet -- the reason the 767px block below
+         pins .modal-overlay to `opacity: 1 !important`. Source order would
+         happen to give the same result today; a query says why, and survives
+         someone moving a rule.
+
+         The split is the point. The overlay owns the fade and the panel owns
+         the movement: opacity on a parent flattens its whole subtree into one
+         composited layer, so the panel is carried by the scrim's fade for
+         free. Fading both would buy a second full-screen layer and a
+         compounded, slightly wrong curve for no visible gain.
+
+         The panel is 40ms slower than the scrim so it is still settling as the
+         dim finishes, which is what reads as the dialog arriving rather than
+         appearing. Nothing animates out -- see the note on --motion-fast.
+
+         Neither rule touches JS: the ~16 open helpers all set inline `display`,
+         and an element entering the render tree restarts its animations. That
+         also keeps the open-order MutationObserver honest, since the attribute
+         it watches still changes exactly once per open.
+
+         #heatmap-modal is excluded at both levels. It is the one dialog that
+         already animates itself, on .is-open, and an animation outranks the id
+         rule that holds it at opacity 0 until that class lands -- so including
+         it here would show the card once, hide it, then transition it in. */
+      @media (min-width: 768px) {
+        @keyframes modal-scrim-in {
+          from {
+            opacity: 0;
+          }
+        }
+
+        @keyframes modal-panel-in {
+          from {
+            transform: translate3d(0, 8px, 0) scale(0.985);
+          }
+
+          to {
+            transform: translate3d(0, 0, 0) scale(1);
+          }
+        }
+
+        .modal-overlay:not(#heatmap-modal) {
+          animation: modal-scrim-in var(--motion-fast) ease;
+        }
+
+        .modal-overlay:not(#heatmap-modal) > .modal-container {
+          animation: modal-panel-in var(--motion-base) var(--ease-out);
+        }
       }
 
       /* Consistency heatmap.
@@ -8073,22 +8246,41 @@
         }
       }
 
-      /* Users who ask for reduced motion get no sheet animations at all. */
-      @media (max-width: 767px) and (prefers-reduced-motion: reduce) {
-        .modal-container {
-          animation: none;
-        }
+      /* Users who ask for reduced motion get none of it, anywhere.
 
-        /* body.m-sheet-open #m-sheet is (1,1,1) and now carries its own transition, so a bare #m-sheet (1,0,0) here would no longer beat it. */
-        #m-sheet,
-        body.m-sheet-open #m-sheet {
-          transition: none;
-        }
+         This replaces the three hand-listed exemptions that used to sit here
+         -- the phone sheet, its backdrop and the dialog rise. Naming rules one
+         at a time is a list that is wrong the moment anyone adds an animation
+         and forgets to come back, and it was: nothing outside the 767px sheet
+         had ever been covered. Declaring it once over everything means no new
+         rule in this sheet can be missed, and none of them needs its own
+         guard.
 
-        /* Same specificity trap as #m-sheet directly above, for the same reason: */
-        #m-sheet-backdrop,
-        body.m-sheet-open #m-sheet-backdrop {
-          transition: none;
+         Last block in the sheet, and !important, because it has to outrank
+         both the id selectors that dialogs style themselves with and the
+         author-order wins that the phone layer depends on elsewhere.
+
+         Near-zero rather than `none` on purpose. A 0.01ms animation still
+         fires animationend, so any listener added later completes instead of
+         waiting forever for an event that a removed animation never sends --
+         the standard form of this reset, and the reason it is not simply
+         `animation: none`.
+
+         The delays matter as much as the durations here: #m-sheet-backdrop
+         defers its visibility flip by 0.24s to outlast its own fade, and
+         zeroing duration alone would leave that delay in place -- a scrim
+         hanging on screen for a quarter second after a dismissal that was
+         supposed to be instant. */
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          animation-duration: 0.01ms !important;
+          animation-delay: 0ms !important;
+          animation-iteration-count: 1 !important;
+          transition-duration: 0.01ms !important;
+          transition-delay: 0ms !important;
+          scroll-behavior: auto !important;
         }
       }
     </style>
@@ -9327,8 +9519,8 @@
           <hr />
           <h4>How leave affects the maths</h4>
           <p>
-            Booking a leave day takes one ordinary day off the weekly target —
-            8 hours on the default 40-hour week — and marks that date with
+            Booking a leave day takes one ordinary day off the weekly target — 8
+            hours on the default 40-hour week — and marks that date with
             stripes, so the days around it are not asked to cover for it.
           </p>
           <p>
@@ -9570,8 +9762,8 @@
               to, 40 unless you change it. Everything measured against a week
               reads from it: the auto-populated daily goal, the pace figure, and
               the weekly bar in Insights. Changing it sets today's goal straight
-              away, unless a shift is running or today already has a saved
-              shift — those keep the target they started with.
+              away, unless a shift is running or today already has a saved shift
+              — those keep the target they started with.
             </li>
             <li>
               <strong>Enable idle lock</strong> — turns the inactivity and
@@ -12539,7 +12731,6 @@
               style="
                 margin-bottom: var(--space-3);
                 width: 100%;
-                transition: all 0.3s;
                 height: 30px;
                 padding: 4px 12px;
                 font-size: 0.8rem;
@@ -13765,10 +13956,7 @@
                     </div>
                     <div class="settings-row" id="sync-row-pending">
                       <span class="settings-label">Pending</span>
-                      <span
-                        class="sync-detail-value"
-                        id="sync-pending"
-                      ></span>
+                      <span class="sync-detail-value" id="sync-pending"></span>
                     </div>
                     <div class="settings-row" id="sync-row-offset">
                       <span class="settings-label">Clock offset</span>
@@ -13821,26 +14009,11 @@
                 ></span>
               </div>
 
-              <!-- The same strip the settings panel carries. Each panel owns
-                   one, and a hovered row writes to the one in its own panel. -->
-              <div class="settings-card settings-help-strip">
-                <svg
-                  class="settings-help-icon"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="1.8"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                >
-                  <g data-sprite="sprite-037"></g>
-                </svg>
-                <span
-                  id="sync-help-text"
-                  class="settings-help-text settings-help-out"
-                  >Hover over any setting to view its description.</span
-                >
-              </div>
+              <!-- No help strip here, unlike the settings panel. This panel
+                   is a sign-in form until an account exists and a column of
+                   labelled read-outs after that, so the strip spent almost all
+                   of its life showing "Hover over any setting to view its
+                   description." with nothing on screen to hover. -->
             </div>
           </div>
           <input
@@ -14607,6 +14780,35 @@
         return PHONE_MEDIA_QUERY.matches;
       }
       window.isPhoneLayout = isPhoneLayout;
+
+      /* The one reduced-motion test, same shape as the breakpoint above.
+
+         The stylesheet handles its own motion in a blanket query at the end of
+         the sheet; this exists for the handful of things CSS cannot reach --
+         a scroll animated by scrollTo(), and the haptics, which are motion the
+         same way an animation is and which this setting is also taken to mean.
+
+         Held as one MediaQueryList and read live, never sampled into a
+         boolean: the object tracks the OS setting by itself, so toggling
+         accessibility preferences mid-session is picked up with no listener to
+         register and nothing to invalidate. Calling matchMedia() per use would
+         allocate a fresh list each time for the same answer. */
+      const REDUCED_MOTION_QUERY =
+        typeof window.matchMedia === "function"
+          ? window.matchMedia("(prefers-reduced-motion: reduce)")
+          : null;
+      function prefersReducedMotion() {
+        return !!REDUCED_MOTION_QUERY && REDUCED_MOTION_QUERY.matches;
+      }
+      window.prefersReducedMotion = prefersReducedMotion;
+
+      /* Scroll behaviour for the two panes that reset to the top on demand.
+         CSS `scroll-behavior` cannot override a behavior passed to scrollTo(),
+         so the choice has to be made here. */
+      function scrollResetBehavior() {
+        return prefersReducedMotion() ? "auto" : "smooth";
+      }
+      window.scrollResetBehavior = scrollResetBehavior;
 
       // Global safety interceptors to prevent crashes in private modes, storage limits, or security restrictions
       (function () {
@@ -18675,10 +18877,7 @@
             const pending = {};
             let pendingTotal = 0;
             for (let i = 0; i < KINDS.length; i++) {
-              const n = Sync.deriveOutbox(
-                KINDS[i],
-                recordsOf(KINDS[i]),
-              ).length;
+              const n = Sync.deriveOutbox(KINDS[i], recordsOf(KINDS[i])).length;
               pending[KINDS[i]] = n;
               pendingTotal += n;
             }
@@ -24334,12 +24533,16 @@
         }
         if (!match) return false;
         for (const key in match) {
-          if (key === "id" || key === "name" || key === "lastModified") continue;
+          if (key === "id" || key === "name" || key === "lastModified")
+            continue;
           const want = match[key];
           const got = stored[key];
           if (typeof want === "boolean") {
             if (!!got !== want) return false;
-          } else if (String(got === undefined || got === null ? "" : got) !== String(want)) {
+          } else if (
+            String(got === undefined || got === null ? "" : got) !==
+            String(want)
+          ) {
             return false;
           }
         }
@@ -25174,7 +25377,7 @@
         if (logbookTab) {
           (DOM.logbookScrollViewport || logbookTab).scrollTo({
             top: 0,
-            behavior: "smooth",
+            behavior: scrollResetBehavior(),
           });
         }
       };
@@ -26214,16 +26417,23 @@
             title = "";
           }
 
+          /* Only the tooltip needs JS here -- it needs this cell's date. The
+             hover scale is presentational and belongs to .heatmap-cell, which
+             is added alongside so one stylesheet rule covers the whole grid
+             instead of two compiled handlers and an inline transition per
+             cell. See the .heatmap-cell block in the stylesheet. */
           let hoverEffects = "";
+          let interactiveClass = "";
           if (tooltipData) {
+            interactiveClass = " heatmap-cell";
             hoverEffects = `
-              onmouseover="showHeatmapTooltip(event, '${dateKey}'); this.style.transform='scale(1.3)';"
-              onmouseout="hideHeatmapTooltip(); this.style.transform='scale(1)';"
+              onmouseover="showHeatmapTooltip(event, '${dateKey}')"
+              onmouseout="hideHeatmapTooltip()"
               onclick="heatmapClickFilter('${dateKey}')"
             `;
           }
 
-          let cellClass = hClass;
+          let cellClass = hClass + interactiveClass;
           if (
             d.getFullYear() === currentYear &&
             dateKey === todayStrForHighlight
@@ -26231,7 +26441,7 @@
             cellClass += " heatmap-today-cell";
           }
 
-          html += `<div class="${cellClass}" style="width: 14px; height: 14px; border-radius: 3px; transition: transform 0.1s ease; cursor: ${tooltipData ? "pointer" : "default"};" ${hoverEffects}></div>`;
+          html += `<div class="${cellClass}" style="width: 14px; height: 14px; border-radius: 3px; cursor: ${tooltipData ? "pointer" : "default"};" ${hoverEffects}></div>`;
         }
         container.innerHTML = html;
         if (monthsContainer) {
@@ -33212,7 +33422,7 @@
       window.scrollToTopTasks = function () {
         const viewport = DOM.taskLogScrollViewport;
         if (viewport) {
-          viewport.scrollTo({ top: 0, behavior: "smooth" });
+          viewport.scrollTo({ top: 0, behavior: scrollResetBehavior() });
         }
       };
 
@@ -36349,38 +36559,25 @@
             "Continuous Ticking: Keeps the tab title timer ticking in the background.",
           "snapshot-restore-select":
             "Snapshot Rollback: Restores your database logs to an automatically captured historical state.",
-          /* The sync panel. Each row is a number whose meaning is not obvious
-             from a two-word label in a column 18rem wide, and the strip is
-             directly beneath the card, so this is where the precision goes
-             instead of into the label. */
-          "sync-row-status":
-            "Sync Status: What cloud sync is doing right now, including why it has stopped if it has.",
-          "sync-row-device":
-            "Device Name: How this browser identifies itself to your other devices. Quoted by name when one of them offers to take over the session.",
-          "sync-row-live":
-            "Live Session: Which device is allowed to run the timer. Only one may, or two half-sessions merge into a total that is true of neither.",
-          "sync-row-lastsync":
-            "Last Sync: When a full sync cycle last completed, whether or not it had anything to carry.",
-          "sync-row-push":
-            "Last Push: When this device last uploaded records. Long ago with a backlog pending means uploads are failing.",
-          "sync-row-pull":
-            "Last Pull: When the cloud last handed this device a change. Long ago simply means nothing changed elsewhere.",
-          "sync-row-pending":
-            "Pending: Records edited here and not yet uploaded. Nothing is lost while this is above zero, it is only waiting.",
-          "sync-row-offset":
-            "Clock Offset: How far this device's clock sits from the server's. Measured, not assumed, and applied to every timestamp that crosses between devices.",
-          "sync-row-generation":
-            "Lease: Who holds the right to write the session, and how many times it has changed hands.",
+          /* The nine sync-row-* descriptions that used to close this map went
+             with the cloud panel's help strip. They had no other reader, and
+             a listener writing into a strip that is not there is not a
+             feature. If those read-outs need explaining again, the place for
+             it is a title on the row, not a strip that idles. */
         };
 
         const defaultText = "Hover over any setting to view its description.";
 
-        /* These rows live in two panels now, Settings and Cloud Sync, and each
-           panel carries its own strip along the bottom. Writing to "the" strip
-           would put the sync descriptions on a panel the reader cannot see, so
-           the strip is resolved from the row that was hovered. The hook is
-           narrower than .settings-help-text because #sync-error carries that
-           class too, and it sits inside the sync panel. */
+        /* Settings is the only panel carrying a strip now that the cloud one
+           has gone, so this resolves a single element -- but it stays scoped
+           to the hovered row's own panel rather than reaching for the first
+           strip in the document. That was a real bug once: while two panels
+           had strips, a global lookup wrote every sync description onto a
+           panel the reader could not see. A second panel that wants a strip
+           gets correct behaviour by having one.
+
+           The hook is narrower than .settings-help-text because #sync-error
+           carries that class too. */
         const stripFor = (el) => {
           const panel = el && el.closest(".idle-popup");
           return panel ? panel.querySelector(".settings-help-out") : null;
@@ -36421,15 +36618,6 @@
         bindHover("auto-email-toggle", DOM.autoEmailToggle);
         bindHover("continuous-ticking-toggle", DOM.continuousTickingToggle);
         bindHover("snapshot-restore-select", DOM.snapshotRestoreSelect);
-
-        /* The sync rows are read-outs rather than controls, so they carry the
-           id on the row itself and hover as a whole row. Driven off the
-           description keys so adding a row is one edit, not two. */
-        for (const id of Object.keys(descriptions)) {
-          if (id.indexOf("sync-row-") === 0) {
-            bindHover(id, document.getElementById(id));
-          }
-        }
 
         /* Hovering anywhere on a row explains it, not just the control at the
            end of it. Same four listeners as bindHover on a container rather
@@ -37568,7 +37756,7 @@
         function haptic(pattern) {
           if (!state.active) return;
           if (typeof navigator.vibrate !== "function") return;
-          if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+          if (prefersReducedMotion()) return;
           try {
             navigator.vibrate(pattern);
           } catch (e) {
