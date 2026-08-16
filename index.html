@@ -29467,7 +29467,25 @@
         }
       }
 
-      /* Every localStorage key the app owns. */
+      /* The data and preference keys a factory reset erases.
+
+         Not every key the app owns, which is what this comment used to claim.
+         Two are left out on purpose, and anything relying on this list being
+         exhaustive is relying on something untrue:
+
+         - production_sync_auth_v1, the cloud tokens, belongs to the caller.
+           Both callers of wipeThisDevice() sign out before reaching it, which
+           is what clears it; see the note on that function for why the account
+           decision is settled outside and never re-made here.
+         - nodrift_clock_anomalies_v1 records what this machine's clock did
+           rather than anything the user entered, and is capped at
+           CLOCK_ANOMALY_LOG_LIMIT. It outlives a reset deliberately: a device
+           whose clock jumps goes on jumping afterwards, and the log is worth
+           most to someone who has already wiped and is still seeing bad
+           timestamps.
+
+         Add a key here when it holds the user's data or their preferences.
+         Anything else needs a reason written down next to it. */
       function purgeFactoryKeys() {
         const keys = [
           STATE_KEY,
