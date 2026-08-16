@@ -9096,17 +9096,18 @@
           <ul>
             <li>
               <strong>Monday to Friday:</strong> the goal is whatever today
-              needs to be for the week to still reach 40 hours. Log 10 hours on
-              Monday and Tuesday asks for 6; log 7 on Monday and Tuesday asks
-              for 9.
+              needs to be for the week to still reach your weekly goal. On the
+              default 40 hours: log 10 on Monday and Tuesday asks for 6; log 7
+              on Monday and Tuesday asks for 9.
             </li>
             <li>
-              <strong>Saturday and Sunday:</strong> the goal is a flat 6 hours.
+              <strong>Saturday and Sunday:</strong> three quarters of an
+              ordinary day — 6 hours on a 40-hour week.
             </li>
             <li>
-              <strong>Booked leave</strong> earlier in the week takes 8 hours
-              off the weekly total, so the remaining days are not asked to make
-              it up.
+              <strong>Booked leave</strong> earlier in the week takes one
+              ordinary day off the weekly total, so the remaining days are not
+              asked to make it up.
             </li>
             <li>
               <strong>You can always override it.</strong> Click the goal to
@@ -9326,9 +9327,9 @@
           <hr />
           <h4>How leave affects the maths</h4>
           <p>
-            Booking a leave day takes 8 hours off the 40-hour weekly target and
-            marks that date with stripes, so the days around it are not asked to
-            cover for it.
+            Booking a leave day takes one ordinary day off the weekly target —
+            8 hours on the default 40-hour week — and marks that date with
+            stripes, so the days around it are not asked to cover for it.
           </p>
           <p>
             If you end up working on a day you had booked as leave, the hours
@@ -9568,7 +9569,9 @@
               <strong>Weekly goal</strong> — the hours a full week should add up
               to, 40 unless you change it. Everything measured against a week
               reads from it: the auto-populated daily goal, the pace figure, and
-              the weekly bar in Insights.
+              the weekly bar in Insights. Changing it sets today's goal straight
+              away, unless a shift is running or today already has a saved
+              shift — those keep the target they started with.
             </li>
             <li>
               <strong>Enable idle lock</strong> — turns the inactivity and
@@ -14309,6 +14312,13 @@
          still owes what the week owes. */
       const WEEKLY_GOAL_DEFAULT_HOURS = 40;
       const WEEKLY_GOAL_WORKDAYS = 5;
+
+      /* A weekend day is worth three quarters of an ordinary one: the six
+         hours this app has always asked for, against the default eight. Held
+         as a ratio rather than a flat six so that lowering the weekly goal
+         cannot leave Saturday asking for more than Tuesday. At 40 hours a
+         week it resolves to exactly six. */
+      const WEEKEND_GOAL_RATIO = 0.75;
 
       function getWeeklyGoalSec() {
         const h =
@@ -21252,14 +21262,31 @@
         const dObj = new Date(Date.UTC(fullYear, m - 1, d, 12, 0, 0));
         const dayOfWeek = dObj.getUTCDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
 
-        let targetH = 8;
+        /* What one ordinary day is worth. This used to be a hardcoded eight
+           hours in three places below, which quietly made the weekly goal a
+           setting that moved the insights and the pace figure but not the
+           number this function writes into the goal field -- so a 20-hour week
+           still auto-populated eight-hour days. Reading it from the same
+           place everything else does is what makes the setting mean one
+           thing. At the default 40-hour week it is 28800, exactly as before. */
+        const standardDaySec = getStandardDayGoalSec();
+
+        /* Both branches below assign all three, so these only exist to be
+           assigned; an eight-hour initial value here would be the same
+           assumption again, written where nothing can see it. */
+        let targetH = 0;
         let targetM = 0;
         let targetS = 0;
 
         if (dayOfWeek === 0 || dayOfWeek === 6) {
-          // Weekend: Default directly to 6 hours
-          targetH = 6;
-          targetM = 0;
+          /* A weekend day asks three quarters of an ordinary one -- six hours
+             against the default eight. Held as a ratio rather than a flat six
+             so it stays below a weekday's target rather than above it when
+             the weekly goal is set lower than 40. */
+          const weekendSec = Math.round(standardDaySec * WEEKEND_GOAL_RATIO);
+          targetH = Math.floor(weekendSec / 3600);
+          targetM = Math.floor((weekendSec % 3600) / 60);
+          targetS = Math.floor(weekendSec % 60);
         } else {
           // Weekday (Monday-Friday)
           const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
@@ -21304,9 +21331,9 @@
             targetM = 0;
           } else {
             // Cumulative target for weekday index (Monday = 1, Tuesday = 2, etc.)
-            const cumulativeTargetSec = dayOfWeek * 8 * 3600;
+            const cumulativeTargetSec = dayOfWeek * standardDaySec;
             const priorCreditsSec =
-              totalW_MonFri_Prior + priorLeaveDaysCount * 8 * 3600;
+              totalW_MonFri_Prior + priorLeaveDaysCount * standardDaySec;
             const requiredSec = Math.max(
               0,
               cumulativeTargetSec - priorCreditsSec,
@@ -29329,9 +29356,13 @@
        * Applies an edited weekly goal.
        *
        * Every derived target - the weekly bar, the monthly and yearly
-       * breakdowns, the pace figure, the auto-populated daily goal - reads
-       * through getStandardDayGoalSec(), so a full re-render is all that is
-       * needed to bring them into line with each other.
+       * breakdowns, the pace figure - reads through getStandardDayGoalSec(),
+       * so a re-render brings those into line by itself.
+       *
+       * The daily goal field is the exception, because it is a stored value
+       * rather than a derived one: autoPopulateDailyGoal writes it, and until
+       * it runs the field keeps the old arithmetic. Re-rendering cannot fix
+       * that, which is why this asks for it explicitly below.
        */
       function onWeeklyGoalChange() {
         const el = DOM.weeklyGoalHours;
@@ -29351,6 +29382,25 @@
         el.value = String(state.weeklyGoalHours);
         if (window.Sync) window.Sync.markDirty("settings");
         saveState(true);
+
+        /* Bring today's goal field onto the new number, or the toast below
+           announces a per-day figure that the goal in the top bar contradicts.
+           autoPopulateDailyGoal owns the two cases that must not move: it
+           returns early when the user has taken the goal over by hand, and
+           for a day that already has a saved shift it re-derives from that
+           day's locked anchor rather than from this setting.
+
+           The third case is guarded here rather than there. The mid-shift
+           check that used to live inside it was removed in V12, and the
+           function now rewrites state.shiftStartGoalSec whenever a shift is
+           running - so calling it mid-shift would silently retarget the shift
+           in progress. Moving a running shift's goal is exactly what the
+           "Update Session Goal?" prompt exists to ask about, and editing the
+           weekly total is not that question; today keeps its target and the
+           new one takes effect the next time the day is populated. */
+        if (!state.loginTimestamp) {
+          autoPopulateDailyGoal(state.activeDate || getPSTDate());
+        }
 
         insightsCacheKey = null;
         if (typeof renderInsights === "function") renderInsights();
