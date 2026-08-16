@@ -1,22 +1,25 @@
 <div align="center">
   <img src="docs/assets/nodrift_logo.svg" alt="nodrift logo" height="40" />
-  <p><strong>Zero backend. Zero latency. Total privacy. One file.</strong></p>
+  <p><strong>Local-first. Zero latency. Works signed out, forever.</strong></p>
 </div>
 
 <p align="center">
-  <a href="#-features">Features</a> • 
+  <a href="#-key-features">Features</a> • 
   <a href="#-getting-started">Getting Started</a> • 
-  <a href="#-command-palette-hud">Command Palette</a> • 
-  <a href="#-architecture">Architecture</a>
+  <a href="#-cloud-sync-optional">Cloud Sync</a> • 
+  <a href="#-keyboard-shortcuts">Shortcuts</a> • 
+  <a href="#-architecture--workflow">Architecture</a>
 </p>
 
 ---
 
 ## 📖 Overview
 
-Most time trackers are bloated SaaS tools that harvest data, or barebones stopwatches that break when you close the tab. **nodrift** is an enterprise-grade, single-file web application that runs entirely in your browser.
+Most time trackers are bloated SaaS tools that harvest data, or barebones stopwatches that break when you close the tab. **nodrift** is an enterprise-grade web application whose entire UI, logic and styling live in one `index.html`, and which runs in your browser rather than on someone's server.
 
-It tracks active work hours, rest breaks, daily goals, and weekly workloads with analytical precision. Everything is stored locally on your machine via a failsafe IndexedDB + LocalStorage matrix. **No accounts. No servers. No subscriptions. No external dependencies.**
+It tracks active work hours, rest breaks, daily goals, and weekly workloads with analytical precision. Everything is stored on your machine via a failsafe IndexedDB + LocalStorage matrix, and every feature works with no account and no network. **No subscriptions. No telemetry. Nothing is uploaded unless you sign in and ask for it.**
+
+> **Being precise about "local-first"**, because it is the whole point: the app is local-first, not offline-only. Signing in is optional and off by default, and turning it on sends your logbook to a Supabase project so it can reach your other devices — see [Cloud Sync](#-cloud-sync-optional). Signed out, nothing leaves the machine. The page also loads its two typefaces from Google Fonts; it renders correctly without them.
 
 ---
 
@@ -24,7 +27,7 @@ It tracks active work hours, rest breaks, daily goals, and weekly workloads with
 
 ### ⏳ Intelligent Tracking & Smart Pacing
 
-- **Adaptive Daily Goals:** The app dynamically calculates your required daily velocity to hit a 40-hour workweek, automatically deducting scheduled leaves and holidays.
+- **Adaptive Daily Goals:** The app dynamically calculates your required daily velocity to hit your weekly target — 40 hours by default, configurable — automatically deducting scheduled leaves and holidays.
 - **Sleep & Idle Detection:** Steps away? The app detects system sleep and user inactivity, pausing your timer and prompting you to recover or discard the time when you return.
 - **Midnight Rollover:** If you work past midnight, nodrift safely slices the shift, saves yesterday's logs, and starts a fresh day.
 
@@ -50,6 +53,15 @@ Press `/` to open a Raycast-inspired, keyboard-first command palette.
 - **Import Conflict Wizard:** When importing a backup, an interactive wizard helps you resolve colliding dates (Keep Local, Overwrite, or Keep Both).
 - **RAM-Only Fallback:** Gracefully degrades to temporary memory if your browser storage quota is exceeded or blocked.
 
+### ☁️ Cloud Sync (Optional)
+
+Off by default. The app is fully functional, forever, without ever creating an account.
+
+- **Opt-in, and reversible:** Sign in from the cloud icon in the footer. Signed out, no data leaves the machine.
+- **Cross-device handoff:** A running shift, the logbook, tasks, leaves, saved views and settings all follow you. Only one device owns the live session at a time, enforced by a lease in Postgres rather than by hoping.
+- **Last-writer-wins, guarded server-side:** The merge rule is enforced in SQL, so a device that has been offline for a week cannot clobber newer data by pushing stale rows.
+- **Your rows, and only yours:** Row-level security is enabled _and_ forced on every table. See [supabase/README.md](supabase/README.md) for the schema and why the publishable key in `index.html` is not a secret.
+
 ### 🎨 Design Systems
 
 Instantly switch between four meticulously crafted design tokens:
@@ -65,7 +77,11 @@ No build steps. No `npm install`.
 2. **Open `index.html`** in any modern web browser (Chrome, Firefox, Safari, Edge).
 3. Press `Spacebar` to start tracking.
 
-> **Self-Hosting**: You can deploy the folder directly to Vercel, Netlify, or GitHub Pages. Note that browser storage is origin-bound; use the built-in **Export/Import JSON** feature when migrating devices or domains.
+> **Self-Hosting**: Deploy the folder as-is to Vercel, Netlify, GitHub Pages or any static host — there is nothing to configure and no server to run. Serve it over `http(s)` rather than opening the file directly if you want the PWA to install and work offline; `sw.js` and `manifest.json` must stay beside `index.html` at the web root, since a service worker cannot control pages above its own directory.
+>
+> Browser storage is origin-bound, so use the built-in **Export/Import JSON** feature when migrating devices or domains — or enable [Cloud Sync](#-cloud-sync-optional), which does it for you.
+
+> **Running the sync backend yourself**: the app points at a hosted Supabase project out of the box. To use your own, apply [`supabase/migrations/`](supabase/README.md) in order, then change **three** things in `index.html` — `SUPABASE_URL` and `SUPABASE_ANON_KEY` (search for `const SUPABASE_URL`), and the `connect-src` host in the CSP `<meta>` tag at the top of the file. The CSP pins the API host by name, so changing the constants alone leaves the browser blocking every sync request, which surfaces as a server the app cannot reach rather than as an error that names the cause.
 
 ---
 
