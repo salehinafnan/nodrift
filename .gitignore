@@ -1,0 +1,42 @@
+# ---- Exported app data: the one rule here that is not housekeeping ----
+#
+# A backup written by the app's own export contains the logbook verbatim, and
+# shift notes carry real names, dates of service and physicians. This
+# repository is public, and a blob committed by mistake stays reachable in
+# history after the file is deleted -- removing it later does not undo the
+# disclosure. Matched on the export's own naming so that a stray `git add -A`
+# cannot pick one up.
+nodrift-backup-*.json
+*-backup-*.json
+*.backup.json
+
+# ---- Secrets ----
+#
+# Nothing here needs a secret today: the app is static, so the browser
+# downloads everything it runs, and the Supabase publishable key is public by
+# design -- guarded by row level security rather than by being hidden. These
+# patterns exist so that if a script or build step ever does introduce a real
+# secret, leaving it out is already the default.
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+secrets.json
+service-role*
+
+# ---- Tooling and hosts ----
+node_modules/
+.vercel/
+.netlify/
+*.log
+npm-debug.log*
+
+# ---- Editors and OS ----
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+desktop.ini

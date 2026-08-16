@@ -1,0 +1,33 @@
+# Line endings belong to the repo, not to whoever cloned it.
+#
+# Every blob here is stored LF and every working-tree file is CRLF. That was
+# already true, but only because this machine has core.autocrlf=true -- a
+# clone on a machine without it produced a different working tree and a
+# whole-file diff on the first save. Declaring it here makes the checkout
+# identical everywhere and matches .prettierrc, which pins endOfLine to crlf.
+#
+# text=auto normalises storage to LF on commit; eol=crlf sets the working
+# tree. Storage is unaffected by the eol half, so adding this file
+# renormalises nothing.
+* text=auto eol=crlf
+
+# Named explicitly so a heuristic misfire can never classify one of these as
+# binary and turn its diff into "Binary files differ" -- index.html is the
+# whole app, and an unreadable diff on it is an unreviewable change.
+*.html  text
+*.js    text
+*.json  text
+*.css   text
+*.md    text
+*.sql   text
+*.svg   text
+
+# Byte-for-byte, never converted.
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.ico   binary
+*.pdf   binary
+*.woff  binary
+*.woff2 binary
