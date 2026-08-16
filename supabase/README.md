@@ -76,3 +76,37 @@ and a misconfigured service role reads every user's data.
 
 The keys that must never appear in this repository are the **service role**
 key and the database password. Neither has ever been committed.
+
+## The one thing the app cannot do for itself
+
+[`functions/delete-account`](functions/delete-account/index.ts) exists because
+deleting a row from `records` is an ordinary authenticated request, but
+deleting the _account_ means deleting from `auth.users`, and only the service
+role may do that. Since the app is static and its source is public, that key
+cannot be in the page — so this is the one piece of nodrift that runs
+somewhere other than the browser.
+
+It is not part of `migrations/` and is not applied by running the SQL. Deploy
+it separately, once:
+
+```
+npx supabase functions deploy delete-account --project-ref <project-ref>
+```
+
+or paste the file into **Edge Functions → Deploy a new function** in the
+dashboard. `SUPABASE_URL`, `SUPABASE_ANON_KEY` and `SUPABASE_SERVICE_ROLE_KEY`
+are injected by the platform; **nothing has to be pasted into a settings
+field, and the service-role key never leaves Supabase.**
+
+Until it is deployed the Delete account button answers "Account deletion is
+not set up on this server yet." — a 404 from the function gateway, named
+specifically so an undeployed feature cannot be mistaken for a failed
+deletion.
+
+The property the file exists to hold: **the user id being deleted comes from
+the verified JWT, never from the request body.** Accepting an id from the
+caller would make it delete anyone's account for anyone who asks, since
+authentication would then prove only that the caller is _a_ user rather than
+_that_ user. The cascade in [0001_schema.sql](migrations/0001_schema.sql) does
+the rest — all three tables reference `auth.users on delete cascade`, so
+removing the user removes the data with it.

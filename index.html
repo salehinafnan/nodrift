@@ -14325,6 +14325,19 @@
                   >
                     Sign out &amp; erase this device
                   </button>
+                  <!-- Last, and the only control here that reaches past this
+                       device: the two above it change what this browser
+                       holds, this one ends the account everywhere. It leaves
+                       the local logbook alone, which is what keeps it from
+                       being the most destructive button in the app. -->
+                  <button
+                    type="button"
+                    class="btn-danger-outline"
+                    id="sync-delete-account-btn"
+                    onclick="syncDeleteAccount()"
+                  >
+                    Delete account
+                  </button>
                 </div>
 
                 <span
@@ -18487,6 +18500,44 @@
           return true;
         }
 
+        /* Deleting the account means deleting from auth.users, which only
+           the service-role key may do -- and that key can read every user's
+           data, so it cannot be in a page whose source is public. The work
+           happens in supabase/functions/delete-account, which reads the
+           caller's identity from the verified token rather than from
+           anything sent here; there is deliberately nothing to pass.
+
+           Same host as the REST and auth APIs, so the CSP's connect-src
+           already covers it. The local session goes whatever the server
+           says next, because a token for an account that no longer exists
+           is not worth keeping. */
+        async function deleteAccount() {
+          let r;
+          try {
+            r = await net("/functions/v1/delete-account", { method: "POST" });
+          } catch (e) {
+            throw new Error(
+              "Could not reach the server to delete the account. Check your connection and try again.",
+            );
+          }
+          const data = await r.json().catch(() => ({}));
+          if (!r.ok) {
+            /* A 404 here is the one worth naming: it means the function was
+               never deployed, which is a project-setup problem and not
+               something the person pressing the button can fix by retrying. */
+            if (r.status === 404) {
+              throw new Error(
+                "Account deletion is not set up on this server yet.",
+              );
+            }
+            throw new Error(
+              authError(data, r.status, "Could not delete the account"),
+            );
+          }
+          clearSession(null);
+          return true;
+        }
+
         /* The one auth call that needs a token, so the one that goes through
            net(): it carries the bearer and refreshes once on a 401. Reached
            only while holding the short-lived session a recovery code just
@@ -18566,6 +18617,7 @@
           requestReset,
           resendSignupCode,
           updatePassword,
+          deleteAccount,
           signOut,
           refresh,
           measureOffset,
@@ -32849,6 +32901,43 @@
             wipeThisDevice();
           },
           true,
+        );
+      };
+
+      window.syncDeleteAccount = function () {
+        const account =
+          (window.SyncNet && SyncNet.email) || "your cloud account";
+        openConfirmModal(
+          "Delete your cloud account?",
+          `This permanently deletes ${account} and everything synced to it, ` +
+            `on every device you have ever signed in from. It cannot be undone, ` +
+            `and the address can be used to sign up again but will not get any ` +
+            `of it back. The shifts and tasks stored on this device are not ` +
+            `touched — export them first if you want to keep them.`,
+          async () => {
+            const btn = document.getElementById("sync-delete-account-btn");
+            if (btn) {
+              btn.disabled = true;
+              btn.textContent = "Deleting...";
+            }
+            /* No lease hand-back first, unlike signing out. Releasing it
+               tells the user's *other* device it may take the timer, and a
+               moment from now that device has no account to take it for. */
+            try {
+              await SyncNet.deleteAccount();
+              showAppToast("Account deleted", "success");
+            } catch (e) {
+              syncAuthFail((e && e.message) || "Could not delete the account");
+            } finally {
+              if (btn) {
+                btn.disabled = false;
+                btn.textContent = "Delete account";
+              }
+              renderSyncCard();
+            }
+          },
+          true,
+          "Delete account",
         );
       };
 
