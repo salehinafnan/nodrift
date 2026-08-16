@@ -4029,15 +4029,20 @@
          fell back to the base button's 12px padding and stood a third taller
          than the two buttons directly above it.
 
-         The sign-in button is excluded by name because it is not part of this
-         column -- it closes the form above it, and drawn at 26px beside two
-         26px fields the whole panel read as a mistake. Excluded rather than
+         The auth submits are excluded because they are not part of this
+         column -- each closes the form above it, and drawn at 26px beside its
+         own fields the whole panel read as a mistake. Excluded rather than
          overridden further down: an override would have to beat the
          `min-height: 26px !important` here, and the only thing that beats it
          is another !important, which would then also beat the 44px touch
          target every other field in the app gets on a phone. Saying it does
-         not apply leaves the defaults intact. */
-      .settings-card button.btn-info-outline:not(#sync-signin-btn),
+         not apply leaves the defaults intact.
+
+         By class and not by id. There are five of these now, and an exclusion
+         listing them one by one is a rule that silently mis-sizes the sixth
+         -- which is exactly what a new button in this card would look like:
+         correct everywhere except next to its own fields. */
+      .settings-card button.btn-info-outline:not(.sync-auth-submit),
       .settings-card button.btn-secondary,
       .settings-card button.btn-danger-outline {
         height: 26px;
@@ -4051,11 +4056,11 @@
         justify-content: center;
       }
 
-      /* Submits the form directly above it and is stacked full-width under its
-         two fields, so it takes their box rather than the base button's. The
-         base is 4px taller, which between three controls in a vertical stack
-         reads as a misalignment rather than as a size. */
-      #sync-signin-btn {
+      /* Submits the pane directly above it and is stacked full-width under its
+         fields, so it takes their box rather than the base button's. The base
+         is 4px taller, which between three controls in a vertical stack reads
+         as a misalignment rather than as a size. */
+      .sync-auth-submit {
         padding: var(--space-3);
         font-size: var(--text-sm);
         border-radius: var(--radius-md);
@@ -4206,6 +4211,35 @@
          user came here to do. */
       .sync-ios-note button {
         align-self: flex-end;
+        flex: 0 0 auto;
+      }
+
+      /* One pane visible at a time. The hidden ones are display:none rather
+         than moved or clipped, so nothing inside them is focusable or
+         measurable while they are away. */
+      .sync-auth-pane {
+        display: none;
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      .sync-auth-pane.show {
+        display: flex;
+      }
+
+      /* Navigation between the panes, not fields: these keep the compact 26px
+         treatment the rest of the card's buttons get, which is what separates
+         them at a glance from the submit directly above. */
+      .sync-auth-links {
+        display: flex;
+        justify-content: space-between;
+        gap: 6px;
+        margin-top: 2px;
+      }
+
+      /* A single link sits under its own submit rather than stretching the
+         width of the card. */
+      .sync-auth-links button {
         flex: 0 0 auto;
       }
 
@@ -7717,10 +7751,11 @@
         select.input-standard,
         .date-picker-group,
         .custom-select-trigger.cs-md,
-        /* The sign-in submit belongs on this list for the same reason the
-           dropdown trigger does: it is stacked with the two fields above it,
-           and left off it stayed at its desktop height while they grew. */
-        #sync-signin-btn {
+        /* The auth submits belong on this list for the same reason the
+           dropdown trigger does: each is stacked with the fields above it,
+           and left off they stayed at their desktop height while the fields
+           grew. */
+        .sync-auth-submit {
           min-height: 44px;
           padding: 0 var(--space-3);
         }
@@ -13916,34 +13951,238 @@
                   </button>
                 </div>
 
+                <!-- Five panes, one visible at a time, and which one is
+                     decided by syncAuthPane rather than by reading the DOM
+                     back. renderSyncCard runs several times a minute for as
+                     long as this popup is open, so a pane inferred from the
+                     current display would be re-derived under the user's
+                     hands mid-form.
+
+                     "Forgot" is its own pane rather than a button that reuses
+                     the sign-in email box: an empty box would answer a
+                     deliberate action with a validation error, and there
+                     would be nowhere to say what is about to happen. -->
                 <div
-                  id="sync-signin-form"
-                  style="display: flex; flex-direction: column; gap: 8px"
+                  id="sync-auth"
+                  style="display: flex; flex-direction: column"
                 >
-                  <input
-                    type="email"
-                    id="sync-email"
-                    class="input-standard"
-                    placeholder="Email"
-                    autocomplete="username"
-                    spellcheck="false"
-                  />
-                  <input
-                    type="password"
-                    id="sync-password"
-                    class="input-standard"
-                    placeholder="Password"
-                    autocomplete="current-password"
-                    onkeydown="if (event.key === 'Enter') syncSignIn();"
-                  />
-                  <button
-                    type="button"
-                    class="btn-info-outline"
-                    id="sync-signin-btn"
-                    onclick="syncSignIn()"
-                  >
-                    Sign in
-                  </button>
+                  <div class="sync-auth-pane" id="sync-auth-signin">
+                    <input
+                      type="email"
+                      id="sync-email"
+                      class="input-standard"
+                      placeholder="Email"
+                      autocomplete="username"
+                      spellcheck="false"
+                    />
+                    <input
+                      type="password"
+                      id="sync-password"
+                      class="input-standard"
+                      placeholder="Password"
+                      autocomplete="current-password"
+                      onkeydown="if (event.key === 'Enter') syncSignIn();"
+                    />
+                    <button
+                      type="button"
+                      class="btn-info-outline sync-auth-submit"
+                      id="sync-signin-btn"
+                      onclick="syncSignIn()"
+                    >
+                      Sign in
+                    </button>
+                    <div class="sync-auth-links">
+                      <button
+                        type="button"
+                        class="btn-secondary"
+                        onclick="syncAuthShow('signup')"
+                      >
+                        Create account
+                      </button>
+                      <button
+                        type="button"
+                        class="btn-secondary"
+                        onclick="syncAuthShow('forgot')"
+                      >
+                        Forgot password?
+                      </button>
+                    </div>
+                  </div>
+
+                  <div class="sync-auth-pane" id="sync-auth-signup">
+                    <input
+                      type="email"
+                      id="sync-signup-email"
+                      class="input-standard"
+                      placeholder="Email"
+                      autocomplete="username"
+                      spellcheck="false"
+                    />
+                    <input
+                      type="password"
+                      id="sync-signup-password"
+                      class="input-standard"
+                      placeholder="Password"
+                      autocomplete="new-password"
+                    />
+                    <!-- A mistyped password on an address that has not been
+                         confirmed yet is unrecoverable: the reset code goes to
+                         an inbox the account cannot prove it owns. -->
+                    <input
+                      type="password"
+                      id="sync-signup-confirm"
+                      class="input-standard"
+                      placeholder="Confirm password"
+                      autocomplete="new-password"
+                      onkeydown="if (event.key === 'Enter') syncSignUp();"
+                    />
+                    <button
+                      type="button"
+                      class="btn-info-outline sync-auth-submit"
+                      id="sync-signup-btn"
+                      onclick="syncSignUp()"
+                    >
+                      Create account
+                    </button>
+                    <div class="sync-auth-links">
+                      <button
+                        type="button"
+                        class="btn-secondary"
+                        onclick="syncAuthShow('signin')"
+                      >
+                        Back to sign in
+                      </button>
+                    </div>
+                  </div>
+
+                  <div class="sync-auth-pane" id="sync-auth-forgot">
+                    <span class="settings-help-text">
+                      Enter your address and we will send a six-digit code to
+                      set a new password with.
+                    </span>
+                    <input
+                      type="email"
+                      id="sync-forgot-email"
+                      class="input-standard"
+                      placeholder="Email"
+                      autocomplete="username"
+                      spellcheck="false"
+                      onkeydown="if (event.key === 'Enter') syncRequestReset();"
+                    />
+                    <button
+                      type="button"
+                      class="btn-info-outline sync-auth-submit"
+                      id="sync-forgot-btn"
+                      onclick="syncRequestReset()"
+                    >
+                      Send code
+                    </button>
+                    <div class="sync-auth-links">
+                      <button
+                        type="button"
+                        class="btn-secondary"
+                        onclick="syncAuthShow('signin')"
+                      >
+                        Back to sign in
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- One pane for both codes. Which purpose it is serving
+                       lives in syncAuthPending, because the server checks a
+                       code against the purpose it was issued for and the two
+                       are not interchangeable. -->
+                  <div class="sync-auth-pane" id="sync-auth-code">
+                    <span class="settings-help-text" id="sync-code-sent-to">
+                    </span>
+                    <!-- type="tel" rather than "text", and not for
+                         semantics. The stylesheet carries a bare
+                         `input[type="text"]` rule with its own padding and
+                         font size, and an element-plus-attribute selector
+                         outranks the .input-standard class -- so a text input
+                         here came out 26px on desktop beside its own 40px
+                         submit. The 28 fields that rule already governs are
+                         meant to look the way they do, so this one steps out
+                         of its way instead. tel earns its place anyway: it
+                         raises the numeric keypad for a six-digit code.
+
+                         maxlength is ten rather than six because the length
+                         of the code is a dashboard setting this page cannot
+                         read: it ranges 6-10, and this project really did
+                         issue eight-digit codes until 2026-08-17. A maxlength
+                         matching today's setting turns tomorrow's change into
+                         a field that silently swallows the last digits, and
+                         an error that says only that the code was not
+                         accepted. The placeholder still says what to expect;
+                         the server stays the judge of whether it is right. -->
+                    <input
+                      type="tel"
+                      id="sync-code"
+                      class="input-standard"
+                      placeholder="6-digit code"
+                      inputmode="numeric"
+                      autocomplete="one-time-code"
+                      maxlength="10"
+                      spellcheck="false"
+                      onkeydown="if (event.key === 'Enter') syncVerifyCode();"
+                    />
+                    <button
+                      type="button"
+                      class="btn-info-outline sync-auth-submit"
+                      id="sync-code-btn"
+                      onclick="syncVerifyCode()"
+                    >
+                      Continue
+                    </button>
+                    <div class="sync-auth-links">
+                      <button
+                        type="button"
+                        class="btn-secondary"
+                        onclick="syncAuthShow('signin')"
+                      >
+                        Back to sign in
+                      </button>
+                      <button
+                        type="button"
+                        class="btn-secondary"
+                        id="sync-resend-btn"
+                        onclick="syncResendCode()"
+                      >
+                        Send another
+                      </button>
+                    </div>
+                  </div>
+
+                  <div class="sync-auth-pane" id="sync-auth-newpass">
+                    <span class="settings-help-text">
+                      Code accepted. Choose a new password.
+                    </span>
+                    <input
+                      type="password"
+                      id="sync-newpass"
+                      class="input-standard"
+                      placeholder="New password"
+                      autocomplete="new-password"
+                    />
+                    <input
+                      type="password"
+                      id="sync-newpass-confirm"
+                      class="input-standard"
+                      placeholder="Confirm new password"
+                      autocomplete="new-password"
+                      onkeydown="
+                        if (event.key === 'Enter') syncSetNewPassword();
+                      "
+                    />
+                    <button
+                      type="button"
+                      class="btn-info-outline sync-auth-submit"
+                      id="sync-newpass-btn"
+                      onclick="syncSetNewPassword()"
+                    >
+                      Set password
+                    </button>
+                  </div>
                 </div>
 
                 <div
@@ -18119,33 +18358,151 @@
 
         /* ── account ───────────────────────────────────────────────────── */
 
-        async function signIn(email, password) {
-          const r = await fetch(
-            `${SUPABASE_URL}/auth/v1/token?grant_type=password`,
-            {
-              method: "POST",
-              headers: {
-                apikey: SUPABASE_ANON_KEY,
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({ email, password }),
+        /* The auth endpoints below are reached without a session, so none of
+           them can go through net() -- it exists to attach a bearer token and
+           refresh it on a 401, and there is nothing to attach yet. This is
+           the shared half of what it does: the project key, and JSON both
+           ways. */
+        async function authPost(path, body) {
+          const r = await fetch(`${SUPABASE_URL}${path}`, {
+            method: "POST",
+            headers: {
+              apikey: SUPABASE_ANON_KEY,
+              "Content-Type": "application/json",
             },
-          );
-          const data = await r.json().catch(() => ({}));
-          if (!r.ok) {
-            throw new Error(
-              data.error_description ||
-                data.msg ||
-                data.message ||
-                `Sign-in failed (${r.status})`,
-            );
+            body: JSON.stringify(body),
+          });
+          return { r, data: await r.json().catch(() => ({})) };
+        }
+
+        /* GoTrue reports a failure in one of three fields depending on which
+           path produced it, and a rate limit arrives as a 429 whose body says
+           nothing a person can act on. One extractor, so every form in the
+           card renders every failure the same way. */
+        function authError(data, status, fallback) {
+          if (status === 429) {
+            return "Too many attempts — wait a minute and try again.";
           }
+          return (
+            data.error_description ||
+            data.msg ||
+            data.message ||
+            `${fallback} (${status})`
+          );
+        }
+
+        /* Shared by every path that ends up holding tokens: password sign-in,
+           a confirmed sign-up, and both codes. The offset probe is
+           deliberately allowed to fail -- a session that could not measure the
+           clock is still a session, and the engine measures again on its
+           first sync. */
+        async function finishSignIn(data) {
           adoptTokens(data);
           await measureOffset().catch((e) => {
             noteError(e);
             emit();
           });
           return session;
+        }
+
+        async function signIn(email, password) {
+          const { r, data } = await authPost(
+            "/auth/v1/token?grant_type=password",
+            { email, password },
+          );
+          if (!r.ok) {
+            throw new Error(authError(data, r.status, "Sign-in failed"));
+          }
+          return finishSignIn(data);
+        }
+
+        /* Two shapes come back here and which one is decided by a dashboard
+           toggle this code cannot see. With email confirmation off the
+           response is a full session and the account is live immediately;
+           with it on the response is a bare user and a code is on its way.
+           Branching on access_token rather than on an assumption means
+           flipping that toggle later cannot strand this function.
+
+           Note that a 200 is not proof the address was free: for an address
+           that already has a confirmed account the server answers with an
+           obfuscated user rather than an error, on purpose, so that signing
+           up cannot be used to discover who has an account. Nothing here may
+           tell the caller otherwise. */
+        async function signUp(email, password) {
+          const { r, data } = await authPost("/auth/v1/signup", {
+            email,
+            password,
+          });
+          if (!r.ok) {
+            throw new Error(
+              authError(data, r.status, "Could not create the account"),
+            );
+          }
+          if (data.access_token) {
+            await finishSignIn(data);
+            return { needsCode: false };
+          }
+          return { needsCode: true };
+        }
+
+        /* type is "signup" for a new account's confirmation code and
+           "recovery" for a reset code. They are not interchangeable -- the
+           server checks a code against the purpose it was issued for, so the
+           wrong one here surfaces as an unexplainable "invalid code". */
+        async function verifyOtp(email, token, type) {
+          const { r, data } = await authPost("/auth/v1/verify", {
+            type,
+            email,
+            token,
+          });
+          if (!r.ok) {
+            throw new Error(
+              authError(data, r.status, "That code was not accepted"),
+            );
+          }
+          return finishSignIn(data);
+        }
+
+        /* Answers 200 whether or not the address has an account, for the same
+           reason sign-up does. Every message the caller shows for this has to
+           keep that promise. */
+        async function requestReset(email) {
+          const { r, data } = await authPost("/auth/v1/recover", { email });
+          if (!r.ok) {
+            throw new Error(authError(data, r.status, "Could not send a code"));
+          }
+          return true;
+        }
+
+        async function resendSignupCode(email) {
+          const { r, data } = await authPost("/auth/v1/resend", {
+            type: "signup",
+            email,
+          });
+          if (!r.ok) {
+            throw new Error(
+              authError(data, r.status, "Could not send another code"),
+            );
+          }
+          return true;
+        }
+
+        /* The one auth call that needs a token, so the one that goes through
+           net(): it carries the bearer and refreshes once on a 401. Reached
+           only while holding the short-lived session a recovery code just
+           produced. */
+        async function updatePassword(password) {
+          const r = await net("/auth/v1/user", {
+            method: "PUT",
+            body: JSON.stringify({ password }),
+          });
+          const data = await r.json().catch(() => ({}));
+          if (!r.ok) {
+            throw new Error(
+              authError(data, r.status, "Could not set the password"),
+            );
+          }
+          return true;
         }
 
         async function signOut() {
@@ -18204,6 +18561,11 @@
           net,
           rpc,
           signIn,
+          signUp,
+          verifyOtp,
+          requestReset,
+          resendSignupCode,
+          updatePassword,
           signOut,
           refresh,
           measureOffset,
@@ -31954,8 +32316,7 @@
           iosNote.style.display = syncIosStorageNoteApplies() ? "flex" : "none";
         }
 
-        const form = document.getElementById("sync-signin-form");
-        if (form) form.style.display = status.signedIn ? "none" : "flex";
+        syncApplyAuthPane(status.signedIn);
         const detail = document.getElementById("sync-account-detail");
         if (detail) detail.style.display = status.signedIn ? "flex" : "none";
 
@@ -32171,53 +32532,260 @@
         return text;
       };
 
-      window.syncSignIn = async function () {
-        const emailEl = document.getElementById("sync-email");
-        const passEl = document.getElementById("sync-password");
-        const btn = document.getElementById("sync-signin-btn");
-        const errorEl = document.getElementById("sync-error");
-        const email = emailEl ? emailEl.value.trim() : "";
-        const password = passEl ? passEl.value : "";
+      /* ── the account form ────────────────────────────────────────────────
 
-        /* dataset.sticky keeps a form-level message on screen through the
-           re-renders that SyncNet.onChange fires underneath it. */
-        const fail = (msg) => {
-          if (!errorEl) return;
-          errorEl.textContent = msg;
-          errorEl.style.display = "block";
-          errorEl.dataset.sticky = "1";
-        };
-        if (errorEl) {
-          delete errorEl.dataset.sticky;
-          errorEl.style.display = "none";
+         Which pane is up is state held here, not something read back out of
+         the DOM. renderSyncCard runs on every lease heartbeat and every sync
+         cycle -- several times a minute for as long as this popup is open --
+         so a pane derived from the current display would be recomputed under
+         the hands of somebody halfway through typing into it. */
+      const SYNC_PANES = ["signin", "signup", "forgot", "code", "newpass"];
+      let syncAuthPane = "signin";
+
+      /* Where a code was sent and what it was sent for. One pane serves both
+         purposes and the server checks a code against the purpose it was
+         issued for, so this is not cosmetic. */
+      let syncAuthPending = { email: "", purpose: "signup" };
+
+      /* Supabase's own default floor. Checked here too so a short password
+         costs a keystroke rather than a round trip; raise both together if
+         the dashboard's minimum is ever raised. */
+      const SYNC_MIN_PASSWORD = 6;
+
+      /* Only the three panes that collect one. Used to carry a typed address
+         across a pane switch rather than blanking it. */
+      const SYNC_PANE_EMAIL = {
+        signin: "sync-email",
+        signup: "sync-signup-email",
+        forgot: "sync-forgot-email",
+      };
+
+      /* dataset.sticky keeps a form-level message on screen through the
+         re-renders that SyncNet.onChange fires underneath it. One channel for
+         every pane: #sync-error is drawn in the break colour, so anything
+         that is not a failure belongs in a toast instead. */
+      function syncAuthFail(msg) {
+        const el = document.getElementById("sync-error");
+        if (!el) return;
+        el.textContent = msg;
+        el.style.display = "block";
+        el.dataset.sticky = "1";
+      }
+
+      function syncAuthClearError() {
+        const el = document.getElementById("sync-error");
+        if (!el) return;
+        delete el.dataset.sticky;
+        el.style.display = "none";
+      }
+
+      /* Passwords are read raw. Trimming one silently changes what the user
+         typed, and a trailing space is a legal character the server will have
+         stored. */
+      function syncField(id, raw) {
+        const el = document.getElementById(id);
+        if (!el) return "";
+        return raw ? el.value : el.value.trim();
+      }
+
+      /* The only writer of pane visibility, called by renderSyncCard on every
+         tick. Idempotent, and it never touches a field's value -- the same
+         rule the device-name row follows, for the same reason. */
+      window.syncApplyAuthPane = function (signedIn) {
+        /* Signing out from some other pane would otherwise leave that pane
+           armed for next time. Recovery is the one exception: verifying a
+           reset code *is* a sign-in, and the new password has to be set
+           inside the session that code just granted, so that single pane
+           outlives becoming signed in. */
+        if (signedIn && syncAuthPane !== "newpass") syncAuthPane = "signin";
+        const visible = !signedIn || syncAuthPane === "newpass";
+
+        const wrap = document.getElementById("sync-auth");
+        if (wrap) wrap.style.display = visible ? "flex" : "none";
+        for (const name of SYNC_PANES) {
+          const el = document.getElementById("sync-auth-" + name);
+          if (el) el.classList.toggle("show", visible && name === syncAuthPane);
         }
 
-        if (!email || !password) {
-          fail("Enter your email and password.");
-          return;
+        const sentTo = document.getElementById("sync-code-sent-to");
+        if (sentTo) {
+          sentTo.textContent = syncAuthPending.email
+            ? `If ${syncAuthPending.email} has an account, a six-digit code is on its way to it.`
+            : "Enter the six-digit code from your email.";
         }
+      };
+
+      window.syncAuthShow = function (pane) {
+        if (SYNC_PANES.indexOf(pane) === -1) return;
+        const carried = SYNC_PANE_EMAIL[syncAuthPane]
+          ? syncField(SYNC_PANE_EMAIL[syncAuthPane])
+          : "";
+        syncAuthPane = pane;
+        syncAuthClearError();
+        /* Choosing "create account" after typing an address should not blank
+           it. Never over an address already typed into the target. */
+        const target = SYNC_PANE_EMAIL[pane];
+        if (target && carried) {
+          const el = document.getElementById(target);
+          if (el && !el.value) el.value = carried;
+        }
+        syncApplyAuthPane(false);
+      };
+
+      /* Every submit in this card does the same five things around its one
+         differing line. Sharing them is what keeps a new pane from quietly
+         omitting the offline guard or leaving its button disabled on a
+         failure. */
+      async function syncAuthSubmit(btnId, busyLabel, run) {
+        const btn = document.getElementById(btnId);
+        const idle = btn ? btn.textContent : "";
+        syncAuthClearError();
         if (!navigator.onLine) {
-          fail("You are offline. Sign in once you reconnect.");
+          syncAuthFail("You are offline. Try again once you reconnect.");
           return;
         }
-
         if (btn) {
           btn.disabled = true;
-          btn.textContent = "Signing in...";
+          btn.textContent = busyLabel;
         }
         try {
-          await SyncNet.signIn(email, password);
-          if (passEl) passEl.value = "";
-          showAppToast("Signed in", "success");
+          await run();
         } catch (e) {
-          fail(e && e.message ? e.message : "Sign-in failed");
+          syncAuthFail((e && e.message) || "That did not work.");
         } finally {
           if (btn) {
             btn.disabled = false;
-            btn.textContent = "Sign in";
+            btn.textContent = idle;
           }
           renderSyncCard();
         }
+      }
+
+      window.syncSignIn = function () {
+        const email = syncField("sync-email");
+        const password = syncField("sync-password", true);
+        if (!email || !password) {
+          syncAuthFail("Enter your email and password.");
+          return;
+        }
+        return syncAuthSubmit("sync-signin-btn", "Signing in...", async () => {
+          await SyncNet.signIn(email, password);
+          const el = document.getElementById("sync-password");
+          if (el) el.value = "";
+          showAppToast("Signed in", "success");
+        });
+      };
+
+      window.syncSignUp = function () {
+        const email = syncField("sync-signup-email");
+        const password = syncField("sync-signup-password", true);
+        const confirm = syncField("sync-signup-confirm", true);
+        if (!email || !password) {
+          syncAuthFail("Enter an email and a password.");
+          return;
+        }
+        if (password.length < SYNC_MIN_PASSWORD) {
+          syncAuthFail(
+            `Use a password of at least ${SYNC_MIN_PASSWORD} characters.`,
+          );
+          return;
+        }
+        if (password !== confirm) {
+          syncAuthFail("The two passwords do not match.");
+          return;
+        }
+        return syncAuthSubmit("sync-signup-btn", "Creating...", async () => {
+          const out = await SyncNet.signUp(email, password);
+          const p = document.getElementById("sync-signup-password");
+          const c = document.getElementById("sync-signup-confirm");
+          if (p) p.value = "";
+          if (c) c.value = "";
+          /* No code wanted means confirmation is switched off, which means
+             signUp already adopted a session and the account is live. */
+          if (!out.needsCode) {
+            showAppToast("Account created", "success");
+            return;
+          }
+          syncAuthPending = { email, purpose: "signup" };
+          syncAuthShow("code");
+        });
+      };
+
+      window.syncRequestReset = function () {
+        const email = syncField("sync-forgot-email");
+        if (!email) {
+          syncAuthFail("Enter the address for your account.");
+          return;
+        }
+        return syncAuthSubmit("sync-forgot-btn", "Sending...", async () => {
+          await SyncNet.requestReset(email);
+          /* No toast confirming an account was found. The server answers the
+             same way either way on purpose, and saying more here would undo
+             that. */
+          syncAuthPending = { email, purpose: "recovery" };
+          syncAuthShow("code");
+        });
+      };
+
+      window.syncVerifyCode = function () {
+        const code = syncField("sync-code");
+        if (!code) {
+          syncAuthFail("Enter the code from your email.");
+          return;
+        }
+        return syncAuthSubmit("sync-code-btn", "Checking...", async () => {
+          await SyncNet.verifyOtp(
+            syncAuthPending.email,
+            code,
+            syncAuthPending.purpose,
+          );
+          const el = document.getElementById("sync-code");
+          if (el) el.value = "";
+          if (syncAuthPending.purpose === "recovery") {
+            syncAuthShow("newpass");
+            return;
+          }
+          showAppToast("Account confirmed", "success");
+        });
+      };
+
+      window.syncResendCode = function () {
+        if (!syncAuthPending.email) {
+          syncAuthFail("Start again from the sign-in form.");
+          return;
+        }
+        return syncAuthSubmit("sync-resend-btn", "Sending...", async () => {
+          if (syncAuthPending.purpose === "recovery") {
+            await SyncNet.requestReset(syncAuthPending.email);
+          } else {
+            await SyncNet.resendSignupCode(syncAuthPending.email);
+          }
+          showAppToast("Another code is on its way", "success");
+        });
+      };
+
+      window.syncSetNewPassword = function () {
+        const password = syncField("sync-newpass", true);
+        const confirm = syncField("sync-newpass-confirm", true);
+        if (password.length < SYNC_MIN_PASSWORD) {
+          syncAuthFail(
+            `Use a password of at least ${SYNC_MIN_PASSWORD} characters.`,
+          );
+          return;
+        }
+        if (password !== confirm) {
+          syncAuthFail("The two passwords do not match.");
+          return;
+        }
+        return syncAuthSubmit("sync-newpass-btn", "Saving...", async () => {
+          await SyncNet.updatePassword(password);
+          const a = document.getElementById("sync-newpass");
+          const b = document.getElementById("sync-newpass-confirm");
+          if (a) a.value = "";
+          if (b) b.value = "";
+          syncAuthPane = "signin";
+          showAppToast("Password updated", "success");
+        });
       };
 
       window.syncRenameDevice = function () {
