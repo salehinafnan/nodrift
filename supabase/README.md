@@ -110,3 +110,27 @@ authentication would then prove only that the caller is _a_ user rather than
 _that_ user. The cascade in [0001_schema.sql](migrations/0001_schema.sql) does
 the rest — all three tables reference `auth.users on delete cascade`, so
 removing the user removes the data with it.
+
+### Do not remove the function's own token check
+
+It looks redundant. Edge Functions are deployed with `verify_jwt` on, so the
+platform gateway rejects a bad token before the function runs, and the
+`GET /auth/v1/user` call inside looks like the same work done twice.
+
+It is not. Measured against the deployed function on 2026-08-17:
+
+| Sent as `Authorization`      | Answered by      | Status                        |
+| :--------------------------- | :--------------- | :---------------------------- |
+| nothing                      | the function     | 401 `Not signed in`           |
+| a forged JWT                 | the **gateway**  | 401 `UNAUTHORIZED_LEGACY_JWT` |
+| **the publishable anon key** | the **function** | 401 `Not signed in`           |
+
+The third row is the point. The publishable key is a real JWT signed by this
+project, so it satisfies `verify_jwt` and reaches the function body — and it
+is printed in `index.html` in a public repository. The gateway answers "is
+this a token from this project?"; only the `/auth/v1/user` call answers "is
+this a signed-in user, and which one?". Delete that call and holding a key
+anyone can read becomes enough to reach the deletion path.
+
+`probe-delete-gate.js` in the harness asserts all three rows and needs no
+account to run.
