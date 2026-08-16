@@ -22281,7 +22281,17 @@
         return weekStartMs === todayWeekStartMs;
       }
 
-      function updateProgress(workSeconds, nowMs = Date.now()) {
+      /* workSeconds carries the same contract as nowMs beside it: pass one to
+         render a given instant, omit it to render the present. It had no
+         default, so the one caller that omits it -- a weekly-goal edit, which
+         moves the target rather than the elapsed time -- summed
+         `loggedSec + undefined` into NaN, and every figure derived from it
+         followed. The visible end of that was an invalid Date reaching the ETA
+         formatter, which throws. */
+      function updateProgress(
+        workSeconds = getCurrentWorkSeconds(),
+        nowMs = Date.now(),
+      ) {
         const todayStr = getPSTDate();
 
         // ========================================================================= REAL-TIME
@@ -22452,16 +22462,26 @@
             } else {
               const remainingMs = Math.abs(dailyDiff) * 1000;
               const targetMs = nowMs + remainingMs;
-              const targetMin = Math.floor(targetMs / 60000);
+              /* A target that is not a real instant is not an estimate, so the
+                 line says nothing rather than standing there with the last one
+                 it managed to compute. The guard is on the arithmetic rather
+                 than on the formatter because Intl throws on an invalid Date,
+                 and a throw here does not stop at this function: it unwinds
+                 into the caller. That is what the weekly-goal edit hit -- the
+                 render died and took the confirmation toast on the line after
+                 the call with it, so the setting applied silently. */
+              if (Number.isFinite(targetMs)) {
+                const targetMin = Math.floor(targetMs / 60000);
 
-              if (domWriteCache.etaTargetMin !== targetMin) {
-                domWriteCache.etaTargetMin = targetMin;
-                _sharedFinishDate.setTime(targetMs);
-                domWriteCache.cachedEtaString =
-                  bstEtaFormatter.format(_sharedFinishDate);
+                if (domWriteCache.etaTargetMin !== targetMin) {
+                  domWriteCache.etaTargetMin = targetMin;
+                  _sharedFinishDate.setTime(targetMs);
+                  domWriteCache.cachedEtaString =
+                    bstEtaFormatter.format(_sharedFinishDate);
+                }
+                etaText = `Est. EOD: ${domWriteCache.cachedEtaString} BST`;
+                etaColorClass = "text-main";
               }
-              etaText = `Est. EOD: ${domWriteCache.cachedEtaString} BST`;
-              etaColorClass = "text-main";
             }
 
             if (domWriteCache.etaText !== etaText) {
