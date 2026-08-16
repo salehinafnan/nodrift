@@ -4007,7 +4007,14 @@
         padding: 6px 10px;
       }
 
-      .settings-card .input-standard {
+      /* Compact geometry for an inline row control -- a field sitting at the
+         right-hand end of a labelled row, where the label sets the height and
+         a full-size input would stretch the row around it. Scoped to
+         .settings-row for exactly that reason: this used to apply to every
+         input in the card, which caught the standalone sign-in form too and
+         left email and password as 26px slivers that read as disabled
+         read-outs rather than as somewhere to type. */
+      .settings-card .settings-row .input-standard {
         height: 26px;
         min-height: 26px !important;
         padding: 0 8px !important;
@@ -4015,8 +4022,24 @@
         border-radius: 6px;
       }
 
-      .settings-card button.btn-info-outline,
-      .settings-card button.btn-secondary {
+      /* The buttons in the sync card's read-out column, stacked among rows of
+         that same compact scale. Two corrections here:
+
+         .btn-danger-outline was missing, so "Sign out & erase this device"
+         fell back to the base button's 12px padding and stood a third taller
+         than the two buttons directly above it.
+
+         The sign-in button is excluded by name because it is not part of this
+         column -- it closes the form above it, and drawn at 26px beside two
+         26px fields the whole panel read as a mistake. Excluded rather than
+         overridden further down: an override would have to beat the
+         `min-height: 26px !important` here, and the only thing that beats it
+         is another !important, which would then also beat the 44px touch
+         target every other field in the app gets on a phone. Saying it does
+         not apply leaves the defaults intact. */
+      .settings-card button.btn-info-outline:not(#sync-signin-btn),
+      .settings-card button.btn-secondary,
+      .settings-card button.btn-danger-outline {
         height: 26px;
         min-height: 26px !important;
         padding: 0 10px;
@@ -4026,6 +4049,16 @@
         display: flex;
         align-items: center;
         justify-content: center;
+      }
+
+      /* Submits the form directly above it and is stacked full-width under its
+         two fields, so it takes their box rather than the base button's. The
+         base is 4px taller, which between three controls in a vertical stack
+         reads as a misalignment rather than as a size. */
+      #sync-signin-btn {
+        padding: var(--space-3);
+        font-size: var(--text-sm);
+        border-radius: var(--radius-md);
       }
 
       .settings-help-strip {
@@ -4155,39 +4188,38 @@
         margin: 0;
       }
 
-      /* The sync card's diagnostics disclosure. Shaped like the settings rows
-         it sits among rather than like a button, because it introduces them:
-         reading as a control in its own right would put it in competition with
-         the two it is stacked between. */
-      .sync-details-toggle {
+      /* Tinted rather than plain, because it is the one thing in this card
+         that asks for an action taken outside the app. Level 1's wash, not
+         the warning accent: nothing is wrong yet. */
+      .sync-ios-note {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+        padding: 8px 10px;
+        border: var(--hairline);
+        border-radius: var(--radius-sm);
+        background: var(--accent-wash);
+      }
+
+      /* Dismissal, so it takes the trailing edge and only the width of its
+         own label -- the full-width buttons in this card are all things the
+         user came here to do. */
+      .sync-ios-note button {
+        align-self: flex-end;
+        flex: 0 0 auto;
+      }
+
+      /* Introduces the diagnostics below it. Shaped like the settings rows it
+         sits among rather than like a control, because it is not one: a hairline
+         and a little air above it are the whole job, separating two groups of
+         rows that would otherwise read as one long column. */
+      .sync-details-heading {
         display: flex;
         align-items: center;
-        justify-content: space-between;
         width: 100%;
-        padding: 0;
-        background: none;
-        border: none;
-        border-radius: 0;
-        color: inherit;
-        font: inherit;
-      }
-
-      .sync-details-toggle svg {
-        width: 13px;
-        height: 13px;
-        color: var(--text-muted);
-        flex-shrink: 0;
-        transition: transform 0.18s ease;
-      }
-
-      .sync-details-toggle[aria-expanded="true"] svg {
-        transform: rotate(180deg);
-      }
-
-      @media (prefers-reduced-motion: reduce) {
-        .sync-details-toggle svg {
-          transition: none;
-        }
+        margin-top: 2px;
+        padding-top: 6px;
+        border-top: var(--hairline);
       }
 
       /* Read-outs rather than labels. These are numbers meant to be compared
@@ -7684,7 +7716,11 @@
         input.input-standard,
         select.input-standard,
         .date-picker-group,
-        .custom-select-trigger.cs-md {
+        .custom-select-trigger.cs-md,
+        /* The sign-in submit belongs on this list for the same reason the
+           dropdown trigger does: it is stacked with the two fields above it,
+           and left off it stayed at its desktop height while they grew. */
+        #sync-signin-btn {
           min-height: 44px;
           padding: 0 var(--space-3);
         }
@@ -9842,7 +9878,9 @@
             <li>
               <strong>Sync details</strong> — the last push and pull, anything
               still waiting to upload, and the measured clock offset. Worth
-              opening only when something looks wrong.
+              reading when something looks wrong;
+              <strong>Copy diagnostics</strong> puts all of it on the clipboard
+              as text.
             </li>
             <li>
               <strong>Sign out</strong> leaves this device's copy alone.
@@ -13844,9 +13882,43 @@
                   >
                 </div>
 
+                <!-- iOS erases a browser tab's stored data after seven days
+                     without a visit, which here means the logbook and the
+                     signed-in session both go. Adding the app to the Home
+                     Screen is the documented exemption, so the note asks for
+                     that rather than warning about something it cannot fix.
+
+                     Above the sign-in form rather than below it, and shown
+                     signed out as well as signed in, because the installed
+                     app gets a storage container of its own: signing in in
+                     Safari first means signing in a second time inside the
+                     installed app, and being told that afterwards is being
+                     told too late. -->
+                <div
+                  class="sync-ios-note"
+                  id="sync-ios-note"
+                  style="display: none"
+                >
+                  <span class="settings-help-text">
+                    <strong>On iPhone and iPad</strong>, Safari erases a site's
+                    stored data after 7 days without a visit — this logbook and
+                    this sign-in with it. Add nodrift to your Home Screen (Share
+                    → Add to Home Screen) and it is kept for good. The installed
+                    app stores its data separately, so sign in once more inside
+                    it.
+                  </span>
+                  <button
+                    type="button"
+                    class="btn-secondary"
+                    onclick="syncDismissIosNote()"
+                  >
+                    Got it
+                  </button>
+                </div>
+
                 <div
                   id="sync-signin-form"
-                  style="display: flex; flex-direction: column; gap: 6px"
+                  style="display: flex; flex-direction: column; gap: 8px"
                 >
                   <input
                     type="email"
@@ -13927,37 +13999,22 @@
                     Continue session here
                   </button>
 
-                  <!-- Collapsed, because on an ordinary day the three rows
-                       above are the whole story. Present at all, because on
-                       the day it is not, somebody is reading these numbers
-                       out over a chat window and the alternative is guessing
-                       from a description. -->
-                  <button
-                    type="button"
-                    class="sync-details-toggle"
-                    id="sync-details-toggle"
-                    aria-expanded="false"
-                    aria-controls="sync-details"
-                    onclick="syncToggleDetails()"
-                  >
+                  <!-- A heading rather than a disclosure. These were behind a
+                       collapse on the theory that the three rows above are
+                       the whole story on an ordinary day, but the day they
+                       are not is the day somebody is reading these numbers
+                       out over a chat window, and a panel that hides its
+                       diagnostics until asked is one more step between a
+                       fault and the person describing it. The card is short
+                       enough to show all of it. -->
+                  <div class="sync-details-heading">
                     <span class="settings-label" style="font-weight: 500"
                       >Sync details</span
                     >
-                    <svg
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      aria-hidden="true"
-                    >
-                      <polyline points="6 9 12 15 18 9"></polyline>
-                    </svg>
-                  </button>
+                  </div>
                   <div
                     id="sync-details"
-                    style="display: none; flex-direction: column; gap: 6px"
+                    style="display: flex; flex-direction: column; gap: 6px"
                   >
                     <!-- No account row: the chip at the top of the card
                          names it, in full, on one line, whether or not this
@@ -17748,6 +17805,7 @@
       const SUPABASE_ANON_KEY =
         "sb_publishable_pZVm8lkClrXIAvRiKlIn2w_aAyf-yAb";
       const SYNC_AUTH_KEY = "production_sync_auth_v1";
+      const SYNC_IOS_NOTE_KEY = "sync_ios_storage_note_v1";
 
       const SyncNet = (() => {
         let session = null;
@@ -17756,6 +17814,10 @@
         let offsetMeasured = false;
         let lastError = null;
         let lastErrorAt = 0;
+        /* Consecutive refreshes that failed for a reason that was not the
+           token. Only used to space the retries out; a success of any kind
+           puts it back to zero. */
+        let refreshFailures = 0;
         const offsetSamples = [];
         const listeners = new Set();
 
@@ -17833,6 +17895,7 @@
           };
           persistSession(session);
           clearError();
+          refreshFailures = 0;
           scheduleRefresh();
           emit();
           return session;
@@ -17844,6 +17907,7 @@
           session = null;
           offsetSamples.length = 0;
           offsetMeasured = false;
+          refreshFailures = 0;
           Sync.serverOffsetMs = 0;
           if (refreshTimer) {
             clearTimeout(refreshTimer);
@@ -17872,6 +17936,24 @@
               emit();
             });
           }, delay);
+        }
+
+        /* The other reason to come back later. scheduleRefresh() derives its
+           delay from the expiry, which for a session that has already lapsed
+           floors at 5s -- during an outage that is a request every five
+           seconds for as long as the outage lasts. This backs off instead,
+           doubling from 30s to a fifteen-minute ceiling. */
+        function retryRefreshLater() {
+          refreshFailures++;
+          if (refreshTimer) clearTimeout(refreshTimer);
+          const delay = Math.min(
+            900000,
+            30000 * Math.pow(2, refreshFailures - 1),
+          );
+          refreshTimer = setTimeout(() => {
+            refresh().catch(() => emit());
+          }, delay);
+          emit();
         }
 
         function refresh() {
@@ -17908,8 +17990,6 @@
             );
             const data = await r.json().catch(() => ({}));
             if (!r.ok) {
-              /* The refresh token itself was rejected. No retry recovers
-                 from that, so stop cleanly rather than looping. */
               const why =
                 data.error_description ||
                 data.msg ||
@@ -17920,7 +18000,25 @@
                  throw would otherwise leave the panel saying "Signed out"
                  with no account of why it signed itself out. */
               noteError(new Error(why));
-              clearSession("Signed out — sign in again to resume syncing");
+              /* Only the auth server refusing this token is terminal, and it
+                 says so with a 400 or a 401. Everything else -- a 429, a 5xx,
+                 a captive portal answering 403 for a request that never
+                 reached Supabase -- is the server being unable to answer
+                 rather than the token being dead. Clearing on those spends a
+                 refresh token that is still good, and nothing anywhere holds
+                 a second copy: the tab that opens during a ten-minute
+                 incident would be signed out permanently, which is exactly
+                 the case boot has to survive after months away.
+
+                 A network-level failure never reaches here at all -- fetch
+                 rejects and the throw propagates with the session intact --
+                 so this is what gives an HTTP failure the same treatment
+                 being offline already got. */
+              if (r.status === 400 || r.status === 401) {
+                clearSession("Signed out — sign in again to resume syncing");
+              } else {
+                retryRefreshLater();
+              }
               throw new Error(why);
             }
             return adoptTokens(data);
@@ -31851,6 +31949,11 @@
           stateEl.style.color = syncToneColor(summary && summary.tone);
         }
 
+        const iosNote = document.getElementById("sync-ios-note");
+        if (iosNote) {
+          iosNote.style.display = syncIosStorageNoteApplies() ? "flex" : "none";
+        }
+
         const form = document.getElementById("sync-signin-form");
         if (form) form.style.display = status.signedIn ? "none" : "flex";
         const detail = document.getElementById("sync-account-detail");
@@ -31934,18 +32037,44 @@
         }
       }
 
-      /* The open state lives on the button rather than in a variable, so the
-         markup and the behaviour cannot disagree about which it is. */
-      window.syncToggleDetails = function () {
-        const btn = document.getElementById("sync-details-toggle");
-        const panel = document.getElementById("sync-details");
-        if (!btn || !panel) return false;
-        const open = btn.getAttribute("aria-expanded") !== "true";
-        btn.setAttribute("aria-expanded", open ? "true" : "false");
-        panel.style.display = open ? "flex" : "none";
-        /* Opened by hand, so the values behind it may be a tick old. */
-        if (open) renderSyncCard();
-        return open;
+      /* Whether this device is one where storage expires on a timer.
+
+         iOS only, and only in a browser tab. Every browser on iOS is WebKit,
+         so this is not a Safari-specific rule and must not test for Safari;
+         and it deliberately does not fire on Android or the desktop, where
+         eviction is driven by disk pressure rather than by a clock, which
+         makes "7 days" a false statement rather than a cautious one.
+
+         iPadOS reports itself as a Mac, so the touch-point count is what
+         separates an iPad from a desktop Safari that would be told something
+         untrue about itself. */
+      window.syncIosStorageNoteApplies = function () {
+        const ua = navigator.userAgent || "";
+        const isIos =
+          /iPhone|iPad|iPod/.test(ua) ||
+          (/Macintosh/.test(ua) && (navigator.maxTouchPoints || 0) > 1);
+        if (!isIos) return false;
+        /* Already installed, which is the thing the note asks for. */
+        const installed =
+          window.navigator.standalone === true ||
+          (typeof window.matchMedia === "function" &&
+            window.matchMedia("(display-mode: standalone)").matches);
+        if (installed) return false;
+        try {
+          return localStorage.getItem(SYNC_IOS_NOTE_KEY) !== "dismissed";
+        } catch (e) {
+          /* Storage refused. The note is still true, and this is precisely
+             the device it is true about. */
+          return true;
+        }
+      };
+
+      window.syncDismissIosNote = function () {
+        try {
+          localStorage.setItem(SYNC_IOS_NOTE_KEY, "dismissed");
+        } catch (e) {}
+        const el = document.getElementById("sync-ios-note");
+        if (el) el.style.display = "none";
       };
 
       /**
