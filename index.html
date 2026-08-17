@@ -19647,6 +19647,11 @@
         let lastAdoptError = null;
         let mirroring = false;
         let adopting = false;
+        /* Bumped by stop(); see runBeat for what it is for. */
+        let epoch = 0;
+        /* Set while the lease is being handed back on the way out. See
+           releaseIfOwner. */
+        let handingBack = false;
         let deviceTouchedAt = 0;
         let labelsFetchedAt = 0;
         let labelFetch = null;
@@ -19705,8 +19710,31 @@
            would otherwise make it look like a device with something running
            — and it would start competing for a lease nobody asked it to
            want, prompting the user out of nowhere. A mirror is not a claim. */
+        /* The runtime flag is not enough on its own, and the reason is the
+           dirty hook: it clears `mirroring` on *every* session save, and a
+           device mirroring a shift saves several times a minute as the tick
+           stamps its heartbeat. So between two beats a mirror routinely
+           forgets it is one, concludes it has a session of its own, and asks
+           for the lease — which it is then refused, prompting the user about
+           a session they are already watching.
+
+           The saved mark is the durable half of the same fact and is dropped
+           in exactly the two places that settle ownership: the beat below,
+           once the lease says the shift is nobody else's, and switchMode,
+           where the user's own hand on the controls makes it theirs. Reading
+           both means a mirror stays a mirror until one of those happens.
+
+           This costs one beat in the abandoned-shift case — a holder that
+           vanishes leaves the mark standing until the beat that finds the
+           lease free clears it, and the claim comes on the beat after. That
+           is the right trade: picking a shift up a beat later is invisible,
+           and claiming one that was never yours is not. */
+        function isMirror() {
+          return mirroring || !!(state && state.sessionMirrored === true);
+        }
+
         function wantsLease() {
-          return (hasLiveSession() && !mirroring) || wantOverride;
+          return (hasLiveSession() && !isMirror()) || wantOverride;
         }
 
         function labelFor(id) {
@@ -20138,7 +20166,21 @@
         /* ── the beat ──────────────────────────────────────────────────── */
 
         async function runBeat(reason) {
+          /* Read before the first await. stop() bumps this, so a beat that
+             was already in flight when the device signed out can tell that
+             the world moved underneath it and drop its answer instead of
+             applying it. Without it a round trip that started a moment
+             before sign-out lands a moment after, and applyClaim puts the
+             phase back to "owner" on a device that has no session at all.
+             Nothing acts on that — isEligible() gates every later beat — but
+             the lease then reports a holder that is not there, which is
+             exactly the kind of stale truth this module exists to avoid.
+             Rare before the realtime socket existed, ordinary after it. */
+          const beatEpoch = epoch;
           lastReason = reason;
+          /* The lease is being handed back and the tokens are about to go.
+             Claiming it again now is the one thing that would undo that. */
+          if (handingBack) return;
           expireIfStale();
           if (!isEligible()) {
             phase = "off";
@@ -20229,6 +20271,8 @@
                one where its shift ended. */
             const priorHolder = owner;
             const res = await SyncNet.rpc("sync_session", args);
+            /* Signed out, or otherwise stopped, while this was in flight. */
+            if (beatEpoch !== epoch) return;
             const event = applyClaim(res, t0, want);
             await ensureLabel(owner);
 
@@ -20273,7 +20317,9 @@
                goes on wanting the lease, and the user is asked. */
             const remote = res && res.payload;
             const remoteLocal = Sync.sessionFromWire(remote);
-            const ownSession = hasLiveSession() && !mirroring;
+            /* Same reasoning as wantsLease: a mirror that a heartbeat save
+               made forget itself has nothing of its own to defend. */
+            const ownSession = hasLiveSession() && !isMirror();
             const conflict =
               ownSession &&
               payloadIsLive(remoteLocal) &&
@@ -20402,6 +20448,9 @@
         }
 
         function stop() {
+          /* Retires every beat currently in flight. See runBeat. */
+          epoch++;
+          handingBack = false;
           if (timer) clearTimeout(timer);
           timer = null;
           phase = "off";
@@ -20584,13 +20633,29 @@
             return beat("takeover");
           },
           /* Called before sign-out, while the tokens still work. */
-          releaseIfOwner() {
-            if (phase !== "owner" || !isEligible() || !navigator.onLine) {
-              return Promise.resolve();
-            }
+          async releaseIfOwner() {
+            /* Wait for a beat that is already on the wire. Its sync_session
+               can only be a claim — this device still has a live session at
+               this point — so a release that overtakes it is undone the
+               moment it lands, and the lease sits held for its full TTL on a
+               device that has signed out. That was rare when beats were
+               fifteen seconds apart and became ordinary once the realtime
+               socket started prompting them. */
+            if (active) await active.catch(() => {});
+            if (phase !== "owner" || !isEligible() || !navigator.onLine) return;
+            /* And stop any further one from starting. isEligible() goes false
+               as soon as the sign-out lands, but the sign-out has not
+               happened yet — this runs first, on purpose, so the tokens still
+               work. */
+            handingBack = true;
+            epoch++;
             /* Hand the lease back but leave the session standing: another
                device may still want to continue it. */
-            return release(false).catch(() => {});
+            try {
+              await release(false);
+            } catch (e) {
+              /* Best effort. The TTL is the backstop. */
+            }
           },
           renameDevice(label) {
             const p = Sync.setDeviceLabel(label);
@@ -20703,7 +20768,11 @@
         let unavailable = null;
         let lastEventAt = 0;
         let events = 0;
+        let heartbeatEvents = 0;
         let connectedAt = 0;
+        /* Reset on every connect: a socket that has been away cannot assume
+           the row still looks the way it last saw it. */
+        let lastSessionPrint = null;
 
         function eligible() {
           return (
@@ -20734,23 +20803,80 @@
           }
         }
 
+        /* Which of the two a change is worth waking, and never both on spec.
+           A session_state change means "ask the lease"; a records change
+           means "run a cycle". Routing them apart halves the traffic a busy
+           account generates and keeps a record push from poking the lease. */
+        let wantLeaseBeat = false;
+        let wantSyncCycle = false;
+
         /* The only thing this module does to the rest of the app. Both calls
            are already serialized and idempotent internally — beat() collapses
            a burst into one drain, syncOnce() refuses to run concurrently —
            so the worst a chatty socket can do is ask for work already in
            progress. */
-        function nudge() {
+        function nudge(what) {
+          if (what !== "sync") wantLeaseBeat = true;
+          if (what !== "lease") wantSyncCycle = true;
           if (nudgeTimer) return;
           nudgeTimer = setTimeout(() => {
             nudgeTimer = null;
-            try {
-              if (window.SessionLease) SessionLease.beat("realtime");
-            } catch (e) {}
-            try {
-              if (window.SyncEngine)
-                SyncEngine.syncOnce("realtime").catch(() => {});
-            } catch (e) {}
+            const doLease = wantLeaseBeat;
+            const doSync = wantSyncCycle;
+            wantLeaseBeat = false;
+            wantSyncCycle = false;
+            if (doLease) {
+              try {
+                if (window.SessionLease) SessionLease.beat("realtime");
+              } catch (e) {}
+            }
+            if (doSync) {
+              try {
+                if (window.SyncEngine)
+                  SyncEngine.syncOnce("realtime").catch(() => {});
+              } catch (e) {}
+            }
           }, NUDGE_MS);
+        }
+
+        /* The filter that stops the socket feeding itself.
+
+           Every lease beat calls sync_session, which UPDATEs session_state —
+           the touch_updated_at trigger alone guarantees a new row version
+           even when the statement changes nothing else. That UPDATE is a
+           change event. So an unfiltered nudge is a closed loop: beat,
+           write, event, nudge, beat. Measured before this existed at roughly
+           two beats a second on a device sitting idle with nobody touching
+           it, indefinitely, on every signed-in device at once.
+
+           So the socket delivers a fingerprint rather than a signal, and
+           only the fields another device could care about are in it.
+           `owner_expires_at` and `updated_at` — precisely what a heartbeat
+           touches — are not, which is what makes a renewal silent. Nor are
+           `sessionAnchorWall`, `lastHeartbeatWall` or the segment floor:
+           they move on every beat of a running shift while meaning nothing
+           has happened. What is left changes only when something really did:
+           the holder changed, the mode changed, time was banked, the task
+           started or stopped, or the settings did.
+
+           This is the one place SyncLive looks at the shape of the data, and
+           it still only decides whether to *ask*. Nothing is applied from
+           here — the beat that follows re-reads the row through the ordinary
+           path and adopts it under the ordinary rules. */
+        function sessionFingerprint(row) {
+          if (!row || typeof row !== "object") return "";
+          const p = row.payload || {};
+          const t = row.task_payload || {};
+          return [
+            row.owner_device || "",
+            row.generation,
+            p.currentMode == null ? "" : p.currentMode,
+            p.idleLock ? 1 : 0,
+            Math.round(Number(p.workAccumulated) || 0),
+            Math.round(Number(p.breakAccumulated) || 0),
+            t.isRunning ? 1 : 0,
+            row.settings_modified || "",
+          ].join("|");
         }
 
         function scheduleReconnect() {
@@ -20806,7 +20932,39 @@
           if (m.event === "postgres_changes") {
             events++;
             lastEventAt = Date.now();
-            nudge();
+            const data = m.payload && m.payload.data;
+            const table = data && data.table;
+            if (table === "session_state") {
+              const print = sessionFingerprint(data.record);
+              /* The first one after connecting establishes the baseline
+                 rather than being news. There is nothing to compare it
+                 against yet, so acting on it means nudging on "we do not
+                 know" — and since the socket connects a second after boot,
+                 the boot sync has already read this row. Anything that
+                 changes from here is a real difference against a real
+                 baseline. A change landing in the gap is picked up by the
+                 watch beat, which is what it is there for. */
+              const first = lastSessionPrint === null;
+              /* A heartbeat renewal and nothing else. Counted above, so the
+                 panel still shows the socket is alive, but not acted on. */
+              if (!first && print === lastSessionPrint) {
+                heartbeatEvents++;
+                return;
+              }
+              lastSessionPrint = print;
+              if (first) {
+                heartbeatEvents++;
+                return;
+              }
+              nudge("lease");
+              return;
+            }
+            /* A record only changes when something was filed, edited or
+               deleted, so every one of these is worth a cycle. The echo of
+               this device's own push comes back too and costs one extra
+               cycle that finds nothing to send — which terminates, unlike
+               the session_state case above. */
+            nudge("sync");
           }
         }
 
@@ -20828,6 +20986,7 @@
           ws = sock;
           joined = false;
           channelJoined = false;
+          lastSessionPrint = null;
 
           sock.onopen = () => {
             if (ws !== sock) return;
@@ -20959,6 +21118,12 @@
               joined,
               unavailable,
               events,
+              /* Of those, the ones that were somebody's heartbeat renewal
+                 and were deliberately ignored. If this is climbing while
+                 `events` is climbing and nothing is happening, the filter is
+                 earning its keep; if beats are climbing with it, it is
+                 not. */
+              heartbeatEvents,
               lastEventAt,
               connectedAt,
               attempts,
