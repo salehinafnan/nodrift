@@ -3,14 +3,15 @@
 Everything the sync backend consists of: three tables, three policies, five
 functions, two triggers. Apply `migrations/` in filename order.
 
-| File                                                      | What it creates                                                              | Blueprint |
-| :-------------------------------------------------------- | :--------------------------------------------------------------------------- | :-------- |
-| [0001_schema.sql](migrations/0001_schema.sql)             | `devices`, `session_state`, `records`, `records_pull_idx`                    | §6        |
-| [0002_rls.sql](migrations/0002_rls.sql)                   | RLS enabled + forced, three `own_*` policies                                 | §6        |
-| [0003_functions.sql](migrations/0003_functions.sql)       | `touch_updated_at` + triggers, `push_records`, `server_now`, `claim_session` | §6, §8    |
-| [0004_sync_session.sql](migrations/0004_sync_session.sql) | `sync_session` — lease, live session and settings in one call                | Phase 5   |
-| [0005_record_kinds.sql](migrations/0005_record_kinds.sql) | widens `kind` to `leave`/`view`; fixes a `settings_modified` default         | Phase 8   |
-| [0006_realtime.sql](migrations/0006_realtime.sql)         | publishes `session_state` and `records` for realtime — **optional**          | Phase 9   |
+| File                                                              | What it creates                                                              | Blueprint |
+| :---------------------------------------------------------------- | :--------------------------------------------------------------------------- | :-------- |
+| [0001_schema.sql](migrations/0001_schema.sql)                     | `devices`, `session_state`, `records`, `records_pull_idx`                    | §6        |
+| [0002_rls.sql](migrations/0002_rls.sql)                           | RLS enabled + forced, three `own_*` policies                                 | §6        |
+| [0003_functions.sql](migrations/0003_functions.sql)               | `touch_updated_at` + triggers, `push_records`, `server_now`, `claim_session` | §6, §8    |
+| [0004_sync_session.sql](migrations/0004_sync_session.sql)         | `sync_session` — lease, live session and settings in one call                | Phase 5   |
+| [0005_record_kinds.sql](migrations/0005_record_kinds.sql)         | widens `kind` to `leave`/`view`; fixes a `settings_modified` default         | Phase 8   |
+| [0006_realtime.sql](migrations/0006_realtime.sql)                 | publishes `session_state` and `records` for realtime — **optional**          | Phase 9   |
+| [0007_realtime_columns.sql](migrations/0007_realtime_columns.sql) | narrows both publications to the columns actually read — **optional**        | Phase 9   |
 
 0001–0003 were extracted from [../docs/SYNC-BLUEPRINT.md](../docs/SYNC-BLUEPRINT.md)
 after the fact. Until then the schema of the deployed database existed only as
@@ -61,12 +62,14 @@ Aside from this, `migrations/` is the complete database. Verified
 mechanically: every statement in the extracted files appears in the
 blueprint, and the only blueprint statement not extracted is the one above.
 
-## The one migration the app does not need
+## The migrations the app does not need
 
-[0006_realtime.sql](migrations/0006_realtime.sql) is the only file here that
-is optional, and it is worth knowing why before deciding whether to run it.
+[0006_realtime.sql](migrations/0006_realtime.sql) and its follow-up
+[0007_realtime_columns.sql](migrations/0007_realtime_columns.sql) are the only
+files here that are optional, and it is worth knowing why before deciding
+whether to run them.
 
-Without it, cross-device latency is whatever the polling intervals are: a
+Without 0006, cross-device latency is whatever the polling intervals are: a
 device watching somebody else's shift beats every 20 seconds, and records are
 pulled every 60. So finishing a shift on the laptop clears the phone within
 about twenty seconds, and the log lands within a minute. With it, both
@@ -88,6 +91,29 @@ Two consequences of that design worth keeping:
 - Running the migration on a project whose users have the app open does not
   reach them until they reload — the socket retires per page load, so the
   refusal is remembered until the page is next opened.
+
+0007 narrows what one of those publications carries. 0006 published both
+tables whole, which put the full body of every row into the replication
+stream — for `records` that is the whole log entry, `notes` included,
+delivered to every connected device on every edit. The handler never opens it:
+a record event calls `nudge("sync")` and the beat that follows re-reads over
+REST. So 0007 publishes the primary key alone for `records`. Run 0006 first;
+0007 assumes the table is already published and re-adds it with a column list.
+
+**`session_state` is deliberately left whole, and that is a measured result
+rather than a preference.** Narrowing it to the six columns
+`sessionFingerprint()` reads is accepted by Postgres and visible in the
+catalog, and Supabase Realtime then stops delivering its events entirely.
+`harness-realtime.js` catches it — the lease nudge and the "renewals really
+were arriving and being ignored" control both fail — and reverting that table
+alone restores 13/13. The apparent rule is that Realtime tolerates a column
+list on a table nobody reads the contents of, and not on one whose contents
+drive a decision. The full reasoning is in the migration's header.
+
+Same failure mode as 0006 throughout, which is what made that safe to find out
+the hard way: a column list the chain mishandles ends in a refused
+subscription or a fingerprint that stops varying, and both are just the
+fallback to polling.
 
 The CSP has to name the socket separately. `connect-src` lists the Supabase
 host twice, once as `https://` and once as `wss://`, because Chrome does not
