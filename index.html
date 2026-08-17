@@ -2600,7 +2600,17 @@
       }
 
       /* Shown only while the live session belongs to another device. Muted
-         on purpose: it is a statement of fact, not a warning. */
+         on purpose: it is a statement of fact, not a warning.
+
+         Visibility is a class rather than an inline `display`, and that is
+         load-bearing. The banner is injected as a direct child of `.main-ui`,
+         and the phone hides every child of `.main-ui` except the status bar
+         whenever the timer is not the tab in front of the user. An inline
+         style outranks that rule, so a banner that toggled itself that way
+         floated over the logbook, insights and tasks -- inside a container
+         that is `pointer-events: none` there, so its own button could not
+         even be pressed. Staying inside the cascade lets the layout decide,
+         which is the only thing that knows which tab is showing. */
       .remote-session-banner {
         display: none;
         align-items: center;
@@ -2615,6 +2625,10 @@
         color: var(--text-muted);
         font-size: 0.85rem;
         text-align: center;
+      }
+
+      .remote-session-banner.is-visible {
+        display: flex;
       }
 
       .remote-session-banner button {
@@ -23171,11 +23185,15 @@
        */
       /* One strip above the timers, created on demand so the markup costs
          nothing to anyone who never signs in. It says where the session
-         actually is and offers the one action that changes that. */
+         actually is and offers the one action that changes that.
+
+         Shown and hidden by class, never by an inline `display`: it lands as
+         a direct child of `.main-ui`, whose visibility the phone shell owns
+         per tab. See the stylesheet's note on .remote-session-banner. */
       function renderRemoteSessionBanner(show) {
         let el = document.getElementById("remote-session-banner");
         if (!show) {
-          if (el) el.style.display = "none";
+          if (el) el.classList.remove("is-visible");
           return;
         }
         if (!el) {
@@ -23193,7 +23211,7 @@
         if (where) {
           where.textContent = `Running on ${SessionLease.status().ownerLabel}`;
         }
-        el.style.display = "flex";
+        el.classList.add("is-visible");
       }
 
       function renderStaticUI() {
