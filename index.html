@@ -8,9 +8,14 @@
       content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover"
     />
     <!-- manifest-src is added so the web app manifest can be inlined as a data: URI and the app can stay a single file. -->
+    <!-- The wss: origin is not redundant with the https: one beside it. A
+         source expression of https://host does not cover wss://host in
+         Chrome, so the realtime socket is blocked outright without this and
+         the app silently falls back to polling. Same host, listed twice on
+         purpose; changing the Supabase project means editing both. -->
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' 'unsafe-inline' blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; connect-src https://dhvnnzzzsmfwwydyfupf.supabase.co; img-src 'self' data:; font-src 'self' data: https://fonts.gstatic.com; manifest-src 'self' data:;"
+      content="default-src 'self'; script-src 'self' 'unsafe-inline' blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; connect-src https://dhvnnzzzsmfwwydyfupf.supabase.co wss://dhvnnzzzsmfwwydyfupf.supabase.co; img-src 'self' data:; font-src 'self' data: https://fonts.gstatic.com; manifest-src 'self' data:;"
     />
     <title>nodrift</title>
 
@@ -4254,6 +4259,36 @@
         margin-top: 2px;
         padding-top: 6px;
         border-top: var(--hairline);
+      }
+
+      /* The devices list. A column of plain rows rather than anything
+         card-like: it sits between two other read-out sections and looking
+         different from them would suggest it is interactive, which it
+         deliberately is not. */
+      .sync-devices {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        width: 100%;
+      }
+
+      .sync-device-name {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        max-width: 55%;
+      }
+
+      /* The device you are holding gets the weight, so finding yourself in
+         the list takes no reading. */
+      .sync-device-name.is-this-device {
+        font-weight: 600;
+        color: var(--text-primary);
+      }
+
+      .sync-device-empty {
+        color: var(--text-muted);
+        font-style: italic;
       }
 
       /* Read-outs rather than labels. These are numbers meant to be compared
@@ -9908,7 +9943,14 @@
             </li>
             <li>
               <strong>Live session</strong> — which device is currently allowed
-              to run the timer.
+              to run the timer. Finishing a shift on one device clears it on the
+              others by itself; there is nothing to dismiss and no need to
+              reload.
+            </li>
+            <li>
+              <strong>Devices</strong> — everywhere this account is signed in,
+              when each was last seen, and which one holds the session. It is a
+              read-out, not a control.
             </li>
             <li>
               <strong>Sync details</strong> — the last push and pull, anything
@@ -9918,9 +9960,13 @@
               as text.
             </li>
             <li>
-              <strong>Sign out</strong> leaves this device's copy alone.
+              <strong>Sign out</strong> leaves this device's copy alone, and
+              leaves your other devices signed in.
               <strong>Sign out &amp; erase this device</strong> also clears it
               here, leaving the cloud and your other devices untouched.
+              <strong>Sign out everywhere</strong> is the one that reaches them:
+              every device is signed out and has to enter the password again.
+              Nothing is deleted by any of the three.
             </li>
           </ul>
           <hr />
@@ -14238,6 +14284,21 @@
                     Continue session here
                   </button>
 
+                  <!-- "Where am I signed in?" had no answer anywhere in the
+                       app: the devices table was written on every heartbeat
+                       and only ever read to put a name in the takeover
+                       prompt. Read-only on purpose — a per-row Remove would
+                       delete a label that the device itself rewrites on its
+                       next beat, which looks like revoking access and is
+                       nothing of the kind. Signing a device out is a token
+                       operation, so it lives on the button below. -->
+                  <div class="sync-details-heading">
+                    <span class="settings-label" style="font-weight: 500"
+                      >Devices</span
+                    >
+                  </div>
+                  <div id="sync-devices" class="sync-devices"></div>
+
                   <!-- A heading rather than a disclosure. These were behind a
                        collapse on the theory that the three rows above are
                        the whole story on an ordinary day, but the day they
@@ -14325,11 +14386,26 @@
                   >
                     Sign out &amp; erase this device
                   </button>
-                  <!-- Last, and the only control here that reaches past this
-                       device: the two above it change what this browser
-                       holds, this one ends the account everywhere. It leaves
-                       the local logbook alone, which is what keeps it from
-                       being the most destructive button in the app. -->
+                  <!-- The honest version of "log out my other devices". It
+                       revokes every refresh token on the account, which is
+                       what actually ends access; the other devices keep
+                       working until their current access token expires, so
+                       the confirmation says an hour rather than pretending
+                       it is instant. -->
+                  <button
+                    type="button"
+                    class="btn-danger-outline"
+                    id="sync-signout-all-btn"
+                    onclick="syncSignOutEverywhere()"
+                  >
+                    Sign out everywhere
+                  </button>
+                  <!-- Last, and the only control here that destroys anything
+                       beyond this device: everything above changes who is
+                       signed in, this one ends the account and takes the
+                       cloud copy with it. It leaves the local logbook alone,
+                       which is what keeps it from being the most destructive
+                       button in the app. -->
                   <button
                     type="button"
                     class="btn-danger-outline"
@@ -18557,12 +18633,51 @@
         }
 
         async function signOut() {
-          /* Best effort: the local clear is what actually signs you out and
-             must happen whether or not the network agrees. */
+          /* scope=local is not the default, and the default is wrong for this
+             button. A bare POST /auth/v1/logout revokes every refresh token
+             on the account, so signing out on the laptop was also signing the
+             phone out — measured, not assumed: with no scope both devices'
+             tokens come back 400, with scope=local only the caller's does.
+
+             That contradicted what this button says it does, and it undid the
+             releaseIfOwner() call above it: handing the lease back exists so
+             the user's other device can carry the shift on, which it cannot
+             do once it has been signed out too. Ending every session at once
+             is a real thing to want, and it now has its own button. */
           try {
-            if (session) await net("/auth/v1/logout", { method: "POST" });
-          } catch (e) {}
+            if (session) {
+              await net("/auth/v1/logout?scope=local", { method: "POST" });
+            }
+          } catch (e) {
+            /* Best effort: the local clear is what actually signs you out and
+               must happen whether or not the network agrees. */
+          }
           clearSession(null);
+        }
+
+        /* Every device, not just this one. Unlike signOut above, the network
+           call IS the point — it revokes every refresh token on the account,
+           and clearing this browser without it would leave the others running
+           exactly as before. So this one reports failure instead of
+           swallowing it, and only clears locally once the server has agreed.
+           The other devices keep working until their current access token
+           runs out, which is the hour the confirmation warns about. */
+        async function signOutEverywhere() {
+          if (!session) return false;
+          let r;
+          try {
+            r = await net("/auth/v1/logout?scope=global", { method: "POST" });
+          } catch (e) {
+            throw new Error(
+              "Could not reach the server. Nothing was signed out.",
+            );
+          }
+          if (!r.ok && r.status !== 204) {
+            const data = await r.json().catch(() => ({}));
+            throw new Error(authError(data, r.status, "Could not sign out"));
+          }
+          clearSession(null);
+          return true;
         }
 
         /* ── boot ──────────────────────────────────────────────────────── */
@@ -18619,6 +18734,7 @@
           updatePassword,
           deleteAccount,
           signOut,
+          signOutEverywhere,
           refresh,
           measureOffset,
           noteServerTime,
@@ -18634,6 +18750,16 @@
           },
           get userId() {
             return session ? session.user_id : null;
+          },
+          /* For the realtime socket, which is the one caller that cannot go
+             through net(): a WebSocket has no headers to attach a bearer to,
+             so the token has to travel inside the join payload.
+             Deliberately a getter rather than a copy handed out once — a
+             rotated token must not leave a stale one readable, and nothing
+             should be holding on to this across a refresh. Not included in
+             status(), which is what the diagnostics block pastes. */
+          get accessToken() {
+            return session ? session.access_token : null;
           },
           status() {
             return {
@@ -19478,8 +19604,22 @@
            costs the lease; four is traffic bought for nothing. */
         const BEAT_MS = 15000;
         /* A device with nothing running only watches, and watching is a
-           plain GET that can never take ownership away from anybody. */
-        const WATCH_MS = 60000;
+           plain GET that can never take ownership away from anybody.
+
+           Two speeds, because "watching" covers two very different
+           situations. A device mirroring somebody else's live shift is
+           showing a number that can go stale — the shift can switch to
+           break, or end — and a minute of staleness there is the difference
+           between the handoff feeling instant and feeling broken. A device
+           with nothing to watch at all is only asking whether anything has
+           appeared yet, and asking that three times a minute on a phone in
+           a pocket buys nothing.
+
+           SyncLive normally makes both moot by pushing the change out the
+           moment it lands. These are what the app falls back to when the
+           socket is down, or when 0006_realtime.sql has not been run. */
+        const WATCH_ACTIVE_MS = 20000;
+        const WATCH_IDLE_MS = 60000;
         const DEVICE_TOUCH_MS = 300000;
         const TOUCH_RETRY_MS = 60000;
         const LABEL_TTL_MS = 300000;
@@ -19693,8 +19833,18 @@
            the local one is worth defending. */
         function payloadIsLive(p) {
           if (!p || typeof p !== "object") return false;
+          /* `!= null` rather than `!== null`, and the difference is the whole
+             end-of-shift path. sessionFromWire runs the blob through pick(),
+             which copies only the keys that are present — so a cleared row,
+             and {} is exactly what release() writes when a shift ends, comes
+             back with no currentMode key at all. Against `!== null` that read
+             as "a session is running over there", which meant adoptSession's
+             own "remote session is empty" guard could never fire: it adopted
+             the emptiness instead, quietly clearing the receiving device's
+             mirror mark on the way through, and left every caller here
+             believing a finished shift was still live. */
           return (
-            p.currentMode !== null ||
+            p.currentMode != null ||
             p.idleLock === true ||
             (Number(p.workAccumulated) || 0) > 0 ||
             (Number(p.breakAccumulated) || 0) > 0
@@ -19745,6 +19895,52 @@
           if (!state || state.sessionMirrored !== true) return;
           delete state.sessionMirrored;
           if (typeof saveState === "function") saveState(true);
+        }
+
+        /**
+         * Drops a mirrored session whose original has ended elsewhere.
+         *
+         * Not an adoption and not a merge: there is nothing arriving to
+         * adopt, which is exactly why this needs its own path. adoptSession
+         * refuses an empty payload by design, and that refusal is right for a
+         * device with a shift of its own to lose. A mirror has none — it is
+         * showing somebody else's shift and has not touched it — so when that
+         * shift ends, the copy has to go with it.
+         *
+         * Without this there was no transition for "the session I was
+         * watching is over" at all. The copy stayed on screen; the beat then
+         * concluded this device was no longer mirroring, which made it start
+         * wanting the lease, claim it, and push the finished shift back up —
+         * where the device that had just submitted it adopted it in turn and
+         * went read-only behind a "Continue here" banner. Ending one shift
+         * left both devices running a phantom of it, and submitting that
+         * phantom filed the same work a second time.
+         *
+         * The task travels under the same lease as the session, so it retires
+         * with it; leaving a mirrored task running would keep hasLiveSession
+         * true and reopen the whole path above.
+         */
+        function retireMirror(priorHolder) {
+          mirroring = false;
+          /* Held across the write for the same reason adoptSession holds it:
+             the dirty hook reads an unflagged save as a local edit, and a
+             local edit is how a device decides a mirror has become its own
+             session. This is the opposite of that. */
+          adopting = true;
+          try {
+            if (typeof resetTaskUI === "function") resetTaskUI();
+            if (typeof resetSession === "function") resetSession();
+          } finally {
+            adopting = false;
+          }
+          /* Said out loud, because a timer that empties itself while you are
+             looking at it is otherwise indistinguishable from a bug. */
+          if (typeof showAppToast === "function") {
+            showAppToast(
+              `This shift was finished on ${labelFor(priorHolder)}`,
+              "success",
+            );
+          }
         }
 
         /* The blueprint's adoption checklist, in order. Returns a reason
@@ -20028,6 +20224,10 @@
             }
 
             const t0 = Date.now();
+            /* Read before applyClaim overwrites it: the device we were
+               mirroring is the one to name if this beat turns out to be the
+               one where its shift ended. */
+            const priorHolder = owner;
             const res = await SyncNet.rpc("sync_session", args);
             const event = applyClaim(res, t0, want);
             await ensureLabel(owner);
@@ -20097,6 +20297,28 @@
               );
               adoptedNow = !lastAdoptError;
             }
+            /* The shift this device was watching has ended where it was
+               authored: the holder cleared the row in the same statement that
+               handed the lease back, so an empty payload here is not "nothing
+               to say", it is the end of the session. Only a mirror may act on
+               that — see retireMirror.
+
+               Read from the persisted mark rather than the `mirroring` flag,
+               and the difference matters. The flag is cleared by the dirty
+               hook on every session save, and a mirroring device saves
+               several times a minute as the tick stamps its heartbeat — so
+               between two beats the flag is usually already false and a
+               condition resting on it fires almost never. The mark is the
+               durable half of the same fact, and it is retired in exactly the
+               two places that settle ownership: this beat, and switchMode,
+               where the user's own hand on the controls makes the session
+               theirs. So a mark still standing here means nobody has claimed
+               this shift as their own, and there is nothing of the user's to
+               lose by dropping it. */
+            if (state.sessionMirrored === true && !payloadIsLive(remoteLocal)) {
+              retireMirror(priorHolder);
+            }
+
             /* Mirroring means this device is showing a session it took from
                somewhere else and has no claim on. A follower that kept its
                own session is not mirroring — it is in conflict, and it goes
@@ -20165,12 +20387,17 @@
           /* Scheduled even while offline, so a missed `online` event still
              recovers on the next tick rather than never. */
           if (!isEligible()) return;
+          /* `owner` rather than `phase`: a device whose holder just went away
+             is momentarily "free" while still showing that shift, and it is
+             about to decide whether to pick it up. That is not the moment to
+             drop to the slow cadence. */
+          const watching = owner && owner !== Sync.deviceId;
           timer = setTimeout(
             () => {
               timer = null;
               beat("heartbeat");
             },
-            wantsLease() ? BEAT_MS : WATCH_MS,
+            wantsLease() ? BEAT_MS : watching ? WATCH_ACTIVE_MS : WATCH_IDLE_MS,
           );
         }
 
@@ -20421,6 +20648,330 @@
         };
       })();
       window.SessionLease = SessionLease;
+
+      /*========================================================================
+       * SyncLive — the cloud says "something changed" instead of being asked
+       *
+       * Everything below this line is an accelerator and nothing more. It
+       * owns no data, decides nothing, and its only effect on the app is to
+       * call beat() and syncOnce() earlier than the timers would have. Cut
+       * the socket and the app is exactly what it was: a watching device
+       * learns about the other one every WATCH_ACTIVE_MS, records every
+       * POLL_IDLE_MS. That is the property that makes this safe to add, and
+       * it is worth keeping — nothing here should ever grow a code path that
+       * only works when the socket is up.
+       *
+       * The gap it closes is real. Without it, finishing a shift on the
+       * laptop leaves the phone showing a running timer until its next watch
+       * beat, and a filed log takes up to a minute to appear. With it both
+       * land in well under a second.
+       *
+       * Requires 0006_realtime.sql. Until that runs the server answers the
+       * subscription with an error, which is detected below and retires the
+       * socket for the rest of the page's life rather than reconnecting into
+       * a refusal forever.
+       *=======================================================================*/
+      const SyncLive = (() => {
+        /* Supabase closes a socket that has been quiet for a minute. */
+        const HEARTBEAT_MS = 25000;
+        const RECONNECT_MIN_MS = 2000;
+        const RECONNECT_MAX_MS = 60000;
+        /* A single user action can touch several rows, and each one arrives
+           as its own frame. Collapsing them means one beat rather than six. */
+        const NUDGE_MS = 250;
+        const TOPIC = "realtime:nodrift";
+
+        let ws = null;
+        /* Two separate facts, and conflating them is the trap. The channel
+           reply says the topic accepted us and arrives first; whether the
+           table subscription was actually accepted comes afterwards, in its
+           own system message. Reporting the first as success gives a window
+           where this claims to be subscribed to a subscription that is about
+           to be refused — and, worse, a caller that samples inside that
+           window concludes realtime is working and waits forever for events
+           that will never come. */
+        let channelJoined = false;
+        let joined = false;
+        let attempts = 0;
+        let reconnectTimer = null;
+        let heartbeatTimer = null;
+        let nudgeTimer = null;
+        let ref = 0;
+        /* Set when the server says the subscription itself is impossible —
+           a configuration answer, not a network one, so retrying it is just
+           noise on someone's battery. */
+        let unavailable = null;
+        let lastEventAt = 0;
+        let events = 0;
+        let connectedAt = 0;
+
+        function eligible() {
+          return (
+            !!window.Sync &&
+            Sync.isSupported &&
+            !!window.SyncNet &&
+            SyncNet.signedIn &&
+            navigator.onLine &&
+            !unavailable &&
+            typeof WebSocket === "function"
+          );
+        }
+
+        function clearTimers() {
+          if (heartbeatTimer) clearInterval(heartbeatTimer);
+          heartbeatTimer = null;
+          if (reconnectTimer) clearTimeout(reconnectTimer);
+          reconnectTimer = null;
+        }
+
+        function send(msg) {
+          if (!ws || ws.readyState !== 1) return;
+          try {
+            ws.send(JSON.stringify(msg));
+          } catch (e) {
+            /* A send that fails means the socket is going away; the close
+               handler is what reconnects, so there is nothing to do here. */
+          }
+        }
+
+        /* The only thing this module does to the rest of the app. Both calls
+           are already serialized and idempotent internally — beat() collapses
+           a burst into one drain, syncOnce() refuses to run concurrently —
+           so the worst a chatty socket can do is ask for work already in
+           progress. */
+        function nudge() {
+          if (nudgeTimer) return;
+          nudgeTimer = setTimeout(() => {
+            nudgeTimer = null;
+            try {
+              if (window.SessionLease) SessionLease.beat("realtime");
+            } catch (e) {}
+            try {
+              if (window.SyncEngine)
+                SyncEngine.syncOnce("realtime").catch(() => {});
+            } catch (e) {}
+          }, NUDGE_MS);
+        }
+
+        function scheduleReconnect() {
+          if (reconnectTimer || !eligible()) return;
+          /* Full jitter. Several tabs of the same app woken by the same
+             network event would otherwise reconnect in lockstep. */
+          const ceiling = Math.min(
+            RECONNECT_MAX_MS,
+            RECONNECT_MIN_MS * Math.pow(2, Math.min(attempts, 5)),
+          );
+          const delay = Math.round(RECONNECT_MIN_MS + Math.random() * ceiling);
+          reconnectTimer = setTimeout(() => {
+            reconnectTimer = null;
+            connect();
+          }, delay);
+        }
+
+        function onMessage(raw) {
+          let m;
+          try {
+            m = JSON.parse(raw);
+          } catch (e) {
+            return;
+          }
+          if (m.topic !== TOPIC && m.topic !== "phoenix") return;
+
+          if (m.event === "phx_reply" && m.payload) {
+            if (m.payload.status === "ok" && !channelJoined) {
+              channelJoined = true;
+              connectedAt = Date.now();
+            }
+            return;
+          }
+          /* Where the subscription is really settled, one way or the other.
+             The join above only agrees the shape of the request; whether the
+             tables are actually published is answered here, and it is
+             answered after the join has already said "ok". */
+          if (m.event === "system" && m.payload) {
+            if (m.payload.status === "error") {
+              unavailable = m.payload.message || "realtime unavailable";
+              close();
+              return;
+            }
+            if (
+              m.payload.status === "ok" &&
+              m.payload.extension === "postgres_changes"
+            ) {
+              joined = true;
+              attempts = 0;
+            }
+            return;
+          }
+          if (m.event === "postgres_changes") {
+            events++;
+            lastEventAt = Date.now();
+            nudge();
+          }
+        }
+
+        function connect() {
+          if (!eligible() || ws) return;
+          const token = SyncNet.accessToken;
+          if (!token) return;
+          const url =
+            SUPABASE_URL.replace(/^http/, "ws") +
+            `/realtime/v1/websocket?apikey=${encodeURIComponent(SUPABASE_ANON_KEY)}&vsn=1.0.0`;
+          attempts++;
+          let sock;
+          try {
+            sock = new WebSocket(url);
+          } catch (e) {
+            scheduleReconnect();
+            return;
+          }
+          ws = sock;
+          joined = false;
+          channelJoined = false;
+
+          sock.onopen = () => {
+            if (ws !== sock) return;
+            send({
+              topic: TOPIC,
+              event: "phx_join",
+              payload: {
+                config: {
+                  broadcast: { self: false },
+                  presence: { key: "" },
+                  /* Both halves of what crosses devices: the live session,
+                     and the records a finished shift becomes. */
+                  postgres_changes: [
+                    { event: "*", schema: "public", table: "session_state" },
+                    { event: "*", schema: "public", table: "records" },
+                  ],
+                },
+                access_token: SyncNet.accessToken,
+              },
+              ref: String(++ref),
+            });
+            heartbeatTimer = setInterval(() => {
+              send({
+                topic: "phoenix",
+                event: "heartbeat",
+                payload: {},
+                ref: String(++ref),
+              });
+            }, HEARTBEAT_MS);
+          };
+          sock.onmessage = (ev) => {
+            if (ws === sock) onMessage(ev.data);
+          };
+          sock.onerror = () => {};
+          sock.onclose = () => {
+            if (ws !== sock) return;
+            ws = null;
+            joined = false;
+            channelJoined = false;
+            clearTimers();
+            scheduleReconnect();
+          };
+        }
+
+        function close() {
+          clearTimers();
+          const sock = ws;
+          ws = null;
+          joined = false;
+          channelJoined = false;
+          if (sock) {
+            try {
+              sock.close();
+            } catch (e) {}
+          }
+        }
+
+        /* A rotated access token has to reach the socket or the server drops
+           it when the old one expires. Cheaper than reconnecting, and it is
+           the one message the channel accepts mid-life. */
+        function refreshToken() {
+          if (!joined) return;
+          send({
+            topic: TOPIC,
+            event: "access_token",
+            payload: { access_token: SyncNet.accessToken },
+            ref: String(++ref),
+          });
+        }
+
+        let wasSignedIn = false;
+        function sync() {
+          const on = eligible();
+          if (on && !ws) connect();
+          else if (!on && ws) close();
+        }
+
+        if (window.SyncNet) {
+          SyncNet.onChange(() => {
+            const signedIn = SyncNet.signedIn;
+            if (signedIn !== wasSignedIn) {
+              wasSignedIn = signedIn;
+              if (signedIn) {
+                /* A different account is a different subscription, and a
+                   refusal recorded against the old one should not outlive
+                   it. */
+                unavailable = null;
+                attempts = 0;
+                sync();
+              } else {
+                close();
+              }
+              return;
+            }
+            /* Same session, new token. */
+            if (signedIn) refreshToken();
+          });
+        }
+        window.addEventListener("online", () => {
+          attempts = 0;
+          sync();
+        });
+        window.addEventListener("offline", close);
+        /* A phone that slept has a socket the OS quietly killed without
+           firing close. Coming back to the app is the moment to find out. */
+        document.addEventListener("visibilitychange", () => {
+          if (!document.hidden) sync();
+        });
+        if (window.Sync && Sync.ready && Sync.ready.then) {
+          Sync.ready.then(() => {
+            wasSignedIn = !!(window.SyncNet && SyncNet.signedIn);
+            /* Deliberately behind the first cycle rather than racing it.
+               Boot already has a sign-in sync, a clock measurement and a
+               lease beat to get through, and none of them are made faster by
+               a socket opening alongside them — the earliest change this
+               could usefully report is one that happens after all that. A
+               second of delay costs nothing and keeps the accelerator out of
+               the way of the thing it is accelerating. */
+            setTimeout(sync, 1500);
+          });
+        }
+
+        return {
+          status() {
+            return {
+              supported: typeof WebSocket === "function",
+              connected: !!ws && ws.readyState === 1,
+              channelJoined,
+              joined,
+              unavailable,
+              events,
+              lastEventAt,
+              connectedAt,
+              attempts,
+            };
+          },
+          /* For the headless tests, which need to drive it rather than wait
+             on a network event. */
+          _connect: connect,
+          _close: close,
+          _nudge: nudge,
+        };
+      })();
+      window.SyncLive = SyncLive;
 
       window.leaseTakeOver = function () {
         SessionLease.takeOver();
@@ -32226,6 +32777,113 @@
         return `${sign}${(abs / 60000).toFixed(1)} min`;
       }
 
+      /* ── the devices list ───────────────────────────────────────────────
+         The devices table has been written on every heartbeat since phase 5
+         and read only to put a name in the takeover prompt. This is the
+         other half: which devices this account is signed in on, and when
+         each was last heard from.
+
+         Fetched on its own clock rather than on the render, because
+         renderSyncCard runs several times a minute for as long as the panel
+         is open and this is a network round trip. The rows outlive the fetch,
+         so a failed refresh shows the last known list rather than blanking
+         it — an empty list would read as "no other devices", which is a
+         different and wrong answer. */
+      const SYNC_DEVICES_TTL_MS = 30000;
+      let syncDeviceRows = [];
+      let syncDevicesFetchedAt = 0;
+      let syncDevicesInFlight = false;
+
+      function syncEnsureDevices() {
+        if (!window.SyncNet || !SyncNet.signedIn || !navigator.onLine) return;
+        if (syncDevicesInFlight) return;
+        if (Date.now() - syncDevicesFetchedAt < SYNC_DEVICES_TTL_MS) return;
+        syncDevicesInFlight = true;
+        syncDevicesFetchedAt = Date.now();
+        SyncNet.net("/rest/v1/devices?select=id,label,last_seen_at")
+          .then((r) => (r.ok ? r.json() : null))
+          .then((rows) => {
+            if (!Array.isArray(rows)) return;
+            syncDeviceRows = rows;
+            /* Straight back into the render it was called from — the fetch
+               resolves long after that render finished drawing. */
+            renderSyncCard();
+          })
+          .catch(() => {})
+          .finally(() => {
+            syncDevicesInFlight = false;
+          });
+      }
+
+      function syncRenderDevices(signedIn, lease) {
+        const host = document.getElementById("sync-devices");
+        if (!host) return;
+        if (!signedIn) {
+          host.textContent = "";
+          syncDeviceRows = [];
+          syncDevicesFetchedAt = 0;
+          return;
+        }
+        syncEnsureDevices();
+
+        const mine = window.Sync ? Sync.deviceId : null;
+        const holder = lease && lease.owner;
+        /* This device first, then most recently seen. Somebody reading this
+           list is placing themselves in it before anything else. */
+        const rows = syncDeviceRows.slice().sort((a, b) => {
+          if (a.id === mine) return -1;
+          if (b.id === mine) return 1;
+          return (
+            (Date.parse(b.last_seen_at) || 0) -
+            (Date.parse(a.last_seen_at) || 0)
+          );
+        });
+
+        if (!rows.length) {
+          host.textContent = "";
+          const empty = document.createElement("div");
+          empty.className = "settings-label sync-device-empty";
+          empty.textContent = syncDevicesInFlight
+            ? "Looking..."
+            : "No other devices yet.";
+          host.appendChild(empty);
+          return;
+        }
+
+        /* Rebuilt rather than diffed: this is at most a handful of rows,
+           redrawn a few times a minute, only while the panel is open. */
+        host.textContent = "";
+        for (const row of rows) {
+          const el = document.createElement("div");
+          el.className = "settings-row sync-device-row";
+
+          const name = document.createElement("span");
+          name.className = "settings-label sync-device-name";
+          name.textContent = row.label || "Unnamed device";
+          if (row.id === mine) name.classList.add("is-this-device");
+
+          const meta = document.createElement("span");
+          meta.className = "sync-detail-value sync-device-meta";
+          const seen = Date.parse(row.last_seen_at);
+          /* What the reader actually wants to know, in priority order: is
+             this me, is this the one running the timer, and failing both,
+             how long since it was here. */
+          meta.textContent =
+            row.id === mine
+              ? "this device"
+              : row.id === holder
+                ? "has the session"
+                : formatAgo(seen);
+          if (row.id === holder && row.id !== mine) {
+            meta.style.color = "var(--accent-work)";
+          }
+
+          el.appendChild(name);
+          el.appendChild(meta);
+          host.appendChild(el);
+        }
+      }
+
       /* Relative, because the question this panel answers is always "how long
          ago", never "at what time" - until it is far enough back that the
          distance stops being the useful part and the date is. */
@@ -32399,6 +33057,8 @@
           }
         }
 
+        syncRenderDevices(status.signedIn, lease);
+
         /* ── the diagnostics ─────────────────────────────────────────────
            Everything section 9's phase 7 asks for that the three rows above
            do not already carry. Em dash rather than a blank for anything not
@@ -32558,6 +33218,21 @@
           [
             "state",
             `online ${net.online ? "yes" : "no"}, polling ${engine && engine.polling ? "yes" : "no"}, push ${engine && engine.pushPaused ? "paused" : "on"}, failures ${engine ? engine.failures : "?"}`,
+          ],
+          /* A silent fallback to polling is exactly the kind of thing that
+             never gets noticed until somebody asks why the phone is a minute
+             behind, so the socket says which of the three states it is in
+             rather than only appearing when it works. */
+          [
+            "live",
+            (() => {
+              if (!window.SyncLive) return "not built";
+              const l = SyncLive.status();
+              if (l.unavailable) return `off — ${l.unavailable}`;
+              if (!l.supported) return "unsupported by this browser";
+              if (l.joined) return `subscribed, ${l.events} event(s)`;
+              return l.connected ? "connecting" : "not connected";
+            })(),
           ],
           ["error", err ? `${err.text} at ${stamp(err.at)}` : "none"],
         ];
@@ -32901,6 +33576,51 @@
             wipeThisDevice();
           },
           true,
+        );
+      };
+
+      /**
+       * Revokes every refresh token on the account.
+       *
+       * Worded carefully because the honest behaviour is not the one people
+       * expect from "sign out everywhere": the other devices are not kicked
+       * out at that instant, they lose the ability to renew. What they have
+       * already got keeps working until it expires.
+       */
+      window.syncSignOutEverywhere = function () {
+        const account =
+          (window.SyncNet && SyncNet.email) || "your cloud account";
+        openConfirmModal(
+          "Sign out everywhere?",
+          `This signs ${account} out of this device and every other one. ` +
+            `Other devices stop syncing within the hour, and each will need ` +
+            `the password again. Nothing is deleted — the cloud copy and every ` +
+            `device's local copy are left exactly as they are.`,
+          async () => {
+            const btn = document.getElementById("sync-signout-all-btn");
+            if (btn) {
+              btn.disabled = true;
+              btn.textContent = "Signing out...";
+            }
+            try {
+              /* Same reason as the ordinary sign-out: hand the lease back
+                 while the token still works, or a device that is about to be
+                 signed out leaves the timer locked for 45 seconds. */
+              if (window.SessionLease) await SessionLease.releaseIfOwner();
+              await SyncNet.signOutEverywhere();
+              showAppToast("Signed out on every device", "success");
+            } catch (e) {
+              syncAuthFail((e && e.message) || "Could not sign out everywhere");
+            } finally {
+              if (btn) {
+                btn.disabled = false;
+                btn.textContent = "Sign out everywhere";
+              }
+              renderSyncCard();
+            }
+          },
+          true,
+          "Sign out everywhere",
         );
       };
 
