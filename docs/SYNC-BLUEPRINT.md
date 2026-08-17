@@ -1015,6 +1015,30 @@ Recommended: keep it, and ask. "Sign out" clearing a year of history because the
 button was ambiguous is unrecoverable. Offer a separate, clearly-worded "Sign out
 and erase this device".
 
+**Settled 2026-08-17, and not the way it was originally built.** There is a
+second axis here the blueprint missed: sign-out has a _scope_ as well as a
+local-data question, and GoTrue's default is the surprising one. A bare
+`POST /auth/v1/logout` revokes every refresh token on the account, so the
+first implementation of "Sign out" was signing the user out of every device
+they owned — measured, not inferred: with no scope both devices' tokens come
+back 400, with `?scope=local` only the caller's does.
+
+That also quietly defeated `releaseIfOwner()`, which exists so the other
+device can carry the shift on after you sign out here. It cannot carry
+anything once it has been signed out too.
+
+So the three buttons now divide cleanly, and each says which it is:
+
+| Button                       | Local data | Other devices |
+| :--------------------------- | :--------- | :------------ |
+| Sign out                     | kept       | untouched     |
+| Sign out & erase this device | erased     | untouched     |
+| Sign out everywhere          | kept       | signed out    |
+
+"Sign out everywhere" revokes refresh tokens, so the other devices keep
+working until their current access token expires. The confirmation says an
+hour rather than implying it is instant.
+
 ### Device labels
 
 The takeover prompt is only useful if it names something you recognise.
@@ -1033,5 +1057,49 @@ make sure the error message names the real cause.
 
 ---
 
+## 14. Phase 9 — ending a shift ends it everywhere _(2026-08-17)_
+
+An audit of the cross-device path found the handoff correct in the direction
+it was designed for and broken in the other one: a shift could be handed
+_to_ a device, but a shift ending was never handed back.
+
+The root cause was one operator. `payloadIsLive` tested
+`p.currentMode !== null`, and `sessionFromWire` runs the blob through
+`pick()`, which copies only the keys that are present — so a cleared row,
+which is exactly what `release()` writes when a shift ends, arrived with no
+`currentMode` key at all and `undefined !== null` answered "yes, a session is
+running over there". Every caller that asked whether the other device was
+still working got yes, forever.
+
+What that produced, end to end: you finish a shift on the laptop; the phone
+goes on showing a running timer, decides it is no longer a mirror, claims the
+lease, and pushes the finished shift back up; the laptop adopts it and goes
+read-only behind a "Continue here" banner for work it has already filed.
+Submitting the phantom files the same hours twice.
+
+The fix is `!= null` plus a transition that did not exist: a mirror whose
+original has ended retires instead of inheriting it. The discriminator is the
+persisted `sessionMirrored` mark rather than the runtime flag, because the
+dirty hook clears the flag on every heartbeat save; the mark is retired in
+exactly the two places that settle ownership — the beat, and `switchMode`,
+where the user's own hand on the controls makes the session theirs.
+
+The existing test for this passed throughout. It called `endShift()` on the
+follower by hand before asserting the follower was clear, so it could not
+fail. Worth remembering as a shape: a test that arranges the state it is
+supposed to be measuring.
+
+Shipped alongside it, all of them optional to the correctness above:
+
+- **`SyncLive`** — a realtime socket that only ever calls `beat()` and
+  `syncOnce()` earlier than the timers would, and retires itself if the
+  subscription is refused. See `supabase/README.md`.
+- **Two watch cadences** — 20s while there is another device's shift to
+  watch, 60s when there is nothing to watch, instead of a flat 60.
+- **A devices list** on the sync panel, and **Sign out everywhere**, which
+  is where §13's scope discovery came from.
+
+---
+
 _Phases 0-3 deliver shared history; phases 4-5 deliver live handoff; 6-7 are what
-make it survivable._
+make it survivable; 9 makes ending a shift as reliable as starting one._

@@ -10,6 +10,7 @@ functions, two triggers. Apply `migrations/` in filename order.
 | [0003_functions.sql](migrations/0003_functions.sql)       | `touch_updated_at` + triggers, `push_records`, `server_now`, `claim_session` | §6, §8    |
 | [0004_sync_session.sql](migrations/0004_sync_session.sql) | `sync_session` — lease, live session and settings in one call                | Phase 5   |
 | [0005_record_kinds.sql](migrations/0005_record_kinds.sql) | widens `kind` to `leave`/`view`; fixes a `settings_modified` default         | Phase 8   |
+| [0006_realtime.sql](migrations/0006_realtime.sql)         | publishes `session_state` and `records` for realtime — **optional**          | Phase 9   |
 
 0001–0003 were extracted from [../docs/SYNC-BLUEPRINT.md](../docs/SYNC-BLUEPRINT.md)
 after the fact. Until then the schema of the deployed database existed only as
@@ -59,6 +60,40 @@ a delta. Enabling the prune without that half loses deletions silently.
 Aside from this, `migrations/` is the complete database. Verified
 mechanically: every statement in the extracted files appears in the
 blueprint, and the only blueprint statement not extracted is the one above.
+
+## The one migration the app does not need
+
+[0006_realtime.sql](migrations/0006_realtime.sql) is the only file here that
+is optional, and it is worth knowing why before deciding whether to run it.
+
+Without it, cross-device latency is whatever the polling intervals are: a
+device watching somebody else's shift beats every 20 seconds, and records are
+pulled every 60. So finishing a shift on the laptop clears the phone within
+about twenty seconds, and the log lands within a minute. With it, both
+happen in well under a second.
+
+`SyncLive` in `index.html` is an accelerator with no data path of its own. It
+subscribes, and when a row changes it calls the same `beat()` and
+`syncOnce()` the timers already call — earlier. If the tables are not
+published the server refuses the subscription, the socket retires itself for
+the rest of the page's life, and the app behaves exactly as it did before
+realtime existed. **A refused subscription is not a failure state**; it is
+reported on the panel as `live off — …` and nothing else changes.
+
+Two consequences of that design worth keeping:
+
+- Nothing may ever be delivered _only_ over the socket. The moment something
+  is, an unpublished project silently loses a feature instead of losing some
+  speed.
+- Running the migration on a project whose users have the app open does not
+  reach them until they reload — the socket retires per page load, so the
+  refusal is remembered until the page is next opened.
+
+The CSP has to name the socket separately. `connect-src` lists the Supabase
+host twice, once as `https://` and once as `wss://`, because Chrome does not
+accept an `https://` source expression as covering `wss://` to the same host.
+Measured, not assumed: without the second origin the socket is blocked with
+`connect-src blocked wss://…` and the app quietly falls back to polling.
 
 ## Why the key in `index.html` is not a leak
 
