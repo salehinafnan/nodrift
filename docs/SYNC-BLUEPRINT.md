@@ -392,6 +392,22 @@ Three properties fall out of this for free:
 - **Retries are free.** The shadow only advances on a confirmed 2xx, so a failed
   push simply reappears in the next diff.
 
+**The scope of the first of those is `records`, and only `records`.** The shadow
+derives deletes for what lives in the logs array; nothing in `session_state`
+does. The live session, the running task and the settings blob are a singleton
+row with no shadow, no tombstone and no absence to read from — so a delete path
+that leans on this section covers two of the three tables and reads as though it
+covers the account.
+
+That is not hypothetical. `wipeRemote` tombstoned every record and never touched
+the row, so a factory reset run mid-shift emptied the logbook and left the shift
+running in the cloud; the local wipe then destroyed the `deviceId` that had
+claimed it, and the next sign-in was offered its own unfinished shift as
+"running on another device". **Anything that deletes has to name
+`session_state` explicitly** — and has to stop the heartbeat first, or the
+fifteen-second beat writes the session straight back while the wipe is still
+enumerating.
+
 Cost is one `O(n)` pass over the logs array per save. `saveLogs` already does an
 `O(n)` index pass, a weekly-cache rebuild, and a full `JSON.stringify` for the
 emergency mirror — a map walk is noise beside that.

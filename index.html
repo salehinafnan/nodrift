@@ -19450,6 +19450,24 @@
           if (!SyncNet.signedIn) return 0;
           let total = 0;
 
+          /* The remote is three tables, and this function is named for all of
+             them. It used to tombstone `records` and stop, which left the
+             live session, the running task and the settings blob sitting in
+             session_state - so a reset performed mid-shift emptied the
+             logbook, and the next sign-in was met by its own unfinished shift
+             being offered back as "running on another device". It looked like
+             another device because wipeThisDevice() had destroyed the id that
+             claimed it, so the row named a device that no longer existed.
+
+             First, before the enumeration below and not after it: this is one
+             PATCH and the cheapest thing here, the enumeration is four full
+             pulls that can take longer than a heartbeat, and until the
+             session is cleared every one of those seconds is a chance for a
+             beat to republish what is being deleted. If it throws, nothing
+             destructive has happened yet and clearAllData's "nothing was
+             wiped" is honest. */
+          if (window.SessionLease) await SessionLease.wipeSession();
+
           /* KINDS, not a second hardcoded list: a factory reset that wiped
              the logs and left the leave dates in the cloud would put them
              all back on the next sync. */
@@ -20670,6 +20688,66 @@
             } catch (e) {
               /* Best effort. The TTL is the backstop. */
             }
+          },
+          /* The factory reset's half of the cloud wipe, and the opposite of
+             releaseIfOwner in all three of its choices.
+
+             It clears the session rather than leaving it standing, because
+             the user asked for the account to be emptied and not for the
+             shift to be handed to whatever picks it up next. It is scoped to
+             the row rather than to owner_device=eq.us, because a device that
+             is only mirroring somebody else's shift must still be able to
+             wipe it - the owner-scoped PATCH release() uses would match zero
+             rows and report success. And it takes the settings blob with it,
+             which nothing else in the app ever does: settings live in this
+             row, not in records, so a wipe that skipped them left the
+             account's preferences behind to be pulled back down by the next
+             sign-in. The dialog promises "every shift, task and setting".
+
+             What it cannot do is stop a different device that is genuinely
+             running a shift right now. That device re-claims the emptied row
+             on its next beat and republishes its own live session, which is
+             correct - the wipe reaches the account's data, not another
+             machine's clock. Its logbook still empties, from the tombstones. */
+          async wipeSession() {
+            if (!SyncNet.signedIn) return false;
+            /* A beat already on the wire is a claim carrying the live
+               payload, and it lands after this PATCH if we do not wait -
+               which is the whole bug: the row comes back owned and running a
+               second after it was emptied. Waiting here covers the beat
+               already gone; isFactoryResetting, which clearAllData raises
+               before calling in, is what stops the next one starting, since
+               isEligible() reads it and every runBeat re-checks it. */
+            if (active) await active.catch(() => {});
+            /* Retires the result of anything that slipped through anyway, so
+               a late applyClaim cannot put phase back to "owner". */
+            epoch++;
+            const r = await SyncNet.net(
+              "/rest/v1/session_state?user_id=not.is.null",
+              {
+                method: "PATCH",
+                headers: { Prefer: "return=minimal" },
+                body: JSON.stringify({
+                  payload: {},
+                  task_payload: {},
+                  settings: {},
+                  /* Stamped now so the empty blob wins LWW against a device
+                     that is still signed in holding the old one. Server time,
+                     like every other side of that comparison. */
+                  settings_modified: new Date(Sync.trueNow()).toISOString(),
+                  owner_device: null,
+                  owner_expires_at: null,
+                }),
+              },
+            );
+            /* Thrown, not swallowed. release() can be best-effort because the
+               TTL retires an abandoned lease on its own; nothing expires a
+               payload, so a silent failure here is the phantom shift. */
+            if (!r.ok) throw new Error(`session wipe failed (${r.status})`);
+            phase = "free";
+            owner = null;
+            heldUntil = 0;
+            return true;
           },
           renameDevice(label) {
             const p = Sync.setDeviceLabel(label);
@@ -31042,10 +31120,21 @@
                 );
                 return;
               }
+              /* Up here rather than in wipeThisDevice(), which is where it
+                 used to go up and which does not run until the cloud work is
+                 finished. Both writers read this latch - isEligible() gates
+                 the lease beat, canSync() gates the sync cycle - so raising
+                 it now is what makes the wipe below the last word instead of
+                 a race against the fifteen-second heartbeat.
+
+                 Lowered again on the bail-out: a wipe that never happened
+                 must not leave sync frozen until the next reload. */
+              isFactoryResetting = true;
               showAppToast("Deleting cloud data…");
               try {
                 await SyncEngine.wipeRemote();
               } catch (err) {
+                isFactoryResetting = false;
                 console.error("Remote wipe failed", err);
                 showAppToast(
                   "Could not delete cloud data — nothing was wiped",
