@@ -3,15 +3,16 @@
 Everything the sync backend consists of: three tables, three policies, five
 functions, two triggers. Apply `migrations/` in filename order.
 
-| File                                                              | What it creates                                                              | Blueprint |
-| :---------------------------------------------------------------- | :--------------------------------------------------------------------------- | :-------- |
-| [0001_schema.sql](migrations/0001_schema.sql)                     | `devices`, `session_state`, `records`, `records_pull_idx`                    | §6        |
-| [0002_rls.sql](migrations/0002_rls.sql)                           | RLS enabled + forced, three `own_*` policies                                 | §6        |
-| [0003_functions.sql](migrations/0003_functions.sql)               | `touch_updated_at` + triggers, `push_records`, `server_now`, `claim_session` | §6, §8    |
-| [0004_sync_session.sql](migrations/0004_sync_session.sql)         | `sync_session` — lease, live session and settings in one call                | Phase 5   |
-| [0005_record_kinds.sql](migrations/0005_record_kinds.sql)         | widens `kind` to `leave`/`view`; fixes a `settings_modified` default         | Phase 8   |
-| [0006_realtime.sql](migrations/0006_realtime.sql)                 | publishes `session_state` and `records` for realtime — **optional**          | Phase 9   |
-| [0007_realtime_columns.sql](migrations/0007_realtime_columns.sql) | narrows both publications to the columns actually read — **optional**        | Phase 9   |
+| File                                                                  | What it creates                                                                 | Blueprint |
+| :-------------------------------------------------------------------- | :------------------------------------------------------------------------------ | :-------- |
+| [0001_schema.sql](migrations/0001_schema.sql)                         | `devices`, `session_state`, `records`, `records_pull_idx`                       | §6        |
+| [0002_rls.sql](migrations/0002_rls.sql)                               | RLS enabled + forced, three `own_*` policies                                    | §6        |
+| [0003_functions.sql](migrations/0003_functions.sql)                   | `touch_updated_at` + triggers, `push_records`, `server_now`, `claim_session`    | §6, §8    |
+| [0004_sync_session.sql](migrations/0004_sync_session.sql)             | `sync_session` — lease, live session and settings in one call                   | Phase 5   |
+| [0005_record_kinds.sql](migrations/0005_record_kinds.sql)             | widens `kind` to `leave`/`view`; fixes a `settings_modified` default            | Phase 8   |
+| [0006_realtime.sql](migrations/0006_realtime.sql)                     | publishes `session_state` and `records` for realtime — **optional**             | Phase 9   |
+| [0007_realtime_columns.sql](migrations/0007_realtime_columns.sql)     | narrows both publications to the columns actually read — **optional**           | Phase 9   |
+| [0008_one_write_per_beat.sql](migrations/0008_one_write_per_beat.sql) | folds the session write into the claim so a beat writes the row once, not twice | Scaling   |
 
 0001–0003 were extracted from [../docs/SYNC-BLUEPRINT.md](../docs/SYNC-BLUEPRINT.md)
 after the fact. Until then the schema of the deployed database existed only as
