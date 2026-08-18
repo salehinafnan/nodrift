@@ -40,3 +40,15 @@ npm-debug.log*
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# ---- The CDP test harness ----
+#
+# nodrift-harness/ lives inside the repo so the tests travel with the app they
+# test, but it is deliberately never committed. It is a scratch rig: it holds
+# a live test account's fixtures, writes screenshots and mutation scratch
+# files beside itself, and its scripts are LF while everything tracked here is
+# CRLF. Deployment is the other half of the reason -- the repo root is the web
+# root on Vercel, so anything tracked here is published, and a harness that
+# names the Supabase project and the test account has no business being served
+# to the public.
+nodrift-harness/
