@@ -31684,6 +31684,17 @@
           updateIdleModalLabels();
         }
 
+        /* Returning to the foreground is itself evidence the user is here.
+           Without this the presence indicator keeps reporting the whole
+           background gap as idle until some pointer or key event lands, which
+           reads as if the app had been running the entire time. The idle
+           checks above have already had their say on this gap, and a locked
+           session keeps its own anchor, so only the unlocked case is rebased. */
+        if (!state.idleLock) {
+          lastActivity = nowWall;
+          state.lastActivity = nowWall;
+        }
+
         renderTimersOnly();
         updateLiveWeeklySummary(true);
         saveState(true);
