@@ -38584,6 +38584,18 @@
               }
             }
 
+            /* A cold start is the same evidence as a foreground return: the
+               user just opened the app. iOS kills a backgrounded PWA outright,
+               so reopening it fires no visibility or focus event and lands
+               here instead - without this the presence read-out reported the
+               whole time the app was closed as idle. Recovery above has
+               already measured that gap from the persisted stamps, and a
+               locked session keeps its own anchor. */
+            if (!state.idleLock) {
+              lastActivity = Date.now();
+              state.lastActivity = lastActivity;
+            }
+
             if (state.idleLock) {
               updateIdleModalLabels();
             }
