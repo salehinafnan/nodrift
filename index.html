@@ -20837,6 +20837,30 @@
            as its own frame. Collapsing them means one beat rather than six. */
         const NUDGE_MS = 250;
         const TOPIC = "realtime:nodrift";
+        /* ── the single-device gate ─────────────────────────────────
+           Supabase bills one realtime message per message *delivered*, not
+           per row change, so an account nobody is listening on costs nothing
+           no matter how much it writes. Most accounts here are one person on
+           one machine, and for them this socket is pure expense: every change
+           it carries back is a change this device just made itself.
+
+           So it is only worth opening when somebody else is on the account.
+           The question asked is "has any device other than this one been seen
+           in the last week", not "how many device rows are there". Filtering
+           on last_seen_at is what lets the table keep dead rows forever
+           without a prune, and excluding this device is what keeps the answer
+           right in the minute before its own first touch lands — one other
+           device and no row of our own still means two. At most one id ever
+           comes back; a second would say nothing the first did not.
+
+           Being wrong in the shut direction is bounded and already paid for:
+           this whole module is an accelerator, so a device that should have
+           had a socket and does not just falls back to polling. That is why
+           an unknown answer shuts the gate rather than opening it — a census
+           that failed must never be worth more than one that succeeded. */
+        const CENSUS_TTL_MS = 300000;
+        const CENSUS_RETRY_MS = 60000;
+        const CENSUS_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
 
         let ws = null;
         /* Two separate facts, and conflating them is the trap. The channel
@@ -20865,8 +20889,22 @@
         /* Reset on every connect: a socket that has been away cannot assume
            the row still looks the way it last saw it. */
         let lastSessionPrint = null;
+        /* null is "not asked yet", and it is not false: false is an answer
+           from the server, null is the absence of one. Both keep the socket
+           shut, but only false is worth holding on to for long. */
+        let censusOther = null;
+        let censusAt = 0;
+        let censusInFlight = false;
+        let censusTimer = null;
+        /* Bumped whenever the answer stops being about the same account,
+           so a census still in the air when someone signs out cannot land
+           on whoever signs in next. */
+        let censusGen = 0;
 
-        function eligible() {
+        /* Everything a synchronous predicate can decide. Split out because
+           it is also exactly the condition for the census being worth
+           asking: no point querying an account we are not signed in to. */
+        function eligibleBase() {
           return (
             !!window.Sync &&
             Sync.isSupported &&
@@ -20876,6 +20914,49 @@
             !unavailable &&
             typeof WebSocket === "function"
           );
+        }
+
+        function eligible() {
+          return eligibleBase() && censusOther === true;
+        }
+
+        /* Asks about the account, not this device: is anyone else here?
+           A failure leaves the answer unknown and retries sooner than a
+           real one would, because a network blip must not read as
+           "nobody else is here" for the next five minutes. */
+        function ensureCensus() {
+          if (censusInFlight) return;
+          const me = window.Sync && Sync.deviceId;
+          if (!me) return;
+          const ttl = censusOther === null ? CENSUS_RETRY_MS : CENSUS_TTL_MS;
+          if (censusAt && Date.now() - censusAt < ttl) return;
+          censusInFlight = true;
+          censusAt = Date.now();
+          const gen = censusGen;
+          const since = new Date(
+            Sync.trueNow() - CENSUS_WINDOW_MS,
+          ).toISOString();
+          SyncNet.net(
+            "/rest/v1/devices?select=id&id=neq." +
+              encodeURIComponent(me) +
+              "&last_seen_at=gte." +
+              encodeURIComponent(since) +
+              "&limit=1",
+          )
+            .then((r) => (r.ok ? r.json() : null))
+            .then((rows) => {
+              if (!Array.isArray(rows)) return;
+              if (gen !== censusGen) return;
+              const was = censusOther;
+              censusOther = rows.length > 0;
+              /* Only a change is worth acting on, and in practice the only
+                 one that does anything is the one that opens the gate. */
+              if (censusOther !== was) sync();
+            })
+            .catch(() => {})
+            .finally(() => {
+              censusInFlight = false;
+            });
         }
 
         function clearTimers() {
@@ -21151,9 +21232,22 @@
 
         let wasSignedIn = false;
         function sync() {
+          if (eligibleBase()) ensureCensus();
           const on = eligible();
           if (on && !ws) connect();
           else if (!on && ws) close();
+          /* Nothing fires when a second device appears, so while the gate
+             is shut and everything else is ready the census is the only
+             thing that can open it — keep asking. Torn down the moment it
+             stops being the answer we are waiting on, so a signed-out or
+             already-connected device runs no timer at all. */
+          const waiting = eligibleBase() && !on;
+          if (waiting && !censusTimer) {
+            censusTimer = setInterval(ensureCensus, CENSUS_TTL_MS);
+          } else if (!waiting && censusTimer) {
+            clearInterval(censusTimer);
+            censusTimer = null;
+          }
         }
 
         if (window.SyncNet) {
@@ -21161,6 +21255,12 @@
             const signedIn = SyncNet.signedIn;
             if (signedIn !== wasSignedIn) {
               wasSignedIn = signedIn;
+              /* Not merely stale — the old answer is about somebody else's
+                 devices, and carrying it over would open a socket on an
+                 account that never earned one. */
+              censusOther = null;
+              censusAt = 0;
+              censusGen++;
               if (signedIn) {
                 /* A different account is a different subscription, and a
                    refusal recorded against the old one should not outlive
@@ -21170,6 +21270,7 @@
                 sync();
               } else {
                 close();
+                sync();
               }
               return;
             }
@@ -21181,7 +21282,7 @@
           attempts = 0;
           sync();
         });
-        window.addEventListener("offline", close);
+        window.addEventListener("offline", sync);
         /* A phone that slept has a socket the OS quietly killed without
            firing close. Coming back to the app is the moment to find out. */
         document.addEventListener("visibilitychange", () => {
@@ -21209,6 +21310,10 @@
               channelJoined,
               joined,
               unavailable,
+              /* The single-device gate: true means somebody else is on the
+                 account, false means nobody is, null means not asked yet.
+                 Anything but true keeps the socket shut on purpose. */
+              censusOther,
               events,
               /* Of those, the ones that were somebody's heartbeat renewal
                  and were deliberately ignored. If this is climbing while
@@ -21224,6 +21329,17 @@
           /* For the headless tests, which need to drive it rather than wait
              on a network event. */
           _connect: connect,
+          /* Also for the tests. A suite measuring the socket needs the
+             census decided rather than raced against its own first device
+             touch; null puts it back to unasked. Deliberately does not
+             fetch — it is the answer, not a request for one. */
+          _census(v) {
+            censusOther = v === null || v === undefined ? null : !!v;
+            censusAt = censusOther === null ? 0 : Date.now();
+            censusGen++;
+            sync();
+            return censusOther;
+          },
           _close: close,
           _nudge: nudge,
         };
@@ -33514,6 +33630,11 @@
               if (l.unavailable) return `off — ${l.unavailable}`;
               if (!l.supported) return "unsupported by this browser";
               if (l.joined) return `subscribed, ${l.events} event(s)`;
+              /* Said plainly, because whoever reads this is reporting a
+                 problem and "not connected" would look like one. */
+              if (l.censusOther === false) {
+                return "off — no other device on this account";
+              }
               return l.connected ? "connecting" : "not connected";
             })(),
           ],
