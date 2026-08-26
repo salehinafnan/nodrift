@@ -4061,9 +4061,28 @@
          listing them one by one is a rule that silently mis-sizes the sixth
          -- which is exactly what a new button in this card would look like:
          correct everywhere except next to its own fields. */
-      .settings-card button.btn-info-outline:not(.sync-auth-submit),
-      .settings-card button.btn-secondary,
-      .settings-card button.btn-danger-outline {
+      .sync-actions-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 6px;
+      }
+      .sync-actions-grid button {
+        min-height: 32px;
+        padding: 0 10px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .sync-actions-grid #sync-delete-account-btn {
+        grid-column: 1 / -1;
+      }
+
+      .settings-card button.btn-info-outline:not(.sync-auth-submit):not(.sync-action-btn),
+      .settings-card button.btn-secondary:not(.sync-action-btn),
+      .settings-card button.btn-danger-outline:not(.sync-action-btn) {
         height: 26px;
         min-height: 26px !important;
         padding: 0 10px;
@@ -7804,7 +7823,8 @@
            dropdown trigger does: each is stacked with the fields above it,
            and left off they stayed at their desktop height while the fields
            grew. */
-        .sync-auth-submit {
+        .sync-auth-submit,
+        .sync-action-btn {
           min-height: 44px;
           padding: 0 var(--space-3);
         }
@@ -14369,65 +14389,67 @@
                         id="sync-lease-detail"
                       ></span>
                     </div>
+                    </div>
+
+                  <div class="sync-actions-grid">
                     <!-- The panel is only half the answer if the numbers on
                          it have to be retyped by hand. -->
                     <button
                       type="button"
-                      class="btn-secondary"
+                      class="btn-secondary sync-action-btn"
                       id="sync-copy-btn"
                       onclick="syncCopyDiagnostics()"
                     >
                       Copy diagnostics
                     </button>
+                    <button
+                      type="button"
+                      class="btn-secondary sync-action-btn"
+                      onclick="syncSignOut()"
+                    >
+                      Sign out
+                    </button>
+                    <!-- Two labelled buttons rather than a question asked on
+                         every sign-out. The common case should not have to
+                         answer "and shall I delete a year of history?", and
+                         the rare case should not be reachable by misreading
+                         a dialog. -->
+                    <button
+                      type="button"
+                      class="btn-danger-outline sync-action-btn"
+                      onclick="syncSignOutAndErase()"
+                    >
+                      Sign out &amp; erase this device
+                    </button>
+                    <!-- The honest version of "log out my other devices". It
+                         revokes every refresh token on the account, which is
+                         what actually ends access; the other devices keep
+                         working until their current access token expires, so
+                         the confirmation says an hour rather than pretending
+                         it is instant. -->
+                    <button
+                      type="button"
+                      class="btn-danger-outline sync-action-btn"
+                      id="sync-signout-all-btn"
+                      onclick="syncSignOutEverywhere()"
+                    >
+                      Sign out everywhere
+                    </button>
+                    <!-- Last, and the only control here that destroys anything
+                         beyond this device: everything above changes who is
+                         signed in, this one ends the account and takes the
+                         cloud copy with it. It leaves the local logbook alone,
+                         which is what keeps it from being the most destructive
+                         button in the app. -->
+                    <button
+                      type="button"
+                      class="btn-danger-outline sync-action-btn"
+                      id="sync-delete-account-btn"
+                      onclick="syncDeleteAccount()"
+                    >
+                      Delete account
+                    </button>
                   </div>
-
-                  <button
-                    type="button"
-                    class="btn-secondary"
-                    onclick="syncSignOut()"
-                  >
-                    Sign out
-                  </button>
-                  <!-- Two labelled buttons rather than a question asked on
-                       every sign-out. The common case should not have to
-                       answer "and shall I delete a year of history?", and
-                       the rare case should not be reachable by misreading
-                       a dialog. -->
-                  <button
-                    type="button"
-                    class="btn-danger-outline"
-                    onclick="syncSignOutAndErase()"
-                  >
-                    Sign out &amp; erase this device
-                  </button>
-                  <!-- The honest version of "log out my other devices". It
-                       revokes every refresh token on the account, which is
-                       what actually ends access; the other devices keep
-                       working until their current access token expires, so
-                       the confirmation says an hour rather than pretending
-                       it is instant. -->
-                  <button
-                    type="button"
-                    class="btn-danger-outline"
-                    id="sync-signout-all-btn"
-                    onclick="syncSignOutEverywhere()"
-                  >
-                    Sign out everywhere
-                  </button>
-                  <!-- Last, and the only control here that destroys anything
-                       beyond this device: everything above changes who is
-                       signed in, this one ends the account and takes the
-                       cloud copy with it. It leaves the local logbook alone,
-                       which is what keeps it from being the most destructive
-                       button in the app. -->
-                  <button
-                    type="button"
-                    class="btn-danger-outline"
-                    id="sync-delete-account-btn"
-                    onclick="syncDeleteAccount()"
-                  >
-                    Delete account
-                  </button>
                 </div>
 
                 <span
