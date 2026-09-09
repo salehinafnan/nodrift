@@ -4082,7 +4082,8 @@
         grid-column: 1 / -1;
       }
 
-      .settings-card button.btn-info-outline:not(.sync-auth-submit):not(.sync-action-btn),
+      .settings-card
+        button.btn-info-outline:not(.sync-auth-submit):not(.sync-action-btn),
       .settings-card button.btn-secondary:not(.sync-action-btn),
       .settings-card button.btn-danger-outline:not(.sync-action-btn) {
         height: 26px;
@@ -14391,7 +14392,7 @@
                         id="sync-lease-detail"
                       ></span>
                     </div>
-                    </div>
+                  </div>
 
                   <div class="sync-actions-grid">
                     <!-- The panel is only half the answer if the numbers on
@@ -16709,6 +16710,19 @@
       /* Paired wall/tick reading from the last reconciliation. */
       let clockHeartbeat = null;
 
+      /* A clock nobody can set. It is not a substitute for the wall clock —
+         the policy above says why, and none of it is retracted here — but
+         the two drifting apart is still an observation, and the size of the
+         drift is still a number. What is done with that number is where the
+         policy holds: see markClockHeartbeat. */
+      function monotonicNow() {
+        return typeof performance === "object" &&
+          performance &&
+          typeof performance.now === "function"
+          ? performance.now()
+          : Date.now();
+      }
+
       /*--------------------------------------------------------------------------
        * OBSERVATION LEDGER
        * (Removed: Replaced by tick-delta architecture)
@@ -16962,11 +16976,46 @@
          deliberate edit to the timeline. */
       function markClockHeartbeat() {
         const nowWall = Date.now();
+        const nowMono = monotonicNow();
         if (clockHeartbeat) {
+          /* Real elapsed time moves both readings by the same amount, so
+             whatever is left over did not elapse: either the wall clock was
+             set, or the monotonic clock stopped because the device went to
+             sleep. This cannot tell those two apart, and that is exactly why
+             nothing here is corrected on the strength of it — no duration is
+             rebased, no label is moved, and the user is not told anything.
+             It is an alarm, not a measurement.
+
+             Its one consumer is the sync layer's clock offset, which is the
+             one place where a false alarm costs nothing: the response is to
+             throw the offset away and ask the server for a new one, and the
+             server is right either way. A device waking from sleep wants
+             that re-measurement anyway. Without this the offset stays wrong
+             until the next lease beat, and every timestamp written in
+             between is stamped in a clock domain that no longer exists —
+             which is how a genuinely newer edit loses last-write-wins. */
+          const drift =
+            nowWall - clockHeartbeat.wall - (nowMono - clockHeartbeat.mono);
+          if (Math.abs(drift) > CLOCK_STEP_THRESHOLD_MS) {
+            recordClockAnomaly({
+              deltaMs: drift,
+              applied: 0,
+              reason: "heartbeat",
+              verdict: "gap",
+              proof: "monotonic-divergence",
+            });
+            if (
+              window.SyncNet &&
+              typeof SyncNet.invalidateOffset === "function"
+            ) {
+              SyncNet.invalidateOffset();
+            }
+          }
           clockHeartbeat.wall = nowWall;
+          clockHeartbeat.mono = nowMono;
           clockHeartbeat.lastTick = nowWall;
         } else {
-          clockHeartbeat = { wall: nowWall, lastTick: nowWall };
+          clockHeartbeat = { wall: nowWall, mono: nowMono, lastTick: nowWall };
         }
       }
 
@@ -18184,7 +18233,18 @@
            token. Only used to space the retries out; a success of any kind
            puts it back to zero. */
         let refreshFailures = 0;
+        /* Recent offset readings, each as { offset, half }. See the clock
+           offset section for why the half matters more than the offset. */
         const offsetSamples = [];
+        /* A clock step is rare and a false alarm is cheap but not free, so
+           the re-measure it triggers is spaced rather than repeated. Timed
+           on the monotonic clock, never the wall one: the only thing that
+           ever opens this gate is the wall clock having just moved, and an
+           interval measured across a step is not an interval. A backward
+           step measured that way comes out negative and suppresses the
+           re-measure it was supposed to trigger. */
+        const OFFSET_REPROBE_MIN_MS = 5000;
+        let lastOffsetProbeAt = -Infinity;
         const listeners = new Set();
 
         function emit() {
@@ -18434,13 +18494,61 @@
 
         /* ── clock offset ──────────────────────────────────────────────── */
 
-        function median(arr) {
-          const s = arr.slice().sort((a, b) => a - b);
-          const m = s.length >> 1;
-          return s.length % 2 === 1 ? s[m] : (s[m - 1] + s[m]) / 2;
+        /* A SAMPLE IS A BRACKET, NOT A POINT.
+
+           Half the round trip is the best single guess at when the server
+           read its clock, and it is never exactly right: whatever the two
+           legs disagree by lands in the answer as error. But that error
+           cannot exceed the disagreement and the disagreement cannot exceed
+           the round trip, so every sample carries its own bound — the truth
+           lies somewhere in [offset - half, offset + half], and a fast round
+           trip is a narrow bracket.
+
+           probe-offset-spread.js measured those brackets against this
+           project. Over 25 samples the fastest round trip (70ms) landed 4ms
+           from the truth and the slowest (434ms) 148ms away, with every slow
+           sample biased the same direction — the request leg is the one that
+           stretches. So the round trip is not a tiebreaker between otherwise
+           equal readings. It IS the accuracy, and preferring the narrowest
+           bracket in the window is the entire estimator.
+
+           What this replaced was a median of the last five samples, adopted
+           only on a move of more than two seconds, and it got both halves of
+           its job wrong. It never refined: once the first sample was in,
+           nothing under two seconds was ever adopted again, so a page lived
+           out its life on whatever its first round trip happened to say —
+           148ms out, in the run above, and biased rather than random. And it
+           was slow to believe a real one, because a median of five needs
+           three samples to agree before it moves at all, which is three
+           beats of writing timestamps in a clock domain that no longer
+           exists. Two devices, each frozen on its own first sample and each
+           biased by its own network, then disagree by enough that
+           last-write-wins on settings decides by clock error instead of by
+           who edited last. */
+        const OFFSET_WINDOW = 8;
+
+        /* The narrowest bracket still in the window, newest first on a tie:
+           two readings of equal quality are not equally fresh. */
+        function bestOffsetSample() {
+          let best = null;
+          for (let i = 0; i < offsetSamples.length; i++) {
+            if (!best || offsetSamples[i].half <= best.half) {
+              best = offsetSamples[i];
+            }
+          }
+          return best;
         }
 
-        /* Folds one (t0, serverMs) observation into the running median.
+        /* How wrong the published offset could be, stated in the only terms
+           that mean anything: the half-round-trip of the reading it came
+           from. Reported in the diagnostics block so a support report says
+           how good the measurement was, not just what it said. */
+        function offsetUncertaintyMs() {
+          const best = bestOffsetSample();
+          return best ? Math.round(best.half) : null;
+        }
+
+        /* Folds one (t0, serverMs) observation into the estimate.
 
            Split out from measureOffset because any call that returns a server
            clock reading gives this away for free: sync_session ships now_ms
@@ -18451,21 +18559,79 @@
             return Sync.serverOffsetMs;
           }
           const rtt = Math.max(0, (Number.isFinite(t1) ? t1 : Date.now()) - t0);
-          /* Half the round trip is the best single estimate of when the
-             server actually read its clock. */
-          offsetSamples.push(t0 + rtt / 2 - serverMs);
-          if (offsetSamples.length > 5) offsetSamples.shift();
+          const half = rtt / 2;
+          const sample = { offset: t0 + half - serverMs, half };
 
-          const next = median(offsetSamples);
-          /* Adopt only a change over two seconds. Otherwise ordinary network
-             jitter walks the offset around and every pull rewrites session
-             anchors that were already correct. */
-          if (!offsetMeasured || Math.abs(next - Sync.serverOffsetMs) > 2000) {
-            Sync.serverOffsetMs = next;
-            offsetMeasured = true;
+          /* Two brackets that do not overlap cannot both contain the truth,
+             and no round trip however lopsided reconciles them. That is a
+             proof rather than a suspicion, so one sample carries it and
+             there is nothing to outvote. What it proves is that a clock
+             moved — ours or the server's — which makes every earlier reading
+             a measurement of a world that is gone. Keeping them would only
+             let them outvote the truth, which is exactly what the median
+             did for three beats. */
+          const held = bestOffsetSample();
+          const stepped =
+            !!held &&
+            Math.abs(sample.offset - held.offset) > sample.half + held.half;
+          if (stepped) offsetSamples.length = 0;
+
+          offsetSamples.push(sample);
+          while (offsetSamples.length > OFFSET_WINDOW) offsetSamples.shift();
+
+          /* Publish a change only when it is bigger than the uncertainty of
+             the reading that justifies it. A move smaller than its own error
+             bar is not a correction, it is jitter, and republishing it walks
+             every derived wire stamp around for nothing. This is what the
+             flat two-second gate was reaching for; the difference is that
+             the threshold now comes from the measurement instead of from a
+             number somebody picked. */
+          const next = bestOffsetSample();
+          if (
+            !offsetMeasured ||
+            stepped ||
+            Math.abs(next.offset - Sync.serverOffsetMs) > next.half
+          ) {
+            Sync.serverOffsetMs = next.offset;
+          }
+          offsetMeasured = true;
+
+          if (stepped && typeof recordClockAnomaly === "function") {
+            recordClockAnomaly({
+              deltaMs: sample.offset - held.offset,
+              applied: 0,
+              reason: "offset",
+              verdict: "gap",
+              proof: "brackets-disjoint",
+            });
           }
           emit();
           return Sync.serverOffsetMs;
+        }
+
+        /* The host clock moved in a way elapsed time cannot explain, so every
+           sample in the window was taken against a wall clock that is gone
+           and the offset they produced is wrong by the size of the step.
+           Called by the heartbeat witness in the system clock section.
+
+           Note what this deliberately does NOT do: apply the step. The
+           witness works by comparing the wall clock against a monotonic one,
+           and a monotonic clock stops while a device is asleep — so a lid
+           closed for an hour is indistinguishable from an hour-long jump.
+           Acting on the number would then bury an hour of error in every
+           timestamp the device writes. Acting only on the ALARM costs one
+           round trip and cannot be wrong, because the answer still comes
+           from the server. That is the line the system clock policy draws,
+           and this stays on the right side of it. */
+        function invalidateOffset() {
+          offsetSamples.length = 0;
+          offsetMeasured = false;
+          emit();
+          if (!session) return;
+          const now = monotonicNow();
+          if (now - lastOffsetProbeAt < OFFSET_REPROBE_MIN_MS) return;
+          lastOffsetProbeAt = now;
+          measureOffset().catch(() => {});
         }
 
         /* Measured against Postgres rather than the HTTP Date header, which
@@ -18776,6 +18942,7 @@
           refresh,
           measureOffset,
           noteServerTime,
+          invalidateOffset,
           onChange(fn) {
             listeners.add(fn);
             return () => listeners.delete(fn);
@@ -18807,6 +18974,7 @@
               expiresInMs: session ? session.expires_at - Date.now() : null,
               offsetMs: Sync.serverOffsetMs,
               offsetMeasured,
+              offsetHalfMs: offsetUncertaintyMs(),
               online: navigator.onLine,
               lastError,
               lastErrorAt,
@@ -33622,7 +33790,10 @@
           [
             "clock",
             net.offsetMeasured
-              ? formatClockOffset(net.offsetMs)
+              ? formatClockOffset(net.offsetMs) +
+                (net.offsetHalfMs === null || net.offsetHalfMs === undefined
+                  ? ""
+                  : ` ±${net.offsetHalfMs}ms`)
               : "not measured",
           ],
           [
