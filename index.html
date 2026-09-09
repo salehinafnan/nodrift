@@ -19822,11 +19822,24 @@
       const SessionLease = (() => {
         /* Long enough that a laptop lid closing does not hand the session
            away before the user has walked to the other room, short enough
-           that they are not locked out when it does. */
-        const TTL_SECONDS = 45;
+           that they are not locked out when it does.
+
+           Doubled from 45 for the free-tier budget: the beat is what the
+           realtime allowance is actually spent on, and halving it halves the
+           bill per owner. The cost is that a device which really has gone
+           away holds the session for up to ninety seconds rather than
+           forty-five. That is a wait, not a lockout — takeOver() has always
+           been there for somebody who is not willing to wait it out, and it
+           is the same button they would have reached for at forty-five.
+
+           Raising this was blocked until the clock offset stopped taking
+           three beats to notice a step, because doubling the beat doubled
+           that window too. */
+        const TTL_SECONDS = 90;
         /* Three beats inside one TTL. Two means a single dropped request
-           costs the lease; four is traffic bought for nothing. */
-        const BEAT_MS = 15000;
+           costs the lease; four is traffic bought for nothing. The ratio is
+           what matters here, so it is held while the pair moves. */
+        const BEAT_MS = 30000;
         /* A device with nothing running only watches, and watching is a
            plain GET that can never take ownership away from anybody.
 
