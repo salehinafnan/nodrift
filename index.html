@@ -20486,6 +20486,12 @@
                which means adopting it, never overwriting it. */
             if (want && wasOwner && !force) {
               args.p_payload = Sync.sessionToWire(state);
+              /* Who wrote this copy. Deliberately NOT a SESSION_FIELD: it
+                 describes the copy rather than the shift, so pick() keeps it
+                 out of everything adoptSession writes into state, and it
+                 needs no clock domain at all because it is an id rather than
+                 a moment. The adoption test below is its only reader. */
+              args.p_payload.authorDevice = Sync.deviceId;
               args.p_task_payload = Sync.taskToWire(taskState);
             }
             /* The theme, the timezone, the daily goal, the presets and the
@@ -20561,6 +20567,36 @@
               ownSession &&
               payloadIsLive(remoteLocal) &&
               !sameSession(remoteLocal, state);
+            /* Our own last push, handed straight back to us.
+
+               The lease says who may WRITE the session. It has never said
+               whose copy is newest, and the two come apart the moment this
+               device loses the lease without anybody else taking the
+               session — which is the ordinary life of a phone. A locked
+               iPhone freezes its timers and a pocket loses the signal, so
+               no beat renews anything, and one TTL later the lease is gone
+               while the shift on screen is still the only copy there is.
+
+               The beat that takes it back then reads as an acquisition, and
+               an acquisition adopts. So everything the user did since the
+               last beat was overwritten by the copy this very device had
+               uploaded before they did it — press Work at the end of a
+               break, pocket the phone, and three hours later the break
+               timer is still running and has counted every one of them. One
+               device, no handoff, no second browser: the session came back
+               older than it left, and the next beat pushed that back up.
+
+               An id rather than a stamp, and that is the point. It cannot
+               be wrong about which device wrote a payload the way a clock
+               can be wrong about when it wrote it, so this holds while the
+               offset is still being measured and across a clock step. A
+               payload carrying no author is one no build of this has pushed
+               yet; it reads as somebody else's, which is the behaviour that
+               shipped before, for the one beat it takes to replace it. */
+            const ownEcho =
+              !!remote &&
+              !!Sync.deviceId &&
+              remote.authorDevice === Sync.deviceId;
             /* `force` is in here for the same reason it is in the push guard
                above: local belief about ownership goes stale. A device that
                lost the lease and has not beaten since still reads as the
@@ -20568,9 +20604,19 @@
                adopt — and the next beat would push its own state over the
                session it just took. Forcing is the user saying "bring that
                session here", and it always ends in an adoption. */
+            /* Confined to the beat that ACQUIRES the lease, and deliberately
+               not applied to a follower. A follower has a live holder
+               somewhere else: that device is about to author the session,
+               going read-only behind it is the correct end of a handoff, and
+               refusing the one stale beat before its first push would leave
+               this device competing for a lease the user has just moved on
+               purpose. Acquiring is the opposite — there is no other author,
+               so nothing arriving can be newer than what is on screen. */
+            const takingOver = event === "claimed" || force;
             const shouldAdopt =
-              (phase === "follower" || event === "claimed" || force) &&
-              !conflict;
+              (phase === "follower" || takingOver) &&
+              !conflict &&
+              !(takingOver && ownEcho);
             let adoptedNow = false;
             if (shouldAdopt) {
               lastAdoptError = adoptSession(
@@ -20580,6 +20626,17 @@
               );
               adoptedNow = !lastAdoptError;
             }
+            /* Refused our own echo, so this device now holds the lease and
+               the only copy that is current. The acquiring beat never pushes
+               — the guard above is what stops a takeover overwriting the
+               session it is taking — so without this the server goes on
+               serving the stale copy for another whole beat, and any device
+               reading it in the meantime believes it. Queued rather than
+               sent: beat() folds it into the drain that is already running,
+               which is bounded, and it terminates after one hop because by
+               then this device is the owner and no second acquisition can
+               be reported. */
+            if (takingOver && ownEcho && want) beat("stale cloud copy");
             /* The shift this device was watching has ended where it was
                authored: the holder cleared the row in the same statement that
                handed the lease back, so an empty payload here is not "nothing
