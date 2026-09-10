@@ -1092,6 +1092,93 @@
         overflow-wrap: break-word;
       }
 
+      /* ── a password with a way to check it ─────────────────────────────
+         The button sits inside the field's own box rather than beside it, so
+         the field keeps the width and the height every other field in the
+         app has and the controls stacked with it still line up. */
+      .input-password {
+        position: relative;
+        display: block;
+        width: 100%;
+      }
+
+      /* Room for the button, in both states, and set on the wrapper so the
+         phone's own `padding: 0 var(--space-3)` cannot take it back. */
+      .input-password > input.input-standard {
+        padding-right: 2.5rem;
+      }
+
+      /* A revealed password is the same field with the dots off, so it has
+         to keep the same box. `input[type="text"]` in section 2 carries its
+         own centred, half-height box and outranks .input-standard, so
+         without this the field would shrink and re-centre its text the
+         instant the eye is pressed -- the same trap the six-digit code field
+         sidesteps by being type="tel". */
+      .input-password > input.input-standard[type="text"] {
+        padding: var(--space-3);
+        padding-right: 2.5rem;
+        border-radius: var(--radius-md);
+        font-size: var(--text-sm);
+        /* `start`, not `left`: it is what a field computes to when
+           nothing has set it, so the revealed box matches the covered one
+           exactly rather than merely looking the same. */
+        text-align: start;
+        background: var(--surface-1);
+        border: var(--hairline);
+        color: var(--text-main);
+      }
+
+      .input-password > input.input-standard[type="text"]:focus {
+        border-color: var(--accent-blue);
+        background: var(--element-hover);
+      }
+
+      /* Inset by a hairline on three sides rather than centred at a fixed
+         height: the target is then the full height of whatever field it is
+         in, which is 40px on the desktop and 44px on a phone. */
+      .input-reveal {
+        position: absolute;
+        top: 1px;
+        right: 1px;
+        bottom: 1px;
+        width: 2.4rem;
+        padding: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: transparent;
+        border: none;
+        border-radius: var(--radius-md);
+        color: var(--text-muted);
+        cursor: pointer;
+      }
+
+      .input-reveal:hover:not(:disabled) {
+        color: var(--text-main);
+        background: var(--element-hover);
+      }
+
+      .input-reveal svg {
+        width: 17px;
+        height: 17px;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 2;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+
+      /* Which icon is up is the button's own state. Nothing here reads the
+         input's type back to decide, so the two cannot disagree. */
+      .input-reveal .icon-hide,
+      .input-reveal.is-revealed .icon-show {
+        display: none;
+      }
+
+      .input-reveal.is-revealed .icon-hide {
+        display: block;
+      }
+
       .form-group {
         margin-bottom: var(--space-4);
         text-align: left;
@@ -4041,32 +4128,35 @@
         border-radius: 6px;
       }
 
-      /* The buttons in the sync card's read-out column, stacked among rows of
-         that same compact scale. Two corrections here:
+      /* Every button in the cloud panel, wherever it sits: the two pinned
+         under the card and the three inside it. One box for all five,
+         because they are read as a set -- things that end a session -- and a
+         set that is not one height reads as a mistake. That is exactly what
+         the panel looked like when .btn-danger-outline was missing from the
+         compact rule below and "Sign out & erase this device" fell back to
+         the base button's 12px padding, standing a third taller than the two
+         directly above it.
 
-         .btn-danger-outline was missing, so "Sign out & erase this device"
-         fell back to the base button's 12px padding and stood a third taller
-         than the two buttons directly above it.
+         A class rather than `.sync-actions-grid button`, which is what this
+         used to be. That selector carried an element and so outranked the
+         phone's 44px rule further down -- the one that lists .sync-action-btn
+         by name -- so these five had quietly stayed at their 32px desktop
+         height on the one layout that is worked by thumb.
 
-         The auth submits are excluded because they are not part of this
-         column -- each closes the form above it, and drawn at 26px beside its
-         own fields the whole panel read as a mistake. Excluded rather than
-         overridden further down: an override would have to beat the
-         `min-height: 26px !important` here, and the only thing that beats it
-         is another !important, which would then also beat the 44px touch
-         target every other field in the app gets on a phone. Saying it does
-         not apply leaves the defaults intact.
+         The auth submits are excluded from the compact rule below because
+         they are not part of this set -- each closes the form above it, and
+         drawn at 26px beside its own fields the whole panel read as a
+         mistake. Excluded rather than overridden further down: an override
+         would have to beat the `min-height: 26px !important` there, and the
+         only thing that beats it is another !important, which would then
+         also beat the 44px touch target every other field in the app gets on
+         a phone. Saying it does not apply leaves the defaults intact.
 
          By class and not by id. There are five of these now, and an exclusion
          listing them one by one is a rule that silently mis-sizes the sixth
          -- which is exactly what a new button in this card would look like:
          correct everywhere except next to its own fields. */
-      .sync-actions-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 6px;
-      }
-      .sync-actions-grid button {
+      .sync-action-btn {
         min-height: 32px;
         padding: 0 10px;
         font-size: var(--text-xs);
@@ -4078,8 +4168,17 @@
         text-align: center;
         line-height: 1.25;
       }
-      .sync-actions-grid #sync-delete-account-btn {
-        grid-column: 1 / -1;
+
+      /* Stacked, and deliberately not pinned. Everything in here removes
+         data or access, so reaching it should cost a scroll past the
+         read-outs while the two ordinary buttons stay under the thumb. Full
+         width apiece because "Sign out & erase this device" does not fit
+         half a 296px panel, and a destructive control is the last place to
+         accept a wrapped label. */
+      .sync-danger {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
       }
 
       .settings-card
@@ -4234,6 +4333,104 @@
         margin: 0;
       }
 
+      /* ── the cloud panel: three bands, not one long scroll ────────────
+         Signed in, this panel is an identity, four groups of read-outs and
+         five buttons, and all of it used to scroll as one column -- so "Sign
+         out", the one control somebody arrives already meaning to press, sat
+         below the fold behind a device list that gains a row per browser and
+         never loses one. The title band and the two everyday buttons are
+         pinned now, and only the account between them moves.
+
+         Scoped to this panel rather than to .idle-popup: the settings panel
+         next door is a flat list with no band worth pinning and nothing
+         below its fold worth reaching for. */
+      #sync-config-popup {
+        overflow: hidden;
+      }
+
+      /* The card itself is the scrolling band -- no wrapper around it. Its
+         border stays put and its rows move inside it, which is what a card
+         with more in it than fits should look like.
+
+         The two declarations below do the work together and neither is the
+         whole of it. `overflow-y: auto` is what makes the far end of the
+         column reachable at all, and it also zeroes the automatic minimum
+         size a flex item otherwise takes from its own content -- which is
+         what lets the card shrink rather than push the footer out through the
+         bottom of the panel. `min-height: 0` states that second half in its
+         own right, so a later change to the overflow cannot quietly take it
+         away as well. Drop both and this is the layout it replaced: one
+         column, scrolling as a unit, with the buttons under the fold. */
+      #sync-account-card {
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      .sync-footer {
+        flex: 0 0 auto;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 6px;
+        padding-top: 0.55rem;
+        border-top: var(--hairline);
+      }
+
+      /* The two facts somebody opens this panel for, given room to be read
+         at a glance rather than set as a label and a value at opposite ends
+         of a 296px row. Not drawn at all signed out, where a chip reading
+         "Signed out" above a sign-in form is a caption on a photograph of
+         itself. */
+      .sync-identity {
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+        padding-bottom: 8px;
+        border-bottom: var(--hairline);
+      }
+
+      .sync-identity-email {
+        font-size: var(--text-sm);
+        font-weight: 600;
+        color: var(--text-main);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .sync-identity-status {
+        display: flex;
+        align-items: center;
+        min-height: 14px;
+      }
+
+      /* The dot takes the colour the render writes onto the text beside it,
+         so the two can never disagree about which state this is. */
+      #sync-state::before {
+        content: "";
+        display: inline-block;
+        width: 7px;
+        height: 7px;
+        margin-right: 6px;
+        border-radius: 50%;
+        background: currentColor;
+        vertical-align: 1px;
+      }
+
+      /* A form-level failure, and the only thing in this panel that is not a
+         read-out. Boxed, so it does not read as one more row of the column
+         it interrupts. */
+      #sync-error {
+        padding: 7px 9px;
+        border: var(--hairline);
+        border-color: color-mix(in srgb, var(--accent-break) 45%, transparent);
+        border-radius: var(--radius-sm);
+        background: color-mix(in srgb, var(--accent-break) 12%, transparent);
+        line-height: 1.45;
+      }
+
       /* Tinted rather than plain, because it is the one thing in this card
          that asks for an action taken outside the app. Level 1's wash, not
          the warning accent: nothing is wrong yet. */
@@ -4279,9 +4476,23 @@
       }
 
       /* A single link sits under its own submit rather than stretching the
-         width of the card. */
+         width of the card.
+
+         Drawn as a link and not as an outlined chip: three bordered boxes
+         stacked down a 296px panel made a sign-in form read as a settings
+         list, with nothing for the eye to land on. Only the paint changes --
+         the compact rule above still owns the box, so the row under the
+         submit is the 26px it has always been. */
       .sync-auth-links button {
         flex: 0 0 auto;
+        background: transparent;
+        border-color: transparent;
+        color: var(--accent-blue);
+      }
+
+      .sync-auth-links button:hover:not(:disabled) {
+        background: transparent;
+        text-decoration: underline;
       }
 
       /* Introduces the diagnostics below it. Shaped like the settings rows it
@@ -4291,10 +4502,48 @@
       .sync-details-heading {
         display: flex;
         align-items: center;
+        justify-content: space-between;
+        gap: 8px;
         width: 100%;
         margin-top: 2px;
         padding-top: 6px;
         border-top: var(--hairline);
+      }
+
+      /* The group that opens the column sits directly under the identity
+         block's own hairline, and two rules a few pixels apart read as a
+         drawing mistake. */
+      #sync-account-detail > .sync-details-heading:first-child {
+        margin-top: 0;
+        padding-top: 0;
+        border-top: none;
+      }
+
+      /* The same treatment the phone sheet gives its own section labels
+         (.m-sheet-slot::before): bolder, letter-spaced and quieter than the
+         rows beneath it. Borrowed rather than invented, because this panel
+         is grouped the way the sheet is and a second heading style in the
+         same app is one the reader has to learn twice.
+
+         Which is also why the markup carries no inline font-weight any more:
+         an inline style outranks this and each of the four headings would
+         have had to be corrected by hand. */
+      .sync-details-heading .settings-label {
+        font-size: 0.68rem;
+        font-weight: 700;
+        letter-spacing: 0.07em;
+        color: var(--text-muted);
+      }
+
+      /* The trailing half of a heading row: how many devices there are, or
+         the one line of warning over the destructive buttons. Drawn in the
+         read-out's weight so it reads as a fact about the group rather than
+         as a second heading. */
+      .sync-heading-note {
+        font-size: var(--text-2xs);
+        font-weight: 500;
+        color: var(--text-muted);
+        text-align: right;
       }
 
       /* The devices list. A column of plain rows rather than anything
@@ -4317,14 +4566,34 @@
 
       /* The device you are holding gets the weight, so finding yourself in
          the list takes no reading. */
+      /* --text-primary is not a token this app has ever defined, so this
+         declaration was dropped at computed-value time and the row it marks
+         took the muted label colour like every other. */
       .sync-device-name.is-this-device {
         font-weight: 600;
-        color: var(--text-primary);
+        color: var(--text-main);
       }
 
       .sync-device-empty {
         color: var(--text-muted);
         font-style: italic;
+      }
+
+      /* Not a control in the sense the five buttons are: it changes how much
+         of a list is drawn and nothing else, so it is drawn as a link. */
+      .sync-devices-more {
+        align-self: flex-start;
+        padding: 2px 0;
+        background: transparent;
+        border: none;
+        font-size: var(--text-2xs);
+        font-weight: 600;
+        color: var(--accent-blue);
+        cursor: pointer;
+      }
+
+      .sync-devices-more:hover {
+        text-decoration: underline;
       }
 
       /* Read-outs rather than labels. These are numbers meant to be compared
@@ -7830,6 +8099,20 @@
         .sync-action-btn {
           min-height: 44px;
           padding: 0 var(--space-3);
+        }
+
+        /* The panel pins its own title and footer, so the sheet must not
+           also be the scroller: two nested scrollers means the sheet starts
+           travelling the moment the account list reaches its end. */
+        #m-sheet #sync-config-popup {
+          overflow: hidden;
+        }
+
+        /* The phone's field padding, with the reveal button's column still
+           reserved. Restated because the desktop rule this shadows sets
+           padding on all four sides to undo `input[type="text"]`. */
+        .input-password > input.input-standard[type="text"] {
+          padding: 0 2.5rem 0 var(--space-3);
         }
 
         /* Same field height and type size as the controls above, but the box
@@ -13990,14 +14273,30 @@
                 id="sync-account-card"
                 style="display: flex; flex-direction: column; gap: 6px"
               >
-                <div class="settings-row">
-                  <span class="settings-label">Account</span>
-                  <span
-                    class="settings-label"
-                    id="sync-status-chip"
-                    style="font-weight: 500"
+                <!-- Who is signed in, and whether their shifts are safely
+                     up there. The two facts somebody opens this panel for,
+                     given room to be read at a glance rather than set as a
+                     label and a value at opposite ends of a 296px row.
+
+                     The status line carries every row of the failure matrix:
+                     offline with a backlog, a storage fault degrading to
+                     pull-only, a server that has been refusing for long
+                     enough to mention, and how long until the next attempt.
+                     It sits directly under the address because those two
+                     lines are what somebody checks before a shift, and
+                     anything they have to scroll to is a line they will
+                     stop checking.
+
+                     Drawn only when signed in. Under a sign-in form a chip
+                     reading "Signed out" is a caption on a photograph of
+                     itself, so the render hides the whole block. -->
+                <div class="sync-identity" id="sync-identity">
+                  <span class="sync-identity-email" id="sync-status-chip"
                     >Signed out</span
                   >
+                  <span class="sync-identity-status">
+                    <span class="settings-label" id="sync-state"></span>
+                  </span>
                 </div>
 
                 <!-- iOS erases a browser tab's stored data after seven days
@@ -14058,14 +14357,37 @@
                       autocomplete="username"
                       spellcheck="false"
                     />
-                    <input
-                      type="password"
-                      id="sync-password"
-                      class="input-standard"
-                      placeholder="Password"
-                      autocomplete="current-password"
-                      onkeydown="if (event.key === 'Enter') syncSignIn();"
-                    />
+                    <span class="input-password">
+                      <input
+                        type="password"
+                        id="sync-password"
+                        class="input-standard"
+                        placeholder="Password"
+                        autocomplete="current-password"
+                        onkeydown="if (event.key === 'Enter') syncSignIn();"
+                      />
+                      <button
+                        type="button"
+                        class="input-reveal"
+                        aria-label="Show password"
+                        aria-pressed="false"
+                        onmousedown="event.preventDefault()"
+                        onclick="togglePasswordReveal(this)"
+                      >
+                        <svg class="icon-show" viewBox="0 0 24 24">
+                          <path
+                            d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"
+                          ></path>
+                          <circle cx="12" cy="12" r="3"></circle>
+                        </svg>
+                        <svg class="icon-hide" viewBox="0 0 24 24">
+                          <path
+                            d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"
+                          ></path>
+                          <line x1="1" y1="1" x2="23" y2="23"></line>
+                        </svg>
+                      </button>
+                    </span>
                     <button
                       type="button"
                       class="btn-info-outline sync-auth-submit"
@@ -14101,24 +14423,70 @@
                       autocomplete="username"
                       spellcheck="false"
                     />
-                    <input
-                      type="password"
-                      id="sync-signup-password"
-                      class="input-standard"
-                      placeholder="Password"
-                      autocomplete="new-password"
-                    />
+                    <span class="input-password">
+                      <input
+                        type="password"
+                        id="sync-signup-password"
+                        class="input-standard"
+                        placeholder="Password"
+                        autocomplete="new-password"
+                      />
+                      <button
+                        type="button"
+                        class="input-reveal"
+                        aria-label="Show password"
+                        aria-pressed="false"
+                        onmousedown="event.preventDefault()"
+                        onclick="togglePasswordReveal(this)"
+                      >
+                        <svg class="icon-show" viewBox="0 0 24 24">
+                          <path
+                            d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"
+                          ></path>
+                          <circle cx="12" cy="12" r="3"></circle>
+                        </svg>
+                        <svg class="icon-hide" viewBox="0 0 24 24">
+                          <path
+                            d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"
+                          ></path>
+                          <line x1="1" y1="1" x2="23" y2="23"></line>
+                        </svg>
+                      </button>
+                    </span>
                     <!-- A mistyped password on an address that has not been
                          confirmed yet is unrecoverable: the reset code goes to
                          an inbox the account cannot prove it owns. -->
-                    <input
-                      type="password"
-                      id="sync-signup-confirm"
-                      class="input-standard"
-                      placeholder="Confirm password"
-                      autocomplete="new-password"
-                      onkeydown="if (event.key === 'Enter') syncSignUp();"
-                    />
+                    <span class="input-password">
+                      <input
+                        type="password"
+                        id="sync-signup-confirm"
+                        class="input-standard"
+                        placeholder="Confirm password"
+                        autocomplete="new-password"
+                        onkeydown="if (event.key === 'Enter') syncSignUp();"
+                      />
+                      <button
+                        type="button"
+                        class="input-reveal"
+                        aria-label="Show password"
+                        aria-pressed="false"
+                        onmousedown="event.preventDefault()"
+                        onclick="togglePasswordReveal(this)"
+                      >
+                        <svg class="icon-show" viewBox="0 0 24 24">
+                          <path
+                            d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"
+                          ></path>
+                          <circle cx="12" cy="12" r="3"></circle>
+                        </svg>
+                        <svg class="icon-hide" viewBox="0 0 24 24">
+                          <path
+                            d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"
+                          ></path>
+                          <line x1="1" y1="1" x2="23" y2="23"></line>
+                        </svg>
+                      </button>
+                    </span>
                     <button
                       type="button"
                       class="btn-info-outline sync-auth-submit"
@@ -14240,23 +14608,69 @@
                     <span class="settings-help-text">
                       Code accepted. Choose a new password.
                     </span>
-                    <input
-                      type="password"
-                      id="sync-newpass"
-                      class="input-standard"
-                      placeholder="New password"
-                      autocomplete="new-password"
-                    />
-                    <input
-                      type="password"
-                      id="sync-newpass-confirm"
-                      class="input-standard"
-                      placeholder="Confirm new password"
-                      autocomplete="new-password"
-                      onkeydown="
-                        if (event.key === 'Enter') syncSetNewPassword();
-                      "
-                    />
+                    <span class="input-password">
+                      <input
+                        type="password"
+                        id="sync-newpass"
+                        class="input-standard"
+                        placeholder="New password"
+                        autocomplete="new-password"
+                      />
+                      <button
+                        type="button"
+                        class="input-reveal"
+                        aria-label="Show password"
+                        aria-pressed="false"
+                        onmousedown="event.preventDefault()"
+                        onclick="togglePasswordReveal(this)"
+                      >
+                        <svg class="icon-show" viewBox="0 0 24 24">
+                          <path
+                            d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"
+                          ></path>
+                          <circle cx="12" cy="12" r="3"></circle>
+                        </svg>
+                        <svg class="icon-hide" viewBox="0 0 24 24">
+                          <path
+                            d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"
+                          ></path>
+                          <line x1="1" y1="1" x2="23" y2="23"></line>
+                        </svg>
+                      </button>
+                    </span>
+                    <span class="input-password">
+                      <input
+                        type="password"
+                        id="sync-newpass-confirm"
+                        class="input-standard"
+                        placeholder="Confirm new password"
+                        autocomplete="new-password"
+                        onkeydown="
+                          if (event.key === 'Enter') syncSetNewPassword();
+                        "
+                      />
+                      <button
+                        type="button"
+                        class="input-reveal"
+                        aria-label="Show password"
+                        aria-pressed="false"
+                        onmousedown="event.preventDefault()"
+                        onclick="togglePasswordReveal(this)"
+                      >
+                        <svg class="icon-show" viewBox="0 0 24 24">
+                          <path
+                            d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"
+                          ></path>
+                          <circle cx="12" cy="12" r="3"></circle>
+                        </svg>
+                        <svg class="icon-hide" viewBox="0 0 24 24">
+                          <path
+                            d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"
+                          ></path>
+                          <line x1="1" y1="1" x2="23" y2="23"></line>
+                        </svg>
+                      </button>
+                    </span>
                     <button
                       type="button"
                       class="btn-info-outline sync-auth-submit"
@@ -14268,26 +14682,30 @@
                   </div>
                 </div>
 
+                <!-- Directly under whichever form or identity is above it,
+                     rather than at the foot of the card. Signed out that is
+                     the same place it always was; signed in it used to be
+                     the last line of a column deep enough that a message
+                     about the account could arrive entirely off screen. -->
+                <span
+                  class="settings-help-text"
+                  id="sync-error"
+                  style="display: none; color: var(--accent-break)"
+                ></span>
+
                 <div
                   id="sync-account-detail"
                   style="display: none; flex-direction: column; gap: 6px"
                 >
-                  <!-- Every row of the failure matrix has to land somewhere a
-                       person can read it, and this one line carries all of
-                       them: offline with a backlog, a storage fault degrading
-                       to pull-only, a server that has been refusing for long
-                       enough to mention, and how long until the next
-                       attempt. -->
-                  <div class="settings-row" id="sync-row-status">
-                    <span class="settings-label" style="font-weight: 500"
-                      >Status</span
-                    >
-                    <span class="settings-label" id="sync-state"></span>
+                  <!-- Four headed groups rather than one column of rows.
+                       Every read-out in here used to sit at the same weight
+                       as every other, so finding the one you came for meant
+                       reading all of them. -->
+                  <div class="sync-details-heading">
+                    <span class="settings-label">This device</span>
                   </div>
                   <div class="settings-row" id="sync-row-device">
-                    <span class="settings-label" style="font-weight: 500"
-                      >This device</span
-                    >
+                    <span class="settings-label">Name</span>
                     <!-- Editable because the takeover prompt on the other
                          device quotes it, and "Chrome on Windows" is only
                          useful until there are two of them. -->
@@ -14330,11 +14748,39 @@
                        nothing of the kind. Signing a device out is a token
                        operation, so it lives on the button below. -->
                   <div class="sync-details-heading">
-                    <span class="settings-label" style="font-weight: 500"
-                      >Devices</span
-                    >
+                    <span class="settings-label">Devices</span>
+                    <!-- The count, because the list is folded past four rows
+                         and a fold that does not say what it is hiding is
+                         just a shorter list. -->
+                    <span
+                      class="sync-heading-note"
+                      id="sync-devices-count"
+                    ></span>
                   </div>
                   <div id="sync-devices" class="sync-devices"></div>
+                  <!-- The honest version of "log out my other devices", and
+                       the button the note above means by "the button below":
+                       it revokes every refresh token on the account, which is
+                       what actually ends access. The other devices keep
+                       working until their current access token expires, so
+                       the confirmation says an hour rather than pretending it
+                       is instant.
+
+                       Here rather than among the destructive three, and not
+                       drawn in the danger outline with them. It takes away
+                       access and no data at all, and signing in again undoes
+                       every bit of it -- putting it beside "Delete account"
+                       said the two were the same order of decision. It reads
+                       as what it is directly under the list of devices it
+                       acts on. -->
+                  <button
+                    type="button"
+                    class="btn-secondary sync-action-btn"
+                    id="sync-signout-all-btn"
+                    onclick="syncSignOutEverywhere()"
+                  >
+                    Sign out everywhere
+                  </button>
 
                   <!-- A heading rather than a disclosure. These were behind a
                        collapse on the theory that the three rows above are
@@ -14345,9 +14791,7 @@
                        fault and the person describing it. The card is short
                        enough to show all of it. -->
                   <div class="sync-details-heading">
-                    <span class="settings-label" style="font-weight: 500"
-                      >Sync details</span
-                    >
+                    <span class="settings-label">Sync details</span>
                   </div>
                   <div
                     id="sync-details"
@@ -14394,24 +14838,14 @@
                     </div>
                   </div>
 
-                  <div class="sync-actions-grid">
-                    <!-- The panel is only half the answer if the numbers on
-                         it have to be retyped by hand. -->
-                    <button
-                      type="button"
-                      class="btn-secondary sync-action-btn"
-                      id="sync-copy-btn"
-                      onclick="syncCopyDiagnostics()"
-                    >
-                      Copy diagnostics
-                    </button>
-                    <button
-                      type="button"
-                      class="btn-secondary sync-action-btn"
-                      onclick="syncSignOut()"
-                    >
-                      Sign out
-                    </button>
+                  <div class="sync-details-heading">
+                    <span class="settings-label">Danger zone</span>
+                  </div>
+                  <span class="settings-help-text">
+                    Both of these erase something for good, and neither can be
+                    undone. Only the first touches the logbook on this device.
+                  </span>
+                  <div class="sync-danger">
                     <!-- Two labelled buttons rather than a question asked on
                          every sign-out. The common case should not have to
                          answer "and shall I delete a year of history?", and
@@ -14423,20 +14857,6 @@
                       onclick="syncSignOutAndErase()"
                     >
                       Sign out &amp; erase this device
-                    </button>
-                    <!-- The honest version of "log out my other devices". It
-                         revokes every refresh token on the account, which is
-                         what actually ends access; the other devices keep
-                         working until their current access token expires, so
-                         the confirmation says an hour rather than pretending
-                         it is instant. -->
-                    <button
-                      type="button"
-                      class="btn-danger-outline sync-action-btn"
-                      id="sync-signout-all-btn"
-                      onclick="syncSignOutEverywhere()"
-                    >
-                      Sign out everywhere
                     </button>
                     <!-- Last, and the only control here that destroys anything
                          beyond this device: everything above changes who is
@@ -14454,12 +14874,34 @@
                     </button>
                   </div>
                 </div>
+              </div>
 
-                <span
-                  class="settings-help-text"
-                  id="sync-error"
-                  style="display: none; color: var(--accent-break)"
-                ></span>
+              <!-- The band that does not travel. Two buttons only: signing
+                   out is what somebody arrives already meaning to do, and
+                   copying the diagnostics is what they are asked for the
+                   moment they report that something is wrong. Both used to
+                   sit under a device list long enough to put them off the
+                   bottom of the panel. The three that take something away
+                   stay up in the card, where reaching them costs a
+                   deliberate scroll past everything this panel reports. -->
+              <div class="sync-footer" id="sync-footer" style="display: none">
+                <!-- The panel is only half the answer if the numbers on it
+                     have to be retyped by hand. -->
+                <button
+                  type="button"
+                  class="btn-secondary sync-action-btn"
+                  id="sync-copy-btn"
+                  onclick="syncCopyDiagnostics()"
+                >
+                  Copy diagnostics
+                </button>
+                <button
+                  type="button"
+                  class="btn-secondary sync-action-btn"
+                  onclick="syncSignOut()"
+                >
+                  Sign out
+                </button>
               </div>
 
               <!-- No help strip here, unlike the settings panel. This panel
@@ -33272,6 +33714,60 @@
       /*==========================================================================
        * 19. MANUAL LOG INSERTION UTILITIES
        * =========================================================================*/
+      /* ── revealing a password ──────────────────────────────────────────
+         Swapping `type` is what actually shows the characters: a CSS-only
+         version would leave the field a password to the browser and a text
+         field to nobody. The stylesheet takes the other half of the job --
+         `.input-password > input[type="text"]` holds the box steady across
+         the swap, which the bare `input[type="text"]` rule in section 2
+         would otherwise shrink and re-centre under the user's hands.
+
+         The caret is put back by hand because every engine drops the
+         selection when an input's type changes, and losing it is precisely
+         the moment somebody is about to fix the typo they opened the eye to
+         find. The button gives up its own focus on mousedown, so the field
+         keeps it and typing can carry straight on. */
+      window.togglePasswordReveal = function (btn) {
+        const wrap = btn && btn.parentElement;
+        const input = wrap ? wrap.querySelector("input") : null;
+        if (!input) return;
+        const reveal = input.type === "password";
+        const start = input.selectionStart;
+        const end = input.selectionEnd;
+        input.type = reveal ? "text" : "password";
+        btn.classList.toggle("is-revealed", reveal);
+        btn.setAttribute("aria-pressed", reveal ? "true" : "false");
+        btn.setAttribute(
+          "aria-label",
+          reveal ? "Hide password" : "Show password",
+        );
+        if (start !== null && start !== undefined) {
+          try {
+            input.setSelectionRange(start, end);
+          } catch (e) {}
+        }
+      };
+
+      /* Puts every revealed password inside a subtree back behind its dots,
+         button and label with it. Drives the same class togglePasswordReveal
+         does rather than calling it, which would uncover a field that was
+         already covered. A declaration, not an assignment: closeFooterPopup
+         below is written before this in the file and calls it. */
+      function syncCoverPasswords(root) {
+        if (!root || !root.querySelectorAll) return;
+        const buttons = root.querySelectorAll(".input-reveal.is-revealed");
+        for (let i = 0; i < buttons.length; i++) {
+          const btn = buttons[i];
+          const input = btn.parentElement
+            ? btn.parentElement.querySelector("input")
+            : null;
+          if (input) input.type = "password";
+          btn.classList.remove("is-revealed");
+          btn.setAttribute("aria-pressed", "false");
+          btn.setAttribute("aria-label", "Show password");
+        }
+      }
+
       /* Two panels hang off the footer now, Settings and Cloud Sync. They
          share one anchor on the desktop and one bottom-sheet slot on the
          phone, so opening either has to close the other, and each needs its
@@ -33283,6 +33779,16 @@
       function closeFooterPopup(popup) {
         if (!popup) return;
         popup.classList.remove("show");
+        /* The one funnel every dismissal route runs through -- the close
+           button, a click outside, Escape, opening the other panel, a device
+           changing category mid-session -- which is why the passwords are
+           covered here rather than in each of them. The typed values survive
+           a close, because making somebody retype an address over a mistyped
+           password punishes the wrong thing; a password left legible for
+           whoever opens the panel next is a different trade, and not one
+           they chose. The settings panel has no password in it and this
+           finds nothing there. */
+        syncCoverPasswords(popup);
         const ctrl = footerPopupControllers.get(popup);
         if (ctrl) {
           footerPopupControllers.delete(popup);
@@ -33319,7 +33825,22 @@
         window.addEventListener(
           "click",
           (event) => {
-            if (!popup.contains(event.target)) closeFooterPopup(popup);
+            /* The path the event actually travelled, recorded when it was
+               dispatched, rather than where its target sits by the time this
+               runs. A control inside the panel may have redrawn the list it
+               lives in first -- the device list's own fold rebuilds every row
+               including the button that was pressed -- and a target detached
+               mid-click is contained by nothing at all, this panel included.
+               Asking contains() then dismissed the panel from a button inside
+               it, which reads as the app closing at random. */
+            const path =
+              typeof event.composedPath === "function"
+                ? event.composedPath()
+                : null;
+            const inside = path
+              ? path.indexOf(popup) !== -1
+              : popup.contains(event.target);
+            if (!inside) closeFooterPopup(popup);
           },
           { signal: ctrl.signal },
         );
@@ -33455,6 +33976,21 @@
       let syncDevicesFetchedAt = 0;
       let syncDevicesInFlight = false;
 
+      /* How many rows are drawn before the list is folded. Every browser
+         profile that signs in once leaves a row behind for good and nothing
+         ever prunes them, so this list only grows -- and past four rows it
+         was pushing the diagnostics, and everything below them, off the
+         bottom of the panel. Folded rather than given a scrollbar of its
+         own: a scroller inside a bottom sheet fights the sheet for the same
+         drag. */
+      const SYNC_DEVICES_COLLAPSED = 4;
+      let syncDevicesExpanded = false;
+
+      window.syncToggleDevices = function () {
+        syncDevicesExpanded = !syncDevicesExpanded;
+        renderSyncCard();
+      };
+
       function syncEnsureDevices() {
         if (!window.SyncNet || !SyncNet.signedIn || !navigator.onLine) return;
         if (syncDevicesInFlight) return;
@@ -33479,10 +34015,15 @@
       function syncRenderDevices(signedIn, lease) {
         const host = document.getElementById("sync-devices");
         if (!host) return;
+        const count = document.getElementById("sync-devices-count");
         if (!signedIn) {
           host.textContent = "";
+          if (count) count.textContent = "";
           syncDeviceRows = [];
           syncDevicesFetchedAt = 0;
+          /* So the next account starts folded rather than inheriting how far
+             the last one had been opened. */
+          syncDevicesExpanded = false;
           return;
         }
         syncEnsureDevices();
@@ -33500,6 +34041,8 @@
           );
         });
 
+        if (count) count.textContent = rows.length ? String(rows.length) : "";
+
         if (!rows.length) {
           host.textContent = "";
           const empty = document.createElement("div");
@@ -33514,7 +34057,11 @@
         /* Rebuilt rather than diffed: this is at most a handful of rows,
            redrawn a few times a minute, only while the panel is open. */
         host.textContent = "";
-        for (const row of rows) {
+        const folded =
+          !syncDevicesExpanded && rows.length > SYNC_DEVICES_COLLAPSED;
+        for (const row of folded
+          ? rows.slice(0, SYNC_DEVICES_COLLAPSED)
+          : rows) {
           const el = document.createElement("div");
           el.className = "settings-row sync-device-row";
 
@@ -33542,6 +34089,20 @@
           el.appendChild(name);
           el.appendChild(meta);
           host.appendChild(el);
+        }
+
+        if (rows.length > SYNC_DEVICES_COLLAPSED) {
+          const more = document.createElement("button");
+          more.type = "button";
+          more.className = "sync-devices-more";
+          /* Named with the number either way. "Show all" alone leaves the
+             reader to work out whether anything is missing, and the heading's
+             count is at the other end of the group. */
+          more.textContent = folded
+            ? `Show all ${rows.length}`
+            : `Show ${SYNC_DEVICES_COLLAPSED} only`;
+          more.onclick = syncToggleDevices;
+          host.appendChild(more);
         }
       }
 
@@ -33688,8 +34249,18 @@
         }
 
         syncApplyAuthPane(status.signedIn);
+        /* Three blocks, one condition. The identity, the read-outs and the
+           pinned footer are the panel signed in; signed out the card is a
+           form and nothing else, and a header saying "Signed out" over a
+           sign-in form is a caption on a photograph of itself. */
+        const identity = document.getElementById("sync-identity");
+        if (identity) {
+          identity.style.display = status.signedIn ? "flex" : "none";
+        }
         const detail = document.getElementById("sync-account-detail");
         if (detail) detail.style.display = status.signedIn ? "flex" : "none";
+        const footer = document.getElementById("sync-footer");
+        if (footer) footer.style.display = status.signedIn ? "grid" : "none";
 
         const dev = document.getElementById("sync-device-label");
         /* Never while the user is typing in it: a background beat firing
@@ -34000,7 +34571,13 @@
         if (wrap) wrap.style.display = visible ? "flex" : "none";
         for (const name of SYNC_PANES) {
           const el = document.getElementById("sync-auth-" + name);
-          if (el) el.classList.toggle("show", visible && name === syncAuthPane);
+          if (!el) continue;
+          const up = visible && name === syncAuthPane;
+          el.classList.toggle("show", up);
+          /* Leaving a pane covers what was revealed in it. Only the panes
+             that are away, so a render firing underneath somebody who is
+             reading their own password back cannot take it from them. */
+          if (!up) syncCoverPasswords(el);
         }
 
         const sentTo = document.getElementById("sync-code-sent-to");
