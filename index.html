@@ -1108,6 +1108,32 @@
         padding-right: 2.5rem;
       }
 
+      /* Edge draws a reveal control of its own inside every password field,
+         and a clear cross inside every text field -- so on Edge this field
+         came with a second eye beside ours while covered, and swapped it for
+         a cross the moment ours was pressed. Chrome implements neither, which
+         is why the same build looked right on one machine and doubled on
+         another and read as a screen-size problem rather than a browser one.
+
+         Suppressed rather than accommodated: the app's own button is the one
+         that is styled, labelled, keyboard-reachable and announced, and two
+         controls for one job is worse than either alone. Scoped to fields
+         this wrapper is around, so a password field that has no button of its
+         own would keep the browser's. Neither pseudo-element exists outside
+         Edge, so this costs nothing anywhere else. */
+      .input-password > input.input-standard::-ms-reveal {
+        display: none;
+      }
+
+      /* A rule of its own, not a second selector on the one above. An unknown
+         pseudo-element invalidates the entire group it is written in, so one
+         engine that has dropped ::-ms-clear while keeping ::-ms-reveal would
+         take both rules down with it and the second eye would be back. Two
+         rules cannot do that to each other. */
+      .input-password > input.input-standard::-ms-clear {
+        display: none;
+      }
+
       /* A revealed password is the same field with the dots off, so it has
          to keep the same box. `input[type="text"]` in section 2 carries its
          own centred, half-height box and outranks .input-standard, so
@@ -4546,22 +4572,121 @@
         text-align: right;
       }
 
-      /* The devices list. A column of plain rows rather than anything
-         card-like: it sits between two other read-out sections and looking
-         different from them would suggest it is interactive, which it
-         deliberately is not. */
+      /* The devices list. Rows rather than cards: it sits between two other
+         read-out sections, and a list that looked different from them would
+         read as a different kind of thing.
+
+         No gap between the rows any more. Each row carries a control now, so
+         each has a height and a hover of its own, and a gap between two
+         hoverable rows draws a gutter through what the pointer treats as one
+         continuous list. */
       .sync-devices {
+        /* The width of the cross column, named here because three rules need
+           to agree about it and one of them is a phone override. */
+        --device-action: 26px;
         display: flex;
         flex-direction: column;
-        gap: 4px;
+        gap: 0;
         width: 100%;
       }
 
+      /* A row you can act on is given the height of a control rather than the
+         height of a line of text. 26px is the height every other inline
+         control in a settings card already takes, so the list grows into a
+         size this panel already uses rather than a new one. */
+      .sync-device-row {
+        min-height: var(--device-action);
+        gap: 8px;
+        padding-left: 4px;
+        margin-left: -4px;
+        border-radius: 6px;
+      }
+
+      /* The one row with no cross still leaves room for the column. Every
+         other row stops its age short of the panel edge by a button's width,
+         and a single row running past all of them reads as a drawing mistake
+         rather than as the exception it is. */
+      .sync-device-row.is-mine {
+        padding-right: calc(var(--device-action) + 8px);
+      }
+
+      /* Takes whatever the other two leave. `min-width: 0` is what actually
+         permits the ellipsis: a flex item's automatic minimum is its content,
+         so without it a long name pushes the meta and the button off the end
+         of the row instead of truncating. */
       .sync-device-name {
+        flex: 1 1 auto;
+        min-width: 0;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
-        max-width: 55%;
+      }
+
+      .sync-device-meta {
+        flex: 0 0 auto;
+      }
+
+      /* Signs one device out, which is a thing this panel could not do at all
+         until now: "Sign out everywhere" was the only lever and it takes down
+         the device asking as well.
+
+         Drawn as a cross rather than a labelled button because it is one of
+         up to a dozen in a column -- a word repeated down a list stops being
+         read -- and given the row's own tooltip and an aria-label so it is
+         never the icon alone that has to carry the meaning. */
+      .sync-device-remove {
+        flex: 0 0 auto;
+        width: var(--device-action);
+        height: var(--device-action);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+        background: transparent;
+        border: none;
+        border-radius: 6px;
+        color: var(--text-muted);
+        cursor: pointer;
+      }
+
+      .sync-device-remove svg {
+        width: 13px;
+        height: 13px;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 2.2;
+        stroke-linecap: round;
+      }
+
+      /* Held back until the row is pointed at, and only where there is a
+         pointer to do it with. A column of crosses at full contrast reads as
+         a list of things to be deleted, which is not what this list is; on a
+         touch screen there is no hover to reveal them with, so there they
+         stay visible and the dimming never applies. */
+      @media (hover: hover) {
+        .sync-device-row:hover {
+          background: var(--element-hover);
+        }
+
+        .sync-device-remove {
+          opacity: 0.45;
+        }
+
+        .sync-device-row:hover .sync-device-remove,
+        .sync-device-remove:focus-visible {
+          opacity: 1;
+        }
+      }
+
+      .sync-device-remove:hover:not(:disabled),
+      .sync-device-remove:focus-visible {
+        color: var(--accent-break);
+        background: color-mix(in srgb, var(--accent-break) 14%, transparent);
+      }
+
+      .sync-device-remove:disabled {
+        opacity: 0.3;
+        cursor: default;
       }
 
       /* The device you are holding gets the weight, so finding yourself in
@@ -4610,12 +4735,59 @@
         overflow-wrap: anywhere;
       }
 
+      /* Six read-outs in two columns rather than six full-width rows.
+
+         Not label-and-value across a half-width row: the panel is 18.5rem
+         wide, a column of it is about 118px, and "Clock offset" set against
+         "+59 ms" spends nearly all of that before the gap between them --
+         "this device · gen 12" does not fit at all. Stacked, each pair gets
+         the full column for its value and the long one wraps instead of
+         overflowing, at any width this panel is ever given.
+
+         Filled down, not across, which is the reason for the fixed three
+         rows: it puts the three elapsed times in one column and the three
+         states in the other, so each column is a group rather than a
+         fragment of the reading order. That does assume six children -- a
+         seventh read-out wants a fourth row here, and one taken away wants
+         three. */
+      #sync-details {
+        display: grid;
+        grid-auto-flow: column;
+        grid-template-rows: repeat(3, auto);
+        grid-auto-columns: minmax(0, 1fr);
+        gap: 8px 12px;
+      }
+
+      /* Undresses .settings-row for this one use: the pair stacks, and the
+         min-width is again what lets a long value wrap inside its column
+         rather than widening it. */
+      #sync-details .settings-row {
+        flex-direction: column;
+        align-items: flex-start;
+        justify-content: flex-start;
+        gap: 1px;
+        min-width: 0;
+      }
+
       /* Labels lighter than the values they introduce, which is the weight
          relationship the three rows above the disclosure already use - and
          the reason those three set it inline rather than taking the class
-         default. */
+         default. A size down from the row default as well, now that the label
+         sits above its value rather than across from it and the two are read
+         as one block. */
       #sync-details .settings-label {
         font-weight: 500;
+        font-size: var(--text-2xs);
+        line-height: 1.25;
+      }
+
+      /* Left, not right. The values are under their labels now, and a figure
+         set against the far edge of its own column no longer lines up with
+         anything -- it just drifts away from the word it belongs to. */
+      #sync-details .sync-detail-value {
+        max-width: 100%;
+        text-align: left;
+        line-height: 1.3;
       }
 
       .idle-popup-val {
@@ -8106,6 +8278,21 @@
            travelling the moment the account list reaches its end. */
         #m-sheet #sync-config-popup {
           overflow: hidden;
+        }
+
+        /* The one control in this panel that is hit rather than read, in a
+           column of near neighbours, so it is sized for a thumb here. Not on
+           the 44px list above with the fields and the submits: a device list
+           four rows deep would then be 176px of a panel this change exists to
+           make shorter. 36px clears the 24px minimum with room to spare and
+           keeps the list the length somebody will actually read. */
+        .sync-devices {
+          --device-action: 36px;
+        }
+
+        .sync-device-remove svg {
+          width: 15px;
+          height: 15px;
         }
 
         /* The phone's field padding, with the reveal button's column still
@@ -14742,11 +14929,17 @@
                   <!-- "Where am I signed in?" had no answer anywhere in the
                        app: the devices table was written on every heartbeat
                        and only ever read to put a name in the takeover
-                       prompt. Read-only on purpose — a per-row Remove would
-                       delete a label that the device itself rewrites on its
-                       next beat, which looks like revoking access and is
-                       nothing of the kind. Signing a device out is a token
-                       operation, so it lives on the button below. -->
+                       prompt.
+
+                       Each row now carries a cross that signs that one device
+                       out, which is a thing this panel could not do at all
+                       before: the only lever was "Sign out everywhere", and
+                       it takes down the device doing the asking too. The row
+                       is deleted here and the device itself finds out on its
+                       next beat — see touchDevice, which is where the promise
+                       this list makes is actually kept. Deleting the row was
+                       meaningless until then, because the device's own
+                       heartbeat wrote it straight back. -->
                   <div class="sync-details-heading">
                     <span class="settings-label">Devices</span>
                     <!-- The count, because the list is folded past four rows
@@ -14793,10 +14986,13 @@
                   <div class="sync-details-heading">
                     <span class="settings-label">Sync details</span>
                   </div>
-                  <div
-                    id="sync-details"
-                    style="display: flex; flex-direction: column; gap: 6px"
-                  >
+                  <!-- Laid out in the stylesheet rather than here. Six rows in
+                       one column was the single tallest thing in this panel;
+                       it is two columns of three now, which is a grid, and a
+                       grid is not something to declare on the element in a
+                       style attribute that then outranks every rule written
+                       for it. -->
+                  <div id="sync-details">
                     <!-- No account row: the chip at the top of the card
                          names it, in full, on one line, whether or not this
                          device can reach the cloud. -->
@@ -14841,10 +15037,14 @@
                   <div class="sync-details-heading">
                     <span class="settings-label">Danger zone</span>
                   </div>
-                  <span class="settings-help-text">
-                    Both of these erase something for good, and neither can be
-                    undone. Only the first touches the logbook on this device.
-                  </span>
+                  <!-- No standing warning over these two. Each one opens a
+                       confirmation that names what it destroys, in the
+                       specific — the account's own address, what stays and
+                       what goes — and a line of general dread above the
+                       buttons is read once and then never again, while the
+                       confirmation is read every time. It was also the
+                       longest run of prose in a panel whose problem was its
+                       height. -->
                   <div class="sync-danger">
                     <!-- Two labelled buttons rather than a question asked on
                          every sign-out. The common case should not have to
@@ -17871,6 +18071,17 @@
         const dirty = new Set();
         let deviceId = null;
         let deviceLabel = null;
+        /* Which account this device has a row in the devices table for, or
+           null. The one fact that separates a device whose row has been
+           deleted from another device -- which has to sign itself out -- from
+           a device that simply has not registered yet, which has to insert
+           one. Both look identical at the point they are found: a PATCH that
+           matched nothing.
+
+           Durable, and it has to be. Held in memory only, closing the app and
+           reopening it would read every removal as a first run, insert the
+           row straight back and undo the sign-out the user asked for. */
+        let deviceRegisteredFor = null;
 
         /* When this device last changed a preference, in SERVER time, and
            durable — an edit made offline still has to outrank an older one
@@ -17949,7 +18160,12 @@
             cursors[kind] = cursor[kind];
           }
           out.push(cursors);
-          out.push({ key: "device", id: deviceId, label: deviceLabel });
+          out.push({
+            key: "device",
+            id: deviceId,
+            label: deviceLabel,
+            registeredFor: deviceRegisteredFor,
+          });
           out.push({ key: "settings", modifiedWire: settingsModifiedWire });
           return out;
         }
@@ -18508,6 +18724,7 @@
               Number(settingsMeta && settingsMeta.modifiedWire) || 0;
             deviceId = (device && device.id) || newUuid();
             deviceLabel = (device && device.label) || guessLabel();
+            deviceRegisteredFor = (device && device.registeredFor) || null;
             if (!device) await flushMeta();
           } catch (e) {
             /* A meta read failure is recoverable: an empty shadow costs one
@@ -18630,6 +18847,17 @@
           setDeviceLabel(v) {
             deviceLabel = String(v || "").slice(0, 60) || guessLabel();
             return persistMeta();
+          },
+          get deviceRegisteredFor() {
+            return deviceRegisteredFor;
+          },
+          /* Written straight through rather than debounced. The whole value
+             of this flag is that it is on disk before the next beat can read
+             it back, and the next beat can be 30 seconds away or one
+             realtime nudge away. */
+          setDeviceRegisteredFor(v) {
+            deviceRegisteredFor = v || null;
+            return flushMeta();
           },
           cursor,
           dirty,
@@ -18773,6 +19001,24 @@
            a year of history must not disappear because a refresh failed. */
         function clearSession(message) {
           session = null;
+          /* The flag means "this device has a row in the devices table of the
+             account it is signed into", so a device signed into nothing makes
+             no such claim. Leaving it standing is what made a removed device
+             unable to come back: it signed out correctly, the user typed the
+             password again, and the very next beat found no row, matched the
+             stale account id and signed them out a second time with the same
+             message. There was no way off that loop from inside the app.
+
+             Cleared here rather than in the sign-out that noticed, because
+             this is the funnel every route out of a session passes through --
+             the button, the erase, the account deletion, and a refresh token
+             the server has refused. */
+          if (
+            window.Sync &&
+            typeof Sync.setDeviceRegisteredFor === "function"
+          ) {
+            Sync.setDeviceRegisteredFor(null);
+          }
           offsetSamples.length = 0;
           offsetMeasured = false;
           refreshFailures = 0;
@@ -19326,6 +19572,24 @@
           return true;
         }
 
+        /* Somebody else's decision, arriving here. The account holder
+           removed this device from the list, its row is gone, and the beat
+           that went looking for it found out -- see touchDevice.
+
+           The ordinary sign-out with a reason attached, and deliberately not
+           an erase: a year of shifts on this browser belongs to the person
+           holding it whether or not this browser is still on the account's
+           list, and nothing about removing a device says otherwise. The token
+           is spent on the way out for the same reason the ordinary sign-out
+           spends it -- a session left valid on a device that has been removed
+           is the one outcome the user was trying to avoid. */
+        async function forceSignOut(message) {
+          await signOut();
+          if (message && typeof showAppToast === "function") {
+            showAppToast(message, "warning");
+          }
+        }
+
         /* ── boot ──────────────────────────────────────────────────────── */
 
         const stored = loadStoredSession();
@@ -19381,6 +19645,7 @@
           deleteAccount,
           signOut,
           signOutEverywhere,
+          forceSignOut,
           refresh,
           measureOffset,
           noteServerTime,
@@ -20454,25 +20719,92 @@
         /* ── server calls ──────────────────────────────────────────────── */
 
         /* The prompt on the other device reads "Running on Chrome on Windows"
-           because of this row, and nothing else reads it at all. Written on
-           the first beat, then at most every five minutes. */
+           because of this row -- and, since the panel grew a list of them, it
+           is also how this device says it is still here. Written on the first
+           beat, then at most every five minutes.
+
+           PATCH rather than the upsert this was, and that difference is the
+           whole of the per-device sign-out. `return=representation` comes back
+           carrying the row it updated, or an empty array when the filter
+           matched nothing -- and nothing matching this device's own id means
+           the row was deleted from somewhere else, which is exactly what
+           removing this device from the list does. An upsert cannot tell
+           those apart and writes the row back either way, so the removal
+           would quietly undo itself on the next beat and the cross in that
+           list would be decoration.
+
+           Still one request in the ordinary case: the insert below runs once
+           per device per account, not once per beat. */
         async function touchDevice() {
           if (Date.now() - deviceTouchedAt < DEVICE_TOUCH_MS) return;
           deviceTouchedAt = Date.now();
-          const r = await SyncNet.net("/rest/v1/devices", {
+          /* Never fatal. A nameless device holds a perfectly good lease; it
+             just prompts less helpfully, so retry soon rather than never. */
+          const retrySoon = () => {
+            deviceTouchedAt = Date.now() - DEVICE_TOUCH_MS + TOUCH_RETRY_MS;
+          };
+          const account = SyncNet.userId;
+          if (!account) return retrySoon();
+          const label = Sync.deviceLabel || "Unnamed device";
+          const seen = new Date(Sync.trueNow()).toISOString();
+
+          const r = await SyncNet.net(
+            "/rest/v1/devices?id=eq." + encodeURIComponent(Sync.deviceId),
+            {
+              method: "PATCH",
+              headers: { Prefer: "return=representation" },
+              body: JSON.stringify({ label, last_seen_at: seen }),
+            },
+          );
+          if (!r.ok) return retrySoon();
+          const rows = await r.json().catch(() => null);
+          /* A body that will not parse is a transport fault, not an answer.
+             Reading it as "no row" would sign the device out over a proxy
+             serving an error page. */
+          if (!Array.isArray(rows)) return retrySoon();
+
+          if (rows.length) {
+            /* A row that answers is proof this device is registered on this
+               account. Recorded here as well as after the insert, and the
+               difference matters for every device that already existed when
+               this flag did not: without this they carry a null for ever,
+               read their own removal as a first run, and put the row
+               straight back. */
+            if (Sync.deviceRegisteredFor !== account) {
+              await Sync.setDeviceRegisteredFor(account);
+            }
+            return;
+          }
+
+          /* No row, and two very different reasons for that. */
+          if (Sync.deviceRegisteredFor === account) {
+            await SyncNet.forceSignOut(
+              "Signed out — this device was removed from your cloud account",
+            );
+            return;
+          }
+
+          /* Never registered here. user_id is named rather than left to a
+             column default: the row is only accepted because RLS checks it
+             against auth.uid(), so sending it is both correct and one less
+             thing the deployed schema has to be trusted for. */
+          const ins = await SyncNet.net("/rest/v1/devices", {
             method: "POST",
             headers: { Prefer: "return=minimal,resolution=merge-duplicates" },
             body: JSON.stringify({
               id: Sync.deviceId,
-              label: Sync.deviceLabel || "Unnamed device",
-              last_seen_at: new Date(Sync.trueNow()).toISOString(),
+              user_id: account,
+              label,
+              last_seen_at: seen,
             }),
           });
-          if (!r.ok) {
-            /* Never fatal. A nameless device holds a perfectly good lease; it
-               just prompts less helpfully, so retry soon rather than never. */
-            deviceTouchedAt = Date.now() - DEVICE_TOUCH_MS + TOUCH_RETRY_MS;
-          }
+          if (!ins.ok) return retrySoon();
+          /* Only once the row is actually there. Set before the insert, a
+             failure would leave this device believing it had been registered
+             -- and the next missing row, which is the same missing row, would
+             read as a removal. It would sign itself out over a network
+             error. */
+          await Sync.setDeviceRegisteredFor(account);
         }
 
         /* The takeover prompt is only actionable if it says "MacBook" rather
@@ -20895,6 +21227,13 @@
           const wasOwner = phase === "owner";
           try {
             await touchDevice();
+            /* touchDevice can end this session outright: a device removed
+               from the account finds out there and signs itself out, which
+               stops the lease and retires every beat in flight. Carrying on
+               would claim a lease with a token this device has just spent.
+               The same guard the round trip below uses, for the same reason
+               -- the epoch is what says a beat has been overtaken. */
+            if (beatEpoch !== epoch) return;
             /* We held the lease and no longer want it, which means the
                session ended here. Clear it as we hand it back. */
             if (!want && phase === "owner") await release(true);
@@ -33840,7 +34179,25 @@
             const inside = path
               ? path.indexOf(popup) !== -1
               : popup.contains(event.target);
-            if (!inside) closeFooterPopup(popup);
+            /* And a click that lands in a modal is not a click on the page
+               behind it. These panels raise confirmations of their own --
+               signing one device out, erasing this one, deleting the account
+               -- and every one of those dialogs sits on top of the panel on
+               screen while living outside it in the DOM. So answering one
+               dismissed the panel underneath, and the answer to "did that
+               work?" was drawn into something that had just closed itself.
+
+               Asked of the path rather than of the document: what matters is
+               that this particular click travelled through a modal, not that
+               some modal happens to be open somewhere. */
+            const inModal = !!(
+              path &&
+              path.some(
+                (n) =>
+                  n && n.classList && n.classList.contains("modal-overlay"),
+              )
+            );
+            if (!inside && !inModal) closeFooterPopup(popup);
           },
           { signal: ctrl.signal },
         );
@@ -34068,7 +34425,13 @@
           const name = document.createElement("span");
           name.className = "settings-label sync-device-name";
           name.textContent = row.label || "Unnamed device";
-          if (row.id === mine) name.classList.add("is-this-device");
+          /* Marked on the name for its weight and on the row for its layout:
+             the row is the thing that has to reserve the column the cross
+             would have occupied. */
+          if (row.id === mine) {
+            name.classList.add("is-this-device");
+            el.classList.add("is-mine");
+          }
 
           const meta = document.createElement("span");
           meta.className = "sync-detail-value sync-device-meta";
@@ -34088,6 +34451,30 @@
 
           el.appendChild(name);
           el.appendChild(meta);
+          /* Not on this device's own row. Every session list worth copying
+             leaves the current one out -- yours is the row marked "this
+             device" and it has no revoke beside it -- because the cross means
+             "sign that one out", and a cross on your own row would mean
+             something materially different while looking identical. Signing
+             out here is the pinned footer's job, which is two bands away and
+             cannot be hit while reading down a list. */
+          if (row.id !== mine) {
+            const kill = document.createElement("button");
+            kill.type = "button";
+            kill.className = "sync-device-remove";
+            /* Both, and the same words in both: the tooltip for a pointer,
+               the label for a screen reader, and neither leaving the icon to
+               carry the meaning on its own. */
+            const what = "Sign out " + (row.label || "this device");
+            kill.title = what;
+            kill.setAttribute("aria-label", what);
+            kill.innerHTML =
+              '<svg viewBox="0 0 24 24" aria-hidden="true">' +
+              '<line x1="18" y1="6" x2="6" y2="18"></line>' +
+              '<line x1="6" y1="6" x2="18" y2="18"></line></svg>';
+            kill.onclick = () => syncRemoveDevice(row.id, row.label);
+            el.appendChild(kill);
+          }
           host.appendChild(el);
         }
 
@@ -34105,6 +34492,63 @@
           host.appendChild(more);
         }
       }
+
+      /**
+       * Signs one other device out of this account.
+       *
+       * The narrow version of "Sign out everywhere", which until now was the
+       * only lever this panel had: it revokes every refresh token including
+       * the one belonging to the device asking, so using it to deal with one
+       * stale browser cost the user every session they had.
+       *
+       * Deleting the row is the whole of the instruction, and on its own it
+       * would be worth nothing -- the device's own heartbeat wrote that row
+       * and would write it again. touchDevice is the other half: it PATCHes
+       * rather than upserts now, so a device whose row has gone finds out and
+       * signs itself out. Which is also the reason for the wording below. The
+       * effect is not instant and saying otherwise would be a lie somebody
+       * acts on: a device that is asleep, offline, or simply closed learns
+       * about this when it next reaches the cloud and not a moment sooner.
+       */
+      window.syncRemoveDevice = function (id, label) {
+        if (!id || !window.SyncNet || !SyncNet.signedIn) return;
+        const name = label || "that device";
+        openConfirmModal(
+          `Sign out ${name}?`,
+          `${name} is removed from this account and signs out the next time ` +
+            `it reaches the cloud, usually within a few minutes. Nothing is ` +
+            `deleted: the shifts and tasks stored on it stay on it, and ` +
+            `signing in there again puts it back on this list.`,
+          async () => {
+            try {
+              const r = await SyncNet.net(
+                "/rest/v1/devices?id=eq." + encodeURIComponent(id),
+                { method: "DELETE", headers: { Prefer: "return=minimal" } },
+              );
+              if (!r.ok) {
+                throw new Error(`Could not sign ${name} out (${r.status})`);
+              }
+              /* Off the list now rather than whenever the cache next
+                 expires: the user has just been told it is gone, and a row
+                 that sits there for another thirty seconds reads as a
+                 button that did not work. The cache is expired as well, so
+                 the render below asks the server rather than trusting this
+                 edit -- being right eventually matters more than being
+                 quick, and this way it is both. */
+              syncDeviceRows = syncDeviceRows.filter((r2) => r2.id !== id);
+              syncDevicesFetchedAt = 0;
+              if (typeof showAppToast === "function") {
+                showAppToast(`${name} signed out`, "success");
+              }
+            } catch (e) {
+              syncAuthFail((e && e.message) || `Could not sign ${name} out`);
+            }
+            renderSyncCard();
+          },
+          true,
+          "Sign out device",
+        );
+      };
 
       /* Relative, because the question this panel answers is always "how long
          ago", never "at what time" - until it is far enough back that the
