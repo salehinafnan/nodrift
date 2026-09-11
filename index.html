@@ -3879,10 +3879,58 @@
         display: flex;
         justify-content: space-between;
         align-items: center;
+        gap: 8px;
         width: 100%;
         font-size: var(--font-size-entry-meta);
         color: var(--text-muted);
         margin-top: 4px;
+      }
+
+      /* The day's name, and the only thing in the header that is allowed to
+         give way. The stats cluster beside it is a fixed 12.5rem of mono
+         figures that must stay aligned down the week, so when something has
+         to shrink it is this -- and it truncates rather than wrapping,
+         because a row that grows a second line is a row that no longer
+         matches the six around it. */
+      .breakdown-row-day {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      /* Tags on the second line: which kind of leave a day was, and whether
+         it was worked anyway. A group of its own rather than a
+         stats-alignment-wrapper, which reserves 12.5rem for two 14ch columns
+         of mono figures -- a word set in one of those is clipped by the
+         column and parked under a break total it has nothing to do with.
+
+         It yields to the time range beside it rather than the other way
+         round: the hours are the fact, the tags are the note about them. */
+      .breakdown-row-tags {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        flex-wrap: wrap;
+        gap: 6px;
+        min-width: 0;
+      }
+
+      /* The badges carry a left margin for the inline case they were written
+         for -- straight after a date, with no flex gap to space them. In a
+         row that has its own gap that margin is a second one. */
+      .breakdown-row-tags > .badge {
+        margin-left: 0;
+      }
+
+      /* And the time range gives way before the tags do, for the same reason
+         it is the header's name that gives way: the tags are two short words
+         and the range is a long one nobody reads to the second. */
+      .breakdown-row-when {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
       }
 
       .flex-center {
@@ -6238,6 +6286,23 @@
         background: color-mix(in srgb, var(--accent-work) 11%, transparent);
         border: 1px solid
           color-mix(in srgb, var(--accent-work) 20%, transparent);
+      }
+
+      /* A state, not a category, and drawn to say so. It sits directly
+         beside a leave badge that is coloured by type -- red for sick, amber
+         for casual, green for a holiday -- and a second coloured badge there
+         would either fight that colour or be read as a second type. Muted, so
+         the one carrying meaning is the one next to it.
+
+         Built the same way as the badges above rather than with a flat
+         surface token, so it stays a tint of the page it is on under every
+         theme. */
+      .badge-state {
+        font-size: var(--text-3xs);
+        padding: 2px 6px;
+        color: var(--text-muted);
+        background: color-mix(in srgb, var(--text-main) 6%, transparent);
+        border: 1px solid color-mix(in srgb, var(--text-main) 16%, transparent);
       }
 
       /* Sits in the logbook row header, which already supplies its own gap.
@@ -26186,11 +26251,17 @@
                 </span>
                 <span class="log-meta"></span>
                 <span class="log-leave-type-badge badge badge-leave" style="display: none;"></span>
-                <span class="log-weekend-badge-left badge badge-weekend" style="display: none;">Weekend</span>
-                <span class="log-worked-leave-badge badge badge-leave" style="display: none;">Worked Leave</span>
+                <!-- What kind of day this was: a weekend, or a day of leave
+                     worked anyway. One tag, and one of these two slots holds
+                     it -- see the rule in the renderer. There used to be a
+                     badge per kind, and the weekend's had both slots while
+                     the worked-leave one had only the left, so the same tag
+                     parked at opposite ends of the header on two rows a day
+                     apart. -->
+                <span class="log-context-badge badge" style="display: none;"></span>
               </div>
               <div class="log-header-right">
-                <span class="log-weekend-badge-right badge badge-weekend" style="display: none;">Weekend</span>
+                <span class="log-context-badge badge" style="display: none;"></span>
                 <span class="log-day-summary-badge" style="display: none;"></span>
               </div>
             </div>
@@ -26233,9 +26304,12 @@
           dateSub: div.querySelector(".log-date-sub"),
           meta: div.querySelector(".log-meta"),
           leaveTypeBadge: div.querySelector(".log-leave-type-badge"),
-          weekendBadgeLeft: div.querySelector(".log-weekend-badge-left"),
-          weekendBadgeRight: div.querySelector(".log-weekend-badge-right"),
-          workedLeaveBadge: div.querySelector(".log-worked-leave-badge"),
+          contextBadgeLeft: div.querySelector(
+            ".log-header-left .log-context-badge",
+          ),
+          contextBadgeRight: div.querySelector(
+            ".log-header-right .log-context-badge",
+          ),
           statusBadge: div.querySelector(".log-status-badge"),
           diffText: div.querySelector(".log-diff-text"),
           workText: div.querySelector(".log-work-text"),
@@ -28138,9 +28212,8 @@
                 dom.leaveTypeBadge.style.display = "";
 
                 dom.summaryBadge.style.display = "none";
-                dom.weekendBadgeLeft.style.display = "none";
-                dom.weekendBadgeRight.style.display = "none";
-                dom.workedLeaveBadge.style.display = "none";
+                dom.contextBadgeLeft.style.display = "none";
+                dom.contextBadgeRight.style.display = "none";
 
                 dom.noteBtn.style.display = "none";
                 dom.copyBtn.style.display = "none";
@@ -28182,25 +28255,36 @@
                   log.breakSec,
                 );
 
-                if (isWeekend) {
-                  if (hasTotalText) {
-                    dom.weekendBadgeLeft.style.display = "";
-                    dom.weekendBadgeRight.style.display = "none";
-                  } else {
-                    dom.weekendBadgeLeft.style.display = "none";
-                    dom.weekendBadgeRight.style.display = "";
-                  }
-                } else {
-                  dom.weekendBadgeLeft.style.display = "none";
-                  dom.weekendBadgeRight.style.display = "none";
-                }
+                /* Which tag, then which slot -- two questions, asked in
+                   that order and never mixed. Worked leave outranks the
+                   weekend because a Saturday that was also a holiday is a
+                   day off twice over and the rarer fact is the one worth the
+                   space; a phone row has no room for both.
 
-                if (isWorkedLeave) {
-                  dom.workedLeaveBadge.style.display = "";
-                  dom.weekendBadgeLeft.style.display = "none";
-                  dom.weekendBadgeRight.style.display = "none";
+                   The slot is decided by what else is in the header and not
+                   by which tag won: the right, where the eye ends up, unless
+                   the day's running total is already parked there. That is
+                   what these two badges disagreed about before -- the
+                   weekend's had both slots and this rule, and worked leave
+                   had a badge of its own stuck inline in the left group. */
+                const contextTag = isWorkedLeave
+                  ? { text: "Worked Leave", variant: "badge-leave" }
+                  : isWeekend
+                    ? { text: "Weekend", variant: "badge-weekend" }
+                    : null;
+                const tagSlot = hasTotalText
+                  ? dom.contextBadgeLeft
+                  : dom.contextBadgeRight;
+                const tagSpare = hasTotalText
+                  ? dom.contextBadgeRight
+                  : dom.contextBadgeLeft;
+                tagSpare.style.display = "none";
+                if (contextTag) {
+                  tagSlot.textContent = contextTag.text;
+                  tagSlot.className = `log-context-badge badge ${contextTag.variant}`;
+                  tagSlot.style.display = "";
                 } else {
-                  dom.workedLeaveBadge.style.display = "none";
+                  tagSlot.style.display = "none";
                 }
 
                 dom.statusBadge.className = `log-status-badge badge ${isOver ? "badge-over" : "badge-under"}`;
@@ -29273,6 +29357,13 @@
                 ? leaveRecord.type
                 : "Leave",
             ).badgeClass;
+            /* On the second line, not beside the date. The header gives
+               its right half to a 12.5rem stats cluster and the day's name
+               whatever is left, which on a phone is about 150px -- enough for
+               "Weekend", not for "Public Holiday Leave", so the header grew a
+               second line and the row stood half again as tall as the six
+               around it. The second line has the same two halves and nothing
+               in its right one on a day like this, so the tags go there. */
             const leaveBadge = `<span class="badge badge-leave${leaveTypeClass ? ` ${leaveTypeClass}` : ""}">${leaveLabel}</span>`;
             const isEmptyLeaveDay =
               dayW === 0 && dayB === 0 && (!isToday || !state.loginTimestamp);
@@ -29281,8 +29372,8 @@
               breakdownHTML += `
                                 <div class="breakdown-row is-empty${isToday ? " is-today-row" : ""}">
                                   <div class="breakdown-row-header">
-                                    <span style="font-weight: ${isToday ? "600" : "400"}; font-size: var(--font-size-entry-title);">
-                                      ${_DAY_NAMES_SHORT[dayOfWeekIndex]} <span style="opacity: 0.5;">(${displayDateNoYear})</span>${weekendBadge}${leaveBadge}
+                                    <span class="breakdown-row-day" style="font-weight: ${isToday ? "600" : "400"}; font-size: var(--font-size-entry-title);">
+                                      ${_DAY_NAMES_SHORT[dayOfWeekIndex]} <span style="opacity: 0.5;">(${displayDateNoYear})</span>${weekendBadge}
                                     </span>
                                     <div class="font-mono stats-alignment-wrapper" style="font-size: var(--font-size-entry-stats); color: var(--text-main); display: flex; gap: 12px;">
                                        <div class="stat-column work-col flex-center"><span class="badge badge-w">W</span>—</div>
@@ -29290,12 +29381,8 @@
                                     </div>
                                   </div>
                                   <div class="breakdown-row-meta">
-                                    <span>Scheduled Leave</span>
-                                    <div class="font-mono stats-alignment-wrapper" style="font-size: var(--font-size-entry-stats); color: var(--text-muted); display: flex; gap: 12px; opacity: 0;">
-                                      <div class="stat-column work-col flex-center">
-                                        <span class="badge badge-under">U</span>—
-                                      </div>
-                                    </div>
+                                    <span>Scheduled</span>
+                                    <div class="breakdown-row-tags">${leaveBadge}</div>
                                   </div>
                                 </div>`;
             } else {
@@ -29327,8 +29414,8 @@
               breakdownHTML += `
                                 <div class="${rowClass}">
                                   <div class="breakdown-row-header">
-                                    <span style="font-weight: ${isToday ? "600" : "400"}; font-size: var(--font-size-entry-title);">
-                                      ${_DAY_NAMES_SHORT[dayOfWeekIndex]} <span style="opacity: 0.5;">(${displayDateNoYear})</span>${weekendBadge}${leaveBadge}
+                                    <span class="breakdown-row-day" style="font-weight: ${isToday ? "600" : "400"}; font-size: var(--font-size-entry-title);">
+                                      ${_DAY_NAMES_SHORT[dayOfWeekIndex]} <span style="opacity: 0.5;">(${displayDateNoYear})</span>${weekendBadge}
                                     </span>
                                     <div class="font-mono stats-alignment-wrapper" style="font-size: var(--font-size-entry-stats); color: var(--text-main); display: flex; gap: 12px;">
                                       <div class="stat-column work-col flex-center">
@@ -29340,12 +29427,17 @@
                                     </div>
                                   </div>
                                   <div class="breakdown-row-meta">
-                                    <span ${isToday ? 'id="today-meta-val"' : ""}>${loginStr} - ${logoutStr}</span>
-                                    <div class="font-mono stats-alignment-wrapper" style="font-size: var(--font-size-entry-stats); color: var(--text-muted); display: flex; gap: 12px;">
-                                      <div class="stat-column work-col flex-center">
-                                        <span class="badge badge-leave">Worked Leave</span>
-                                      </div>
-                                    </div>
+                                    <span class="breakdown-row-when" ${isToday ? 'id="today-meta-val"' : ""}>${loginStr} - ${logoutStr}</span>
+                                    <!-- "Worked", not "Worked Leave": it sits
+                                         against a badge that has just said
+                                         which leave this was, and the row has
+                                         no width to spare for saying it
+                                         twice. It was in a stat-column before
+                                         -- 14ch of mono, built for "7h 20m 4s"
+                                         -- which clipped it and stranded it
+                                         under the break figure it has nothing
+                                         to do with. -->
+                                    <div class="breakdown-row-tags">${leaveBadge}<span class="badge badge-state">Worked</span></div>
                                   </div>
                                 </div>`;
             }
