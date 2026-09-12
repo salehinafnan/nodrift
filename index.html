@@ -18452,6 +18452,16 @@
           leaveAllowances: { key: LEAVE_ALLOWANCES_KEY, json: true },
         };
 
+        /* A preference this device does not hold is OMITTED, never sent as
+           null.
+
+           It used to be sent as null, and applyPrefs read null as "delete
+           this key" - so a device that had simply never set a preference
+           erased it everywhere else the moment it won a settings race. The
+           two halves disagreed about what null meant, and the ledger was
+           what it cost. There is now no wire value for "absent": absence is
+           absence, and every value on the wire is one somebody chose. An
+           emptied ledger is still sent, because "{}" is a value. */
         function readPrefs() {
           const out = {};
           for (const name in PREF_KEYS) {
@@ -18460,18 +18470,17 @@
             try {
               raw = localStorage.getItem(spec.key);
             } catch (e) {}
-            if (raw === null || raw === undefined) {
-              out[name] = null;
-              continue;
-            }
+            if (raw === null || raw === undefined) continue;
             if (!spec.json) {
               out[name] = raw;
               continue;
             }
             try {
-              out[name] = JSON.parse(raw);
+              const parsed = JSON.parse(raw);
+              if (parsed !== null && parsed !== undefined) out[name] = parsed;
             } catch (e) {
-              out[name] = null;
+              /* Unparseable local JSON is this device's problem. Publishing
+                 it as null would make it every device's problem. */
             }
           }
           return out;
@@ -18492,20 +18501,21 @@
             if (!(name in prefs)) continue;
             const spec = PREF_KEYS[name];
             const incoming = prefs[name];
-            const next =
-              incoming === null || incoming === undefined
-                ? null
-                : spec.json
-                  ? JSON.stringify(incoming)
-                  : String(incoming);
+            /* Null reaching us at all means an older device, from before
+               readPrefs stopped emitting it. Skip it: adopting a blob can
+               add and overwrite preferences, never delete one. Nothing on
+               the wire is allowed to mean "erase what you have". */
+            if (incoming === null || incoming === undefined) continue;
+            const next = spec.json
+              ? JSON.stringify(incoming)
+              : String(incoming);
             let current = null;
             try {
               current = localStorage.getItem(spec.key);
             } catch (e) {}
             if (current === next) continue;
             try {
-              if (next === null) localStorage.removeItem(spec.key);
-              else localStorage.setItem(spec.key, next);
+              localStorage.setItem(spec.key, next);
               changed = true;
             } catch (e) {
               console.warn("Could not apply synced preference " + name, e);
@@ -32091,6 +32101,12 @@
         const redraws = [
           "renderPresets",
           "renderLeaveDatesList",
+          /* The allowance ledger is a synced preference like any other, and
+             the two screens that read it were not on this list - so a ledger
+             adopted from another device left the balances and the type
+             dropdown showing the numbers it had replaced. */
+          "renderLeaveBalances",
+          "renderLeaveTypeDropdown",
           "renderStaticUI",
           "renderLogbook",
         ];
@@ -37341,17 +37357,13 @@
         return out;
       }
 
-      /* One-time reconciliation for profiles created before the ledger existed.
-         The seed list dropped two types the old hardcoded dropdown offered
+      /* Folds every leave type present in the logbook into a ledger, at zero
+         days. The seed list dropped two types the old hardcoded dropdown offered
          ("Sick", "Public Holiday"), which would strand every leave already
          logged under them: unselectable in the dropdown and invisible to the
-         balance counters. Folding the types actually present in the logbook into
-         the ledger keeps that history addressable instead of silently orphaned. */
-      function migrateLeaveAllowances(allowances) {
-        if (safeGetLocalStorage(LEAVE_ALLOWANCES_MIGRATION_KEY)) {
-          return allowances;
-        }
-
+         balance counters. Returns a new object and touches no storage - the
+         caller decides whether the merge is worth persisting. */
+      function mergeLoggedLeaveTypes(allowances) {
         const merged = { ...allowances };
         let added = false;
 
@@ -37363,6 +37375,19 @@
             added = true;
           }
         });
+
+        return { merged, added };
+      }
+
+      /* One-time reconciliation for profiles created before the ledger existed.
+         Runs only against a ledger this device has actually stored: see the
+         note in getLeaveAllowances for why the seed must never be written. */
+      function migrateLeaveAllowances(allowances) {
+        if (safeGetLocalStorage(LEAVE_ALLOWANCES_MIGRATION_KEY)) {
+          return allowances;
+        }
+
+        const { merged, added } = mergeLoggedLeaveTypes(allowances);
 
         /* Persist the merge before latching the flag. If the write fails the
            latch is not set, so the migration is retried on the next read rather
@@ -37400,7 +37425,26 @@
           }
         }
 
-        if (!base) base = { ...DEFAULT_ALLOWANCES };
+        /* No stored ledger: serve the seed from memory and write NOTHING.
+
+           Writing it used to be the single most destructive thing the app did.
+           A device that had never opened the Balances tab - a fresh browser, or
+           any device just after a factory reset - would materialise the seed
+           into localStorage on its first read, the migration would fold in the
+           types it saw in the freshly synced logbook, and the settings beat
+           would then see a preference key change and push that blob to the
+           cloud as a genuine user edit. Last write wins, so the seed overwrote
+           the real ledger on every other device: allowances the user had set
+           years ago came back as 14 / 7 / 7 / 0 / 0, which is the seed, and the
+           leaves already taken against them turned the balances negative.
+
+           A ledger the user has never edited is not a fact about their account,
+           so it must stay out of storage and off the wire. The types logged in
+           the logbook are still merged in, so the screen looks the same; the
+           first real edit is what persists the whole thing (saveLeaveAllowances
+           writes the merged object, not a diff). */
+        if (!base)
+          return mergeLoggedLeaveTypes({ ...DEFAULT_ALLOWANCES }).merged;
 
         return migrateLeaveAllowances(base);
       }
@@ -37410,6 +37454,30 @@
           LEAVE_ALLOWANCES_KEY,
           JSON.stringify(allowances),
         );
+      }
+
+      /* The year a balance is counted in, when no record names one. Balances
+         reset yearly, so every counter and every check has to agree on which
+         twelve months it is talking about. */
+      function currentLeaveYear() {
+        return (
+          typeof getPSTDateObj === "function" ? getPSTDateObj() : new Date()
+        ).getFullYear();
+      }
+
+      /* Days left for one type in one year, or null for a type the ledger does
+         not track. Null is a different answer from zero on purpose: an
+         untracked type has no balance, so there is nothing to be short of and
+         nothing to refuse. */
+      function getLeaveBalanceFor(type, year, allowances) {
+        const ledger = allowances || getLeaveAllowances();
+        if (ledger[type] === undefined) return null;
+        const total = ledger[type];
+        const taken =
+          computeLeaveTakenCounts(
+            Number.isFinite(year) ? year : currentLeaveYear(),
+          )[type] || 0;
+        return { total, taken, left: total - taken };
       }
 
       /* Single definition of the remaining-balance severity ramp. Both the full
@@ -37447,33 +37515,58 @@
 
       /* Commits one allowance edit. Bound to the delegated input/change pair on
          the balances list, so `type` arrives from the row's dataset rather than
-         from an interpolated inline handler. */
-      window.updateLeaveAllowance = function (type, value, inputEl) {
+         from an interpolated inline handler.
+
+         `isCommit` separates the two events the field produces. Every keystroke
+         is an `input`, and a keystroke is a half-typed number: clamping it back
+         into the box would fight the user, and refusing it with a toast would
+         fire once per character. `change` is the settled value - blur or Enter -
+         and that is the only moment the field is corrected out loud. */
+      window.updateLeaveAllowance = function (type, value, inputEl, isCommit) {
+        const allowances = getLeaveAllowances();
+        if (allowances[type] === undefined) return;
+
+        /* Days already taken are the floor the allowance cannot go under. An
+           allowance is an entitlement, and cutting it below the days already
+           spent against it claims the user was never entitled to leave they
+           have already taken - which is exactly how the balances went negative.
+           The other half of the same invariant lives in addLeaveDate, which
+           refuses to spend a day that is not there. */
+        const taken = computeLeaveTakenCounts(currentLeaveYear())[type] || 0;
+        const stored = allowances[type];
+
         /* An empty or non-numeric field is a transient editing state, not an
            instruction to zero the allowance. Persisting it on every `input`
            event would destroy the stored value the moment the user selects all
-           and starts retyping. */
+           and starts retyping; on commit, the stored value is put back so the
+           field cannot be left blank over a real allowance. */
         const raw = typeof value === "string" ? value.trim() : value;
-        if (raw === "" || raw === null || raw === undefined) return;
+        if (raw === "" || raw === null || raw === undefined) {
+          if (isCommit && inputEl) inputEl.value = String(stored);
+          return;
+        }
 
         const parsed = Number(raw);
-        if (!Number.isFinite(parsed)) return;
-        const total = Math.min(
+        if (!Number.isFinite(parsed)) {
+          if (isCommit && inputEl) inputEl.value = String(stored);
+          return;
+        }
+
+        const typed = Math.min(
           Math.max(Math.trunc(parsed), 0),
           MAX_LEAVE_ALLOWANCE,
         );
+        const total = Math.max(typed, taken);
 
-        const allowances = getLeaveAllowances();
-        if (allowances[type] === undefined) return;
-        if (allowances[type] === total) return;
-
-        allowances[type] = total;
-        if (!saveLeaveAllowances(allowances)) {
-          showAppToast(
-            "Could not save allowance — storage unavailable",
-            "error",
-          );
-          return;
+        if (total !== stored) {
+          allowances[type] = total;
+          if (!saveLeaveAllowances(allowances)) {
+            showAppToast(
+              "Could not save allowance — storage unavailable",
+              "error",
+            );
+            return;
+          }
         }
 
         if (!inputEl) {
@@ -37481,21 +37574,24 @@
           return;
         }
 
-        /* Reflect the clamp back into the field so the visible value and the
-           stored value can never disagree. */
-        if (String(total) !== String(inputEl.value))
-          inputEl.value = String(total);
+        /* Mid-edit the box keeps what was typed and only the range clamp is
+           reflected; on commit the box snaps to what was actually stored, so
+           the visible value and the stored value can never disagree once the
+           user has finished. */
+        const shown = isCommit ? total : typed;
+        if (String(shown) !== String(inputEl.value))
+          inputEl.value = String(shown);
 
-        const row = inputEl.closest(".leave-balance-row");
-        const takenEl = row && row.querySelector(".leave-stat-taken");
-        const leftEl = row && row.querySelector(".leave-stat-left");
-        if (takenEl && leftEl) {
-          applyLeaveBalanceStat(
-            leftEl,
-            total,
-            parseInt(takenEl.textContent, 10) || 0,
+        if (isCommit && total > typed) {
+          showAppToast(
+            `${type}: ${taken} day(s) already taken — allowance kept at ${total}`,
+            "warning",
           );
         }
+
+        const row = inputEl.closest(".leave-balance-row");
+        const leftEl = row && row.querySelector(".leave-stat-left");
+        if (leftEl) applyLeaveBalanceStat(leftEl, total, taken);
       };
 
       window.openAddLeaveTypeModal = function () {
@@ -37725,10 +37821,15 @@
           const input = e.target.closest('[data-action="leave-allowance"]');
           if (!input) return;
           const type = typeOf(input);
-          if (type) updateLeaveAllowance(type, input.value, input);
+          if (type)
+            updateLeaveAllowance(type, input.value, input, e.type !== "input");
         };
         container.addEventListener("input", commit);
         container.addEventListener("change", commit);
+        /* `change` does not fire when the field is left exactly as it was
+           found, and a box abandoned below its floor is left as it was found
+           the second time it happens. focusout always fires. */
+        container.addEventListener("focusout", commit);
 
         /* focus does not bubble; focusin does. */
         container.addEventListener("focusin", (e) => {
@@ -37815,6 +37916,29 @@
         );
         if (exists) {
           showAppToast("Date already marked as leave", "warning");
+          return;
+        }
+
+        /* A balance is a real quantity, so it is spent before it is recorded.
+           Logging a day the user does not have used to succeed silently and
+           push the remaining count below zero, which is not a state a leave
+           ledger can be in - it reported an entitlement that never existed.
+           Counted in the year of the date being logged, not today's, so
+           booking next January does not draw on this year's balance.
+
+           This is one half of the invariant. The other is the floor in
+           updateLeaveAllowance, which stops an allowance being cut below what
+           has already been taken against it; together they make a negative
+           balance unreachable rather than merely discouraged. */
+        const balanceYear = getLeaveRecordYear(formattedDate);
+        const balance = getLeaveBalanceFor(leaveType, balanceYear);
+        if (balance && balance.left <= 0) {
+          showAppToast(
+            balance.total === 0
+              ? `${leaveType} has no allowance — set one in Balances`
+              : `No ${leaveType} left — ${balance.taken} of ${balance.total} used`,
+            "warning",
+          );
           return;
         }
 
