@@ -187,6 +187,63 @@ Your data is yours. Period.
 
 ---
 
+## 🔒 Security
+
+Three rules hold the client side together. All three are enforced by
+`nodrift-harness/harness-security.js`, which drives real injection attempts
+through the real functions in a real browser.
+
+**1. A backup file is untrusted input.** It arrives by email or a shared drive
+and the validator only types it loosely, so every string on a log record is
+treated as hostile. The same records also arrive from cloud sync, which applies
+a server payload with no field validation at all — so escaping happens where
+the string becomes markup, never at the import gate. One rule at the sink
+covers both doors.
+
+**2. Record text reaches the DOM as text.** `textContent` and `dataset` by
+preference; `escapeHTML()` where a template literal is genuinely the clearer
+way to build a row. The only strings that may be written as HTML unescaped are
+internal constants — sprite bodies, badge class names from the visuals table.
+
+**3. An exported CSV is a document somebody else opens.** Every cell goes
+through `csvCell()`, which doubles quotes and prefixes anything a spreadsheet
+would evaluate as a formula. Plain numbers are exempt, so the negative delta
+column still sums; `probe-csv-shape.js` is what keeps that true.
+
+### Why the CSP is shaped the way it is
+
+`script-src` carries `'unsafe-inline'` and cannot lose it: the app is one
+inline `<script>`, which is the whole point of shipping a single file. The CSP
+is therefore **not** a backstop for an injection bug — rules 1 and 2 are. What
+it does close is `base-uri`, `form-action` and `object-src`, none of which
+inherit from `default-src`: an injected `<base href>` repoints every relative
+URL on the page, and an injected `<form action>` posts the page's contents
+somewhere else with no script and no `fetch` involved.
+
+`frame-ancestors` is deliberately absent — browsers ignore it in a `<meta>`
+tag. Clickjacking is answered by `X-Frame-Options` in `vercel.json`, which
+also carries `nosniff`, `Referrer-Policy` and HSTS. That file is headers only,
+on purpose: adding `builds` or `routes` to it would take the project out of
+Vercel's zero-config static detection, and the repo root being the web root is
+load-bearing (see `sw.js` and `manifest.json`). A CSP header is deliberately
+**not** set there either, because a header and the `<meta>` tag are enforced
+as an intersection and the two drifting apart is a silent outage.
+
+### What holds on the server
+
+The publishable key in `index.html` is public by design. Row level security is
+what makes that safe, and `supabase/migrations/0002_rls.sql` is the file to
+read: every policy is scoped `to authenticated` and compares `user_id` against
+`auth.uid()`, with `FORCE ROW LEVEL SECURITY` so the rule also binds the table
+owner. A caller holding nothing but the key has no row it may see.
+
+The service-role key exists in exactly one place — the `delete-account` edge
+function's environment — and that function takes the user id from the verified
+JWT, never from the request body. Accepting an id from the caller would turn
+it into an endpoint that deletes anybody's account for anybody who asks.
+
+---
+
 ## 📄 License
 
 This project is open-source and licensed under the [AGPL-3.0 License](LICENSE).
