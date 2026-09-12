@@ -31129,33 +31129,96 @@
         showAppToast("Exported logs as CSV");
       }
 
-      /**
-       * Exports full operational logs and state settings in clean JSON backup files.
-       */
-      function exportJSON() {
-        const data = {
+      /* Reads one JSON-encoded localStorage key, or null when it is absent or
+         unparseable. The payload below used to inline this five times, and an
+         inlined JSON.parse that throws takes the whole export down with it. */
+      function readJSONKey(key) {
+        const raw = safeGetLocalStorage(key);
+        if (!raw) return null;
+        try {
+          return JSON.parse(raw);
+        } catch (e) {
+          console.warn(`Backup could not parse "${key}"`, e);
+          return null;
+        }
+      }
+
+      /* The single definition of what a backup contains. Both the file writer
+         and the emptiness guard read it, so the guard cannot go on describing a
+         payload that has since grown fields it never learned about. */
+      function buildBackupPayload() {
+        return {
           state,
           taskState,
-          taskLogs: cachedTaskLogs,
+          taskLogs: Array.isArray(cachedTaskLogs) ? cachedTaskLogs : [],
           logs: getLogs(),
           goalH: parseInt(safeGetLocalStorage(GOAL_H_KEY), 10) || 8,
           goalM: parseInt(safeGetLocalStorage(GOAL_M_KEY), 10) || 0,
           goalS: parseInt(safeGetLocalStorage(GOAL_S_KEY), 10) || 0,
-          presets: safeGetLocalStorage(PRESET_VALUES_KEY)
-            ? JSON.parse(safeGetLocalStorage(PRESET_VALUES_KEY))
-            : null,
-          leaves: safeGetLocalStorage(LEAVE_DATES_KEY)
-            ? JSON.parse(safeGetLocalStorage(LEAVE_DATES_KEY))
-            : null,
-          leaveAllowances: safeGetLocalStorage(LEAVE_ALLOWANCES_KEY)
-            ? JSON.parse(safeGetLocalStorage(LEAVE_ALLOWANCES_KEY))
-            : null,
-          views: safeGetLocalStorage(VIEWS_KEY)
-            ? JSON.parse(safeGetLocalStorage(VIEWS_KEY))
-            : null,
+          presets: readJSONKey(PRESET_VALUES_KEY),
+          leaves: readJSONKey(LEAVE_DATES_KEY),
+          leaveAllowances: readJSONKey(LEAVE_ALLOWANCES_KEY),
+          views: readJSONKey(VIEWS_KEY),
         };
+      }
 
-        if (data.logs.length === 0) {
+      /* Answers "is there anything here worth writing to a file?" over the WHOLE
+         payload.
+
+         The guard this replaces asked only whether the shift logbook had rows,
+         so a profile holding finished tasks, logged leaves, an edited leave
+         ledger, saved filter views or a running timer was told it had "no data"
+         and handed no file at all - at the one moment a backup is worth most,
+         just before the user does something irreversible. Emptiness is a
+         property of the payload, so it is decided from the payload and every
+         field is asked about here. */
+      function backupPayloadIsEmpty(data) {
+        if (!data) return true;
+
+        const filled = (v) => Array.isArray(v) && v.length > 0;
+        if (filled(data.logs)) return false;
+        if (filled(data.taskLogs)) return false;
+        if (filled(data.leaves)) return false;
+        if (filled(data.views)) return false;
+        if (filled(data.presets)) return false;
+
+        /* A stored ledger exists only once the user has touched the balances:
+           the seed is served from memory and never written (see
+           getLeaveAllowances), so its presence really is the user's own data. */
+        if (
+          data.leaveAllowances &&
+          typeof data.leaveAllowances === "object" &&
+          Object.keys(data.leaveAllowances).length > 0
+        )
+          return false;
+
+        /* A shift or a task in flight counts too. It is the part a user is
+           least able to reconstruct by hand, so it must not be the part the
+           export quietly ignores. */
+        const t = data.taskState;
+        if (t && (t.isRunning || t.isPaused || t.accumulatedSec > 0 || t.note))
+          return false;
+
+        const s = data.state;
+        if (
+          s &&
+          (s.loginTimestamp ||
+            s.workAccumulated > 0 ||
+            s.breakAccumulated > 0 ||
+            (s.notes && String(s.notes).trim()))
+        )
+          return false;
+
+        return true;
+      }
+
+      /**
+       * Exports full operational logs and state settings in clean JSON backup files.
+       */
+      function exportJSON() {
+        const data = buildBackupPayload();
+
+        if (backupPayloadIsEmpty(data)) {
           showAppToast("No data to backup");
           return;
         }
