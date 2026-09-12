@@ -13,9 +13,22 @@
          Chrome, so the realtime socket is blocked outright without this and
          the app silently falls back to polling. Same host, listed twice on
          purpose; changing the Supabase project means editing both. -->
+    <!-- base-uri, form-action and object-src do NOT inherit from default-src.
+         Leaving them off is what made the CSP look tighter than it was:
+         'unsafe-inline' is unavoidable here because the app is one inline
+         script, so injected markup does run, and the three directives below
+         are what stop the two things such markup would otherwise do with no
+         script at all. An injected <base href> silently repoints every
+         relative URL on the page, including the service worker's; an injected
+         <form action="https://…"> posts whatever the page holds to somebody
+         else, and needs no JavaScript and no fetch to do it, which is why
+         connect-src does not cover it.
+         frame-ancestors is deliberately NOT here: browsers ignore it in a
+         meta tag. Clickjacking is answered by X-Frame-Options in
+         vercel.json, which is the only place a header can be set. -->
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' 'unsafe-inline' blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; connect-src https://dhvnnzzzsmfwwydyfupf.supabase.co wss://dhvnnzzzsmfwwydyfupf.supabase.co; img-src 'self' data:; font-src 'self' data: https://fonts.gstatic.com; manifest-src 'self' data:;"
+      content="default-src 'self'; base-uri 'self'; form-action 'self'; object-src 'none'; script-src 'self' 'unsafe-inline' blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; connect-src https://dhvnnzzzsmfwwydyfupf.supabase.co wss://dhvnnzzzsmfwwydyfupf.supabase.co; img-src 'self' data:; font-src 'self' data: https://fonts.gstatic.com; manifest-src 'self' data:;"
     />
     <title>nodrift</title>
 
@@ -15464,7 +15477,11 @@
             lastAdjustPreviewProjectedStr = errStr;
             lastAdjustPreviewWarning = false;
 
-            tooltip.innerHTML = `<span style="color: var(--accent-break); font-weight: 500;">${errStr}</span>`;
+            /* Both of the strings this can currently hold are constants, and
+               it stays that way only as long as nobody echoes the typed value
+               back in a message. Escaped so that whoever does is not opening a
+               hole by writing an ordinary error string. */
+            tooltip.innerHTML = `<span style="color: var(--accent-break); font-weight: 500;">${escapeHTML(errStr)}</span>`;
             tooltip.style.borderColor = "";
           }
         } else {
@@ -15531,7 +15548,11 @@
           }
         }
 
-        contentEl.innerHTML = `<span>${msg}</span>`;
+        /* Same reasoning as showSyncToast: the message is data, the span is
+           markup, and the Undo button below is appended as a node rather than
+           written as HTML precisely so this line can stay a single escaped
+           interpolation. */
+        contentEl.innerHTML = `<span>${escapeHTML(msg)}</span>`;
 
         if (showUndo) {
           const undoBtn = document.createElement("button");
@@ -15751,6 +15772,51 @@
               '"': "&quot;",
             })[tag] || tag,
         );
+      }
+
+      /* ── CSV cell encoding ─────────────────────────────────────────────
+         Two separate jobs, both of which the exporters used to do by hand for
+         the notes column only, leaving the date and the two clock times
+         unguarded.
+
+         One: quoting. Every cell is wrapped in quotes, so a quote inside one
+         has to be doubled or it closes the cell early and every column after
+         it on that row shifts left. `notes` was the only field being doubled,
+         which is backwards -- the times are the fields a hand-edited backup
+         can put anything into.
+
+         Two: the leading character. A spreadsheet treats a cell beginning
+         = + - @ (or a tab or a bare CR, which Excel strips before looking) as
+         a formula and evaluates it on open. That makes an exported report a
+         way to run something on the machine of whoever the report was sent
+         to, and these reports carry patient notes and go to a supervisor by
+         email. A leading apostrophe is the standard neutraliser: Excel and
+         Sheets both read the cell as text and display it unchanged, so the
+         note is preserved rather than stripped.
+
+         Applied to every cell, not only the risky-looking ones. A rule that
+         has to be remembered per field is the rule that was already missed.
+
+         WITH ONE EXEMPTION, and it is not a loophole. Delta_Hrs is negative on
+         any day under its goal, so "-0.5000" is a leading '-' that is simply a
+         number. Prefixing it made Excel read the whole column as text and a
+         SUM over it return zero -- the guard broke the report it was added to
+         protect, which probe-csv-shape.js caught and now watches for. A cell
+         that is entirely a number cannot be a formula: Excel evaluates '-2+3'
+         because it is an expression, and shows -0.5 because it is not. So the
+         test is "does this parse as a plain number", not "how does it start". */
+      const CSV_PLAIN_NUMBER = /^[-+]?\d+(?:\.\d+)?(?:[eE][-+]?\d+)?$/;
+      function csvCell(value) {
+        let s = value === null || value === undefined ? "" : String(value);
+        s = s.replace(/\r\n|\r|\n/g, " ");
+        if (/^[=+\-@\t]/.test(s) && !CSV_PLAIN_NUMBER.test(s)) s = "'" + s;
+        return `"${s.replace(/"/g, '""')}"`;
+      }
+
+      /* Joins pre-encoded cells. Separate from csvCell so a caller cannot
+         accidentally build a row out of raw strings and still look correct. */
+      function csvRow(values) {
+        return values.map(csvCell).join(",");
       }
 
       function parseGoalTimeStr(val, defaultUnit = "h") {
@@ -25683,10 +25749,10 @@
         if (sortedDayLogs.length === 1) {
           const s = sortedDayLogs[0];
           out = `[${targetDate} - ${dayNameShort}] W: ${formatDuration(s.workSec)} | B: ${formatDuration(s.breakSec)} | G: ${formatDuration(goalSec)} | ${plainDiff}\n`;
-          htmlOut += `<tr><td style="padding-right: 16px; white-space: nowrap; font-weight: 600;">[${targetDate} - ${dayNameShort}]</td><td style="padding-right: 16px; white-space: nowrap;">${bW}${formatDuration(s.workSec)}</td><td style="padding-right: 16px; white-space: nowrap;">${bB}${formatDuration(s.breakSec)}</td><td style="padding-right: 16px; white-space: nowrap;">${bG}${formatDuration(goalSec)}</td><td style="white-space: nowrap;">${htmlDiff}</td></tr>`;
+          htmlOut += `<tr><td style="padding-right: 16px; white-space: nowrap; font-weight: 600;">[${escapeHTML(targetDate)} - ${dayNameShort}]</td><td style="padding-right: 16px; white-space: nowrap;">${bW}${formatDuration(s.workSec)}</td><td style="padding-right: 16px; white-space: nowrap;">${bB}${formatDuration(s.breakSec)}</td><td style="padding-right: 16px; white-space: nowrap;">${bG}${formatDuration(goalSec)}</td><td style="white-space: nowrap;">${htmlDiff}</td></tr>`;
         } else {
           out = `[${targetDate} - ${dayNameShort}] ∑W: ${formatDuration(w)} | ∑B: ${formatDuration(b)} | G: ${formatDuration(goalSec)} | ${plainDiff}\n`;
-          htmlOut += `<tr><td style="padding-right: 16px; white-space: nowrap; font-weight: 600;">[${targetDate} - ${dayNameShort}]</td><td style="padding-right: 16px; white-space: nowrap;">∑ ${bW}${formatDuration(w)}</td><td style="padding-right: 16px; white-space: nowrap;">∑ ${bB}${formatDuration(b)}</td><td style="padding-right: 16px; white-space: nowrap;">${bG}${formatDuration(goalSec)}</td><td style="white-space: nowrap;">${htmlDiff}</td></tr>`;
+          htmlOut += `<tr><td style="padding-right: 16px; white-space: nowrap; font-weight: 600;">[${escapeHTML(targetDate)} - ${dayNameShort}]</td><td style="padding-right: 16px; white-space: nowrap;">∑ ${bW}${formatDuration(w)}</td><td style="padding-right: 16px; white-space: nowrap;">∑ ${bB}${formatDuration(b)}</td><td style="padding-right: 16px; white-space: nowrap;">${bG}${formatDuration(goalSec)}</td><td style="white-space: nowrap;">${htmlDiff}</td></tr>`;
           sortedDayLogs.forEach((s) => {
             out += `  ↳ W: ${formatDuration(s.workSec)} | B: ${formatDuration(s.breakSec)}\n`;
             htmlOut += `<tr><td style="padding-right: 16px; white-space: nowrap; color: #888;">&nbsp;&nbsp;↳</td><td style="padding-right: 16px; white-space: nowrap;">${bW}${formatDuration(s.workSec)}</td><td style="padding-right: 16px; white-space: nowrap;">${bB}${formatDuration(s.breakSec)}</td><td colspan="2"></td></tr>`;
@@ -26495,16 +26561,29 @@
         const varianceStr = formatDuration(Math.abs(diffSec));
         const statusLetter = diffSec >= 0 ? "O" : "U";
         const badgeClass = diffSec >= 0 ? "badge-over" : "badge-under";
+        /* String(), because a record restored from a hand-edited backup or
+           adopted from the cloud can carry a number here and a bare .replace()
+           on one throws inside the render. */
         const cleanTime = (str) =>
-          !str || str === "—" ? "—" : str.replace(/:(\d{2}):\d{2}/, ":$1");
+          !str || str === "—"
+            ? "—"
+            : String(str).replace(/:(\d{2}):\d{2}/, ":$1");
         const timeSpan =
           loginStr !== "—" || logoutStr !== "—"
-            ? `<span class="tooltip-time">${cleanTime(loginStr)} - ${cleanTime(logoutStr)}</span>`
+            ? `<span class="tooltip-time">${escapeHTML(cleanTime(loginStr))} - ${escapeHTML(cleanTime(logoutStr))}</span>`
             : "";
 
+        /* formattedDate is the raw dateStr whenever it has no slash in it,
+           because the friendly-date branch above is skipped. A record's date
+           reaches here from cloud sync as well as from a backup file, and
+           neither path type-checks its shape, so it is escaped like any other
+           record field. The two clock times beside it are escaped for the same
+           reason -- the anchored parse in parseTimeToMinutes happens to reject
+           anything with markup in it today, which makes this a defence that
+           depends on a regex somewhere else staying anchored. It should not. */
         let content = `
         <div class="tooltip-header">
-          <span class="tooltip-title">${formattedDate}</span>
+          <span class="tooltip-title">${escapeHTML(formattedDate)}</span>
           ${timeSpan}
         </div>
       `;
@@ -31093,6 +31172,33 @@
        * 16. DATA MIGRATIONS & BACKUP UTILITIES (CSV/JSON/TEXT)
        * =========================================================================*/
 
+      /* One row of the logbook export. Named and exposed rather than inlined
+         so harness-security.js can assert the encoding directly, on the same
+         function the export actually calls -- a copy of the format in a test
+         would only prove the copy. */
+      function csvRowForLog(l, workDec, breakDec, deltaDec) {
+        if (workDec === undefined) workDec = (l.workSec / 3600).toFixed(4);
+        if (breakDec === undefined) breakDec = (l.breakSec / 3600).toFixed(4);
+        if (deltaDec === undefined) {
+          const goalSec =
+            l.dayGoal != null && l.dayGoal >= 0
+              ? l.dayGoal
+              : resolveGoalSecForDate(l.date);
+          deltaDec = ((l.workSec - goalSec) / 3600).toFixed(4);
+        }
+        return csvRow([
+          l.date,
+          l.login,
+          l.logout,
+          formatDuration(l.workSec),
+          workDec,
+          formatDuration(l.breakSec),
+          breakDec,
+          deltaDec,
+          l.notes || "",
+        ]);
+      }
+
       /**
        * Serializes history log records into flat CSV report documents.
        */
@@ -31121,13 +31227,8 @@
               ? l.dayGoal
               : resolveGoalSecForDate(l.date);
           const deltaDec = ((l.workSec - goalSec) / 3600).toFixed(4);
-          const notes = l.notes
-            ? l.notes.replace(/"/g, '""').replace(/\n/g, " ")
-            : "";
 
-          csvRows.push(
-            `"${l.date}","${l.login}","${l.logout}","${formatDuration(l.workSec)}","${workDec}","${formatDuration(l.breakSec)}","${breakDec}","${deltaDec}","${notes}"`,
-          );
+          csvRows.push(csvRowForLog(l, workDec, breakDec, deltaDec));
         });
         csv += csvRows.join("\n");
 
@@ -31251,6 +31352,46 @@
        */
       let tempImportData = null;
 
+      /* The restore wizard's comparison list.
+
+         THIS FUNCTION RENDERS UNTRUSTED INPUT. Every string it prints comes
+         out of the JSON file the user just picked, and the only thing the
+         validator guarantees about the three below is that `date` is a string
+         with a slash in it somewhere -- `login` and `logout` were not checked
+         at all. Interpolated raw, as they were, a backup file was a way to run
+         JavaScript in the app: the CSP carries 'unsafe-inline' because the app
+         is one inline script, so an injected onerror handler executes, and
+         what it can reach is the Supabase access and refresh token in
+         localStorage. That is the whole account, including every shift note
+         already synced to it.
+
+         Escaping happens here, at the point the string becomes markup, rather
+         than at the import gate -- the same records also arrive from cloud
+         sync, which applies a server payload with no field validation at all,
+         so a gate on the file would leave the second door open. One rule at
+         the sink covers both.
+
+         Extracted from importJSON so it can be asserted directly; see
+         harness-security.js. */
+      function buildConflictRowsHTML(overlappingLogs, currentLogs) {
+        return overlappingLogs
+          .map((backupLog) => {
+            const localLog = currentLogs.find((l) => l.date === backupLog.date);
+            const times = (log) =>
+              `${escapeHTML(log.login)}-${escapeHTML(log.logout)}`;
+            return `
+                        <div style="border-bottom: 1px solid var(--border-main); padding: var(--space-2) 0; display: flex; flex-direction: column; gap: 2px;">
+                          <span style="font-weight: 700; color: var(--accent-blue);">${escapeHTML(backupLog.date)}</span>
+                          <div style="display: flex; justify-content: space-between; gap: 8px;">
+                            <span>Local: ${localLog ? `${formatFriendlyDuration(localLog.workSec)} (${times(localLog)})` : "None"}</span>
+                            <span style="color: var(--accent-warning);">Backup: ${formatFriendlyDuration(backupLog.workSec)} (${times(backupLog)})</span>
+                          </div>
+                        </div>
+                      `;
+          })
+          .join("");
+      }
+
       /* Validates the structural integrity of an imported JSON backup payload. */
       function validateImportPayload(data) {
         // Reject non-plain-object roots
@@ -31312,6 +31453,25 @@
             }
             if (l.notes !== undefined && typeof l.notes !== "string") {
               return `Log entry at index ${i} has invalid notes.`;
+            }
+            /* The two clock times were the only text fields on a log with no
+               check at all, which is how a number reached a bare .replace()
+               and how anything at all reached innerHTML. Escaping at the
+               render sinks is the actual fix -- these records also arrive from
+               cloud sync, which validates nothing -- so this is the second
+               layer, not the first.
+
+               null is allowed on purpose alongside absent: a leave day records
+               no times, and rejecting the shape the app itself writes would
+               make a legitimate backup unrestorable. */
+            for (const f of ["login", "logout"]) {
+              if (
+                l[f] !== undefined &&
+                l[f] !== null &&
+                typeof l[f] !== "string"
+              ) {
+                return `Log entry at index ${i} has an invalid ${f} time.`;
+              }
             }
             if (
               l.loginEpochMs !== undefined &&
@@ -31457,22 +31617,10 @@
                     "conflict-list-container",
                   );
                   if (listEl) {
-                    listEl.innerHTML = overlappingLogs
-                      .map((backupLog) => {
-                        const localLog = currentLogs.find(
-                          (l) => l.date === backupLog.date,
-                        );
-                        return `
-                        <div style="border-bottom: 1px solid var(--border-main); padding: var(--space-2) 0; display: flex; flex-direction: column; gap: 2px;">
-                          <span style="font-weight: 700; color: var(--accent-blue);">${backupLog.date}</span>
-                          <div style="display: flex; justify-content: space-between; gap: 8px;">
-                            <span>Local: ${localLog ? `${formatFriendlyDuration(localLog.workSec)} (${localLog.login}-${localLog.logout})` : "None"}</span>
-                            <span style="color: var(--accent-warning);">Backup: ${formatFriendlyDuration(backupLog.workSec)} (${backupLog.login}-${backupLog.logout})</span>
-                          </div>
-                        </div>
-                      `;
-                      })
-                      .join("");
+                    listEl.innerHTML = buildConflictRowsHTML(
+                      overlappingLogs,
+                      currentLogs,
+                    );
                   }
                   document.getElementById(
                     "conflict-wizard-modal",
@@ -31934,7 +32082,7 @@
         const htmlDiff = isOver ? `${bO}${diffAbs}` : `${bU}${diffAbs}`;
 
         let txt = `[${log.date} - ${dayNameShort}] W: ${formatDuration(log.workSec)} | B: ${formatDuration(log.breakSec)} | G: ${formatDuration(goal)} | ${plainDiff}`;
-        let htmlOut = `<table style="border-collapse: collapse; font-family: sans-serif; font-size: 14px;"><tr><td style="padding-right: 16px; white-space: nowrap; font-weight: 600;">[${log.date} - ${dayNameShort}]</td><td style="padding-right: 16px; white-space: nowrap;">${bW}${formatDuration(log.workSec)}</td><td style="padding-right: 16px; white-space: nowrap;">${bB}${formatDuration(log.breakSec)}</td><td style="padding-right: 16px; white-space: nowrap;">${bG}${formatDuration(goal)}</td><td style="white-space: nowrap;">${htmlDiff}</td></tr></table>`;
+        let htmlOut = `<table style="border-collapse: collapse; font-family: sans-serif; font-size: 14px;"><tr><td style="padding-right: 16px; white-space: nowrap; font-weight: 600;">[${escapeHTML(log.date)} - ${dayNameShort}]</td><td style="padding-right: 16px; white-space: nowrap;">${bW}${formatDuration(log.workSec)}</td><td style="padding-right: 16px; white-space: nowrap;">${bB}${formatDuration(log.breakSec)}</td><td style="padding-right: 16px; white-space: nowrap;">${bG}${formatDuration(goal)}</td><td style="white-space: nowrap;">${htmlDiff}</td></tr></table>`;
 
         const writeSuccess = () => {
           btnElement.innerHTML = `<span style="font-size:0.45rem; font-weight:bold;">DONE</span>`;
@@ -32022,10 +32170,10 @@
             if (dt.shifts.length === 1) {
               const s = dt.shifts[0];
               out = `[${d} - ${dayNameShort}] W: ${formatDuration(s.workSec)} | B: ${formatDuration(s.breakSec)} | G: ${formatDuration(goalSec)} | ${plainDiff}`;
-              htmlOut += `<tr><td style="padding-right: 16px; white-space: nowrap; font-weight: 600;">[${d} - ${dayNameShort}]</td><td style="padding-right: 16px; white-space: nowrap;">${bW}${formatDuration(s.workSec)}</td><td style="padding-right: 16px; white-space: nowrap;">${bB}${formatDuration(s.breakSec)}</td><td style="padding-right: 16px; white-space: nowrap;">${bG}${formatDuration(goalSec)}</td><td style="white-space: nowrap;">${htmlDiff}</td></tr>`;
+              htmlOut += `<tr><td style="padding-right: 16px; white-space: nowrap; font-weight: 600;">[${escapeHTML(d)} - ${dayNameShort}]</td><td style="padding-right: 16px; white-space: nowrap;">${bW}${formatDuration(s.workSec)}</td><td style="padding-right: 16px; white-space: nowrap;">${bB}${formatDuration(s.breakSec)}</td><td style="padding-right: 16px; white-space: nowrap;">${bG}${formatDuration(goalSec)}</td><td style="white-space: nowrap;">${htmlDiff}</td></tr>`;
             } else {
               out = `[${d} - ${dayNameShort}] ∑W: ${formatDuration(dt.w)} | ∑B: ${formatDuration(dt.b)} | G: ${formatDuration(goalSec)} | ${plainDiff}\n`;
-              htmlOut += `<tr><td style="padding-right: 16px; white-space: nowrap; font-weight: 600;">[${d} - ${dayNameShort}]</td><td style="padding-right: 16px; white-space: nowrap;">∑ ${bW}${formatDuration(dt.w)}</td><td style="padding-right: 16px; white-space: nowrap;">∑ ${bB}${formatDuration(dt.b)}</td><td style="padding-right: 16px; white-space: nowrap;">${bG}${formatDuration(goalSec)}</td><td style="white-space: nowrap;">${htmlDiff}</td></tr>`;
+              htmlOut += `<tr><td style="padding-right: 16px; white-space: nowrap; font-weight: 600;">[${escapeHTML(d)} - ${dayNameShort}]</td><td style="padding-right: 16px; white-space: nowrap;">∑ ${bW}${formatDuration(dt.w)}</td><td style="padding-right: 16px; white-space: nowrap;">∑ ${bB}${formatDuration(dt.b)}</td><td style="padding-right: 16px; white-space: nowrap;">${bG}${formatDuration(goalSec)}</td><td style="white-space: nowrap;">${htmlDiff}</td></tr>`;
               dt.shifts.forEach((s) => {
                 out += `  ↳ W: ${formatDuration(s.workSec)} | B: ${formatDuration(s.breakSec)}\n`;
                 htmlOut += `<tr><td style="padding-right: 16px; white-space: nowrap; color: #888;">&nbsp;&nbsp;↳</td><td style="padding-right: 16px; white-space: nowrap;">${bW}${formatDuration(s.workSec)}</td><td style="padding-right: 16px; white-space: nowrap;">${bB}${formatDuration(s.breakSec)}</td><td colspan="2"></td></tr>`;
@@ -33731,7 +33879,7 @@
               const htmlDiff = isOver ? `${bO}${diffAbs}` : `${bU}${diffAbs}`;
 
               let txt = `[${log.date} - ${dayNameShort}] W: ${formatDuration(log.workSec)} | B: ${formatDuration(log.breakSec)} | G: ${formatDuration(goal)} | ${plainDiff}`;
-              let htmlOut = `<table style="border-collapse: collapse; font-family: sans-serif; font-size: 14px;"><tr><td style="padding-right: 16px; white-space: nowrap; font-weight: 600;">[${log.date} - ${dayNameShort}]</td><td style="padding-right: 16px; white-space: nowrap;">${bW}${formatDuration(log.workSec)}</td><td style="padding-right: 16px; white-space: nowrap;">${bB}${formatDuration(log.breakSec)}</td><td style="padding-right: 16px; white-space: nowrap;">${bG}${formatDuration(goal)}</td><td style="white-space: nowrap;">${htmlDiff}</td></tr></table>`;
+              let htmlOut = `<table style="border-collapse: collapse; font-family: sans-serif; font-size: 14px;"><tr><td style="padding-right: 16px; white-space: nowrap; font-weight: 600;">[${escapeHTML(log.date)} - ${dayNameShort}]</td><td style="padding-right: 16px; white-space: nowrap;">${bW}${formatDuration(log.workSec)}</td><td style="padding-right: 16px; white-space: nowrap;">${bB}${formatDuration(log.breakSec)}</td><td style="padding-right: 16px; white-space: nowrap;">${bG}${formatDuration(goal)}</td><td style="white-space: nowrap;">${htmlDiff}</td></tr></table>`;
 
               const writeSuccess = () => {
                 showAppToast(`Copied summary for ${log.date}`);
@@ -37078,10 +37226,15 @@
           } catch (e) {}
           const durStr = formatDuration(task.durationSec);
           const pausedStr = formatDuration(Number(task.pausedSec) || 0);
-          const safeNote = task.note
-            ? task.note.replace(/"/g, '""').replace(/\n/g, " ")
-            : "";
-          csv += `"${task.date}","${startStr}","${endStr}","${durStr}","${pausedStr}","${safeNote}"\n`;
+          csv +=
+            csvRow([
+              task.date,
+              startStr,
+              endStr,
+              durStr,
+              pausedStr,
+              task.note || "",
+            ]) + "\n";
         });
 
         const a = document.createElement("a");
@@ -39395,11 +39548,17 @@
               </button>
             `;
 
+        /* escapeHTML on the message, not on the markup around it. Every caller
+           today passes a sentence this function composed itself, so this
+           changes nothing on screen -- it is here so that the first caller to
+           pass a note, a device name or a server error string is not an XSS.
+           Its sibling showAppToast has always used textContent; this one being
+           the odd sink out is the whole of the risk. */
         toast.innerHTML = `
                   <div class="island-icon">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${getSprite("sprite-084")}</svg>
                   </div>
-                  <span>${msg}</span>
+                  <span>${escapeHTML(msg)}</span>
                   ${closeBtnHtml}
                 `;
         toast.classList.add("toast-visible");
