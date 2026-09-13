@@ -634,7 +634,7 @@ function getWorkDateObj()  /* was getPSTDateObj */
 
 ## 8. Decisions for you
 
-The plan above already uses the recommended option for each. Phases 0 and 1 need none of these, so they can start now. Please confirm or change them before Phase 2.
+**Confirmed on 2026-09-13: all eight as recommended.** The plan above is written with exactly these options.
 
 | #   | Question                                             | Recommended                                                                                                                                                    | Alternative                                                                                    |
 | --- | ---------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
