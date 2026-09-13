@@ -4,16 +4,16 @@
 > **Baseline commit:** `9181afa` (all line numbers below refer to it and WILL drift — re-grep before editing).
 > **Rule:** one phase at a time. A phase starts only when the previous phase's exit criteria are green and committed.
 
-| Phase | Title                                                | Touches data?    | Needs live account? | Size            | State                |
-| ----- | ---------------------------------------------------- | ---------------- | ------------------- | --------------- | -------------------- |
-| 0     | Groundwork, probes, fixtures                         | no               | one read-only probe | S               | **done**             |
-| 1     | `TimeZones` core + behaviour-identical refactor      | no               | regression only     | L (split 1a/1b) | **done**             |
-| 2     | Data model: work / local / session / record zones    | **yes**          | regression only     | L (split 2a/2b) | 2a **done**, 2b next |
-| 3     | Rendering and editing records in their own zone      | yes (edit paths) | no                  | M–L             | not started          |
-| 4     | The zone picker component                            | no               | no                  | M–L             | not started          |
-| 5     | Status bar, settings card, phone sheet, change flows | prefs            | no                  | L (split 5a/5b) | not started          |
-| 6     | Sync hardening + multi-device + iPhone verification  | no               | **yes**             | M               | not started          |
-| 7     | Cleanup, aliases removed, docs, guide                | no               | full sweep          | S               | not started          |
+| Phase | Title                                                | Touches data?    | Needs live account? | Size            | State       |
+| ----- | ---------------------------------------------------- | ---------------- | ------------------- | --------------- | ----------- |
+| 0     | Groundwork, probes, fixtures                         | no               | one read-only probe | S               | **done**    |
+| 1     | `TimeZones` core + behaviour-identical refactor      | no               | regression only     | L (split 1a/1b) | **done**    |
+| 2     | Data model: work / local / session / record zones    | **yes**          | regression only     | L (split 2a/2b) | **done**    |
+| 3     | Rendering and editing records in their own zone      | yes (edit paths) | no                  | M–L             | not started |
+| 4     | The zone picker component                            | no               | no                  | M–L             | not started |
+| 5     | Status bar, settings card, phone sheet, change flows | prefs            | no                  | L (split 5a/5b) | not started |
+| 6     | Sync hardening + multi-device + iPhone verification  | no               | **yes**             | M               | not started |
+| 7     | Cleanup, aliases removed, docs, guide                | no               | full sweep          | S               | not started |
 
 ---
 
@@ -614,6 +614,19 @@ A default nobody can see would silently move a teammate's day.
 **Mutations:** 6 new, all caught (the running shift's zone ignored, clock-in without `sessionTz`, a synced zone adopted unvalidated, a submitted shift without `tz`, realignment left to the tick, `sessionTz` treated as a wire instant). One is deliberately absent, with the reason in `mutation-test.js`: `resetSession` computing the day in the finished shift's zone, which only a tick landing inside `executeSubmit`'s awaits could expose. Anchors: 168, 0 misses.
 
 **Regression, one suite at a time — green:** `harness-tz-core` 80, `harness-tz-model` 27, `harness-progress` 25, `harness-motion` 43, `harness-cloud-panel` 27, `harness-security` 15, `probe-leave-rows` 12, `probe-csv-shape` 14, `probe-backup-and-leave` **26**, `probe-lease-endshift` 30, `probe-shift-rewind` ALL PASS, `harness.js` ALL PASS, `harness-handoff` 22. `probe-backup-and-leave.js` failed once on "the payload still carries every field it used to", because it compared the key list exactly and 2a adds three keys by design. It now asserts that no field was lost, plus a new check that the three zone preferences are present.
+
+#### Phase 2b results (2026-09-13)
+
+**Committed:** 2a as `7b63e65`, 2b as `db7fe3b`.
+
+- **Copy diagnostics** gains a `work` line (the zone in effect, the preferred zone, the running shift's zone, and any change waiting for the shift to end) and a `local` line (the zone in effect, the setting behind it, the device's zone and `TimeZones.version`). Keys stay at most nine characters so no existing line's padding moves. `harness-tz-model.js` checks both lines, and is now 28 checks.
+- **The D3 "BST" nickname seed moved to Phase 5.** Nothing reads a nickname until Phase 5's labels, and Phase 5 is also where the local default becomes `"auto"`, which is the moment the seed matters. Writing it now would put a stored, and eventually synced, value in place that nothing uses.
+- **Live account, one suite at a time — all at their baselines:** `harness-phase7` 21 (it reads the diagnostics text), `harness-phase8` 13 (preference parity across three devices), `harness-import` 9, `harness-wipe` 18 (the zone keys are erased with the rest), and `probe-beat-cost` 9.
+- **`sessionTz` costs nothing in realtime messages:** idle 0.00 events per beat, owner 1.00, 120 owner messages an hour, ceiling about 94 concurrent owners. All unchanged.
+
+**Carried into Phase 3:** `getDisplayZone()` and `recordZone()` exist and nothing renders with them yet. The display preference's `logTimes` defaults to `"recorded"` (D1).
+
+**Carried into Phase 5:** the device-zone default for new users (D5) with its clock-in pin, the "BST" nickname seed (D3), the first-launch notice, and the local default of `"auto"`.
 
 ### Phase 3 — Rendering and editing records in their own zone
 
