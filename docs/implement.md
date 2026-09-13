@@ -1,19 +1,19 @@
 # Time zones: implementation blueprint
 
-> **Status:** Phases 0–2 and 3a complete. Every zone-dependent calculation goes through `TimeZones`, the zone model exists (unset preferences keep Los Angeles for work and Dhaka for local until Phase 5's UI), and every record's times are shown from its instants in the zone it was filed in. 3b (edit paths and outputs) is next.
+> **Status:** Phases 0–2, 3a and 3b1 complete. Every zone-dependent calculation goes through `TimeZones`, the zone model exists (unset preferences keep Los Angeles for work and Dhaka for local until Phase 5's UI), every record's times are shown from its instants in the zone it was filed in, and the edit dialogs read typed times in that zone. 3b2 (outputs: CSV, search, idle dialog, file names, conflict wizard) is next.
 > **Baseline commit:** `9181afa` (all line numbers below refer to it and WILL drift — re-grep before editing).
 > **Rule:** one phase at a time. A phase starts only when the previous phase's exit criteria are green and committed.
 
-| Phase | Title                                                | Touches data?    | Needs live account? | Size              | State                |
-| ----- | ---------------------------------------------------- | ---------------- | ------------------- | ----------------- | -------------------- |
-| 0     | Groundwork, probes, fixtures                         | no               | one read-only probe | S                 | **done**             |
-| 1     | `TimeZones` core + behaviour-identical refactor      | no               | regression only     | L (split 1a/1b)   | **done**             |
-| 2     | Data model: work / local / session / record zones    | **yes**          | regression only     | L (split 2a/2b)   | **done**             |
-| 3     | Rendering and editing records in their own zone      | yes (edit paths) | no                  | M–L (split 3a/3b) | **3a done**, 3b next |
-| 4     | The zone picker component                            | no               | no                  | M–L               | not started          |
-| 5     | Status bar, settings card, phone sheet, change flows | prefs            | no                  | L (split 5a/5b)   | not started          |
-| 6     | Sync hardening + multi-device + iPhone verification  | no               | **yes**             | M                 | not started          |
-| 7     | Cleanup, aliases removed, docs, guide                | no               | full sweep          | S                 | not started          |
+| Phase | Title                                                | Touches data?    | Needs live account? | Size              | State                      |
+| ----- | ---------------------------------------------------- | ---------------- | ------------------- | ----------------- | -------------------------- |
+| 0     | Groundwork, probes, fixtures                         | no               | one read-only probe | S                 | **done**                   |
+| 1     | `TimeZones` core + behaviour-identical refactor      | no               | regression only     | L (split 1a/1b)   | **done**                   |
+| 2     | Data model: work / local / session / record zones    | **yes**          | regression only     | L (split 2a/2b)   | **done**                   |
+| 3     | Rendering and editing records in their own zone      | yes (edit paths) | no                  | M–L (split 3a/3b) | **3a, 3b1 done**, 3b2 next |
+| 4     | The zone picker component                            | no               | no                  | M–L               | not started                |
+| 5     | Status bar, settings card, phone sheet, change flows | prefs            | no                  | L (split 5a/5b)   | not started                |
+| 6     | Sync hardening + multi-device + iPhone verification  | no               | **yes**             | M                 | not started                |
+| 7     | Cleanup, aliases removed, docs, guide                | no               | full sweep          | S                 | not started                |
 
 ---
 
@@ -726,6 +726,79 @@ A default nobody can see would silently move a teammate's day.
 Anchors: 178, 0 misses. `index.html` was restored byte-identical.
 
 **Carried into 3b:** everything under the split above. The plan's "gap accepted silently", "ambiguity picks later", "CSV column dropped" and "edit interprets in work zone" mutations belong there. "Nickname via `innerHTML`" waits for Phase 5's labels.
+
+#### Phase 3b1 results (2026-09-14)
+
+**Split again.** 3b became **3b1**, typed times in the dialogs (this block, committed as `feat(time): edit every record in the zone it was filed in`), and **3b2**, the outputs:
+
+- the CSV `Time_Zone` column (D4);
+- the zone label in `searchStr`;
+- the idle dialog in local time (D7);
+- export file names in local date;
+- the conflict wizard tag;
+- the device-local display audit;
+- the `harness-security.js` extensions.
+
+**What exists now:**
+
+- **`typedTimeInZone(date, time, zone, dayOffset)`** reads a typed clock time on a date in a zone. It returns `wallToInstant`'s result plus the date key it read. The day offset goes on the wall date, never on the instant, so "the next day" is right on a 23- or 25-hour day (I9). `getEpochFromDateTimeString` is now a work-zone wrapper around it, kept for the harness.
+- **`resolveTypedWindow(date, login, logout, zone, sameMeansNextDay, knownLoginMs)`** is the one rule every dialog now uses:
+  - **A time in a spring-forward gap is refused (D6)**, with a sentence built from the engine's long zone name: _"2:30 AM doesn't exist on 03/08/26 in Pacific Time — clocks jumped forward."_ (`TimeZones.longName`, new).
+  - **In the repeated hour** the login takes the earlier reading. The logout takes the earlier reading that isn't before the login, else the later one, instead of jumping a day.
+  - **A logout still before the login** is read on the next calendar day in the zone. All eight `+ 86400000` next-day additions in the four save paths and the live preview are gone.
+  - Each dialog keeps its own long-standing rule for a logout equal to the login, passed in as `sameMeansNextDay`.
+- **Which zone.** Edit shift and edit task read typed times in the **record's zone**, and save `tz` explicitly, so a legacy record is stamped Los Angeles when edited (row 19). Manual entry and manual task read them in the **work zone** they file into. The live duration preview asks `typedFormZone(prefix)`.
+- **The dialogs fill in the record's own clock.** `recordEndpointText` gives the stored string when it agrees with its instant, else the instant in the record's zone. A hint under the title (_"Times are in UTC+6, the zone this was recorded in."_) appears only when that zone isn't the work zone, so a single-zone logbook's dialogs look as they always have.
+- **The round trip (row 18).** Each dialog remembers the times it opened with. Every save first normalises the fields (`9:00 am` → `09:00:00 AM`), so the comparison is done in that form. A time saved untouched on the same date keeps its instant byte for byte: it isn't re-read, which would move a repeated-hour login to its earlier reading, and it isn't re-floored to the second, which would drop a tracked shift's milliseconds.
+
+**Tests.** `harness-tz-display.js` gains a typed-times part, run under the same two device zones: 103 checks in total. The part covers:
+
+- the gap sentence;
+- both ambiguity rules;
+- the calendar next day across spring-forward;
+- the edit dialog's fill and hint;
+- a Dhaka edit read in Dhaka;
+- a legacy edit stamped Los Angeles with its instants unchanged;
+- a repeated-hour shift with milliseconds saved untouched, byte-identical;
+- the `PST` hint when Dhaka is the work zone;
+- the edit task fill, hint, untouched save and changed start;
+- manual entry and manual task refusing gap times;
+- a manual night across spring-forward ending at 14:00Z.
+
+Two first-run failures were the test's own. A later login shrank a window below the 8 hours it held, which the app rightly refused as "will not fit". And the harness saved again while `isEditSubmitting` was still true, so the app turned that save away.
+
+**Regression, one suite at a time — at baseline.** Numbers below are checks.
+
+- **Time zone suites:** `harness-tz-core` 80, `harness-tz-model` 28.
+- **No-account suites:**
+  - `harness-progress` 25, `harness-motion` 43, `harness-cloud-panel` 27, `harness-security` 15;
+  - `probe-leave-rows` 12, `probe-csv-shape` 14, `probe-backup-and-leave` 26, `probe-lease-endshift` 30;
+  - `probe-field-sweep` unchanged, and `harness.js` ALL PASS.
+- **Live account and the long suites:**
+  - `harness-handoff` 22, `harness-signin-render` 12, `probe-shift-rewind` ALL PASS;
+  - `harness-phase7` 21, `harness-phase8` 13, `harness-import` 9, `harness-wipe` 18;
+  - `probe-beat-cost` 9: owner 120 messages an hour, idle 0, ceiling about 94.
+
+`harness-signin-render` failed once inside the chain, on "signing in to an empty account uploads nothing" (1 pushed). It passed 12/12 re-run alone. Each launch uses a fresh browser profile, so the stray record came from the shared test account: leftover data from the live suite before it, pulled at sign-in. **Rule:** a live suite that fails straight after another live suite is re-run alone before the failure is believed.
+
+**Mutations:** 10 new, all caught, each on the check written for it:
+
+- a gap login accepted;
+- the later reading for an ambiguous login;
+- an ambiguous logout skipping its later reading;
+- the next day as +24 h;
+- the edit dialog reading in the work zone;
+- an untouched time read again;
+- a legacy edit saved without its zone;
+- the edit task dialog in the work zone;
+- the edit dialog filled in the work zone;
+- the hint never shown.
+
+The mutation run exposed a blind test on its first attempt. "An untouched time read again" survived the round-trip check, because the suite had saved its seed objects themselves. A save edits the stored record in place, so the check compared each instant with itself. The app was right: the same mutation did move the instant, which a later label check caught.
+
+The seeds are now saved as copies, and that mutation is caught on the round trip. **Rule for every suite:** never compare a saved record with the object that was saved; capture the values or save copies.
+
+Mutation 161 was re-pointed at the new work-zone wrapper. Anchors: 188, 0 misses. `index.html` was restored byte-identical.
 
 ### Phase 4 — The zone picker
 
