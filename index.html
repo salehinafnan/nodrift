@@ -16128,6 +16128,11 @@
       const GOAL_M_KEY = "production_goal_m_v2";
       const GOAL_S_KEY = "production_goal_s_v2";
       const TZ_KEY = "production_tz_pref";
+      /* The time zone preferences (docs/implement.md §3.8). All three sync
+         as settings; every write goes through onZoneContextChanged(). */
+      const WORK_TZ_KEY = "nodrift_work_tz_v1";
+      const LOCAL_TZ_KEY = "nodrift_local_tz_v1";
+      const TZ_DISPLAY_KEY = "nodrift_tz_display_v1";
       const THEME_KEY = "production_theme_pref";
       const PRESET_VALUES_KEY = "production_custom_presets_v2";
       const LEAVE_DATES_KEY = "production_leave_dates_v1";
@@ -17746,19 +17751,235 @@
         };
       })();
 
+      /* Where the second clock pointed before local zones existed, and what
+         an unset preference still means. Both defaults stay as they were
+         until a user can see and change the setting (Phase 5 of
+         docs/implement.md): changing a default nobody can see would silently
+         move somebody's day. */
+      const LEGACY_LOCAL_TZ = "Asia/Dhaka";
+
+      /* A settings blob, a backup and localStorage are all things somebody
+         else can write, so the display preference is checked field by field
+         before anything reads it. */
+      function isZoneDisplayPref(v) {
+        if (!v || typeof v !== "object" || Array.isArray(v)) return false;
+        if (
+          v.logTimes !== undefined &&
+          !["recorded", "work", "local"].includes(v.logTimes)
+        ) {
+          return false;
+        }
+        if (
+          v.labelStyle !== undefined &&
+          !["abbr", "generic", "offset"].includes(v.labelStyle)
+        ) {
+          return false;
+        }
+        if (v.nicknames !== undefined) {
+          const n = v.nicknames;
+          if (!n || typeof n !== "object" || Array.isArray(n)) return false;
+          const keys = Object.keys(n);
+          if (keys.length > 64) return false;
+          for (let i = 0; i < keys.length; i++) {
+            if (!TimeZones.isValid(keys[i])) return false;
+            if (typeof n[keys[i]] !== "string") return false;
+            if (!/^[A-Za-z0-9+:−-]{1,6}$/.test(n[keys[i]])) return false;
+          }
+        }
+        return true;
+      }
+
+      let _zonePrefs = null;
+
+      /* The three preferences, validated once and cached. Every writer calls
+         onZoneContextChanged(), which drops the cache; this sits under
+         getWorkDate(), which runs many times a tick. */
+      function readZonePrefs() {
+        if (_zonePrefs) return _zonePrefs;
+        let work = null;
+        let local = null;
+        let display = null;
+        try {
+          work = localStorage.getItem(WORK_TZ_KEY);
+          local = localStorage.getItem(LOCAL_TZ_KEY);
+          display = JSON.parse(localStorage.getItem(TZ_DISPLAY_KEY) || "null");
+        } catch (e) {}
+        _zonePrefs = {
+          work: TimeZones.sanitize(work, null),
+          local: local === "auto" ? "auto" : TimeZones.sanitize(local, null),
+          display: isZoneDisplayPref(display) ? display : null,
+        };
+        return _zonePrefs;
+      }
+
+      function currentState() {
+        try {
+          return typeof state === "object" && state ? state : null;
+        } catch (e) {
+          return null;
+        }
+      }
+
+      /* Is a shift in progress? The session half of SessionLease's
+         hasLiveSession(), which calls this, so the two can never disagree
+         about when a shift is live. A clocked-out shift that has not been
+         submitted is still live: its time has not been filed yet. */
+      function sessionIsLive(s) {
+        if (!s || typeof s !== "object") return false;
+        if (s.currentMode !== null) return true;
+        if (s.idleLock === true) return true;
+        if ((Number(s.workAccumulated) || 0) > 0) return true;
+        if ((Number(s.breakAccumulated) || 0) > 0) return true;
+        return false;
+      }
+
+      /* The work zone the user chose, whatever is running. */
+      function getPreferredWorkZone() {
+        return readZonePrefs().work || LEGACY_TZ;
+      }
+
       /* The zone business logic uses: what "today" is, when a shift rolls
-         over, which date a record is filed under. Phase 2 of
-         docs/implement.md widens this to the running session's zone and the
-         user's choice; until then it is exactly the zone the app has always
-         used. */
+         over, which date a record is filed under.
+
+         A running shift keeps the zone it started in (I4): changing, syncing
+         or adopting the preference never moves its midnight. A live session
+         with no sessionTz was started by a build that predates zones, so it
+         is Los Angeles, which is exactly what it was. */
       function getWorkZone() {
-        return LEGACY_TZ;
+        const s = currentState();
+        if (s && sessionIsLive(s)) {
+          return TimeZones.sanitize(s.sessionTz, LEGACY_TZ);
+        }
+        return getPreferredWorkZone();
       }
 
       /* The zone the second clock and the finish estimate are shown in.
-         Widened in Phase 2 to the user's choice or the device's own zone. */
+         Display only (I10): nothing stored ever depends on it. */
       function getLocalZone() {
-        return "Asia/Dhaka";
+        const v = readZonePrefs().local;
+        if (v === "auto") return TimeZones.deviceZone();
+        return v || LEGACY_LOCAL_TZ;
+      }
+
+      /* The zone a record was filed in. A record without one predates zones
+         and was filed in Los Angeles -- never "whatever the preference is
+         today" (I3). Sanitised here because merged records are not
+         validated on the way in. */
+      function recordZone(record) {
+        return TimeZones.sanitize(record && record.tz, LEGACY_TZ);
+      }
+
+      /* Which zone a record's In/Out times are shown in (decision D1). */
+      function getDisplayZone(record) {
+        const display = readZonePrefs().display;
+        const mode = (display && display.logTimes) || "recorded";
+        if (mode === "work") return getWorkZone();
+        if (mode === "local") return getLocalZone();
+        return recordZone(record);
+      }
+
+      /* The preferred work zone when it differs from the one the running
+         shift is holding -- the change that will apply when the shift ends
+         (decision D2). Not stored anywhere: it is simply the difference. */
+      function pendingWorkZone() {
+        const s = currentState();
+        if (!s || !sessionIsLive(s)) return null;
+        const held = TimeZones.sanitize(s.sessionTz, LEGACY_TZ);
+        const preferred = getPreferredWorkZone();
+        return preferred === held ? null : preferred;
+      }
+
+      /* The one funnel for anything that can change which zone is in
+         effect (I12). Drops the preference cache and every clock cache,
+         moves the version so zone-keyed renders redraw, and realigns today's
+         date at once rather than on the next tick -- so a clock-in in the
+         same second files under the right day. */
+      function onZoneContextChanged() {
+        _zonePrefs = null;
+        TimeZones.bumpVersion();
+        window._lastClockMinCache = -1;
+        try {
+          domWriteCache.etaTargetMin = null;
+        } catch (e) {}
+        if (typeof invalidateDerivedCaches === "function") {
+          invalidateDerivedCaches();
+        }
+        const s = currentState();
+        /* With nothing accumulated, checkMidnightReset reaches no await, so
+           the realignment has happened by the time this returns. A live
+           shift is left alone: its zone is not changing. */
+        if (
+          s &&
+          !sessionIsLive(s) &&
+          typeof checkMidnightReset === "function"
+        ) {
+          checkMidnightReset(new Date());
+        }
+        try {
+          if (typeof renderStaticUI === "function") renderStaticUI();
+          if (typeof renderTimersOnly === "function") renderTimersOnly();
+        } catch (e) {
+          console.warn("Could not redraw after a time zone change", e);
+        }
+      }
+
+      function setWorkZonePref(id) {
+        const z = TimeZones.sanitize(id, null);
+        if (!z) return false;
+        try {
+          localStorage.setItem(WORK_TZ_KEY, z);
+        } catch (e) {
+          return false;
+        }
+        onZoneContextChanged();
+        return true;
+      }
+
+      function setLocalZonePref(value) {
+        const v = value === "auto" ? "auto" : TimeZones.sanitize(value, null);
+        if (!v) return false;
+        try {
+          localStorage.setItem(LOCAL_TZ_KEY, v);
+        } catch (e) {
+          return false;
+        }
+        onZoneContextChanged();
+        return true;
+      }
+
+      function setZoneDisplayPref(value) {
+        if (!isZoneDisplayPref(value)) return false;
+        try {
+          localStorage.setItem(TZ_DISPLAY_KEY, JSON.stringify(value));
+        } catch (e) {
+          return false;
+        }
+        onZoneContextChanged();
+        return true;
+      }
+
+      let _lastDeviceZone = null;
+      let _deviceZoneCheckMin = -1;
+
+      /* A device changes zone under a running page (travel, or the OS
+         setting). It matters only to a local zone of "auto", and only to the
+         display, so a look once a minute is enough. */
+      function checkDeviceZone() {
+        const z = TimeZones.deviceZone();
+        if (_lastDeviceZone === null || z === _lastDeviceZone) {
+          _lastDeviceZone = z;
+          return false;
+        }
+        _lastDeviceZone = z;
+        if (readZonePrefs().local === "auto") onZoneContextChanged();
+        return true;
+      }
+
+      function maybeCheckDeviceZone(nowMs) {
+        const minute = Math.floor(nowMs / 60000);
+        if (minute === _deviceZoneCheckMin) return;
+        _deviceZoneCheckMin = minute;
+        checkDeviceZone();
       }
 
       /*==========================================================================
@@ -18735,6 +18956,10 @@
              measurement: it crosses the wire byte for byte so that both
              devices hold the identical value and equality means something. */
           "sessionIdWire",
+          /* The zone the shift started in, so every device rolls it over at
+             the same midnight. A token like sessionIdWire, not an instant:
+             deliberately NOT in SYNC_INSTANT_KEYS. */
+          "sessionTz",
           "activeDate",
           "idleLock",
           "idleStart",
@@ -18849,6 +19074,26 @@
           dailyGoalM: { key: GOAL_M_KEY, json: false },
           dailyGoalS: { key: GOAL_S_KEY, json: false },
           tzPref: { key: TZ_KEY, json: false },
+          /* Validated on the way in: a zone from another device reaches
+             Intl on this one, and a bad one must be skipped, not applied. */
+          workTz: {
+            key: WORK_TZ_KEY,
+            json: false,
+            zone: true,
+            validate: (v) => TimeZones.isValid(v),
+          },
+          localTz: {
+            key: LOCAL_TZ_KEY,
+            json: false,
+            zone: true,
+            validate: (v) => v === "auto" || TimeZones.isValid(v),
+          },
+          tzDisplay: {
+            key: TZ_DISPLAY_KEY,
+            json: true,
+            zone: true,
+            validate: isZoneDisplayPref,
+          },
           themePref: { key: THEME_KEY, json: false },
           presets: { key: PRESET_VALUES_KEY, json: true },
           leaveAllowances: { key: LEAVE_ALLOWANCES_KEY, json: true },
@@ -18899,6 +19144,7 @@
         function applyPrefs(prefs) {
           if (!prefs || typeof prefs !== "object") return false;
           let changed = false;
+          let zoneChanged = false;
           for (const name in PREF_KEYS) {
             if (!(name in prefs)) continue;
             const spec = PREF_KEYS[name];
@@ -18908,6 +19154,7 @@
                add and overwrite preferences, never delete one. Nothing on
                the wire is allowed to mean "erase what you have". */
             if (incoming === null || incoming === undefined) continue;
+            if (spec.validate && !spec.validate(incoming)) continue;
             const next = spec.json
               ? JSON.stringify(incoming)
               : String(incoming);
@@ -18919,9 +19166,13 @@
             try {
               localStorage.setItem(spec.key, next);
               changed = true;
+              if (spec.zone) zoneChanged = true;
             } catch (e) {
               console.warn("Could not apply synced preference " + name, e);
             }
+          }
+          if (zoneChanged && typeof onZoneContextChanged === "function") {
+            onZoneContextChanged();
           }
           return changed;
         }
@@ -21108,12 +21359,7 @@
            far as ownership is concerned. */
         function hasLiveSession() {
           const s = typeof state === "object" && state ? state : null;
-          if (s) {
-            if (s.currentMode !== null) return true;
-            if (s.idleLock === true) return true;
-            if ((Number(s.workAccumulated) || 0) > 0) return true;
-            if ((Number(s.breakAccumulated) || 0) > 0) return true;
-          }
+          if (sessionIsLive(s)) return true;
           return !!(
             typeof taskState === "object" &&
             taskState &&
@@ -24871,6 +25117,9 @@
           if (mode === "work" && !state.loginTimestamp) {
             state.loginTimestamp = nowWall;
             state.sessionIdWire = mintSessionId(nowWall);
+            /* The preferred zone, not getWorkZone(): the mode is already
+               set, so the session reads as live and has no zone yet. */
+            state.sessionTz = getPreferredWorkZone();
             state.shiftStartGoalSec =
               domWriteCache._goalSecCached ||
               getGoalSeconds(
@@ -25973,6 +26222,8 @@
             Math.random().toString(36).substring(2, 11) +
             Date.now().toString(36),
           date: dateStr,
+          /* The zone that decided `date` (I2, I3). */
+          tz: getWorkZone(),
           displayDate,
           epochMs,
           login: loginTime,
@@ -26282,6 +26533,7 @@
             Math.random().toString(36).substring(2, 11) +
             Date.now().toString(36),
           date: entryDate,
+          tz: getWorkZone(),
           displayDate,
           epochMs,
           login: loginTime,
@@ -26454,6 +26706,7 @@
           if (!state.loginTimestamp) {
             state.loginTimestamp = resolutionTime - totalIdleSeconds * 1000;
             state.sessionIdWire = mintSessionId(state.loginTimestamp);
+            state.sessionTz = getPreferredWorkZone();
           }
         } else if (choice === "break") {
           state.breakAccumulated =
@@ -26468,6 +26721,7 @@
             if (loginDateStr !== todayStr) {
               state.loginTimestamp = null;
               state.sessionIdWire = null;
+              state.sessionTz = null;
             }
           }
         }
@@ -26550,7 +26804,14 @@
           activeSegmentFloorSec: 0,
           loginTimestamp: null,
           sessionIdWire: null,
-          activeDate: getWorkDate(),
+          sessionTz: null,
+          /* The preferred zone, named outright: this literal is built while
+             the old, still-live state is current, and getWorkDate() would
+             file the new day under the finished shift's zone. */
+          activeDate: TimeZones.dateKey(
+            window.Sync ? Sync.trueNow() : Date.now(),
+            getPreferredWorkZone(),
+          ),
           idleLock: false,
           idleStart: null,
           preIdleMode: null,
@@ -31217,6 +31478,7 @@
             Math.random().toString(36).substring(2, 11) +
             Date.now().toString(36),
           date: dateStr,
+          tz: getWorkZone(),
           startMs: startMs,
           endMs: endMs,
           durationSec: durSec || 0,
@@ -31634,6 +31896,9 @@
           leaves: readJSONKey(LEAVE_DATES_KEY),
           leaveAllowances: readJSONKey(LEAVE_ALLOWANCES_KEY),
           views: readJSONKey(VIEWS_KEY),
+          workTz: safeGetLocalStorage(WORK_TZ_KEY) || null,
+          localTz: safeGetLocalStorage(LOCAL_TZ_KEY) || null,
+          tzDisplay: readJSONKey(TZ_DISPLAY_KEY),
         };
       }
 
@@ -32150,6 +32415,12 @@
                 : JSON.stringify(data.leaveAllowances),
             );
           }
+          /* Zone preferences only when they are real: a backup is a file
+             anyone can edit, and a bad zone must never reach Intl. Through
+             the setters, so the day realigns and the clocks redraw. */
+          if (data.workTz) setWorkZonePref(data.workTz);
+          if (data.localTz) setLocalZonePref(data.localTz);
+          if (data.tzDisplay) setZoneDisplayPref(data.tzDisplay);
           /* The restored logbook may carry leave types the restored ledger does
              not list. Clearing the latch re-runs the reconciliation on the next
              read so those types are folded in rather than orphaned. Cleared
@@ -32660,6 +32931,9 @@
           GOAL_M_KEY,
           GOAL_S_KEY,
           TZ_KEY,
+          WORK_TZ_KEY,
+          LOCAL_TZ_KEY,
+          TZ_DISPLAY_KEY,
           THEME_KEY,
           PRESET_VALUES_KEY,
           LEAVE_DATES_KEY,
@@ -33271,6 +33545,7 @@
                    crosses midnight is still the same shift, and re-minting
                    would make each device roll over into a different one. */
                 state.sessionIdWire = null;
+                state.sessionTz = null;
               }
 
               requiresRender = true;
@@ -33342,6 +33617,7 @@
 
         const nowMs = Date.now();
         sharedTickDate.setTime(nowMs);
+        maybeCheckDeviceZone(nowMs);
         const now = sharedTickDate;
 
         // Renew our master lease lock
@@ -36582,6 +36858,7 @@
                 Math.random().toString(36).substring(2, 11) +
                 Date.now().toString(36),
               date: dateStr,
+              tz: getWorkZone(),
               displayDate: dateStr.replace(/\/20(\d{2})$/, "/$1"),
               epochMs: epochMs,
               login: loginStr,
@@ -36942,6 +37219,7 @@
                 Math.random().toString(36).substring(2, 11) +
                 Date.now().toString(36),
               date: getWorkDate(),
+              tz: getWorkZone(),
               startMs: startMs,
               endMs: endMs,
               durationSec: totalSec,
