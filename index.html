@@ -17426,6 +17426,441 @@
       }
 
       /*==========================================================================
+       * 3b. TIME ZONES
+       *
+       * The one place a time zone is interpreted. Everything that turns an
+       * instant into a calendar day, a wall-clock reading or a label, or turns
+       * a typed wall time back into an instant, belongs here, so that "which
+       * zone" is decided by getWorkZone() / getLocalZone() and never by
+       * whichever formatter happened to be nearest.
+       *
+       * Two rules this module exists to hold (docs/implement.md, I6 and I8):
+       *
+       *   - A zone string is never trusted. It is canonicalised and checked
+       *     against the engine's own list before any formatter sees it,
+       *     because "the formatter did not throw" accepts far too much:
+       *     measured on Chrome 152, it takes "PST", "BST" (as Asia/Dhaka),
+       *     "EST" (as America/Panama), POSIX names and "+06:00".
+       *   - Formatters are built once per zone and style and reused. One costs
+       *     about 0.3 ms to create; the tick must never pay that.
+       *
+       * Day arithmetic never adds 86400000 to an instant: DST days are 23 or
+       * 25 hours long, and some zones have days with no midnight at all.
+       * =========================================================================*/
+
+      /* The zone every record and every session created before work and local
+         time zones existed was filed in. A constant forever: a record with no
+         `tz` of its own means THIS zone, never whatever a preference says
+         today. */
+      const LEGACY_TZ = "America/Los_Angeles";
+
+      const TimeZones = (() => {
+        const MINUS = "−";
+        const VERDICT_LIMIT = 64;
+        const DAY_AND_A_HALF_MS = 36 * 3600000;
+
+        /* Area/Location, optionally deeper. Rejects the abbreviations and
+           POSIX names the formatter would otherwise resolve (PST, BST,
+           EST5EDT) and offset zones (+06:00), none of which names a place. */
+        const ZONE_SHAPE = /^[A-Za-z]+(?:\/[A-Za-z0-9_+-]+)+$/;
+        /* Accepted if already stored even though Chrome does not list them;
+           the picker hides them (decision D8). */
+        const ETC_OFFSET = /^Etc\/GMT[+-]\d{1,2}$/;
+        const NICKNAME = /^[A-Za-z0-9+:−-]{1,6}$/;
+        const LETTERS = /^[A-Z]{2,5}$/;
+
+        const STYLES = {
+          parts: {
+            year: "numeric",
+            month: "numeric",
+            day: "numeric",
+            hour: "numeric",
+            minute: "numeric",
+            second: "numeric",
+            hourCycle: "h23",
+          },
+          /* "09:05:03 AM" -- the logbook's In/Out and both status bar clocks. */
+          time: {
+            hour12: true,
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+          },
+          /* "9:05:03 AM" -- the idle dialog. */
+          timeOnly: {
+            hour: "numeric",
+            minute: "numeric",
+            second: "numeric",
+            hour12: true,
+          },
+          /* "05:30 PM" -- the finish estimate. */
+          hm: { hour: "2-digit", minute: "2-digit", hour12: true },
+          /* "09/12/26" -- the business date key. */
+          date2: { year: "2-digit", month: "2-digit", day: "2-digit" },
+          /* "2026-09-12" -- export file names. */
+          isoDate: {
+            locale: "en-CA",
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit",
+          },
+          tzShort: { timeZoneName: "short" },
+          tzShortGeneric: { timeZoneName: "shortGeneric" },
+        };
+
+        let supported = null;
+        const verdicts = new Map();
+        const formatters = new Map();
+        let version = 0;
+
+        function supportedZones() {
+          if (supported === null) {
+            try {
+              supported =
+                typeof Intl.supportedValuesOf === "function"
+                  ? new Set(Intl.supportedValuesOf("timeZone"))
+                  : false;
+            } catch (e) {
+              supported = false;
+            }
+          }
+          return supported;
+        }
+
+        /* The engine's own spelling of a zone, or null. Engines disagree:
+           Chrome answers Asia/Calcutta for Asia/Kolkata. So ids are only ever
+           compared in this form, and only on the engine that produced it. */
+        function canonical(id) {
+          if (typeof id !== "string" || id === "") return null;
+          try {
+            return new Intl.DateTimeFormat("en-US", {
+              timeZone: id,
+            }).resolvedOptions().timeZone;
+          } catch (e) {
+            return null;
+          }
+        }
+
+        function verdict(id) {
+          if (typeof id !== "string") return null;
+          if (verdicts.has(id)) return verdicts.get(id);
+          let out = null;
+          if (id.toUpperCase() === "UTC" || ZONE_SHAPE.test(id)) {
+            const c = canonical(id);
+            if (c) {
+              const list = supportedZones();
+              if (
+                c === "UTC" ||
+                ETC_OFFSET.test(c) ||
+                !list ||
+                list.has(c) ||
+                list.has(id)
+              ) {
+                out = c;
+              }
+            }
+          }
+          /* Bounded, because ids also arrive from sync and import, and a
+             hostile payload should not be able to grow this without end. */
+          if (verdicts.size >= VERDICT_LIMIT) {
+            verdicts.delete(verdicts.keys().next().value);
+          }
+          verdicts.set(id, out);
+          return out;
+        }
+
+        function sanitize(id, fallback) {
+          const v = verdict(id);
+          if (v !== null) return v;
+          return fallback === undefined ? null : fallback;
+        }
+
+        function isValid(id) {
+          return verdict(id) !== null;
+        }
+
+        function same(a, b) {
+          const x = verdict(a);
+          return x !== null && x === verdict(b);
+        }
+
+        /* Read fresh on every call: a device changes zone under a running
+           page (travel, or the OS setting), and a value sampled at boot goes
+           stale without anything noticing. */
+        function deviceZone() {
+          let raw = null;
+          try {
+            raw = Intl.DateTimeFormat().resolvedOptions().timeZone;
+          } catch (e) {}
+          return sanitize(raw, "UTC");
+        }
+
+        /* An invalid zone falls back to LEGACY_TZ rather than throwing: this
+           is reached from the tick, and a RangeError there stops the timer. */
+        function formatter(zone, style) {
+          const z = sanitize(zone, null) || LEGACY_TZ;
+          const key = z + "|" + style;
+          let f = formatters.get(key);
+          if (!f) {
+            const spec = STYLES[style];
+            if (!spec) throw new Error("TimeZones: unknown style " + style);
+            const opts = Object.assign({ timeZone: z }, spec);
+            const locale = opts.locale || "en-US";
+            delete opts.locale;
+            f = new Intl.DateTimeFormat(locale, opts);
+            formatters.set(key, f);
+          }
+          return f;
+        }
+
+        function parts(ms, zone) {
+          const o = { y: 0, m: 0, d: 0, h: 0, mi: 0, s: 0 };
+          const list = formatter(zone, "parts").formatToParts(ms);
+          for (let i = 0; i < list.length; i++) {
+            const p = list[i];
+            if (p.type === "year") o.y = +p.value;
+            else if (p.type === "month") o.m = +p.value;
+            else if (p.type === "day") o.d = +p.value;
+            else if (p.type === "hour") o.h = +p.value % 24;
+            else if (p.type === "minute") o.mi = +p.value;
+            else if (p.type === "second") o.s = +p.value;
+          }
+          return o;
+        }
+
+        function offsetMinutes(ms, zone) {
+          const p = parts(ms, zone);
+          const asUtc = Date.UTC(p.y, p.m - 1, p.d, p.h, p.mi, p.s);
+          return Math.round((asUtc - Math.floor(ms / 1000) * 1000) / 60000);
+        }
+
+        /* "MM/DD/YY" in the zone -- the business date. */
+        function dateKey(ms, zone) {
+          return formatter(zone, "date2").format(ms);
+        }
+
+        const pad2 = (n) => (n < 10 ? "0" : "") + n;
+
+        /* Pure calendar arithmetic: out-of-range days and months roll over,
+           so keyFromYMD(y, m, d + 1) is the next day in every zone alike. */
+        function keyFromYMD(y, m, d) {
+          const t = new Date(0);
+          t.setUTCFullYear(y, m - 1, d);
+          return (
+            pad2(t.getUTCMonth() + 1) +
+            "/" +
+            pad2(t.getUTCDate()) +
+            "/" +
+            pad2(t.getUTCFullYear() % 100)
+          );
+        }
+
+        function parseKey(key) {
+          if (typeof key !== "string") return null;
+          const bits = key.split("/");
+          if (bits.length !== 3) return null;
+          const m = Number(bits[0]);
+          const d = Number(bits[1]);
+          let y = Number(bits[2]);
+          if (!Number.isInteger(m) || !Number.isInteger(d)) return null;
+          if (!Number.isInteger(y) || bits[0] === "" || bits[1] === "") {
+            return null;
+          }
+          if (y < 100) y += 2000;
+          return { y, m, d };
+        }
+
+        function addDays(key, n) {
+          const p = parseKey(key);
+          return p ? keyFromYMD(p.y, p.m, p.d + n) : null;
+        }
+
+        /* A Date at 12:00 UTC on the zone's calendar day: the shape the
+           insights, filters and date picker do their calendar math on. */
+        function dayNoonUtc(ms, zone) {
+          const p = parts(ms, zone);
+          return new Date(Date.UTC(p.y, p.m - 1, p.d, 12, 0, 0));
+        }
+
+        /* A typed wall time to an instant.
+         *
+         * The zone's offset is read a day and a half either side of the wall
+         * time, which puts one reading before and one after any transition
+         * near it, and each offset gives a candidate. A candidate counts only
+         * if it reads back as the wall time asked for:
+         *
+         *   one match  -> ok
+         *   two        -> ambiguous (the repeated hour); ms is the earlier,
+         *                 alt the later
+         *   none       -> gap (the time never happened); ms is the wall time
+         *                 read with the post-transition offset, which is what
+         *                 this app has always returned (02:30 on the LA
+         *                 spring-forward day -> 01:30 PST), alt the other.
+         *
+         * No loop that can fail to converge. */
+        function wallToInstant(y, m, d, h, mi, s, zone) {
+          const w = Date.UTC(y, m - 1, d, h, mi, s);
+          const t = new Date(w);
+          const wy = t.getUTCFullYear();
+          const wm = t.getUTCMonth() + 1;
+          const wd = t.getUTCDate();
+          const wh = t.getUTCHours();
+          const wmi = t.getUTCMinutes();
+          const ws = t.getUTCSeconds();
+          const reads = (ms) => {
+            const p = parts(ms, zone);
+            return (
+              p.y === wy &&
+              p.m === wm &&
+              p.d === wd &&
+              p.h === wh &&
+              p.mi === wmi &&
+              p.s === ws
+            );
+          };
+          const c1 = w - offsetMinutes(w - DAY_AND_A_HALF_MS, zone) * 60000;
+          const c2 = w - offsetMinutes(w + DAY_AND_A_HALF_MS, zone) * 60000;
+          const hits = [];
+          if (reads(c1)) hits.push(c1);
+          if (c2 !== c1 && reads(c2)) hits.push(c2);
+          if (hits.length === 0 && c1 === c2) {
+            /* Both ends agree yet neither reads back: two offset changes
+               inside three days. Not in modern tzdb, but one more step from
+               the candidate costs nothing. */
+            const c3 = w - offsetMinutes(c1, zone) * 60000;
+            if (reads(c3)) hits.push(c3);
+          }
+          if (hits.length === 1)
+            return { ms: hits[0], status: "ok", alt: null };
+          if (hits.length === 2) {
+            return {
+              ms: Math.min(hits[0], hits[1]),
+              status: "ambiguous",
+              alt: Math.max(hits[0], hits[1]),
+            };
+          }
+          return { ms: c2, status: "gap", alt: c1 };
+        }
+
+        /* The first instant whose local date is y-m-d. Usually midnight; on a
+           day whose DST change skips midnight (Santiago, 09/06/26) it is the
+           transition itself, found by bisecting between the two readings of
+           the missing midnight. */
+        function startOfDay(y, m, d, zone) {
+          const r = wallToInstant(y, m, d, 0, 0, 0, zone);
+          if (r.status !== "gap") return r.ms;
+          const t = new Date(Date.UTC(y, m - 1, d));
+          const want =
+            t.getUTCFullYear() * 10000 +
+            (t.getUTCMonth() + 1) * 100 +
+            t.getUTCDate();
+          const keyAt = (ms) => {
+            const p = parts(ms, zone);
+            return p.y * 10000 + p.m * 100 + p.d;
+          };
+          let lo = Math.min(r.ms, r.alt);
+          let hi = Math.max(r.ms, r.alt);
+          while (hi - lo > 1000) {
+            const mid = lo + Math.floor((hi - lo) / 2000) * 1000;
+            if (keyAt(mid) >= want) hi = mid;
+            else lo = mid;
+          }
+          return hi;
+        }
+
+        function formatTime(ms, zone, style) {
+          return formatter(zone, style || "time").format(ms);
+        }
+
+        function offsetLabel(minutes) {
+          if (minutes === 0) return "UTC";
+          const a = Math.abs(minutes);
+          const rest = a % 60;
+          return (
+            "UTC" +
+            (minutes < 0 ? MINUS : "+") +
+            Math.floor(a / 60) +
+            (rest ? ":" + pad2(rest) : "")
+          );
+        }
+
+        function zoneName(zone, ms, style) {
+          try {
+            const list = formatter(zone, style).formatToParts(ms);
+            for (let i = 0; i < list.length; i++) {
+              if (list[i].type === "timeZoneName") return list[i].value;
+            }
+          } catch (e) {
+            /* shortGeneric is newer than the rest; an engine without it
+               falls through to the offset. */
+          }
+          return "";
+        }
+
+        /* A short label for a clock (docs/implement.md §4.5): a valid
+           nickname, else the abbreviation or generic name when it is plain
+           letters, else the UTC offset. Only 111 of 418 zones have letters in
+           en-US, so the offset is the common case, not the fallback. */
+        function label(zone, ms, style, nickname) {
+          if (typeof nickname === "string" && NICKNAME.test(nickname)) {
+            return nickname;
+          }
+          if (style !== "offset") {
+            const name = zoneName(
+              zone,
+              ms,
+              style === "generic" ? "tzShortGeneric" : "tzShort",
+            );
+            if (LETTERS.test(name)) return name;
+          }
+          return offsetLabel(offsetMinutes(ms, zone));
+        }
+
+        return {
+          isValid,
+          sanitize,
+          canonical,
+          same,
+          deviceZone,
+          get version() {
+            return version;
+          },
+          bumpVersion() {
+            version++;
+            return version;
+          },
+          formatter,
+          parts,
+          offsetMinutes,
+          dateKey,
+          keyFromYMD,
+          parseKey,
+          addDays,
+          dayNoonUtc,
+          startOfDay,
+          wallToInstant,
+          formatTime,
+          offsetLabel,
+          label,
+        };
+      })();
+
+      /* The zone business logic uses: what "today" is, when a shift rolls
+         over, which date a record is filed under. Phase 2 of
+         docs/implement.md widens this to the running session's zone and the
+         user's choice; until then it is exactly the zone the app has always
+         used. */
+      function getWorkZone() {
+        return LEGACY_TZ;
+      }
+
+      /* The zone the second clock and the finish estimate are shown in.
+         Widened in Phase 2 to the user's choice or the device's own zone. */
+      function getLocalZone() {
+        return "Asia/Dhaka";
+      }
+
+      /*==========================================================================
        * 4. SYSTEM CLOCK POLICY
        *
        * This app trusts the host clock, deliberately and in line with every
