@@ -1245,6 +1245,19 @@
 
       /* The zone an edit dialog's times are in, shown only when it is not
          the work zone. */
+      /* A class, not inline display: an inline display would beat the
+         hidden attribute and the row could never hide. */
+      .idle-work-row {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        gap: var(--space-1, 4px);
+      }
+
+      .idle-work-row[hidden] {
+        display: none;
+      }
+
       .modal-zone-hint {
         margin: calc(-1 * var(--space-2)) 0 var(--space-3);
         font-size: var(--font-size-entry-meta);
@@ -9152,6 +9165,16 @@
             <span>Current Time:</span>
             <span
               id="idle-current-time"
+              class="font-mono"
+              style="color: var(--text-main); font-weight: 600"
+              >--:--:--</span
+            >
+          </div>
+          <!-- The work clock, when it is not the local one (decision D7). -->
+          <div id="idle-work-row" class="idle-work-row" hidden>
+            <span id="idle-work-label">Work time:</span>
+            <span
+              id="idle-work-times"
               class="font-mono"
               style="color: var(--text-main); font-weight: 600"
               >--:--:--</span
@@ -17423,6 +17446,8 @@
           tzShort: { timeZoneName: "short" },
           tzShortGeneric: { timeZoneName: "shortGeneric" },
           tzLongGeneric: { timeZoneName: "longGeneric" },
+          /* "9/14/2026" -- device events (sync status, snapshots). */
+          dateNumeric: { year: "numeric", month: "numeric", day: "numeric" },
         };
 
         let supported = null;
@@ -18232,6 +18257,55 @@
         return recordEndpointView(
           { tz: getWorkZone(), date: getWorkDate(), loginEpochMs: ms },
           "in",
+        );
+      }
+
+      /* Search terms for a record's zone -- " asia/dhaka dhaka utc+6" -- or
+         "" for a record without one, whose index stays exactly as it was
+         (I3). The label is the plain abbreviation or offset: a nickname is
+         a display preference and never reaches anything derived from a
+         record (I10). searchStr is local only; it never syncs. */
+      function zoneSearchTerms(record) {
+        if (!record || !record.tz) return "";
+        const zone = recordZone(record);
+        const at = Number.isFinite(record.loginEpochMs)
+          ? record.loginEpochMs
+          : Number.isFinite(record.epochMs)
+            ? record.epochMs
+            : Date.now();
+        const city = zone.split("/").pop().replace(/_/g, " ");
+        return ` ${zone} ${city} ${TimeZones.label(zone, at, "abbr")}`.toLowerCase();
+      }
+
+      /* The idle dialog reads in local time (decision D7). When the work
+         zone is a different one, one more line gives both moments on the
+         work clock, labelled, because that is the clock the shift is filed
+         on. Runs on the tick while the dialog is up; the label is memoised
+         per minute. */
+      function updateIdleWorkRow(nowMs) {
+        const row = document.getElementById("idle-work-row");
+        if (!row) return;
+        const s = currentState();
+        const work = getWorkZone();
+        const show =
+          !!(s && s.idleLock && s.idleStart) &&
+          !TimeZones.same(work, getLocalZone());
+        if (row.hidden === show) row.hidden = !show;
+        if (!show) return;
+        const display = readZonePrefs().display;
+        const style = (display && display.labelStyle) || "abbr";
+        const label = memoRecordTime(
+          `i|${TimeZones.version}|${work}|${style}|${Math.floor(nowMs / 60000)}`,
+          () => TimeZones.label(work, nowMs, style, zoneNickname(work)),
+        );
+        const f = TimeZones.formatter(work, "timeOnly");
+        setText(
+          document.getElementById("idle-work-label"),
+          `Work time (${label}):`,
+        );
+        setText(
+          document.getElementById("idle-work-times"),
+          `${f.format(s.idleStart)} → ${f.format(nowMs)}`,
         );
       }
 
@@ -20855,7 +20929,7 @@
           r.dayGoal = goal;
           if (!r.status) r.status = (r.workSec || 0) >= goal ? "OVER" : "UNDER";
           r.searchStr =
-            `${r.displayDate || ""} ${r.date || ""} ${r.login || ""} ${r.logout || ""} ${r.notes || ""}`.toLowerCase();
+            `${r.displayDate || ""} ${r.date || ""} ${r.login || ""} ${r.logout || ""} ${r.notes || ""}${zoneSearchTerms(r)}`.toLowerCase();
           return r;
         }
 
@@ -21424,7 +21498,10 @@
             };
           }
           if (failingSince && Date.now() - failingSince > UNREACHABLE_LOUD_MS) {
-            const since = new Date(failingSince).toLocaleDateString();
+            const since = TimeZones.formatter(
+              getLocalZone(),
+              "dateNumeric",
+            ).format(failingSince);
             return { text: `Cloud unreachable since ${since}`, tone: "error" };
           }
           if (failures >= FAILURES_BEFORE_VISIBLE) {
@@ -26503,7 +26580,7 @@
         };
 
         entry.searchStr =
-          `${displayDate} ${dateStr} ${loginTime} ${logoutTime} Auto-submitted (Midnight Reset)`.toLowerCase();
+          `${displayDate} ${dateStr} ${loginTime} ${logoutTime} Auto-submitted (Midnight Reset)${zoneSearchTerms(entry)}`.toLowerCase();
 
         const logs = getLogs();
         logs.unshift(entry);
@@ -26813,7 +26890,7 @@
         };
 
         entry.searchStr =
-          `${displayDate} ${entryDate} ${loginTime} ${logoutTime} ${forceNotes}`.toLowerCase();
+          `${displayDate} ${entryDate} ${loginTime} ${logoutTime} ${forceNotes}${zoneSearchTerms(entry)}`.toLowerCase();
 
         window.lastSubmittedLogId = entry.id;
         logs.unshift(entry);
@@ -26942,12 +27019,14 @@
         }
         headerEl.insertAdjacentHTML("afterbegin", iconHtml);
 
+        /* Local time (decision D7): the clock the user comes back to. */
         if (state.idleStart) {
-          const timeFormatter = TimeZones.formatter(getWorkZone(), "timeOnly");
-          lastActiveEl.textContent = timeFormatter.format(
-            new Date(state.idleStart),
-          );
+          lastActiveEl.textContent = TimeZones.formatter(
+            getLocalZone(),
+            "timeOnly",
+          ).format(new Date(state.idleStart));
         }
+        updateIdleWorkRow(Date.now());
       }
 
       /**
@@ -28422,7 +28501,7 @@
           if (termLen > 0) {
             const sStr =
               l.searchStr ||
-              `${l.displayDate || ""} ${l.date || ""} ${l.login || ""} ${l.logout || ""} ${l.notes || ""}`.toLowerCase();
+              `${l.displayDate || ""} ${l.date || ""} ${l.login || ""} ${l.logout || ""} ${l.notes || ""}${zoneSearchTerms(l)}`.toLowerCase();
             for (let i = 0; i < termLen; i++) {
               if (sStr.indexOf(searchTerms[i]) === -1) return false;
             }
@@ -31905,7 +31984,7 @@
               log.notes = newNotes;
               log.lastModified = Date.now();
               log.searchStr =
-                `${log.displayDate} ${log.date} ${newLogin} ${newLogout} ${log.notes || ""}`.toLowerCase();
+                `${log.displayDate} ${log.date} ${newLogin} ${newLogout} ${log.notes || ""}${zoneSearchTerms(log)}`.toLowerCase();
 
               logs.sort(
                 (a, b) =>
@@ -32013,16 +32092,19 @@
               : resolveGoalSecForDate(l.date);
           deltaDec = ((l.workSec - goalSec) / 3600).toFixed(4);
         }
+        /* In and Out on the clock the shift was filed on, with that zone in
+           the last column (decision D4): existing columns keep their places. */
         return csvRow([
           l.date,
-          l.login,
-          l.logout,
+          recordEndpointText(l, "in"),
+          recordEndpointText(l, "out"),
           formatDuration(l.workSec),
           workDec,
           formatDuration(l.breakSec),
           breakDec,
           deltaDec,
           l.notes || "",
+          recordZone(l),
         ]);
       }
 
@@ -32039,7 +32121,8 @@
           return;
         }
 
-        let csv = "Date,In,Out,W_Time,W_Hrs,B_Time,B_Hrs,Delta_Hrs,Notes\n";
+        let csv =
+          "Date,In,Out,W_Time,W_Hrs,B_Time,B_Hrs,Delta_Hrs,Notes,Time_Zone\n";
 
         let csvRows = [];
         logs.forEach((l) => {
@@ -32061,7 +32144,7 @@
 
         const a = document.createElement("a");
         a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
-        a.download = `nodrift-logs-${TimeZones.formatter(getWorkZone(), "isoDate").format(new Date())}.csv`;
+        a.download = `nodrift-logs-${TimeZones.formatter(getLocalZone(), "isoDate").format(new Date())}.csv`;
         a.click();
         requestAnimationFrame(() => URL.revokeObjectURL(a.href));
         showAppToast("Exported logs as CSV");
@@ -32170,7 +32253,7 @@
             type: "application/json",
           }),
         );
-        a.download = `nodrift-backup-${TimeZones.formatter(getWorkZone(), "isoDate").format(new Date())}.json`;
+        a.download = `nodrift-backup-${TimeZones.formatter(getLocalZone(), "isoDate").format(new Date())}.json`;
         a.click();
         requestAnimationFrame(() => URL.revokeObjectURL(a.href));
         showAppToast("JSON backup created");
@@ -32207,8 +32290,16 @@
         return overlappingLogs
           .map((backupLog) => {
             const localLog = currentLogs.find((l) => l.date === backupLog.date);
-            const times = (log) =>
-              `${escapeHTML(log.login)}-${escapeHTML(log.logout)}`;
+            /* On each record's own clock, tagged when that is not the work
+               zone (§3.9). Escaped here at the sink, like the rest: both
+               sides can come from a file or from sync. */
+            const times = (log) => {
+              const at = recordEndpoint(log, "in").ms;
+              const tag = Number.isFinite(at)
+                ? zoneTag(recordZone(log), at)
+                : "";
+              return `${escapeHTML(recordEndpointText(log, "in"))}-${escapeHTML(recordEndpointText(log, "out"))}${tag ? ` ${escapeHTML(tag)}` : ""}`;
+            };
             return `
                         <div style="border-bottom: 1px solid var(--border-main); padding: var(--space-2) 0; display: flex; flex-direction: column; gap: 2px;">
                           <span style="font-weight: 700; color: var(--accent-blue);">${escapeHTML(backupLog.date)}</span>
@@ -32429,7 +32520,7 @@
                     0,
                   );
                   l.searchStr =
-                    `${l.displayDate} ${l.date} ${l.login || ""} ${l.logout || ""} ${l.notes || ""}`.toLowerCase();
+                    `${l.displayDate} ${l.date} ${l.login || ""} ${l.logout || ""} ${l.notes || ""}${zoneSearchTerms(l)}`.toLowerCase();
                 });
 
                 // Check for date overlaps
@@ -32744,7 +32835,7 @@
                 0,
               );
               l.searchStr =
-                `${l.displayDate} ${l.date} ${l.login || ""} ${l.logout || ""} ${l.notes || ""}`.toLowerCase();
+                `${l.displayDate} ${l.date} ${l.login || ""} ${l.logout || ""} ${l.notes || ""}${zoneSearchTerms(l)}`.toLowerCase();
             });
 
             const currentLogs = getLogs();
@@ -33887,12 +33978,13 @@
                 setText(labelEl, "Current Time:");
               }
 
-              const idleZone = getWorkZone();
+              const idleZone = getLocalZone();
               if (cachedIdleTz !== idleZone || !cachedIdleFormatter) {
                 cachedIdleTz = idleZone;
                 cachedIdleFormatter = TimeZones.formatter(idleZone, "timeOnly");
               }
               setText(currentTimeEl, cachedIdleFormatter.format(targetDate));
+              updateIdleWorkRow(targetTimeMs);
             }
           }
 
@@ -35694,7 +35786,7 @@
         if (d < 60000) return `${Math.floor(d / 1000)}s ago`;
         if (d < 3600000) return `${Math.floor(d / 60000)}m ago`;
         if (d < 864e5) return `${Math.floor(d / 3600000)}h ago`;
-        return new Date(ts).toLocaleDateString();
+        return TimeZones.formatter(getLocalZone(), "dateNumeric").format(ts);
       }
 
       function syncToneColor(tone) {
@@ -36598,10 +36690,12 @@
               /* Keyed by date rather than array position: the index is
                  re-sorted and pruned, so an ordinal would go stale. */
               opt.value = s.date;
-              const formattedTime = new Date(s.timestamp).toLocaleTimeString(
-                [],
-                { hour: "2-digit", minute: "2-digit" },
-              );
+              /* A device event, so the local clock (I5), not whatever zone
+                 the browser happens to report. */
+              const formattedTime = TimeZones.formatter(
+                getLocalZone(),
+                "hm",
+              ).format(s.timestamp);
               opt.textContent = `${s.date} (${formattedTime}) - ${s.count} logs`;
               snapshotSelect.appendChild(opt);
             });
@@ -37106,7 +37200,7 @@
               lastModified: Date.now(),
             };
             entry.searchStr =
-              `${entry.displayDate} ${entry.date} ${loginStr} ${logoutStr} manual entry ${notes}`.toLowerCase();
+              `${entry.displayDate} ${entry.date} ${loginStr} ${logoutStr} manual entry ${notes}${zoneSearchTerms(entry)}`.toLowerCase();
 
             logs.push(entry);
             logs.sort(
@@ -37969,18 +38063,14 @@
         const task = cachedTaskLogs.find((t) => t.id === taskId);
         if (!task) return;
 
-        const timeFormatter = TimeZones.formatter(getWorkZone(), "time");
-        let startStr = "—";
-        let endStr = "—";
-        try {
-          if (Number.isFinite(task.startMs))
-            startStr = timeFormatter.format(new Date(task.startMs));
-          if (Number.isFinite(task.endMs))
-            endStr = timeFormatter.format(new Date(task.endMs));
-        } catch (e) {}
+        /* As the task row shows it: tagged when not in the work zone. */
+        const whenText = formatTimeRange(
+          recordEndpointView(task, "in"),
+          recordEndpointView(task, "out"),
+        );
         const durStr = formatDuration(task.durationSec || 0);
 
-        const txt = `[${task.date}] ${startStr} - ${endStr} | Duration: ${durStr} | Note: ${task.note}`;
+        const txt = `[${task.date}] ${whenText} | Duration: ${durStr} | Note: ${task.note}`;
 
         if (navigator.clipboard && navigator.clipboard.writeText) {
           navigator.clipboard
@@ -38006,20 +38096,14 @@
           showAppToast("No tasks to copy", "warning");
           return;
         }
-        const timeFormatter = TimeZones.formatter(getWorkZone(), "time");
-
         const txt = tasksToCopy
           .map((task) => {
-            let startStr = "—";
-            let endStr = "—";
-            try {
-              if (Number.isFinite(task.startMs))
-                startStr = timeFormatter.format(new Date(task.startMs));
-              if (Number.isFinite(task.endMs))
-                endStr = timeFormatter.format(new Date(task.endMs));
-            } catch (e) {}
+            const whenText = formatTimeRange(
+              recordEndpointView(task, "in"),
+              recordEndpointView(task, "out"),
+            );
             const durStr = formatDuration(task.durationSec || 0);
-            return `[${task.date}] ${startStr} - ${endStr} | Duration: ${durStr} | Note: ${task.note || ""}`;
+            return `[${task.date}] ${whenText} | Duration: ${durStr} | Note: ${task.note || ""}`;
           })
           .join("\n");
 
@@ -38049,19 +38133,12 @@
           showAppToast("No tasks to export", "warning");
           return;
         }
-        /* Exported data carries business time, not the viewer's clock skin. */
-        const timeFormatter = TimeZones.formatter(getWorkZone(), "time");
-
-        let csv = "Date,Start,End,Duration,Paused,Notes\n";
+        /* Each task on the clock it was filed on, with that zone in the last
+           column (decision D4) -- never the viewer's display mode. */
+        let csv = "Date,Start,End,Duration,Paused,Notes,Time_Zone\n";
         tasksToExport.forEach((task) => {
-          let startStr = "—";
-          let endStr = "—";
-          try {
-            if (Number.isFinite(task.startMs))
-              startStr = timeFormatter.format(new Date(task.startMs));
-            if (Number.isFinite(task.endMs))
-              endStr = timeFormatter.format(new Date(task.endMs));
-          } catch (e) {}
+          const startStr = recordEndpointText(task, "in") || "—";
+          const endStr = recordEndpointText(task, "out") || "—";
           const durStr = formatDuration(task.durationSec);
           const pausedStr = formatDuration(Number(task.pausedSec) || 0);
           csv +=
@@ -38072,12 +38149,13 @@
               durStr,
               pausedStr,
               task.note || "",
+              recordZone(task),
             ]) + "\n";
         });
 
         const a = document.createElement("a");
         a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
-        a.download = `nodrift-tasks-${TimeZones.formatter(getWorkZone(), "isoDate").format(new Date())}.csv`;
+        a.download = `nodrift-tasks-${TimeZones.formatter(getLocalZone(), "isoDate").format(new Date())}.csv`;
         a.click();
         requestAnimationFrame(() => URL.revokeObjectURL(a.href));
         showAppToast("Exported tasks as CSV");
@@ -41456,7 +41534,7 @@
                  not persisted to the mirror. Does NOT count as a mutation:
                  marking it dirty forced a full logbook re-save every boot. */
               l.searchStr =
-                `${l.displayDate || ""} ${l.date || ""} ${l.login || ""} ${l.logout || ""} ${l.notes || ""}`.toLowerCase();
+                `${l.displayDate || ""} ${l.date || ""} ${l.login || ""} ${l.logout || ""} ${l.notes || ""}${zoneSearchTerms(l)}`.toLowerCase();
             }
             if (!l.status) {
               const goal =
