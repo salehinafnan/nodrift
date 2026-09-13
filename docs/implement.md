@@ -1,19 +1,19 @@
 # Time zones: implementation blueprint
 
-> **Status:** Phases 0–2, 3a and 3b1 complete. Every zone-dependent calculation goes through `TimeZones`, the zone model exists (unset preferences keep Los Angeles for work and Dhaka for local until Phase 5's UI), every record's times are shown from its instants in the zone it was filed in, and the edit dialogs read typed times in that zone. 3b2 (outputs: CSV, search, idle dialog, file names, conflict wizard) is next.
+> **Status:** Phases 0–3 complete. Every zone-dependent calculation goes through `TimeZones`, and the zone model exists (unset preferences keep Los Angeles for work and Dhaka for local until Phase 5's UI). Every record is shown, edited, exported and searched in the zone it was filed in. Phase 4 (the zone picker) is next.
 > **Baseline commit:** `9181afa` (all line numbers below refer to it and WILL drift — re-grep before editing).
 > **Rule:** one phase at a time. A phase starts only when the previous phase's exit criteria are green and committed.
 
-| Phase | Title                                                | Touches data?    | Needs live account? | Size              | State                      |
-| ----- | ---------------------------------------------------- | ---------------- | ------------------- | ----------------- | -------------------------- |
-| 0     | Groundwork, probes, fixtures                         | no               | one read-only probe | S                 | **done**                   |
-| 1     | `TimeZones` core + behaviour-identical refactor      | no               | regression only     | L (split 1a/1b)   | **done**                   |
-| 2     | Data model: work / local / session / record zones    | **yes**          | regression only     | L (split 2a/2b)   | **done**                   |
-| 3     | Rendering and editing records in their own zone      | yes (edit paths) | no                  | M–L (split 3a/3b) | **3a, 3b1 done**, 3b2 next |
-| 4     | The zone picker component                            | no               | no                  | M–L               | not started                |
-| 5     | Status bar, settings card, phone sheet, change flows | prefs            | no                  | L (split 5a/5b)   | not started                |
-| 6     | Sync hardening + multi-device + iPhone verification  | no               | **yes**             | M                 | not started                |
-| 7     | Cleanup, aliases removed, docs, guide                | no               | full sweep          | S                 | not started                |
+| Phase | Title                                                | Touches data?    | Needs live account? | Size              | State       |
+| ----- | ---------------------------------------------------- | ---------------- | ------------------- | ----------------- | ----------- |
+| 0     | Groundwork, probes, fixtures                         | no               | one read-only probe | S                 | **done**    |
+| 1     | `TimeZones` core + behaviour-identical refactor      | no               | regression only     | L (split 1a/1b)   | **done**    |
+| 2     | Data model: work / local / session / record zones    | **yes**          | regression only     | L (split 2a/2b)   | **done**    |
+| 3     | Rendering and editing records in their own zone      | yes (edit paths) | no                  | M–L (split 3a/3b) | **done**    |
+| 4     | The zone picker component                            | no               | no                  | M–L               | not started |
+| 5     | Status bar, settings card, phone sheet, change flows | prefs            | no                  | L (split 5a/5b)   | not started |
+| 6     | Sync hardening + multi-device + iPhone verification  | no               | **yes**             | M                 | not started |
+| 7     | Cleanup, aliases removed, docs, guide                | no               | full sweep          | S                 | not started |
 
 ---
 
@@ -799,6 +799,74 @@ The mutation run exposed a blind test on its first attempt. "An untouched time r
 The seeds are now saved as copies, and that mutation is caught on the round trip. **Rule for every suite:** never compare a saved record with the object that was saved; capture the values or save copies.
 
 Mutation 161 was re-pointed at the new work-zone wrapper. Anchors: 188, 0 misses. `index.html` was restored byte-identical.
+
+#### Phase 3b2 results (2026-09-14)
+
+**Committed as** `feat(time): export and search records with the zone they were filed in`. With it, Phase 3 is complete.
+
+**What leaves the logbook now:**
+
+- **CSV (D4).** In and Out are on each shift's own clock (`recordEndpointText`), never the display mode. A legacy shift exports exactly the strings it stores. `Time_Zone` is a new last column (a record with no zone exports `America/Los_Angeles`), so every existing column keeps its place. The task CSV does the same with its own `Time_Zone` column, and copying a task (one or all) reads as the task row does.
+- **Search.** `zoneSearchTerms(record)` adds the zone id, its city and its plain abbreviation or offset (`asia/dhaka dhaka utc+6`) to the search index. That covers all eight places the index is built, including the search's own fallback.
+  - It adds nothing to a record without a zone, so a legacy record's index is byte-identical (I3).
+  - It never uses a nickname, which is a display preference (I10).
+  - The index is local only: it is dropped from the storage mirror and stripped from every upload.
+- **Idle dialog (D7).** "Last Active" and "Current Time" are on the local clock. When the work zone differs, one more line gives both moments on the work clock, labelled (e.g. `Work time (PDT): 9:05:03 AM → 9:07:10 AM`), because that is the clock the shift is filed on. It hides by a class rule (`.idle-work-row[hidden]`): an inline `display` would beat the `hidden` attribute and the line could never hide. On the tick it adds one formatter lookup per second and a label memoised per minute.
+- **Export file names** carry the local date (when you exported).
+- **The restore conflict list** shows each side on its own clock, with the zone tag when it isn't the work zone, escaped at the sink.
+- **Device-local displays, audited.** Three sites read the browser's own zone directly: the sync card's "unreachable since" date, the "ago" fallback date, and the snapshot list's time. They now go through `getLocalZone()`. New en-US styles `dateNumeric` and `hm` print exactly what they printed before on an en-US device. The day-tooltip weekday (`toLocaleDateString` on a date built from its own parts) is zone-safe and unchanged.
+- **Unchanged:** the login/logout strings written at submit and at rollover were already in the work zone the record is stamped with. The copy and EOD email reports print durations only.
+
+**Tests.**
+
+- **`harness-tz-display.js` gains an outputs part**, 129 checks in total over two device zones. It covers:
+  - both CSVs, with work-zone display on as a negative control;
+  - file names, with work Pago Pago and local Kiritimati (25 hours apart, so the dates always differ);
+  - an old device event's date;
+  - the search index through a real manual entry;
+  - the conflict list's tag;
+  - the idle dialog through the real `triggerIdleLock`, including the tick and the work line hiding when both zones match.
+- **`probe-csv-shape.js`** now expects ten columns ending in `Time_Zone`, and a zone-less record exported as Los Angeles: 15 checks.
+- **`harness-security.js`** expects ten cells, plus two new tests: a hostile `tz` reaches neither the conflict list nor the CSV (it reads as Los Angeles), and a nickname carrying markup is refused by both `setZoneDisplayPref` and a synced blob. 17 checks.
+
+**Regression, one suite at a time — at baseline.** Numbers below are checks.
+
+- **Time zone suites:** `harness-tz-core` 80, `harness-tz-model` 28.
+- **No-account suites:**
+  - `harness-progress` 25, `harness-motion` 43, `harness-cloud-panel` 27, `harness-security` 17;
+  - `probe-leave-rows` 12, `probe-csv-shape` 15, `probe-backup-and-leave` 26, `probe-lease-endshift` 30;
+  - `probe-field-sweep` unchanged, and `harness.js` ALL PASS.
+- **Live account and the long suites:**
+  - `harness-handoff` 22, `harness-signin-render` 12, `probe-shift-rewind` ALL PASS;
+  - `harness-phase7` 21, `harness-phase8` 13, `harness-import` 9, `harness-wipe` 18;
+  - `probe-beat-cost` 9: owner 120 messages an hour, idle 0, ceiling about 94.
+
+`harness-handoff` failed once inside the chain, on "a follower refuses a corrupt anchor rather than showing days" (A's refusal read back as `null`). It passed 22/22 re-run alone, and also passed in the 3a and 3b1 chains.
+
+That check waits on a realtime delivery, and nothing 3b2 changes touches sync or the lease. It is a timing flake of that one check, not leftover account data: no live suite ran before it in this chain.
+
+**Mutations:** 11 new, all caught, each on the check written for it:
+
+- the CSV's `Time_Zone` column dropped;
+- CSV times following the display mode;
+- the file named on the work clock;
+- task CSV times on the work clock;
+- zone terms left out of the search index;
+- the idle dialog's last active time on the work clock;
+- its work line never shown;
+- its ticking time on the work clock;
+- the conflict list's tag dropped;
+- the "ago" date read in the browser's zone;
+- `recordZone` trusting an unsanitised `tz`, caught by `harness-security.js`.
+
+Anchors: 199, 0 misses. `index.html` was restored byte-identical.
+
+**Phase 3 is complete.** Carried forward:
+
+- **Phase 4:** the city names in search terms and edit hints use the engine's canonical spelling (Chrome's `Asia/Calcutta`). The picker's alias table is where the modern spelling comes from.
+- **Phase 5:**
+  - "nickname via `innerHTML`" waits for the clock labels, the first place a nickname is rendered.
+  - `getLocalZone()` with `"auto"` reads the device zone (`resolvedOptions`, about 206 µs) on every call, and the idle tick and clocks call it every second. Cache it per minute before `"auto"` becomes the default.
 
 ### Phase 4 — The zone picker
 
