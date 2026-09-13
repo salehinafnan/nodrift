@@ -35848,6 +35848,37 @@
               return l.connected ? "connecting" : "not connected";
             })(),
           ],
+          /* Which zones are in effect, and why. A wrong date on a shift is
+             reported as "it filed under the wrong day", and these two lines
+             are what answer it without a second round of questions. Keys stay
+             short so the padding of every line above is unchanged. */
+          [
+            "work",
+            (() => {
+              try {
+                const s = currentState();
+                const pending = pendingWorkZone();
+                return (
+                  `${getWorkZone()} (preferred ${getPreferredWorkZone()}, ` +
+                  `shift ${(s && s.sessionTz) || "none"}` +
+                  `${pending ? `, changes to ${pending} after it` : ""})`
+                );
+              } catch (e) {
+                return "unavailable";
+              }
+            })(),
+          ],
+          [
+            "local",
+            (() => {
+              try {
+                const setting = readZonePrefs().local || "default";
+                return `${getLocalZone()} (setting ${setting}, device ${TimeZones.deviceZone()}, v${TimeZones.version})`;
+              } catch (e) {
+                return "unavailable";
+              }
+            })(),
+          ],
           ["error", err ? `${err.text} at ${stamp(err.at)}` : "none"],
         ];
         const pad = lines.reduce((w, l) => Math.max(w, l[0].length), 0);
