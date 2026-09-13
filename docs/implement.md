@@ -1,19 +1,19 @@
 # Time zones: implementation blueprint
 
-> **Status:** Phases 0 and 1 complete. Every zone-dependent calculation goes through `TimeZones`; the zones themselves are still fixed (Los Angeles for work, Dhaka for local) until Phase 2.
+> **Status:** Phases 0–2 and 3a complete. Every zone-dependent calculation goes through `TimeZones`, the zone model exists (unset preferences keep Los Angeles for work and Dhaka for local until Phase 5's UI), and every record's times are shown from its instants in the zone it was filed in. 3b (edit paths and outputs) is next.
 > **Baseline commit:** `9181afa` (all line numbers below refer to it and WILL drift — re-grep before editing).
 > **Rule:** one phase at a time. A phase starts only when the previous phase's exit criteria are green and committed.
 
-| Phase | Title                                                | Touches data?    | Needs live account? | Size            | State       |
-| ----- | ---------------------------------------------------- | ---------------- | ------------------- | --------------- | ----------- |
-| 0     | Groundwork, probes, fixtures                         | no               | one read-only probe | S               | **done**    |
-| 1     | `TimeZones` core + behaviour-identical refactor      | no               | regression only     | L (split 1a/1b) | **done**    |
-| 2     | Data model: work / local / session / record zones    | **yes**          | regression only     | L (split 2a/2b) | **done**    |
-| 3     | Rendering and editing records in their own zone      | yes (edit paths) | no                  | M–L             | not started |
-| 4     | The zone picker component                            | no               | no                  | M–L             | not started |
-| 5     | Status bar, settings card, phone sheet, change flows | prefs            | no                  | L (split 5a/5b) | not started |
-| 6     | Sync hardening + multi-device + iPhone verification  | no               | **yes**             | M               | not started |
-| 7     | Cleanup, aliases removed, docs, guide                | no               | full sweep          | S               | not started |
+| Phase | Title                                                | Touches data?    | Needs live account? | Size              | State                |
+| ----- | ---------------------------------------------------- | ---------------- | ------------------- | ----------------- | -------------------- |
+| 0     | Groundwork, probes, fixtures                         | no               | one read-only probe | S                 | **done**             |
+| 1     | `TimeZones` core + behaviour-identical refactor      | no               | regression only     | L (split 1a/1b)   | **done**             |
+| 2     | Data model: work / local / session / record zones    | **yes**          | regression only     | L (split 2a/2b)   | **done**             |
+| 3     | Rendering and editing records in their own zone      | yes (edit paths) | no                  | M–L (split 3a/3b) | **3a done**, 3b next |
+| 4     | The zone picker component                            | no               | no                  | M–L               | not started          |
+| 5     | Status bar, settings card, phone sheet, change flows | prefs            | no                  | L (split 5a/5b)   | not started          |
+| 6     | Sync hardening + multi-device + iPhone verification  | no               | **yes**             | M                 | not started          |
+| 7     | Cleanup, aliases removed, docs, guide                | no               | full sweep          | S                 | not started          |
 
 ---
 
@@ -646,6 +646,86 @@ A default nobody can see would silently move a teammate's day.
 **Mutations:** row renders stored strings; edit interprets in work zone; first-in by string; row key without version; gap accepted silently; ambiguity picks later; CSV column dropped; nickname via `innerHTML`.
 
 **Commit:** `feat(time): show and edit every record in the zone it was filed in`.
+
+#### Phase 3a results (2026-09-13)
+
+**Split.** Phase 3 became **3a**, the read paths (this block, committed as `feat(time): show every record in the zone it was filed in`), and **3b**, the edit paths and outputs. 3b covers:
+
+- edit log, edit task, manual entry and manual task in the record's zone;
+- the gap refusal (D6), the ambiguity rule, and next day via `addDays`;
+- the CSV `Time_Zone` column (D4), the idle dialog (D7), export file names in local date, the conflict wizard tag, and the zone label in `searchStr`;
+- the device-local display audit and the `harness-security.js` extensions.
+
+**What exists now** (section 3b of `index.html`, after the resolvers):
+
+- **`recordEndpoint(record, "in" | "out")`** returns the end's instant (log or task field), its stored string, and whether that string is a **placeholder** (non-empty, but not a clock time: `Manual`, `Entry`, `—`). A legacy log with a time and no instant gets one, read from the string in the record's zone, with a logout earlier than its login put on the next day.
+- **`recordEndpointView(record, end)`** returns `{ text, tag }`:
+  - A placeholder is shown as it is.
+  - Shown in the record's own zone, a stored string that agrees with its instant (same minute of the day) is shown **verbatim**, so every existing record looks exactly as before, including times typed by hand like `9:00 am`. A string that disagrees loses to the instant (I1).
+  - Shown in any other zone, the instant is formatted there, with a `+1d` / `−1d` marker when it lands on a different calendar day from the row's date.
+  - The tag is `TimeZones.label` (DST-correct: `PST` / `PDT`, else the offset, e.g. `UTC+6`), present only when the zone shown differs from the work zone.
+- **`formatTimeRange(a, b)`** writes one tag at the end when both ends share it, and one beside each end when they differ: a night across a DST change, or a day's first in and last out from two zones.
+- **`firstInLastOut(records, { placeholders })`** orders a day's ends by **instant**. Placeholders never win; they stand in only where a view already did that (the weekly breakdown).
+- **Also new:** `liveLoginView()` / `liveStatusView()` for the running shift, and `zoneRenderKey()` (version, display mode, work zone). The work zone is spelled out because a shift that ends hands over to a pending zone without passing through the funnel. `formatTime` results are memoised in a bounded map.
+
+**Switched over:**
+
+- the logbook row (text, and a row key that now includes `tz`, both instants and `zoneKey`);
+- the task row (key and text);
+- `buildProgressTooltipHTML`;
+- the weekly insights breakdown (it collects records per date instead of minutes);
+- `updateLiveTodayRow`'s cache, which also keys on `zoneKey`;
+- the insights cache key.
+
+`showHeatmapTooltip` computed a second first-in/last-out that nothing displayed; it's deleted.
+
+**A defect the new suite found, fixed at the root.** The logbook and task scrollers return before comparing any row key when their visible range hasn't moved. So a display-mode or work-zone change bumped the version and still left the rows on screen showing old times. `onZoneContextChanged()` now also calls `renderLogbook`, `renderTaskLogbook` and `renderInsights`.
+
+**A refinement of §3.4.** Day markers appear only on times shown in a zone other than the record's own. A legacy overnight manual entry (`10:00 PM - 02:00 AM`) therefore keeps its exact look in the default mode, as row 1 of §5 requires.
+
+**Tests.** `nodrift-harness/harness-tz-display.js` (ports 8874/9474, no account) runs 32 checks under two device zones, Dhaka and Pago Pago, plus a page-exception check: 65 in total.
+
+- **Fixed 2026 records.** The records are:
+  - Los Angeles in summer and winter;
+  - a hand-typed record, a stale string, and Dhaka;
+  - Kolkata overnight;
+  - placeholders, and a legacy record without instants;
+  - nights across both LA DST changes: 7 h and 9 h, tagged `PST`→`PDT` and `PDT`→`PST`.
+
+  Each is rendered in recorded, work and local modes, with the work zone set to both LA and Dhaka.
+
+- **Ordering.** Mixed-zone first in / last out is ordered by instant, a shift past midnight counts as the last out, and there are placeholder rules.
+- **Real renderers on today's date:** the day tooltip, a logbook row, the redraw after `setZoneDisplayPref`, a task row and its tag after `setWorkZonePref`, the week's today row, a hostile `tz`, a junk display preference, and the memo bound.
+
+**Regression, one suite at a time — all at baseline.**
+
+- **Time zone suites:** `harness-tz-core` 80, `harness-tz-model` 28.
+- **No-account suites:**
+  - `harness-progress` 25, `harness-motion` 43, `harness-cloud-panel` 27, `harness-security` 15;
+  - `probe-leave-rows` 12, `probe-csv-shape` 14, `probe-backup-and-leave` 26, `probe-lease-endshift` 30;
+  - `probe-field-sweep` unchanged (19 suspicious on desktop, 0 on phone);
+  - `harness.js` ALL PASS.
+- **Live account and the long suites:**
+  - `harness-handoff` 22, `harness-signin-render` 12, `probe-shift-rewind` ALL PASS;
+  - `harness-phase7` 21, `harness-phase8` 13, `harness-import` 9, `harness-wipe` 18;
+  - `probe-beat-cost` 9: owner 120 messages an hour, idle 0, ceiling about 94.
+
+**Mutations:** 10 new, all caught, and every one failed on the check written for it:
+
+- the row shows the stored strings;
+- the row key without `zoneKey`;
+- the task row in the work zone;
+- first in by clock reading;
+- placeholders competing;
+- a disagreeing string trusted;
+- the display mode ignored;
+- the day marker dropped;
+- a tag on work-zone times;
+- the funnel skipping the record redraw.
+
+Anchors: 178, 0 misses. `index.html` was restored byte-identical.
+
+**Carried into 3b:** everything under the split above. The plan's "gap accepted silently", "ambiguity picks later", "CSV column dropped" and "edit interprets in work zone" mutations belong there. "Nickname via `innerHTML`" waits for Phase 5's labels.
 
 ### Phase 4 — The zone picker
 
