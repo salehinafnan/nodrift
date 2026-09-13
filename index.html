@@ -16640,7 +16640,7 @@
       let dailyAnchorMap = new Map(); // DateString -> GoalSeconds
 
       function resolveGoalSecForDate(dateStr) {
-        const todayStr = typeof getPSTDate === "function" ? getPSTDate() : "";
+        const todayStr = typeof getWorkDate === "function" ? getWorkDate() : "";
         const isToday = dateStr === todayStr;
         const liveGoalSec =
           typeof getGoalSeconds === "function" && DOM.goalHours
@@ -16703,7 +16703,6 @@
       let lastFaviconKey = "";
       // Reusable Date objects to minimize garbage collection overhead in high-frequency loops
       const sharedTickDate = new Date();
-      const _sharedDateForPST = new Date();
       const _sharedFinishDate = new Date();
 
       /**
@@ -17310,119 +17309,21 @@
       const _cachedLocaleDayFirst = new Intl.DateTimeFormat()
         .format(new Date(2026, 11, 25))
         .startsWith("25");
-      const _cachedResolvedTz =
-        Intl.DateTimeFormat().resolvedOptions().timeZone;
-      const _formatTzCache = {};
-      function getCachedTzFormatter(tz) {
-        if (!_formatTzCache[tz]) {
-          _formatTzCache[tz] = new Intl.DateTimeFormat("en-US", {
-            timeZone: tz,
-            year: "numeric",
-            month: "numeric",
-            day: "numeric",
-            hour: "numeric",
-            minute: "numeric",
-            second: "numeric",
-            hour12: false,
-            hourCycle: "h23",
-          });
-        }
-        return _formatTzCache[tz];
-      }
-      const _formatTimeOnlyCache = {};
-      function getCachedTimeOnlyFormatter(tz) {
-        if (!_formatTimeOnlyCache[tz]) {
-          _formatTimeOnlyCache[tz] = new Intl.DateTimeFormat("en-US", {
-            timeZone: tz,
-            hour: "numeric",
-            minute: "numeric",
-            second: "numeric",
-            hour12: true,
-          });
-        }
-        return _formatTimeOnlyCache[tz];
-      }
-      /* The single timezone every stored instant, calendar day boundary and
-         logbook label is expressed in. It is a business rule, not a preference:
-         a shift filed on 03/14 must mean the same day on every device that ever
-         opens this logbook.
-
-         DOM.primaryTz is purely cosmetic - it re-skins the wall clock widget at
-         the top of the screen and nothing else. Anything that reads it to
-         interpret or stamp DATA is a bug, because changing a display preference
-         would silently move existing entries onto a different clock. */
-      const APP_TZ = "America/Los_Angeles";
-
-      const pstFormatter = new Intl.DateTimeFormat("en-US", {
-        timeZone: APP_TZ,
-        hour12: true,
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-      });
-
-      const pstDateFormatter = new Intl.DateTimeFormat("en-US", {
-        timeZone: APP_TZ,
-        year: "2-digit",
-        month: "2-digit",
-        day: "2-digit",
-      });
-
-      const exportNameDateFormatter = new Intl.DateTimeFormat("en-CA", {
-        timeZone: APP_TZ,
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit",
-      });
-
-      const pstDateObjFormatter = new Intl.DateTimeFormat("en-US", {
-        timeZone: APP_TZ,
-        year: "numeric",
-        month: "numeric",
-        day: "numeric",
-        hour: "numeric",
-        minute: "numeric",
-        second: "numeric",
-        hour12: false,
-      });
-
-      const bstFormatter = new Intl.DateTimeFormat("en-US", {
-        timeZone: "Asia/Dhaka",
-        hour12: true,
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-      });
-
-      const loginFormatter = new Intl.DateTimeFormat("en-US", {
-        timeZone: APP_TZ,
-        hour12: true,
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-      });
-
-      const bstEtaFormatter = new Intl.DateTimeFormat("en-US", {
-        timeZone: "Asia/Dhaka",
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: true,
-      });
-
       let primaryFormatter;
 
       /**
        * Updates the clock formatter for the user's primary selected timezone.
+       *
+       * Purely cosmetic: #primary-tz re-skins the first clock and nothing
+       * else. Anything that reads it to interpret or stamp DATA is a bug --
+       * data asks getWorkZone(), so that a display preference can never move
+       * an existing entry onto a different clock.
        */
       function updatePrimaryFormatter() {
-        const tz = DOM.primaryTz.value || "America/Los_Angeles";
-        primaryFormatter = new Intl.DateTimeFormat("en-US", {
-          timeZone: tz,
-          hour12: true,
-          hour: "2-digit",
-          minute: "2-digit",
-          second: "2-digit",
-        });
+        primaryFormatter = TimeZones.formatter(
+          TimeZones.sanitize(DOM.primaryTz.value, LEGACY_TZ),
+          "time",
+        );
       }
 
       /*==========================================================================
@@ -19410,7 +19311,7 @@
           },
           toWire,
           fromWire,
-          /* Corrected wall clock. getPSTDate switches to this when the
+          /* Corrected wall clock. getWorkDate switches to this when the
              network layer lands, so two devices near midnight cannot file
              the same shift under two different calendar days. */
           trueNow: () => Date.now() - serverOffsetMs,
@@ -24395,7 +24296,7 @@
         if (typeof autoPopulateDailyGoal === "function") {
           autoPopulateDailyGoal(
             state.activeDate ||
-              (typeof getPSTDate === "function" ? getPSTDate() : ""),
+              (typeof getWorkDate === "function" ? getWorkDate() : ""),
           );
         }
 
@@ -24410,69 +24311,72 @@
       };
 
       // Timezone Conversions and Getters
-      /**
-       * Executes getPSTClock logic.
-       */
-      function getPSTClock() {
-        return pstFormatter.format(new Date(Date.now()));
-      }
 
       /**
-       * Executes getPSTDate logic.
+       * Executes getWorkDate logic.
        */
       /* Corrected time, not this device's own. Two devices near midnight whose
          clocks differ by ten minutes would otherwise disagree about which
          calendar day a shift belongs to and file the same shift under two
          different dates. A bare subtraction, because this runs every tick,
          and the identity function while signed out. */
-      function getPSTDate() {
+      function getWorkDate() {
         const now = window.Sync ? Sync.trueNow() : Date.now();
         const nowSec = Math.floor(now / 1000);
-        if (nowSec !== _cachedPSTDateSec) {
-          _cachedPSTDateSec = nowSec;
-          _cachedPSTDateStr = pstDateFormatter.format(new Date(now));
+        /* Keyed on the zone as well as the second: when the zone changes,
+           the answer changes at once, not at the next tick. */
+        const zone = getWorkZone();
+        if (nowSec !== _cachedWorkDateSec || zone !== _cachedWorkDateZone) {
+          _cachedWorkDateSec = nowSec;
+          _cachedWorkDateZone = zone;
+          _cachedWorkDateStr = TimeZones.dateKey(now, zone);
         }
-        return _cachedPSTDateStr;
+        return _cachedWorkDateStr;
       }
 
       /**
-       * Executes getPSTDateObj logic.
+       * Executes getWorkDateObj logic.
        */
-      let _cachedPSTDateObj = null;
-      let _cachedPSTDateObjMin = -1;
+      let _cachedWorkDateObj = null;
+      let _cachedWorkDateObjMin = -1;
+      let _cachedWorkDateObjZone = null;
 
-      /* Corrected time for the same reason as getPSTDate: this decides a
-         calendar day, and two devices must agree on which one it is. */
-      function getPSTDateObj() {
+      /* Corrected time for the same reason as getWorkDate: this decides a
+         calendar day, and two devices must agree on which one it is.
+
+         Minute-cached, which is exact: every zone in use today is offset by
+         whole minutes, so no calendar day starts part-way through one. The
+         hour is 12:00 UTC so that calendar arithmetic on the result cannot be
+         tipped across a day boundary by a DST hour. */
+      function getWorkDateObj() {
         const now = window.Sync ? Sync.trueNow() : Date.now();
         const currentMin = Math.floor(now / 60000);
-        if (_cachedPSTDateObj && _cachedPSTDateObjMin === currentMin) {
-          return new Date(_cachedPSTDateObj);
+        const zone = getWorkZone();
+        if (
+          _cachedWorkDateObj &&
+          _cachedWorkDateObjMin === currentMin &&
+          _cachedWorkDateObjZone === zone
+        ) {
+          return new Date(_cachedWorkDateObj);
         }
         try {
-          _sharedDateForPST.setTime(now);
-          const parts = pstDateObjFormatter.formatToParts(_sharedDateForPST);
-          const p = {};
-          parts.forEach((part) => (p[part.type] = part.value));
-
-          // Hour is normalized to 12 (midday) to prevent +/- 1 hour DST adjustments
-          // from shifting the calendar date across the midnight boundary.
-          _cachedPSTDateObj = new Date(
-            Date.UTC(
-              parseInt(p.year, 10),
-              parseInt(p.month, 10) - 1,
-              parseInt(p.day, 10),
-              12,
-              0,
-              0,
-            ),
-          );
-          _cachedPSTDateObjMin = currentMin;
-          return new Date(_cachedPSTDateObj);
+          _cachedWorkDateObj = TimeZones.dayNoonUtc(now, zone);
+          _cachedWorkDateObjMin = currentMin;
+          _cachedWorkDateObjZone = zone;
+          return new Date(_cachedWorkDateObj);
         } catch (e) {
-          console.error("Error creating PST date object:", e);
+          console.error("Error creating the work date object:", e);
           return new Date();
         }
+      }
+
+      /* The old names, kept only because the test harness still calls them.
+         Nothing in the app does. Phase 7 of docs/implement.md removes both. */
+      function getPSTDate() {
+        return getWorkDate();
+      }
+      function getPSTDateObj() {
+        return getWorkDateObj();
       }
 
       /**
@@ -24480,7 +24384,7 @@
        * @returns {number} Today's archived shift durations in seconds.
        */
       function getTodayLoggedWorkSeconds(targetDateStr) {
-        const todayStr = targetDateStr || getPSTDate();
+        const todayStr = targetDateStr || getWorkDate();
         if (cachedTodayDate === todayStr) {
           return cachedTodayLoggedSeconds;
         }
@@ -25287,7 +25191,10 @@
             if (currentMin !== window._lastClockMinCache) {
               window._lastClockMinCache = currentMin;
               window._cachedPrimaryBase = primaryFormatter.format(nowDate);
-              window._cachedBstBase = bstFormatter.format(nowDate);
+              window._cachedBstBase = TimeZones.formatter(
+                getLocalZone(),
+                "time",
+              ).format(nowDate);
             }
 
             const secStr = String(nowDate.getSeconds()).padStart(2, "0");
@@ -25354,7 +25261,7 @@
         mondayUTC.setUTCHours(12, 0, 0, 0);
         const weekStartMs = mondayUTC.getTime();
 
-        const nowPST = getPSTDateObj();
+        const nowPST = getWorkDateObj();
         const nowDay = nowPST.getUTCDay();
         const nowDiffToMonday = nowDay === 0 ? -6 : 1 - nowDay;
         const currentMondayMs = nowPST.getTime() + nowDiffToMonday * 86400000;
@@ -25536,8 +25443,9 @@
       let _lastClockTickSec = -1;
       let _dynamicPresetBtns = null;
       let _themePillBtns = null;
-      let _cachedPSTDateStr = "";
-      let _cachedPSTDateSec = -1;
+      let _cachedWorkDateStr = "";
+      let _cachedWorkDateSec = -1;
+      let _cachedWorkDateZone = null;
       let _lastSeenText = "";
       let _lastSeenClass = "";
       const domWriteCache = {
@@ -25576,7 +25484,7 @@
         const diffToMonday = day === 0 ? -6 : 1 - day;
         const weekStartMs = dObj.getTime() + diffToMonday * 86400000;
 
-        const todayPST = getPSTDateObj();
+        const todayPST = getWorkDateObj();
         const todayDObj = new Date(
           Date.UTC(
             todayPST.getUTCFullYear(),
@@ -25606,7 +25514,7 @@
         workSeconds = getCurrentWorkSeconds(),
         nowMs = Date.now(),
       ) {
-        const todayStr = getPSTDate();
+        const todayStr = getWorkDate();
 
         // ========================================================================= REAL-TIME
         // DASHBOARD PROGRESS ARCHITECTURE:
@@ -25682,7 +25590,7 @@
               : `${sessionPercent.toFixed(1)}% (Left: ${formatFriendlyDuration(Math.abs(sessionDiff), "0m")})`;
           setText(DOM.progressText, progStr);
 
-          const nowPST = getPSTDateObj();
+          const nowPST = getWorkDateObj();
           const dayIdx = nowPST.getUTCDay();
           const isoDay = dayIdx === 0 ? 7 : dayIdx;
 
@@ -25790,8 +25698,10 @@
                 if (domWriteCache.etaTargetMin !== targetMin) {
                   domWriteCache.etaTargetMin = targetMin;
                   _sharedFinishDate.setTime(targetMs);
-                  domWriteCache.cachedEtaString =
-                    bstEtaFormatter.format(_sharedFinishDate);
+                  domWriteCache.cachedEtaString = TimeZones.formatter(
+                    getLocalZone(),
+                    "hm",
+                  ).format(_sharedFinishDate);
                 }
                 etaText = `Est. EOD: ${domWriteCache.cachedEtaString} BST`;
                 etaColorClass = "text-main";
@@ -26034,9 +25944,13 @@
         const diff = shiftWindow.workSec - goal;
 
         const loginTime = loginInstant
-          ? loginFormatter.format(new Date(loginInstant))
+          ? TimeZones.formatter(getWorkZone(), "time").format(
+              new Date(loginInstant),
+            )
           : "--";
-        const logoutTime = pstFormatter.format(new Date(logoutInstant));
+        const logoutTime = TimeZones.formatter(getWorkZone(), "time").format(
+          new Date(logoutInstant),
+        );
         const displayDate = dateStr.replace(/\/20(\d{2})$/, "/$1");
 
         const parts = dateStr.split("/");
@@ -26133,7 +26047,7 @@
         const lastLog = allLogs.find((l) => l.id === window.lastSubmittedLogId);
         const targetDate = lastLog
           ? lastLog.date
-          : state.activeDate || getPSTDate();
+          : state.activeDate || getWorkDate();
 
         const dayLogs = allLogs.filter((l) => l.date === targetDate);
 
@@ -26311,7 +26225,7 @@
             DOM.goalSecs.value,
           );
         const diff = workSeconds - goal;
-        const entryDate = overrideDate || state.activeDate || getPSTDate();
+        const entryDate = overrideDate || state.activeDate || getWorkDate();
 
         // Formulates logout using last active heartbeat for auto-submissions
         const rawLogoutTimestamp =
@@ -26341,9 +26255,13 @@
         }
 
         const loginTime = loginTimestamp
-          ? loginFormatter.format(new Date(loginTimestamp))
+          ? TimeZones.formatter(getWorkZone(), "time").format(
+              new Date(loginTimestamp),
+            )
           : "--";
-        const logoutTime = pstFormatter.format(new Date(logoutTimestamp));
+        const logoutTime = TimeZones.formatter(getWorkZone(), "time").format(
+          new Date(logoutTimestamp),
+        );
 
         const logs = getLogs();
         const displayDate = entryDate.replace(/\/20(\d{2})$/, "/$1");
@@ -26401,7 +26319,7 @@
       DOM.undoBtn.addEventListener("click", () => {
         if (!lastStateBackup) return;
         state = lastStateBackup;
-        state.activeDate = getPSTDate(); // Prevent checkMidnightReset re-triggering after undo
+        state.activeDate = getWorkDate(); // Prevent checkMidnightReset re-triggering after undo
         state.lastHeartbeatWall = Date.now(); // prevent spurious idle lock on reload
         markClockHeartbeat();
         saveState();
@@ -26510,7 +26428,7 @@
         headerEl.insertAdjacentHTML("afterbegin", iconHtml);
 
         if (state.idleStart) {
-          const timeFormatter = getCachedTimeOnlyFormatter(APP_TZ);
+          const timeFormatter = TimeZones.formatter(getWorkZone(), "timeOnly");
           lastActiveEl.textContent = timeFormatter.format(
             new Date(state.idleStart),
           );
@@ -26542,9 +26460,10 @@
             (state.breakAccumulated || 0) + totalIdleSeconds;
         } else if (choice === "discard") {
           if (state.loginTimestamp) {
-            const todayStr = getPSTDate();
-            const loginDateStr = pstDateFormatter.format(
-              new Date(state.loginTimestamp),
+            const todayStr = getWorkDate();
+            const loginDateStr = TimeZones.dateKey(
+              state.loginTimestamp,
+              getWorkZone(),
             );
             if (loginDateStr !== todayStr) {
               state.loginTimestamp = null;
@@ -26631,7 +26550,7 @@
           activeSegmentFloorSec: 0,
           loginTimestamp: null,
           sessionIdWire: null,
-          activeDate: getPSTDate(),
+          activeDate: getWorkDate(),
           idleLock: false,
           idleStart: null,
           preIdleMode: null,
@@ -26960,11 +26879,12 @@
             logoutStr = l.logout;
           }
         });
-        const todayStr = typeof getPSTDate === "function" ? getPSTDate() : "";
+        const todayStr = typeof getWorkDate === "function" ? getWorkDate() : "";
         if (dateStr === todayStr && state.loginTimestamp) {
-          const todayLoginStr = loginFormatter.format(
-            new Date(state.loginTimestamp),
-          );
+          const todayLoginStr = TimeZones.formatter(
+            getWorkZone(),
+            "time",
+          ).format(new Date(state.loginTimestamp));
           if (loginStr === "—") loginStr = todayLoginStr;
           if (state.currentMode === "work") logoutStr = "Active";
           else if (state.currentMode === "break") logoutStr = "Break";
@@ -27161,7 +27081,8 @@
           const goalSec = parseFloat(progressTarget.dataset.goal) || 0;
           const notes = progressTarget.dataset.notes || "";
 
-          const todayStr = typeof getPSTDate === "function" ? getPSTDate() : "";
+          const todayStr =
+            typeof getWorkDate === "function" ? getWorkDate() : "";
           if (dateStr === todayStr) {
             window.isHoveringTodayHeatmap = true;
             if (
@@ -27865,9 +27786,9 @@
         let absoluteEndMs = Infinity;
 
         // Pre-calculate timeframe bounds
-        const nowPSTObj = getPSTDateObj();
+        const nowPSTObj = getWorkDateObj();
         if (criteria.timeFilter === "TODAY") {
-          const todayStr = getPSTDate();
+          const todayStr = getWorkDate();
           const [m, d, y] = todayStr.split("/");
           const fullYear = y.length === 2 ? `20${y}` : y;
           const targetMs = Date.UTC(
@@ -29029,16 +28950,17 @@
           }
         });
 
-        const todayStr = typeof getPSTDate === "function" ? getPSTDate() : "";
+        const todayStr = typeof getWorkDate === "function" ? getWorkDate() : "";
         const isActiveToday = dateKey === todayStr && state.loginTimestamp;
         if (isActiveToday) {
           totalW += getCurrentWorkSeconds();
           totalB += getCurrentBreakSeconds();
           if (state.notes) notesList.push(state.notes);
 
-          const todayLoginStr = loginFormatter.format(
-            new Date(state.loginTimestamp),
-          );
+          const todayLoginStr = TimeZones.formatter(
+            getWorkZone(),
+            "time",
+          ).format(new Date(state.loginTimestamp));
           if (loginStr === "—") loginStr = todayLoginStr;
           if (state.currentMode === "work") {
             logoutStr = "Active";
@@ -29242,14 +29164,14 @@
         });
 
         const todayStrForBase =
-          typeof getPSTDate === "function" ? getPSTDate() : "";
+          typeof getWorkDate === "function" ? getWorkDate() : "";
         const todayStrForHighlight = todayStrForBase;
         const todayBaseData = heatmapMap[todayStrForBase];
         window.todayBaseWorkSec = todayBaseData ? todayBaseData.w : 0;
         window.todayBaseBreakSec = todayBaseData ? todayBaseData.b : 0;
 
         const today =
-          typeof getPSTDateObj === "function" ? getPSTDateObj() : new Date();
+          typeof getWorkDateObj === "function" ? getWorkDateObj() : new Date();
         const systemYear = today.getFullYear();
 
         if (typeof window.heatmapSelectedYearVal === "undefined") {
@@ -29570,7 +29492,7 @@
 
         let currentStreak = 0;
         const streakDate =
-          typeof getPSTDateObj === "function" ? getPSTDateObj() : new Date();
+          typeof getWorkDateObj === "function" ? getWorkDateObj() : new Date();
         streakDate.setUTCHours(12, 0, 0, 0);
         for (let i = 0; i <= 364; i++) {
           const dateKey = formatUTCDayStr(streakDate);
@@ -29675,7 +29597,7 @@
           bucketStartMs = mondayUTC.getTime();
         }
 
-        const todayStr = getPSTDate();
+        const todayStr = getWorkDate();
 
         const iKey = `${currentInsightsView}|${bucketStartMs}|${todayStr}|${dataVersion}`;
         if (iKey === insightsCacheKey) return;
@@ -29777,7 +29699,7 @@
           }
         }
 
-        const todayPST = getPSTDateObj();
+        const todayPST = getWorkDateObj();
         const todayY = todayPST.getUTCFullYear();
         const todayM = todayPST.getUTCMonth();
         const todayD = todayPST.getUTCDate();
@@ -29920,9 +29842,10 @@
               }
 
               if (isToday && state.loginTimestamp) {
-                const todayLoginStr = loginFormatter.format(
-                  new Date(state.loginTimestamp),
-                );
+                const todayLoginStr = TimeZones.formatter(
+                  getWorkZone(),
+                  "time",
+                ).format(new Date(state.loginTimestamp));
                 if (loginStr === "—") {
                   loginStr = escapeHTML(todayLoginStr);
                 }
@@ -30011,9 +29934,10 @@
               }
 
               if (isToday && state.loginTimestamp) {
-                const todayLoginStr = loginFormatter.format(
-                  new Date(state.loginTimestamp),
-                );
+                const todayLoginStr = TimeZones.formatter(
+                  getWorkZone(),
+                  "time",
+                ).format(new Date(state.loginTimestamp));
                 if (loginStr === "—") {
                   loginStr = escapeHTML(todayLoginStr);
                 }
@@ -30377,7 +30301,7 @@
           return mon.getTime();
         };
 
-        const todayPST = getPSTDateObj();
+        const todayPST = getWorkDateObj();
         const isTodayInView =
           (viewType === "monthly" &&
             todayPST.getUTCFullYear() === fullYear &&
@@ -30817,7 +30741,7 @@
                 : "Weekly Work";
         }
 
-        displayBaseDate = getPSTDateObj();
+        displayBaseDate = getWorkDateObj();
 
         domWriteCache.todaySegmentScale = -1;
         domWriteCache.todaySegmentBg = "";
@@ -30849,7 +30773,7 @@
         )
           return;
 
-        const todayStr = getPSTDate();
+        const todayStr = getWorkDate();
 
         if (
           _todayRowCache.date !== todayStr ||
@@ -30936,9 +30860,10 @@
           let logoutStr = _todayRowCache.logoutStr;
 
           if (state.loginTimestamp) {
-            const todayLoginStr = loginFormatter.format(
-              new Date(state.loginTimestamp),
-            );
+            const todayLoginStr = TimeZones.formatter(
+              getWorkZone(),
+              "time",
+            ).format(new Date(state.loginTimestamp));
             if (loginStr === "—") {
               loginStr = todayLoginStr;
             }
@@ -31090,11 +31015,15 @@
         if (dateEl) dateEl.value = task.date || "";
         if (startEl)
           startEl.value = task.startMs
-            ? loginFormatter.format(new Date(task.startMs))
+            ? TimeZones.formatter(getWorkZone(), "time").format(
+                new Date(task.startMs),
+              )
             : "";
         if (endEl)
           endEl.value = task.endMs
-            ? loginFormatter.format(new Date(task.endMs))
+            ? TimeZones.formatter(getWorkZone(), "time").format(
+                new Date(task.endMs),
+              )
             : "";
         if (durEl) durEl.value = formatDuration(task.durationSec || 0);
         if (noteEl) noteEl.value = task.note || "";
@@ -31213,7 +31142,7 @@
         const durEl = document.getElementById("manual-task-dur");
         const noteEl = document.getElementById("manual-task-notes");
 
-        if (dateEl) dateEl.value = getPSTDate();
+        if (dateEl) dateEl.value = getWorkDate();
         if (startEl) startEl.value = "";
         if (endEl) endEl.value = "";
         if (durEl) durEl.value = "00:00:00";
@@ -31243,7 +31172,7 @@
         if (durInput) handleTimeInputBlur({ target: durInput });
         if (dateInput) handleDateInputBlur({ target: dateInput });
 
-        let dateStr = dateInput ? dateInput.value.trim() : getPSTDate();
+        let dateStr = dateInput ? dateInput.value.trim() : getWorkDate();
         const startStr = startInput ? startInput.value.trim() : "";
         const endStr = endInput ? endInput.value.trim() : "";
         const durStr = durInput ? durInput.value.trim() : "";
@@ -31669,7 +31598,7 @@
 
         const a = document.createElement("a");
         a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
-        a.download = `nodrift-logs-${exportNameDateFormatter.format(new Date())}.csv`;
+        a.download = `nodrift-logs-${TimeZones.formatter(getWorkZone(), "isoDate").format(new Date())}.csv`;
         a.click();
         requestAnimationFrame(() => URL.revokeObjectURL(a.href));
         showAppToast("Exported logs as CSV");
@@ -31775,7 +31704,7 @@
             type: "application/json",
           }),
         );
-        a.download = `nodrift-backup-${exportNameDateFormatter.format(new Date())}.json`;
+        a.download = `nodrift-backup-${TimeZones.formatter(getWorkZone(), "isoDate").format(new Date())}.json`;
         a.click();
         requestAnimationFrame(() => URL.revokeObjectURL(a.href));
         showAppToast("JSON backup created");
@@ -32669,7 +32598,7 @@
         } catch (e) {}
 
         try {
-          const tz = safeGetLocalStorage(TZ_KEY, "America/Los_Angeles");
+          const tz = safeGetLocalStorage(TZ_KEY, LEGACY_TZ);
           if (DOM.primaryTz && DOM.primaryTz.value !== tz) {
             DOM.primaryTz.value = tz;
             if (typeof updatePrimaryFormatter === "function") {
@@ -32893,7 +32822,7 @@
            weekly total is not that question; today keeps its target and the
            new one takes effect the next time the day is populated. */
         if (!state.loginTimestamp) {
-          autoPopulateDailyGoal(state.activeDate || getPSTDate());
+          autoPopulateDailyGoal(state.activeDate || getWorkDate());
         }
 
         insightsCacheKey = null;
@@ -32964,7 +32893,7 @@
               renderPresets();
               // THEME_KEY was just removed above;
               applySystemTheme();
-              selectPresetTZ("America/Los_Angeles");
+              selectPresetTZ(LEGACY_TZ);
               resetSession(true);
               syncSettingsUI();
 
@@ -33073,6 +33002,7 @@
        * =========================================================================*/
 
       let _lastMidnightCheckMin = -1;
+      let _lastMidnightCheckZone = null;
       let _cachedCurrentDatePST = null;
       window.isRollingOver = false;
 
@@ -33098,19 +33028,22 @@
         if (state.sessionMirrored === true) return;
         window.isRollingOver = true;
         try {
-          /* getPSTDate() is the single answer to "what day is it", and it
+          /* getWorkDate() is the single answer to "what day is it", and it
              reads the server-corrected clock. Formatting the raw local clock
              here made two: around midnight on a skewed device the rollover
              could fire on one calendar day while today's totals, the goal
              lookup and resetSession() all used another, and a shift could be
              filed against the wrong date in the gap between them. */
+          const workZone = getWorkZone();
           const currentEpochMin = Math.floor(now.getTime() / 60000);
           if (
             currentEpochMin !== _lastMidnightCheckMin ||
+            workZone !== _lastMidnightCheckZone ||
             !_cachedCurrentDatePST
           ) {
-            _cachedCurrentDatePST = getPSTDate();
+            _cachedCurrentDatePST = getWorkDate();
             _lastMidnightCheckMin = currentEpochMin;
+            _lastMidnightCheckZone = workZone;
           }
           let currentDatePST = _cachedCurrentDatePST;
 
@@ -33153,15 +33086,8 @@
           let safetyCounter = 0;
           let requiresRender = false;
           const idleTriggerDateStr = state.idleStart
-            ? pstDateFormatter.format(new Date(state.idleStart))
+            ? TimeZones.dateKey(state.idleStart, workZone)
             : null;
-
-          const rolloverFormatter = new Intl.DateTimeFormat("en-US", {
-            timeZone: APP_TZ,
-            hour: "numeric",
-            hour12: false,
-            hourCycle: "h23",
-          });
 
           // Process sleep gaps iteratively to prevent date skipping (Phase 2, Item 3)
           while (state.activeDate !== currentDatePST && safetyCounter++ < 366) {
@@ -33195,17 +33121,11 @@
                 saveState(true);
                 return;
               }
-              const nextDayObj = new Date(
-                Date.UTC(
-                  parsedActive.y,
-                  parsedActive.m - 1,
-                  parsedActive.d + 1,
-                  12,
-                  0,
-                  0,
-                ),
+              state.activeDate = TimeZones.keyFromYMD(
+                parsedActive.y,
+                parsedActive.m,
+                parsedActive.d + 1,
               );
-              state.activeDate = pstDateFormatter.format(nextDayObj);
               requiresRender = true;
             } else if (
               hasAccumulatedTime >= 1 ||
@@ -33233,19 +33153,16 @@
                 return;
               }
 
-              // ABSOLUTE MIDNIGHT BOUNDARY ENFORCEMENT (Timezone-Immune & Unicode-Safe)
-              const guessMs = Date.UTC(
+              /* The first instant of the next day in the work zone. It used to
+                 be guessed from 08:00 UTC minus a whole-hour offset, which was
+                 exact in Los Angeles and nowhere near it elsewhere: half an
+                 hour late in India, and a whole day early west of UTC-8. */
+              const midnightMs = TimeZones.startOfDay(
                 parsedActive.y,
-                parsedActive.m - 1,
+                parsedActive.m,
                 parsedActive.d + 1,
-                8,
-                0,
-                0,
+                workZone,
               );
-              const laHourStr = rolloverFormatter.format(new Date(guessMs));
-              let hourOffset = parseInt(laHourStr.replace(/[^\d]/g, ""), 10);
-              if (isNaN(hourOffset) || hourOffset === 24) hourOffset = 0;
-              const midnightMs = guessMs - hourOffset * 3600000;
 
               const isIntermediateDay =
                 state.idleLock && state.activeDate !== idleTriggerDateStr;
@@ -33262,19 +33179,13 @@
                     console.error("Midnight rollover async save failed", e);
                   });
                 }
-                const nextDayObj = new Date(
-                  Date.UTC(
-                    parsedActive.y,
-                    parsedActive.m - 1,
-                    parsedActive.d + 1,
-                    12,
-                    0,
-                    0,
-                  ),
-                );
                 state.workAccumulated = 0;
                 state.breakAccumulated = 0;
-                state.activeDate = pstDateFormatter.format(nextDayObj);
+                state.activeDate = TimeZones.keyFromYMD(
+                  parsedActive.y,
+                  parsedActive.m,
+                  parsedActive.d + 1,
+                );
                 continue;
               }
 
@@ -33322,17 +33233,11 @@
                 });
               }
 
-              const nextDayObj = new Date(
-                Date.UTC(
-                  parsedActive.y,
-                  parsedActive.m - 1,
-                  parsedActive.d + 1,
-                  12,
-                  0,
-                  0,
-                ),
+              const nextDatePST = TimeZones.keyFromYMD(
+                parsedActive.y,
+                parsedActive.m,
+                parsedActive.d + 1,
               );
-              const nextDatePST = pstDateFormatter.format(nextDayObj);
 
               // Reset accumulators atomically
               state.workAccumulated = 0;
@@ -33395,17 +33300,11 @@
                 saveState(true);
                 return;
               }
-              const nextDayObj = new Date(
-                Date.UTC(
-                  parsedActiveFallback.y,
-                  parsedActiveFallback.m - 1,
-                  parsedActiveFallback.d + 1,
-                  12,
-                  0,
-                  0,
-                ),
+              state.activeDate = TimeZones.keyFromYMD(
+                parsedActiveFallback.y,
+                parsedActiveFallback.m,
+                parsedActiveFallback.d + 1,
               );
-              state.activeDate = pstDateFormatter.format(nextDayObj);
               requiresRender = true;
             }
 
@@ -33511,9 +33410,10 @@
                 setText(labelEl, "Current Time:");
               }
 
-              if (cachedIdleTz !== APP_TZ || !cachedIdleFormatter) {
-                cachedIdleTz = APP_TZ;
-                cachedIdleFormatter = getCachedTimeOnlyFormatter(APP_TZ);
+              const idleZone = getWorkZone();
+              if (cachedIdleTz !== idleZone || !cachedIdleFormatter) {
+                cachedIdleTz = idleZone;
+                cachedIdleFormatter = TimeZones.formatter(idleZone, "timeOnly");
               }
               setText(currentTimeEl, cachedIdleFormatter.format(targetDate));
             }
@@ -34093,7 +33993,7 @@
           e.preventDefault();
           exportJSON();
 
-          const dateStr = getPSTDate();
+          const dateStr = getWorkDate();
           const emailSubject = `${dateStr} - nodrift JSON Backup`;
           const emailBody = "";
 
@@ -35029,7 +34929,7 @@
         saveState();
 
         if (checkbox.checked) {
-          autoPopulateDailyGoal(state.activeDate || getPSTDate());
+          autoPopulateDailyGoal(state.activeDate || getWorkDate());
         } else {
           // Restore manually saved or default goal
           const savedH = safeGetLocalStorage(GOAL_H_KEY, "8");
@@ -36389,7 +36289,7 @@
        */
       function triggerAutoSnapshot(preImage) {
         if (isFactoryResetting) return;
-        const todayStr = getPSTDate();
+        const todayStr = getWorkDate();
         if (snapshotIndex.some((s) => s.date === todayStr)) return;
 
         const source = Array.isArray(preImage) ? preImage : getLogs();
@@ -36481,7 +36381,7 @@
        * Executes openManualModal logic.
        */
       function openManualModal() {
-        DOM.manualDate.value = getPSTDate();
+        DOM.manualDate.value = getWorkDate();
         DOM.manualLogin.value = "";
         DOM.manualLogout.value = "";
         DOM.manualWork.value = "00:00";
@@ -37041,7 +36941,7 @@
                 "task_" +
                 Math.random().toString(36).substring(2, 11) +
                 Date.now().toString(36),
-              date: getPSTDate(),
+              date: getWorkDate(),
               startMs: startMs,
               endMs: endMs,
               durationSec: totalSec,
@@ -37260,7 +37160,7 @@
         }
 
         const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-        const timeFormatter = loginFormatter;
+        const timeFormatter = TimeZones.formatter(getWorkZone(), "time");
 
         for (let k = 0; k < targetPoolSize; k++) {
           const i = startIndex + k;
@@ -37560,7 +37460,7 @@
         const task = cachedTaskLogs.find((t) => t.id === taskId);
         if (!task) return;
 
-        const timeFormatter = loginFormatter;
+        const timeFormatter = TimeZones.formatter(getWorkZone(), "time");
         let startStr = "—";
         let endStr = "—";
         try {
@@ -37597,7 +37497,7 @@
           showAppToast("No tasks to copy", "warning");
           return;
         }
-        const timeFormatter = loginFormatter;
+        const timeFormatter = TimeZones.formatter(getWorkZone(), "time");
 
         const txt = tasksToCopy
           .map((task) => {
@@ -37641,13 +37541,7 @@
           return;
         }
         /* Exported data carries business time, not the viewer's clock skin. */
-        const timeFormatter = new Intl.DateTimeFormat("en-US", {
-          timeZone: APP_TZ,
-          hour: "2-digit",
-          minute: "2-digit",
-          second: "2-digit",
-          hour12: true,
-        });
+        const timeFormatter = TimeZones.formatter(getWorkZone(), "time");
 
         let csv = "Date,Start,End,Duration,Paused,Notes\n";
         tasksToExport.forEach((task) => {
@@ -37674,7 +37568,7 @@
 
         const a = document.createElement("a");
         a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
-        a.download = `nodrift-tasks-${exportNameDateFormatter.format(new Date())}.csv`;
+        a.download = `nodrift-tasks-${TimeZones.formatter(getWorkZone(), "isoDate").format(new Date())}.csv`;
         a.click();
         requestAnimationFrame(() => URL.revokeObjectURL(a.href));
         showAppToast("Exported tasks as CSV");
@@ -38049,7 +37943,7 @@
          twelve months it is talking about. */
       function currentLeaveYear() {
         return (
-          typeof getPSTDateObj === "function" ? getPSTDateObj() : new Date()
+          typeof getWorkDateObj === "function" ? getWorkDateObj() : new Date()
         ).getFullYear();
       }
 
@@ -38433,7 +38327,7 @@
 
         const allowances = getLeaveAllowances();
         const currentYear = (
-          typeof getPSTDateObj === "function" ? getPSTDateObj() : new Date()
+          typeof getWorkDateObj === "function" ? getWorkDateObj() : new Date()
         ).getFullYear();
         const takenCounts = computeLeaveTakenCounts(currentYear);
 
@@ -38844,7 +38738,7 @@
           const parseDatePreview = (val) => {
             val = val.trim().toLowerCase();
             if (!val) return "";
-            const nowPST = getPSTDateObj();
+            const nowPST = getWorkDateObj();
             const currentYearFull = nowPST.getUTCFullYear();
             const currentYearShort = String(currentYearFull).slice(-2);
             const currentMonth = String(nowPST.getUTCMonth() + 1).padStart(
@@ -39162,7 +39056,7 @@
         }
         if (val.endsWith("/")) return;
 
-        const nowPST = getPSTDateObj();
+        const nowPST = getWorkDateObj();
         const currentYearFull = nowPST.getUTCFullYear();
         const currentYearShort = String(currentYearFull).slice(-2);
         const currentMonth = String(nowPST.getUTCMonth() + 1).padStart(2, "0");
@@ -39457,48 +39351,24 @@
            like automatic ones. Reading the cosmetic dropdown here meant a user
            who switched the clock to their home zone got manual shifts stamped
            hours away from the automatic ones sitting next to them. */
-        const tz = APP_TZ;
         const localH = Math.floor(timeSec / 3600);
         const localM = Math.floor((timeSec % 3600) / 60);
         const localS = timeSec % 60;
 
-        let guessMs = Date.UTC(fullYear, mm - 1, dd, localH, localM, localS);
-        try {
-          const formatToTz = getCachedTzFormatter(tz);
-
-          for (let i = 0; i < 5; i++) {
-            const partsTz = formatToTz.formatToParts(guessMs);
-            const p = {};
-            partsTz.forEach((part) => (p[part.type] = part.value));
-            let h = parseInt(p.hour, 10);
-            if (h === 24) h = 0;
-
-            const guessLocalMs = Date.UTC(
-              parseInt(p.year),
-              parseInt(p.month) - 1,
-              parseInt(p.day),
-              h,
-              parseInt(p.minute),
-              parseInt(p.second),
-            );
-            const wallMs = Date.UTC(
-              fullYear,
-              mm - 1,
-              dd,
-              localH,
-              localM,
-              localS,
-            );
-            const errorMs = wallMs - guessLocalMs;
-
-            if (errorMs === 0) break;
-            if (i === 4 && Math.abs(errorMs) === 3600000) break; // Accept offset during DST skips
-            guessMs += errorMs;
-          }
-          return guessMs;
-        } catch (e) {
-          return new Date(fullYear, mm - 1, dd, localH, localM, 0).getTime();
-        }
+        /* A time inside the spring-forward gap resolves to the reading with
+           the post-transition offset, and one inside the repeated hour to the
+           earlier occurrence -- exactly what the convergence loop this
+           replaced returned, measured before it was removed. Refusing a gap
+           time instead is a later decision (docs/implement.md, D6). */
+        return TimeZones.wallToInstant(
+          fullYear,
+          mm,
+          dd,
+          localH,
+          localM,
+          localS,
+          getWorkZone(),
+        ).ms;
       }
 
       function resolveTimeConstraints(prefix) {
@@ -39807,7 +39677,7 @@
         }
       });
 
-      DOM.primaryTz.value = safeGetLocalStorage(TZ_KEY, "America/Los_Angeles");
+      DOM.primaryTz.value = safeGetLocalStorage(TZ_KEY, LEGACY_TZ);
       updateTZLabel();
       DOM.primaryTz.addEventListener("change", () => {
         localStorage.setItem(TZ_KEY, DOM.primaryTz.value);
@@ -40252,7 +40122,7 @@
         if (now - lastJumpTime < 300) return;
         lastJumpTime = now;
 
-        displayBaseDate = getPSTDateObj(); // Recalibrate baseline to today's PST date
+        displayBaseDate = getWorkDateObj(); // Recalibrate baseline to today's PST date
         // Reset segment caches to force absolute redraw on week navigation
         domWriteCache.todaySegmentScale = -1;
         domWriteCache.todaySegmentBg = "";
@@ -40649,9 +40519,9 @@
           !state.loginTimestamp &&
           (state.workAccumulated || 0) < 1 &&
           (state.breakAccumulated || 0) < 1 &&
-          state.activeDate !== getPSTDate()
+          state.activeDate !== getWorkDate()
         ) {
-          state.activeDate = getPSTDate();
+          state.activeDate = getWorkDate();
         }
 
         saveState(true);
@@ -40841,7 +40711,7 @@
 
         async function completeStartup() {
           cachedTodayDate = null;
-          displayBaseDate = getPSTDateObj();
+          displayBaseDate = getWorkDateObj();
           updatePrimaryFormatter();
           loadState();
           await rebuildWeeklyCache();
@@ -40899,7 +40769,7 @@
               triggerAutoSnapshot();
             }
 
-            autoPopulateDailyGoal(state.activeDate || getPSTDate());
+            autoPopulateDailyGoal(state.activeDate || getWorkDate());
             syncTickerState();
 
             /* The preference baseline, taken here and nowhere else.
@@ -41267,12 +41137,12 @@
         let popup = null;
         let targetId = null;
         let currentMonth =
-          typeof getPSTDateObj === "function" ? getPSTDateObj() : new Date(); // tracks the viewed month
+          typeof getWorkDateObj === "function" ? getWorkDateObj() : new Date(); // tracks the viewed month
 
         function parseDateString(str) {
           if (!str)
-            return typeof getPSTDateObj === "function"
-              ? getPSTDateObj()
+            return typeof getWorkDateObj === "function"
+              ? getWorkDateObj()
               : new Date();
           str = str.trim();
           let isoMatch = str.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
@@ -41289,8 +41159,8 @@
             if (year < 100) year += 2000;
             return new Date(year, parseInt(slashMatch[1], 10) - 1, 1);
           }
-          return typeof getPSTDateObj === "function"
-            ? getPSTDateObj()
+          return typeof getWorkDateObj === "function"
+            ? getWorkDateObj()
             : new Date();
         }
 
@@ -41334,8 +41204,8 @@
             .addEventListener("click", (e) => {
               e.stopPropagation();
               const d =
-                typeof getPSTDateObj === "function"
-                  ? getPSTDateObj()
+                typeof getWorkDateObj === "function"
+                  ? getWorkDateObj()
                   : new Date();
               selectDate(
                 `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`,
@@ -41387,7 +41257,9 @@
           const daysInMonth = new Date(year, month + 1, 0).getDate();
 
           const today =
-            typeof getPSTDateObj === "function" ? getPSTDateObj() : new Date();
+            typeof getWorkDateObj === "function"
+              ? getWorkDateObj()
+              : new Date();
           const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
 
           const input = document.getElementById(targetId);
@@ -41468,8 +41340,8 @@
               currentMonth.setDate(1);
             } else {
               currentMonth =
-                typeof getPSTDateObj === "function"
-                  ? getPSTDateObj()
+                typeof getWorkDateObj === "function"
+                  ? getWorkDateObj()
                   : new Date();
               currentMonth.setDate(1);
             }
