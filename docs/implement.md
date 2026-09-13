@@ -1,12 +1,12 @@
 # Time zones: implementation blueprint
 
-> **Status:** planning complete, nothing implemented.
+> **Status:** Phase 0 complete (measurements only). Nothing in `index.html` has changed yet.
 > **Baseline commit:** `9181afa` (all line numbers below refer to it and WILL drift — re-grep before editing).
 > **Rule:** one phase at a time. A phase starts only when the previous phase's exit criteria are green and committed.
 
 | Phase | Title                                                | Touches data?    | Needs live account? | Size            | State       |
 | ----- | ---------------------------------------------------- | ---------------- | ------------------- | --------------- | ----------- |
-| 0     | Groundwork, probes, fixtures                         | no               | one read-only probe | S               | not started |
+| 0     | Groundwork, probes, fixtures                         | no               | one read-only probe | S               | **done**    |
 | 1     | `TimeZones` core + behaviour-identical refactor      | no               | regression only     | L (split 1a/1b) | not started |
 | 2     | Data model: work / local / session / record zones    | **yes**          | regression only     | L               | not started |
 | 3     | Rendering and editing records in their own zone      | yes (edit paths) | no                  | M–L             | not started |
@@ -68,8 +68,8 @@ Make nodrift correct for anyone, anywhere:
 - Module-level formatters (17356–17426): `pstFormatter`, `loginFormatter` (identical to it), `pstDateFormatter`, `pstDateObjFormatter`, `exportNameDateFormatter`, `bstFormatter` and `bstEtaFormatter` (both `"Asia/Dhaka"` literals), `primaryFormatter` (cosmetic, from `#primary-tz`), plus two caches `getCachedTzFormatter(tz)` / `getCachedTimeOnlyFormatter(tz)`.
 - `getPSTDate()` (23993) — "what day is it", `MM/DD/YY`, server-corrected, cached per second. **~32 call sites.**
 - `getPSTDateObj()` (24011) — UTC-noon `Date` of the business day, cached per minute. **~25 call sites.**
-- `checkMidnightReset()` (32647–32997) builds a formatter on every run and computes midnight with a **08:00-UTC guess minus an hour offset** (32802–32813). Correct for US zones; **wrong for any zone with a :30/:45 offset** (minutes ignored) and **off by a whole day for UTC−12**. Must be replaced before any other zone is allowed.
-- `getEpochFromDateTimeString(date, time)` (38999) — wall time → instant, hardwired to `APP_TZ`, 5-step convergence with an "accept ±1h" hack for DST gaps. No ambiguity policy for the repeated hour.
+- `checkMidnightReset()` (32647–32997) builds a formatter on every run and computes midnight with a **08:00-UTC guess minus an hour offset** (32802–32813). **Measured in Phase 0** (`probe-tz-intl.js`, the block transcribed verbatim): exact in Los Angeles (both 2026 DST days), Dhaka, Kiritimati and UTC — so today's usage is safe. Wrong nearly everywhere else: +30 min in Kolkata and St John's, +45 in Kathmandu, ±60 on both London DST days, −60 on Santiago's midnight-gap day, 30–90 min on Lord Howe and St John's DST days, and **a whole day early in every zone west of UTC−8 in standard time** (Honolulu, Anchorage in winter, Pago Pago, Etc/GMT+12). Must be replaced before any other zone is allowed.
+- `getEpochFromDateTimeString(date, time)` (38999) — wall time → instant, hardwired to `APP_TZ`, 5-step convergence with an "accept ±1h" hack for DST gaps. No ambiguity policy for the repeated hour. **Measured:** a time inside the spring-forward gap resolves one hour _back_ (`03/08/26 02:30 AM` → `09:30Z` = 01:30 PST); a time inside the repeated hour resolves to the _earlier_ occurrence (`11/01/26 01:30 AM` → `08:30Z`, PDT); results are identical under any device zone.
 - `#primary-tz` hidden `<select>` + `.tz-presets` pills (12146–12198): PST/MST/CST/EST, cosmetic only. Persisted as `production_tz_pref` (`TZ_KEY`, 16130), synced as pref `tzPref` (18515).
 - Second clock hard-labelled `BST` (12206) and `Est. EOD: … BST` (25361). Help guide says the same (9937, 10566–10569). **The first label says "PST" even in summer, while the time shown is correctly PDT.**
 - Phone: `.tz-presets` is relocated into the sheet's "Time Zone" slot (`RELOCATIONS`, 41155); the bar only reads the zone (`.status-bar .tz-container { display: contents }`, 7218).
@@ -97,8 +97,8 @@ Make nodrift correct for anyone, anywhere:
 - **I3 — A record without `tz` is `LEGACY_TZ`, forever.** Never "the current preference". No backfill writes `tz` onto old records (that would restamp and re-upload the whole logbook and churn LWW).
 - **I4 — A live session's day boundaries belong to `sessionTz`.** Changing, syncing or adopting a work-zone pref never moves a running shift's midnight.
 - **I5 — One resolver.** Business logic asks `getWorkZone()`, display asks `getLocalZone()` / `getDisplayZone(record)`. Nothing else reads the pref keys, `LEGACY_TZ`, or `Intl…resolvedOptions()` directly.
-- **I6 — Every zone string crossing a trust boundary is validated before any `Intl` call.** Storage, sync blob, session payload, record payload, import file. An invalid zone must never throw inside the tick (a `RangeError` there kills the timer).
-- **I7 — Zone ids are compared only after engine-local canonicalisation.** Chrome and Safari may spell the same zone differently (`Asia/Calcutta` vs `Asia/Kolkata`, `Europe/Kiev` vs `Europe/Kyiv`).
+- **I6 — Every zone string crossing a trust boundary is validated before any `Intl` call.** Storage, sync blob, session payload, record payload, import file. An invalid zone must never throw inside the tick (a `RangeError` there kills the timer). **"The formatter didn't throw" is not validation** — measured on Chrome 152, it accepts `PST` (→ Los Angeles), `BST` (→ **Asia/Dhaka**), `EST` (→ America/Panama), `PST8PDT`, `EST5EDT`, offset zones like `+06:00`, and lower-case ids. Valid means: the id canonicalises (engine-local) to a member of `Intl.supportedValuesOf("timeZone")`, or to `UTC`; the embedded list stands in where that API is missing. It rejects `""` and ids with surrounding spaces.
+- **I7 — Zone ids are compared only after engine-local canonicalisation.** Measured on Chrome 152: its list and its canonical form use **legacy names** (`Asia/Kolkata`→`Asia/Calcutta`, `Europe/Kyiv`→`Europe/Kiev`, `Asia/Kathmandu`→`Asia/Katmandu`, `Asia/Ho_Chi_Minh`→`Asia/Saigon`, `Asia/Yangon`→`Asia/Rangoon`); Safari is expected to use the modern ones (measured in Phase 6). City names shown to the user come from the alias table in modern spelling, never from the engine's id.
 - **I8 — Formatters are created only through the `TimeZones` cache.** No `new Intl.DateTimeFormat` with a `timeZone` anywhere else.
 - **I9 — Zone arithmetic uses zoned functions.** "Next day" / "start of day" / "+1 day for a logout before login" are never `± 86400000` on an _instant_ (DST days are 23 h or 25 h). Calendar keys may keep ±86400000.
 - **I10 — The local zone never influences a stored field.** Not `date`, not `tz`, not `activeDate`, not a search string.
@@ -179,7 +179,7 @@ Stored `login` / `logout` strings are **kept and still written** (in the record'
 
 `TimeZones.wallToInstant(y, m, d, h, mi, s, zone)` returns `{ ms, status }`:
 
-- **Algorithm (deterministic, 4 `formatToParts` calls, no loops that can fail to converge):** `w = Date.UTC(wall)`; candidates `c1 = w − off(w − 36h)`, `c2 = w − off(w + 36h)`; keep candidates whose zoned parts equal the wall parts.
+- **Algorithm (deterministic, 4 `formatToParts` calls, no loops that can fail to converge):** `w = Date.UTC(wall)`; candidates `c1 = w − off(w − 36h)`, `c2 = w − off(w + 36h)`; keep candidates whose zoned parts equal the wall parts. For a gap, return both: `ms = c2` (the wall time read with the post-transition offset — **this is exactly what today's code returns**, 02:30 → 09:30Z) and `alt = c1`, so Phase 1 can stay behaviour-identical and Phase 3 can refuse.
   - one distinct candidate → `ok`
   - two → `ambiguous` (repeated hour): choose the **earlier**, _unless_ the other endpoint of the same form makes only the later one valid (logout must be ≥ login) — then choose the later.
   - none → `gap` (the time does not exist): **refuse the save** with _"2:30 AM doesn't exist on 03/08/26 in Pacific Time — clocks jumped forward."_ (Decision D6.)
@@ -219,7 +219,7 @@ Stored `login` / `logout` strings are **kept and still written** (in the record'
 
 ### 3.10 Security
 
-- Zone ids from any source go through `TimeZones.sanitize(id, fallback)` (try `new Intl.DateTimeFormat("en-US", { timeZone })`, cache the verdict).
+- Zone ids from any source go through `TimeZones.sanitize(id, fallback)`: canonicalise with `new Intl.DateTimeFormat("en-US", { timeZone }).resolvedOptions().timeZone` inside `try`, then require membership of the supported list (I6), and cache the verdict per input string.
 - Nicknames: max 6 characters, `[A-Za-z0-9+−:]`, rendered with `textContent`.
 - Picker rows are built with DOM APIs or `escapeHTML`; the search query is never interpolated into markup.
 - `harness-security.js` gains: a hostile `tz` on an imported record, a hostile `workTz` in a synced blob, a hostile nickname.
@@ -227,14 +227,18 @@ Stored `login` / `logout` strings are **kept and still written** (in the record'
 
 ### 3.11 Performance budget
 
-| Path              | Budget                                                             | How                                                                                                                                                               |
-| ----------------- | ------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Tick (1 Hz)       | **zero** new formatter allocations; ≤ 1 `formatToParts` per second | `getWorkDate()` cached per `(zone, second)`; clocks cached per `(zone, minute)` exactly as now (all modern offsets are whole minutes, so minute boundaries align) |
-| Device-zone watch | 1 `resolvedOptions()` per minute + on resume                       | compare string; emit only on change                                                                                                                               |
-| Logbook scroll    | format only visible rows                                           | memo `Map` keyed `id                                                                                                                                              | lastModified | zone | version`; row key gains `version` |
-| Boot              | < 5 ms added                                                       | no zone metadata built at boot                                                                                                                                    |
-| Picker first open | first paint < 100 ms, full list < 400 ms under 4× CPU throttle     | metadata (~420 zones × offset/label) built lazily in idle-sized chunks, cached for the page's life, offsets refreshed if older than an hour                       |
-| Formatter count   | bounded by `zones in use × styles` (≈ 20–40)                       | single cache (I8)                                                                                                                                                 |
+**Measured unit costs (Chrome 152, 1×, Phase 0):** creating a formatter 288 µs · `format` 4.8 µs · `formatToParts` 17 µs · `resolvedOptions()` 206 µs. **Building four labels for all 418 zones: 484 ms at 1×, 3 912 ms at 4× throttle** — ten times the budget the first draft of this plan set, which is why the picker below computes labels only for visible rows.
+
+| Path                 | Budget                                                                             | How                                                                                                                                                                                                                      |
+| -------------------- | ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Tick (1 Hz)          | **zero** new formatter allocations; ≤ 1 `formatToParts` per second                 | `getWorkDate()` cached per `(zone, second)`; clocks cached per `(zone, minute)` exactly as now (all modern offsets are whole minutes, so minute boundaries align). A formatter created per tick would cost 288 µs a time |
+| Device-zone watch    | 1 `resolvedOptions()` per minute + on resume                                       | 206 µs a minute; compare string; emit only on change                                                                                                                                                                     |
+| Logbook scroll       | format only visible rows                                                           | memo `Map` keyed on id, lastModified, zone and version; row key gains `version`                                                                                                                                          |
+| Boot                 | < 5 ms added                                                                       | no zone metadata built at boot                                                                                                                                                                                           |
+| Picker first paint   | < 100 ms at 4×                                                                     | static strings only (city, region, country, aliases) — no `Intl` label calls                                                                                                                                             |
+| Picker labels        | < 60 ms per screenful at 4×; no long task over 50 ms                               | offset, abbreviation and local time computed for rendered rows only, at most two cached formatters per zone                                                                                                              |
+| Offset / name search | results complete within ~1 s at 4×, without blocking typing                        | index of offsets, abbreviations and generic names built in idle slices of ≤ 8 ms after the picker opens, cached for the page's life, refreshed if older than an hour; a "searching all zones…" hint until it is done     |
+| Formatter count      | bounded by `zones in use × styles` (≈ 20–40), plus whatever the picker has touched | single cache (I8)                                                                                                                                                                                                        |
 
 ---
 
@@ -285,10 +289,10 @@ One component, three presentations: centred dialog on desktop/tablet, full-scree
 └─────────────────────────────────────────────────────┘
 ```
 
-- **Source list:** `Intl.supportedValuesOf("timeZone")`, plus `UTC`; embedded fallback list for engines without it. `Etc/GMT±N` hidden from the list (their sign is inverted and nobody picks them) but accepted if already stored — Decision D8.
-- **Row:** city (last id segment, `_` → space), country (embedded compact zone→ISO-country map ≈ 8 KB, named via `Intl.DisplayNames`), current offset, abbreviation when one exists, and current time. Sorted by current offset then city (Windows-style).
+- **Source list:** `Intl.supportedValuesOf("timeZone")` (418 ids on Chrome 152, legacy spellings, **no `UTC` entry** — the picker adds UTC itself); embedded fallback list for engines without it. `Etc/GMT±N` hidden from the list (their sign is inverted and nobody picks them) but accepted if already stored — Decision D8. Chrome lists none today.
+- **Row:** city (from the alias table in modern spelling, else the last id segment with `_` → space), country (embedded compact zone→ISO-country map ≈ 8 KB, named via `Intl.DisplayNames`), and — **for rendered rows only** — current offset, abbreviation when one exists, and current time. **Sorted alphabetically by city (iOS-style), not by offset:** ordering by offset needs an `Intl` call for every zone before the list can draw, which Phase 0 measured at seconds on a throttled CPU.
 - **Local picker** adds a first row: _"Automatic — use this device's time zone (Dhaka)"_.
-- **Search** (diacritic-insensitive, prefix-ranked): city, region segment, country name, generic name (`longGeneric` → "Pacific Time"), abbreviations (`short`, `shortGeneric` → "PDT", "PT"), offsets (`utc+6`, `gmt+6`, `+6`, `+06:00`, `+5:30`), aliases (`Calcutta↔Kolkata`, `Kiev↔Kyiv`, `Saigon↔Ho Chi Minh`, `Rangoon↔Yangon`, `US/Pacific`…). "bangladesh" → Dhaka, "pst" → Los Angeles, "5:30" → Kolkata.
+- **Search** (diacritic-insensitive, prefix-ranked), in two tiers. **Immediate** (static strings, no `Intl`): city, region segment, country name, aliases (`Calcutta↔Kolkata`, `Kiev↔Kyiv`, `Katmandu↔Kathmandu`, `Saigon↔Ho Chi Minh`, `Rangoon↔Yangon`, `US/Pacific`…). **As the idle index completes:** generic names (`longGeneric` → "Pacific Time", "Bangladesh Standard Time"), abbreviations (`short` → "PDT"; `shortGeneric` → "PT"), offsets (`utc+6`, `gmt+6`, `+6`, `+06:00`, `+5:30`). "bangladesh" → Dhaka at once; "pst" → Los Angeles and "5:30" → Kolkata once indexed.
 - **Keyboard / a11y:** `role="listbox"`, `aria-activedescendant`, ↑ ↓ Home End Enter Esc, type-ahead focuses search. Autofocus search on desktop only (house rule: no autofocus that raises the phone keyboard).
 - **Touch:** rows ≥ 44 px on the touch layouts; the list is the only scroller (no nested scroller fighting the sheet drag).
 - **Label footer:** nickname per zone (stored in `tzDisplay.nicknames[zoneId]`, so a nickname never follows you to another zone) and style (Abbreviation / Generic / Offset).
@@ -336,6 +340,8 @@ Show log times in           [Recorded zone ▾]
 
 Labels are DST-correct: Los Angeles shows **PDT** in summer and **PST** in winter (today's app shows "PST" all year). **Decision D3** covers keeping "BST" on this team's screens.
 
+**Measured (en-US, Chrome 152):** only **111 of 418** zones get a letters-only `short` label, and most of those are the Americas or plain `GMT`. Dhaka is `GMT+6`, Kolkata `GMT+5:30`, London in summer `GMT+1` (never "BST" in en-US). `shortGeneric` is letters only for US/Canada zones (`PT`); elsewhere it is long ("Bangladesh Time", "United Kingdom Time"), so the Generic style falls back to the offset for most of the world. The offset text is rendered by the app from offset minutes (`UTC+6`), never copied from Intl's `GMT+6`, so every label style reads consistently.
+
 ### 4.6 Guide and help text
 
 Rewrite the three passages (9871, 9937, 10566–10569) in Phase 5: two clocks, what each zone decides, what changing one does to existing logs, deferred changes during a shift, where to find the picker on each layout.
@@ -346,48 +352,48 @@ Rewrite the three passages (9871, 9937, 10566–10569) in Phase 5: two clocks, w
 
 Each row becomes at least one assertion in the phase named.
 
-| #   | Scenario                                                   | Expected                                                                                     | Phase |
-| --- | ---------------------------------------------------------- | -------------------------------------------------------------------------------------------- | ----- |
-| 1   | Existing user upgrades, no shift                           | Work LA, local Auto(Dhaka); clocks show PDT/BST (with D3); logbook identical                 | 2, 5  |
-| 2   | **Upgrade mid-shift** (iOS relaunches into the new build)  | `sessionTz` absent ⇒ `LEGACY_TZ`; timer, rollover, filing all unchanged                      | 2     |
-| 3   | Work zone changed, no shift, same date in both zones       | `activeDate` unchanged; clocks update                                                        | 2, 5  |
-| 4   | Work zone changed, no shift, new zone is +1 or −1 day      | `activeDate` realigns both directions; old records keep dates; goal re-populates             | 2     |
-| 5   | Work zone changed during shift                             | Deferred; banner; switches at EOD; Undo restores                                             | 2, 5  |
-| 6   | …while idle-locked / on break / clocked out unsubmitted    | Same as 5                                                                                    | 2     |
-| 7   | Clock-in in the same second as a zone change               | `activeDate` and `sessionTz` agree                                                           | 2     |
-| 8   | Local zone changed / device travels                        | Clocks and ETA only; no stored field differs (diff the storage)                              | 2, 5  |
-| 9   | Work zone equals local zone                                | Single clock                                                                                 | 5     |
-| 10  | Rollover, Dhaka (+6), shift 22:00→02:00                    | Two records, dates D and D+1, split at Dhaka midnight, both `tz: Asia/Dhaka`                 | 2     |
-| 11  | Rollover, Kolkata (+5:30) / Kathmandu (+5:45)              | Split at the exact local midnight (old code was 30/45 min off)                               | 1     |
-| 12  | Rollover, UTC−12 / Pago Pago (−11) / Kiritimati (+14)      | Correct day (old code was a day off at −12)                                                  | 1     |
-| 13  | Rollover on a day whose DST change is at local midnight    | Split at the first instant of the new date (01:00)                                           | 1     |
-| 14  | Night shift across LA spring-forward                       | Window 7 h; hours from instants; `assertShiftWindow` passes                                  | 1, 3  |
-| 15  | Night shift across LA fall-back                            | Window 9 h; nothing double counted                                                           | 1, 3  |
-| 16  | Manual entry with a time in the DST gap                    | Refused with the specific message (D6)                                                       | 3     |
-| 17  | Manual entry with a time in the repeated hour              | Earlier occurrence unless ordering forces the later                                          | 3     |
-| 18  | Edit + save unchanged, record in repeated hour             | Instants byte-identical                                                                      | 3     |
-| 19  | Edit a legacy (no `tz`) record                             | Interpreted in LA; saved with explicit `tz: LA`                                              | 3     |
-| 20  | Edit a Dhaka record while work zone is LA                  | Form shows Dhaka times, labelled                                                             | 3     |
-| 21  | Two zones' records on one date label                       | Day total sums both; genuine instant overlap still warns                                     | 3     |
-| 22  | Display mode Work/Local converts a time across a day       | `+1d` / `−1d` marker                                                                         | 3     |
-| 23  | Manual placeholder times (`Manual`/`Entry`/`—`/`--`)       | Shown as today                                                                               | 3     |
-| 24  | Insights first-in/last-out with mixed zones                | Compared by instant                                                                          | 3     |
-| 25  | CSV export                                                 | In/Out in record zone; trailing `Time_Zone`; shape probe updated                             | 3     |
-| 26  | Import legacy backup                                       | Records read as LA; conflict wizard shows zone                                               | 3     |
-| 27  | Import backup with invalid `workTz` / hostile `tz`         | Ignored / inert; no throw                                                                    | 2, 3  |
-| 28  | Synced blob with invalid zone                              | Skipped, previous kept, anomaly logged                                                       | 2     |
-| 29  | Other device changes work zone while this one runs a shift | Pref adopted, deferred, banner                                                               | 2, 6  |
-| 30  | Handoff: B's pref differs from A's `sessionTz`             | B follows `sessionTz`; B's rollover (if it becomes owner) uses it; records it files carry it | 6     |
-| 31  | Fresh device → legacy account                              | Resolves LA; pushes nothing about zones                                                      | 2, 6  |
-| 32  | Fresh device → brand-new account                           | Device zone; pinned + pushed at first clock-in                                               | 2, 6  |
-| 33  | Factory reset                                              | Zone keys and recents wiped; resolution back to rule 32                                      | 2     |
-| 34  | Engine canonical-name mismatch between devices             | Treated as the same zone; single-clock mode still triggers                                   | 1, 6  |
-| 35  | Engine without `supportedValuesOf` / `shortOffset`         | Fallback list; offset computed from parts                                                    | 4     |
-| 36  | Server-offset correction (`Sync.trueNow`) near midnight    | Date still from corrected time (existing test keeps passing)                                 | 1     |
-| 37  | Year boundary in a + zone (12/31 → 01/01, two-digit year)  | Correct `MM/DD/YY` and calendar keys                                                         | 1     |
-| 38  | Longest label pair on a 375 px phone                       | No wrap, no overflow, tail still visible                                                     | 5     |
-| 39  | Picker raised while a takeover offer is pending            | Offer waits (`.modal-overlay` gate)                                                          | 4     |
-| 40  | Suspend iPhone across midnight in work zone Dhaka          | Idle prompt and filing identical to today's LA behaviour                                     | 6     |
+| #   | Scenario                                                                                                           | Expected                                                                                     | Phase |
+| --- | ------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------- | ----- |
+| 1   | Existing user upgrades, no shift                                                                                   | Work LA, local Auto(Dhaka); clocks show PDT/BST (with D3); logbook identical                 | 2, 5  |
+| 2   | **Upgrade mid-shift** (iOS relaunches into the new build)                                                          | `sessionTz` absent ⇒ `LEGACY_TZ`; timer, rollover, filing all unchanged                      | 2     |
+| 3   | Work zone changed, no shift, same date in both zones                                                               | `activeDate` unchanged; clocks update                                                        | 2, 5  |
+| 4   | Work zone changed, no shift, new zone is +1 or −1 day                                                              | `activeDate` realigns both directions; old records keep dates; goal re-populates             | 2     |
+| 5   | Work zone changed during shift                                                                                     | Deferred; banner; switches at EOD; Undo restores                                             | 2, 5  |
+| 6   | …while idle-locked / on break / clocked out unsubmitted                                                            | Same as 5                                                                                    | 2     |
+| 7   | Clock-in in the same second as a zone change                                                                       | `activeDate` and `sessionTz` agree                                                           | 2     |
+| 8   | Local zone changed / device travels                                                                                | Clocks and ETA only; no stored field differs (diff the storage)                              | 2, 5  |
+| 9   | Work zone equals local zone                                                                                        | Single clock                                                                                 | 5     |
+| 10  | Rollover, Dhaka (+6), shift 22:00→02:00                                                                            | Two records, dates D and D+1, split at Dhaka midnight, both `tz: Asia/Dhaka`                 | 2     |
+| 11  | Rollover, Kolkata (+5:30) / Kathmandu (+5:45) / St John's (−3:30)                                                  | Split at the exact local midnight (today: 30 / 45 / 30 min late)                             | 1     |
+| 12  | Rollover west of UTC−8 in standard time: Honolulu, Anchorage (winter), Pago Pago, Etc/GMT+12; and Kiritimati (+14) | Correct day (today: a whole day early in all four western zones; Kiritimati already correct) | 1     |
+| 13  | Rollover on a DST day: Santiago 09/05/26 (next day starts 01:00), London 03/28 and 10/24, Lord Howe, St John's     | Split at the first instant of the new date (today: 30–90 min off)                            | 1     |
+| 14  | Night shift across LA spring-forward                                                                               | Window 7 h; hours from instants; `assertShiftWindow` passes                                  | 1, 3  |
+| 15  | Night shift across LA fall-back                                                                                    | Window 9 h; nothing double counted                                                           | 1, 3  |
+| 16  | Manual entry with a time in the DST gap                                                                            | Refused with the specific message (D6)                                                       | 3     |
+| 17  | Manual entry with a time in the repeated hour                                                                      | Earlier occurrence unless ordering forces the later                                          | 3     |
+| 18  | Edit + save unchanged, record in repeated hour                                                                     | Instants byte-identical                                                                      | 3     |
+| 19  | Edit a legacy (no `tz`) record                                                                                     | Interpreted in LA; saved with explicit `tz: LA`                                              | 3     |
+| 20  | Edit a Dhaka record while work zone is LA                                                                          | Form shows Dhaka times, labelled                                                             | 3     |
+| 21  | Two zones' records on one date label                                                                               | Day total sums both; genuine instant overlap still warns                                     | 3     |
+| 22  | Display mode Work/Local converts a time across a day                                                               | `+1d` / `−1d` marker                                                                         | 3     |
+| 23  | Manual placeholder times (`Manual`/`Entry`/`—`/`--`)                                                               | Shown as today                                                                               | 3     |
+| 24  | Insights first-in/last-out with mixed zones                                                                        | Compared by instant                                                                          | 3     |
+| 25  | CSV export                                                                                                         | In/Out in record zone; trailing `Time_Zone`; shape probe updated                             | 3     |
+| 26  | Import legacy backup                                                                                               | Records read as LA; conflict wizard shows zone                                               | 3     |
+| 27  | Import backup with invalid `workTz` / hostile `tz`                                                                 | Ignored / inert; no throw                                                                    | 2, 3  |
+| 28  | Synced blob with invalid zone                                                                                      | Skipped, previous kept, anomaly logged                                                       | 2     |
+| 29  | Other device changes work zone while this one runs a shift                                                         | Pref adopted, deferred, banner                                                               | 2, 6  |
+| 30  | Handoff: B's pref differs from A's `sessionTz`                                                                     | B follows `sessionTz`; B's rollover (if it becomes owner) uses it; records it files carry it | 6     |
+| 31  | Fresh device → legacy account                                                                                      | Resolves LA; pushes nothing about zones                                                      | 2, 6  |
+| 32  | Fresh device → brand-new account                                                                                   | Device zone; pinned + pushed at first clock-in                                               | 2, 6  |
+| 33  | Factory reset                                                                                                      | Zone keys and recents wiped; resolution back to rule 32                                      | 2     |
+| 34  | Engine canonical-name mismatch between devices                                                                     | Treated as the same zone; single-clock mode still triggers                                   | 1, 6  |
+| 35  | Engine without `supportedValuesOf` / `shortOffset`                                                                 | Fallback list; offset computed from parts                                                    | 4     |
+| 36  | Server-offset correction (`Sync.trueNow`) near midnight                                                            | Date still from corrected time (existing test keeps passing)                                 | 1     |
+| 37  | Year boundary in a + zone (12/31 → 01/01, two-digit year)                                                          | Correct `MM/DD/YY` and calendar keys                                                         | 1     |
+| 38  | Longest label pair on a 375 px phone                                                                               | No wrap, no overflow, tail still visible                                                     | 5     |
+| 39  | Picker raised while a takeover offer is pending                                                                    | Offer waits (`.modal-overlay` gate)                                                          | 4     |
+| 40  | Suspend iPhone across midnight in work zone Dhaka                                                                  | Idle prompt and filing identical to today's LA behaviour                                     | 6     |
 
 ---
 
@@ -401,21 +407,22 @@ Each row becomes at least one assertion in the phase named.
 
 **Zone matrix** (Phase 0 pins the 2026 transition instants for each by bisection over the engine, then cross-checks the offset delta):
 
-| Zone                                      | Why                                       |
-| ----------------------------------------- | ----------------------------------------- |
-| `America/Los_Angeles`                     | legacy; DST Mar 8 / Nov 1 2026            |
-| `Asia/Dhaka`                              | this team's local; +6, no DST             |
-| `Europe/London`                           | the other "BST"; DST Mar 29 / Oct 25 2026 |
-| `Asia/Kolkata`, `Asia/Kathmandu`          | +5:30, +5:45                              |
-| `America/St_Johns`                        | −3:30 with DST                            |
-| `Australia/Lord_Howe`                     | 30-minute DST                             |
-| `America/Santiago`                        | DST transition at local midnight          |
-| `Pacific/Kiritimati`, `Pacific/Pago_Pago` | +14, −11                                  |
-| `UTC`                                     | identity                                  |
+| Zone                                      | Why                                            |
+| ----------------------------------------- | ---------------------------------------------- |
+| `America/Los_Angeles`                     | legacy; DST Mar 8 / Nov 1 2026                 |
+| `Asia/Dhaka`                              | this team's local; +6, no DST                  |
+| `Europe/London`                           | the other "BST"; DST Mar 29 / Oct 25 2026      |
+| `Asia/Kolkata`, `Asia/Kathmandu`          | +5:30, +5:45                                   |
+| `America/St_Johns`                        | −3:30 with DST                                 |
+| `Australia/Lord_Howe`                     | 30-minute DST                                  |
+| `America/Santiago`                        | DST transition at local midnight               |
+| `Pacific/Kiritimati`, `Pacific/Pago_Pago` | +14, −11                                       |
+| `Pacific/Honolulu`, `America/Anchorage`   | west of UTC−8: today's rollover is a day early |
+| `UTC`                                     | identity                                       |
 
 **Device zones:** `Asia/Dhaka`, `America/Los_Angeles`, `Pacific/Kiritimati`, `Pacific/Pago_Pago`.
 
-**New suites** (git-ignored `nodrift-harness/`; check free ports with `grep -H 'const PORT' *.js` first — last known used HTTP 8861–8864, CDP 9461–9464):
+**New suites** (git-ignored `nodrift-harness/`). **Ports:** the time zone suites own HTTP 8871–8879 and CDP 9471–9479 (`probe-tz-intl.js` holds 8871/9471); everything else in the harness sits at or below 8864 / 9464.
 
 | Suite                                                                                                                                                                     | Account            | Phase |
 | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------ | ----- |
@@ -445,6 +452,42 @@ Each row becomes at least one assertion in the phase named.
 - **iPhone question for the user** (cannot be automated): after Phase 2 ships the diagnostics block, does an installed PWA see a changed OS time zone on resume, or only after relaunch? Noted for Phase 6.
 
 **Exit:** probe output saved; fixture committed to the harness folder; server round trip proven; baseline numbers written into this section. **No `index.html` change.**
+
+#### Phase 0 results (2026-09-13, Chrome 152, `index.html` at `9181afa`)
+
+**`probe-tz-server.js` — 12 checks, all pass.** `tz` on a log and a task record, `sessionTz` in the session payload, and `workTz` / `localTz` / nested `tzDisplay` in the settings blob all round-trip byte-identical through `push_records` and `sync_session`; teardown was read back empty. **No migration is needed.** Note for Phase 2 tests: 0008's insert path does not write settings on a brand-new `session_state` row, so a test that seeds settings must beat twice.
+
+**`probe-tz-intl.js` — all checks pass, 0 warnings.** Wrote `nodrift-harness/fixtures/tz-transitions-2026.json` (support, canonical names, labels, 2026 transitions, midnight-guess errors, `getEpochFromDateTimeString` results, costs). What it changed in this document:
+
+| Finding                                                                                                                                          | Where it is now reflected                       |
+| ------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------- |
+| The midnight guess is exact in LA, Dhaka, Kiritimati and UTC, but wrong in most other zones, including **a whole day early west of UTC−8**       | §3.1, §5 rows 11–13, §6 matrix                  |
+| A gap time currently resolves one hour **back**; a repeated-hour time resolves to the **earlier** occurrence                                     | §3.1, §3.7, Phase 1b, D6                        |
+| Chrome's formatter accepts `PST`, `BST` (→ Dhaka), `EST` (→ Panama), `PST8PDT`, `+06:00` and lower-case ids, so "didn't throw" is not validation | I6, §3.10                                       |
+| Chrome uses legacy canonical names (`Asia/Calcutta`, `Europe/Kiev`, `Asia/Katmandu`) and does not list `UTC`                                     | I7, §4.2                                        |
+| Only 111 of 418 zones have a letters-only en-US abbreviation; `shortGeneric` is letters only for US/Canada                                       | §4.5                                            |
+| Eager labels for every zone cost 484 ms at 1× and **3 912 ms at 4×**                                                                             | §3.11, §4.2, risk table                         |
+| `Emulation.setTimezoneOverride` changes the device zone live, without a reload; the app's boot-time `_cachedResolvedTz` goes stale when it does  | §6; Phase 1 must not rely on that sampled value |
+
+**Transition instants pinned (UTC):** Los Angeles 2026-03-08 10:00 and 2026-11-01 09:00 · London 03-29 01:00 and 10-25 01:00 · St John's 03-08 05:30 and 11-01 04:30 · Lord Howe 04-04 15:00 and 10-03 15:30 (30-minute steps) · Santiago 04-05 03:00 (local 23:59:59 → 23:00, repeated hour at the end of 04-04) and 09-06 04:00 (local 23:59:59 → 01:00, a day with no midnight) · Dhaka, Kolkata, Kathmandu, Kiritimati, Pago Pago, UTC: none.
+
+**Regression baseline, unmodified tree, run one at a time — all green:**
+
+| Suite                       | Result                   |
+| --------------------------- | ------------------------ |
+| `harness-progress.js`       | 25 pass                  |
+| `harness-motion.js`         | 43 pass                  |
+| `harness-cloud-panel.js`    | 27 pass                  |
+| `harness-security.js`       | 15 pass                  |
+| `probe-leave-rows.js`       | 12 pass                  |
+| `probe-csv-shape.js`        | 14 pass                  |
+| `probe-backup-and-leave.js` | 25 pass                  |
+| `probe-lease-endshift.js`   | 30 pass                  |
+| `probe-shift-rewind.js`     | ALL PASS (177 s)         |
+| `harness.js`                | ALL PASS (80 PASS lines) |
+| `harness-handoff.js`        | 22 checks, ALL PASS      |
+
+**Still open for Phase 6:** whether an installed iPhone PWA sees a changed OS time zone on resume or only after a relaunch, and what Safari's canonical names and labels are. Neither can be measured from this machine.
 
 ### Phase 1 — `TimeZones` core + behaviour-identical refactor
 
@@ -481,7 +524,7 @@ function getWorkDateObj()  /* was getPSTDateObj */
 
 - Replace `pstFormatter`, `loginFormatter`, `pstDateFormatter`, `pstDateObjFormatter`, `exportNameDateFormatter`, `bstFormatter`, `bstEtaFormatter`, `rolloverFormatter`, `getCachedTimeOnlyFormatter(APP_TZ)`, `APP_TZ` literals (37210, 39025) with `TimeZones` calls against `getWorkZone()` / `getLocalZone()`.
 - Replace the midnight guess (32802–32813) with `startOfDay`; the next-day objects (32763, 32830, 32890, 32963) with `addDays`.
-- `getEpochFromDateTimeString` delegates to `wallToInstant` (keeps its signature; gap handling unchanged in this phase — returns the forward-normalised instant exactly as today; the refusal lands in Phase 3).
+- `getEpochFromDateTimeString` delegates to `wallToInstant` (keeps its signature). Behaviour stays exactly as Phase 0 measured it, and `harness-tz-core.js` pins it against `fixtures/tz-transitions-2026.json`'s `getEpochFromDateTimeString` block: a gap time returns `ms` (02:30 → 09:30Z, i.e. 01:30 PST), a repeated-hour time returns the earlier occurrence (01:30 → 08:30Z). The refusal lands in Phase 3.
 - Rename `getPSTDate` → `getWorkDate`, `getPSTDateObj` → `getWorkDateObj`; keep `getPSTDate` / `getPSTDateObj` as **aliases** until Phase 7 (harness files and mutation anchors use them by name).
 - Leave `#primary-tz`, pills, `BST` label and `TZ_KEY` untouched (Phase 5 owns the UI).
 
@@ -593,16 +636,16 @@ function getWorkDateObj()  /* was getPSTDateObj */
 
 The plan above already uses the recommended option for each. Phases 0 and 1 need none of these, so they can start now. Please confirm or change them before Phase 2.
 
-| #   | Question                                             | Recommended                                                                                                                                                    | Alternative                                                        |
-| --- | ---------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
-| D1  | What times does a log row show by default?           | **The zone it was recorded in**, with a tag when it differs from today's work zone                                                                             | Always convert to the current work zone                            |
-| D2  | Changing the work zone while a shift is running      | **Allowed, but it applies when the shift ends** (banner + Undo)                                                                                                | Block the change until the shift is submitted                      |
-| D3  | Clock labels                                         | **DST-correct abbreviations (PDT/PST), offset where none exists; seed the nickname "BST" for `Asia/Dhaka` on existing installs** so your screen looks the same | Show `UTC+6` for Dhaka (avoids the clash with British Summer Time) |
-| D4  | CSV export                                           | **Add a `Time_Zone` column at the end** (existing columns keep their positions)                                                                                | Leave the CSV exactly as it is                                     |
-| D5  | Default work zone for a brand-new user               | **Their device's zone, locked in at their first clock-in**                                                                                                     | Ask on first launch                                                |
-| D6  | A typed time that doesn't exist (spring-forward gap) | **Refuse, with a message saying why**                                                                                                                          | Silently move it forward an hour                                   |
-| D7  | Idle dialog "Last active" / "Current time"           | **Local time** (work time underneath when different)                                                                                                           | Keep work time                                                     |
-| D8  | `Etc/GMT±N` pseudo-zones in the picker               | **Hidden** (still accepted if already stored)                                                                                                                  | Listed                                                             |
+| #   | Question                                             | Recommended                                                                                                                                                    | Alternative                                                                                    |
+| --- | ---------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| D1  | What times does a log row show by default?           | **The zone it was recorded in**, with a tag when it differs from today's work zone                                                                             | Always convert to the current work zone                                                        |
+| D2  | Changing the work zone while a shift is running      | **Allowed, but it applies when the shift ends** (banner + Undo)                                                                                                | Block the change until the shift is submitted                                                  |
+| D3  | Clock labels                                         | **DST-correct abbreviations (PDT/PST), offset where none exists; seed the nickname "BST" for `Asia/Dhaka` on existing installs** so your screen looks the same | Show `UTC+6` for Dhaka (avoids the clash with British Summer Time)                             |
+| D4  | CSV export                                           | **Add a `Time_Zone` column at the end** (existing columns keep their positions)                                                                                | Leave the CSV exactly as it is                                                                 |
+| D5  | Default work zone for a brand-new user               | **Their device's zone, locked in at their first clock-in**                                                                                                     | Ask on first launch                                                                            |
+| D6  | A typed time that doesn't exist (spring-forward gap) | **Refuse, with a message saying why**                                                                                                                          | Keep today's behaviour, measured in Phase 0: silently read it an hour back (02:30 → 01:30 PST) |
+| D7  | Idle dialog "Last active" / "Current time"           | **Local time** (work time underneath when different)                                                                                                           | Keep work time                                                                                 |
+| D8  | `Etc/GMT±N` pseudo-zones in the picker               | **Hidden** (still accepted if already stored)                                                                                                                  | Listed                                                                                         |
 
 ---
 
@@ -618,16 +661,16 @@ The plan above already uses the recommended option for each. Phases 0 and 1 need
 
 ## 10. Risks and rollback
 
-| Risk                                                          | Mitigation                                                                                                                        |
-| ------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| Regressing the one real deployment (LA work zone, iPhone PWA) | Phase 1 is behaviour-identical and gated on the existing suites before any semantics change; Phase 6 ends on the iPhone checklist |
-| Upgrade lands mid-shift                                       | Legacy session ⇒ `LEGACY_TZ` (row 2), tested in Phase 2                                                                           |
-| A new device overwrites the account's zone                    | Derived values never stamped (I11); three-device parity test                                                                      |
-| Engine differences (Safari vs Chrome names/labels)            | Canonical comparison (I7); label derivation tolerant of missing styles; iPhone check                                              |
-| Invalid zone from sync/import crashes the tick                | Sanitise at every boundary (I6); hostile-input tests                                                                              |
-| Phone status bar overflow                                     | Label caps; geometry probe at 375 px with the longest pair                                                                        |
-| Picker jank on open                                           | Lazy chunked metadata; throttled timing budget                                                                                    |
-| Mutation anchors detach during renames                        | Aliases kept until Phase 7; `mutation-anchors.js` after every format                                                              |
+| Risk                                                          | Mitigation                                                                                                                                                              |
+| ------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Regressing the one real deployment (LA work zone, iPhone PWA) | Phase 1 is behaviour-identical and gated on the existing suites before any semantics change; Phase 6 ends on the iPhone checklist                                       |
+| Upgrade lands mid-shift                                       | Legacy session ⇒ `LEGACY_TZ` (row 2), tested in Phase 2                                                                                                                 |
+| A new device overwrites the account's zone                    | Derived values never stamped (I11); three-device parity test                                                                                                            |
+| Engine differences (Safari vs Chrome names/labels)            | Canonical comparison (I7); label derivation tolerant of missing styles; iPhone check                                                                                    |
+| Invalid zone from sync/import crashes the tick                | Sanitise at every boundary (I6); hostile-input tests                                                                                                                    |
+| Phone status bar overflow                                     | Label caps; geometry probe at 375 px with the longest pair                                                                                                              |
+| Picker jank on open                                           | Eager labels for every zone measured at 3.9 s under 4× throttle, so: static-string first paint, labels for rendered rows only, offset/name index in idle slices (§3.11) |
+| Mutation anchors detach during renames                        | Aliases kept until Phase 7; `mutation-anchors.js` after every format                                                                                                    |
 
 **Rollback:** every phase is its own commit(s) and reverts cleanly. Data written by later phases is forward-compatible with earlier builds: unknown `tz` / `sessionTz` / pref keys are ignored. The one visible artefact of reverting after Phase 3 is that records filed in a non-LA zone show their stored strings (correct times, no zone tag) under an LA date semantics they were not filed in. That's acceptable because nobody but this team uses a non-LA zone until Phase 5 ships the UI.
 
