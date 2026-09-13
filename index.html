@@ -17871,8 +17871,7 @@
 
       /* Which zone a record's In/Out times are shown in (decision D1). */
       function getDisplayZone(record) {
-        const display = readZonePrefs().display;
-        const mode = (display && display.logTimes) || "recorded";
+        const mode = zoneDisplayMode();
         if (mode === "work") return getWorkZone();
         if (mode === "local") return getLocalZone();
         return recordZone(record);
@@ -17915,9 +17914,16 @@
         ) {
           checkMidnightReset(new Date());
         }
+        /* The record views too: the logbook and task scrollers skip a redraw
+           when their visible range has not moved, before any row key is
+           compared, so a new version alone never reaches rows on screen.
+           Both renderers reset that fast path. */
         try {
           if (typeof renderStaticUI === "function") renderStaticUI();
           if (typeof renderTimersOnly === "function") renderTimersOnly();
+          if (typeof renderLogbook === "function") renderLogbook();
+          if (typeof renderTaskLogbook === "function") renderTaskLogbook();
+          if (typeof renderInsights === "function") renderInsights();
         } catch (e) {
           console.warn("Could not redraw after a time zone change", e);
         }
@@ -17980,6 +17986,229 @@
         if (minute === _deviceZoneCheckMin) return;
         _deviceZoneCheckMin = minute;
         checkDeviceZone();
+      }
+
+      /* ---- Record times (docs/implement.md §3.4 and §3.9) ----
+
+         Every In/Out time shown for a log or a task is read here, from the
+         record's instants, in getDisplayZone(record) (decision D1). The
+         login/logout strings stored on a log are a cache written in the
+         record's zone: shown in that same zone, a string that still agrees
+         with its instant is shown exactly as stored, so a record looks the
+         way it always has. Otherwise the instant wins (I1). */
+
+      const RECORD_ENDS = {
+        in: { instant: "loginEpochMs", taskInstant: "startMs", text: "login" },
+        out: { instant: "logoutEpochMs", taskInstant: "endMs", text: "logout" },
+      };
+      const NO_TIME = Object.freeze({ text: "—", tag: "" });
+      const RECORD_TIME_MEMO_LIMIT = 2000;
+      const _recordTimeMemo = new Map();
+
+      function zoneDisplayMode() {
+        const display = readZonePrefs().display;
+        return (display && display.logTimes) || "recorded";
+      }
+
+      /* Everything a rendered time depends on besides the record. The work
+         zone is spelled out rather than left to the version, because a shift
+         that ends hands over to a pending work zone without the funnel. */
+      function zoneRenderKey() {
+        return `${TimeZones.version}|${zoneDisplayMode()}|${getWorkZone()}`;
+      }
+
+      function zoneNickname(zone) {
+        const display = readZonePrefs().display;
+        const names = display && display.nicknames;
+        if (!names) return null;
+        const keys = Object.keys(names);
+        for (let i = 0; i < keys.length; i++) {
+          if (TimeZones.same(keys[i], zone)) return names[keys[i]];
+        }
+        return null;
+      }
+
+      /* Bounded: the logbook can hold thousands of records, and only the
+         ones on screen need a formatted time. */
+      function memoRecordTime(key, compute) {
+        let v = _recordTimeMemo.get(key);
+        if (v === undefined) {
+          if (_recordTimeMemo.size >= RECORD_TIME_MEMO_LIMIT) {
+            _recordTimeMemo.clear();
+          }
+          v = compute();
+          _recordTimeMemo.set(key, v);
+        }
+        return v;
+      }
+
+      /* One end of a record. A placeholder is a stored string that is not a
+         clock time ("Manual", "Entry", "—"): it is shown as it is and never
+         counts as a day's first in or last out. A legacy log with a time but
+         no instant is read in its own zone, and a logout earlier than its
+         login falls on the next day (I9). */
+      function recordEndpoint(record, end) {
+        const f = RECORD_ENDS[end];
+        let ms = null;
+        if (record && Number.isFinite(record[f.instant])) {
+          ms = record[f.instant];
+        } else if (record && Number.isFinite(record[f.taskInstant])) {
+          ms = record[f.taskInstant];
+        }
+        const raw = record ? record[f.text] : null;
+        const str = raw === null || raw === undefined ? "" : String(raw);
+        const minutes = str ? parseTimeToMinutes(str) : null;
+        if (ms === null && minutes !== null) {
+          const day = TimeZones.parseKey(record.date);
+          if (day) {
+            const loginMinutes =
+              end === "out" ? parseTimeToMinutes(record.login) : null;
+            const next =
+              loginMinutes !== null && minutes < loginMinutes ? 1 : 0;
+            ms = TimeZones.wallToInstant(
+              day.y,
+              day.m,
+              day.d + next,
+              Math.floor(minutes / 60),
+              minutes % 60,
+              0,
+              recordZone(record),
+            ).ms;
+          }
+        }
+        return {
+          ms,
+          str,
+          minutes,
+          placeholder: str !== "" && minutes === null,
+        };
+      }
+
+      /* " +1d" / " −1d": a time shown in a zone other than its record's that
+         lands on a different calendar day from the row it sits in. */
+      function dayMarker(ms, zone, businessDate) {
+        const day = TimeZones.parseKey(businessDate);
+        if (!day) return "";
+        const p = TimeZones.parts(ms, zone);
+        const diff = Math.round(
+          (Date.UTC(p.y, p.m - 1, p.d) - Date.UTC(day.y, day.m - 1, day.d)) /
+            86400000,
+        );
+        if (diff === 0) return "";
+        return ` ${diff > 0 ? "+" : "−"}${Math.abs(diff)}d`;
+      }
+
+      /* The zone label beside a time, only when that time is not in the
+         work zone. Labels are user- and sync-supplied (nicknames), so they
+         reach the page through textContent or escapeHTML only (I14). */
+      function zoneTag(zone, ms) {
+        if (TimeZones.same(zone, getWorkZone())) return "";
+        const display = readZonePrefs().display;
+        const style = (display && display.labelStyle) || "abbr";
+        return memoRecordTime(
+          `z|${TimeZones.version}|${zone}|${style}|${ms}`,
+          () => TimeZones.label(zone, ms, style, zoneNickname(zone)),
+        );
+      }
+
+      /* { text, tag } for one end of a record. */
+      function recordEndpointView(record, end) {
+        const e = recordEndpoint(record, end);
+        if (e.placeholder) return { text: e.str, tag: "" };
+        if (e.ms === null) return e.str ? { text: e.str, tag: "" } : NO_TIME;
+        const zone = getDisplayZone(record);
+        const home = recordZone(record);
+        const date = record.date;
+        const text = memoRecordTime(
+          `t|${zone}|${home}|${date}|${e.ms}|${e.str}`,
+          () => {
+            if (TimeZones.same(zone, home)) {
+              if (e.minutes !== null) {
+                const p = TimeZones.parts(e.ms, zone);
+                if (p.h * 60 + p.mi === e.minutes) return e.str;
+              }
+              return TimeZones.formatTime(e.ms, zone);
+            }
+            return (
+              TimeZones.formatTime(e.ms, zone) + dayMarker(e.ms, zone, date)
+            );
+          },
+        );
+        return { text, tag: zoneTag(zone, e.ms) };
+      }
+
+      /* "09:00:00 AM - 05:00:00 PM", with the zone tag once at the end when
+         both ends carry the same one, and beside each end when they differ
+         (a night across a DST change, or a day's first in and last out
+         filed in two zones). */
+      function formatTimeRange(a, b) {
+        if (a.tag && a.tag === b.tag) return `${a.text} - ${b.text} ${a.tag}`;
+        return `${a.text}${a.tag ? ` ${a.tag}` : ""} - ${b.text}${b.tag ? ` ${b.tag}` : ""}`;
+      }
+
+      /* A day's first in and last out, ordered by instant (§3.9). Minutes
+         past midnight compare neither two zones nor a shift that crosses
+         midnight: a 22:00 -> 02:00 shift logs out at minute 120, before any
+         daytime login. Placeholders never win; with `placeholders`, one is
+         shown when that end of the day has no real time at all. */
+      function firstInLastOut(records, options) {
+        const usePlaceholders = !!(options && options.placeholders);
+        let first = null;
+        let firstMs = 0;
+        let last = null;
+        let lastMs = 0;
+        let firstStandIn = null;
+        let lastStandIn = null;
+        for (let i = 0; i < records.length; i++) {
+          const r = records[i];
+          const a = recordEndpoint(r, "in");
+          if (!a.placeholder && a.ms !== null) {
+            if (first === null || a.ms < firstMs) {
+              first = r;
+              firstMs = a.ms;
+            }
+          } else if (a.placeholder && a.str !== "—" && firstStandIn === null) {
+            firstStandIn = a.str;
+          }
+          const b = recordEndpoint(r, "out");
+          if (!b.placeholder && b.ms !== null) {
+            if (last === null || b.ms > lastMs) {
+              last = r;
+              lastMs = b.ms;
+            }
+          } else if (b.placeholder && b.str !== "—" && lastStandIn === null) {
+            lastStandIn = b.str;
+          }
+        }
+        const standIn = (text) =>
+          usePlaceholders && text !== null ? { text, tag: "" } : NO_TIME;
+        return {
+          first: first
+            ? recordEndpointView(first, "in")
+            : standIn(firstStandIn),
+          last: last ? recordEndpointView(last, "out") : standIn(lastStandIn),
+        };
+      }
+
+      /* The running shift's clock-in, shown as a record filed now would be. */
+      function liveLoginView() {
+        const s = currentState();
+        const ms = s ? Number(s.loginTimestamp) : NaN;
+        if (!Number.isFinite(ms) || ms <= 0) return NO_TIME;
+        return recordEndpointView(
+          { tz: getWorkZone(), date: getWorkDate(), loginEpochMs: ms },
+          "in",
+        );
+      }
+
+      function liveStatusView() {
+        const s = currentState();
+        const mode = s ? s.currentMode : null;
+        return {
+          text:
+            mode === "work" ? "Active" : mode === "break" ? "Break" : "Paused",
+          tag: "",
+        };
       }
 
       /*==========================================================================
@@ -27124,32 +27353,11 @@
 
         const allLogs = typeof getLogs === "function" ? getLogs() : [];
         const dayLogs = allLogs.filter((l) => l.date === dateStr);
-        let loginStr = "—";
-        let logoutStr = "—";
-        let loginMin = null;
-        let logoutMin = null;
-        dayLogs.forEach((l) => {
-          const lMin = parseTimeToMinutes(l.login);
-          const oMin = parseTimeToMinutes(l.logout);
-          if (lMin !== null && (loginMin === null || lMin < loginMin)) {
-            loginMin = lMin;
-            loginStr = l.login;
-          }
-          if (oMin !== null && (logoutMin === null || oMin > logoutMin)) {
-            logoutMin = oMin;
-            logoutStr = l.logout;
-          }
-        });
+        let { first: loginView, last: logoutView } = firstInLastOut(dayLogs);
         const todayStr = typeof getWorkDate === "function" ? getWorkDate() : "";
         if (dateStr === todayStr && state.loginTimestamp) {
-          const todayLoginStr = TimeZones.formatter(
-            getWorkZone(),
-            "time",
-          ).format(new Date(state.loginTimestamp));
-          if (loginStr === "—") loginStr = todayLoginStr;
-          if (state.currentMode === "work") logoutStr = "Active";
-          else if (state.currentMode === "break") logoutStr = "Break";
-          else logoutStr = "Paused";
+          if (loginView.text === "—") loginView = liveLoginView();
+          logoutView = liveStatusView();
         }
 
         const leaves =
@@ -27185,8 +27393,13 @@
             ? "—"
             : String(str).replace(/:(\d{2}):\d{2}/, ":$1");
         const timeSpan =
-          loginStr !== "—" || logoutStr !== "—"
-            ? `<span class="tooltip-time">${escapeHTML(cleanTime(loginStr))} - ${escapeHTML(cleanTime(logoutStr))}</span>`
+          loginView.text !== "—" || logoutView.text !== "—"
+            ? `<span class="tooltip-time">${escapeHTML(
+                formatTimeRange(
+                  { text: cleanTime(loginView.text), tag: loginView.tag },
+                  { text: cleanTime(logoutView.text), tag: logoutView.tag },
+                ),
+              )}</span>`
             : "";
 
         /* formattedDate is the raw dateStr whenever it has no slash in it,
@@ -28848,6 +29061,7 @@
         // O(rows x leaveDates) on every visible-range change.
         const leaveDateSet =
           typeof getLeaveDateSet === "function" ? getLeaveDateSet() : null;
+        const zoneKey = zoneRenderKey();
 
         for (let k = 0; k < targetPoolSize; k++) {
           const i = startIndex + k;
@@ -28879,7 +29093,7 @@
               : false;
 
             const isMultiSelected = logSelectMode && selectedLogIds.has(log.id);
-            const rowKey = `${log.id}|${isSelected}|${isMultiSelected}|${log.date}|${log.login}|${log.logout}|${log.dayGoal}|${log.workSec}|${log.breakSec}|${isLogOver(log) ? "OVER" : "UNDER"}|${log.notes || ""}|${dtString}|${log.isLeaveRecord ? "LEAVE" : "WORK"}|${log.leaveType || ""}|${isWorkedLeave ? "WL" : ""}`;
+            const rowKey = `${log.id}|${isSelected}|${isMultiSelected}|${log.date}|${log.login}|${log.logout}|${log.dayGoal}|${log.workSec}|${log.breakSec}|${isLogOver(log) ? "OVER" : "UNDER"}|${log.notes || ""}|${dtString}|${log.isLeaveRecord ? "LEAVE" : "WORK"}|${log.leaveType || ""}|${isWorkedLeave ? "WL" : ""}|${log.tz || ""}|${log.loginEpochMs}|${log.logoutEpochMs}|${zoneKey}`;
             if (child._rowKey !== rowKey) {
               child._rowKey = rowKey;
               child._logId = log.id;
@@ -28928,7 +29142,10 @@
                 dom.manageLeaveBtn.style.display = "flex";
               } else {
                 const isOver = isLogOver(log);
-                dom.meta.textContent = `${log.login} - ${log.logout}`;
+                dom.meta.textContent = formatTimeRange(
+                  recordEndpointView(log, "in"),
+                  recordEndpointView(log, "out"),
+                );
                 dom.statusBadge.textContent = isOver ? "O" : "U";
                 dom.leaveTypeBadge.style.display = "none";
 
@@ -29172,43 +29389,15 @@
         let totalW = 0;
         let totalB = 0;
         let notesList = [];
-        let loginStr = "—";
-        let logoutStr = "—";
-        let loginMin = null;
-        let logoutMin = null;
         let firstGoalSec = null;
 
+        /* The day's first in and last out are not worked out here:
+           buildProgressTooltipHTML reads them itself, by instant. This
+           function used to compute a second copy that nothing displayed. */
         dayLogs.forEach((l) => {
           totalW += l.workSec || 0;
           totalB += l.breakSec || 0;
           if (l.notes) notesList.push(l.notes);
-
-          /* Ordered by absolute instant, falling back to time-of-day only
-             for legacy rows that predate the epoch fields.
-
-             Minutes-past-midnight cannot order a shift that crosses midnight:
-             a 22:00 -> 02:00 shift logs out at minute 120, lower than any
-             daytime login, so the group header picked an earlier shift's
-             endpoint and showed a day that ended before it began. */
-          const logLoginKey = Number.isFinite(l.loginEpochMs)
-            ? l.loginEpochMs
-            : parseTimeToMinutes(l.login);
-          const logLogoutKey = Number.isFinite(l.logoutEpochMs)
-            ? l.logoutEpochMs
-            : parseTimeToMinutes(l.logout);
-
-          if (logLoginKey !== null && logLoginKey !== undefined) {
-            if (loginMin === null || logLoginKey < loginMin) {
-              loginMin = logLoginKey;
-              loginStr = l.login;
-            }
-          }
-          if (logLogoutKey !== null && logLogoutKey !== undefined) {
-            if (logoutMin === null || logLogoutKey > logoutMin) {
-              logoutMin = logLogoutKey;
-              logoutStr = l.logout;
-            }
-          }
         });
 
         const todayStr = typeof getWorkDate === "function" ? getWorkDate() : "";
@@ -29217,19 +29406,6 @@
           totalW += getCurrentWorkSeconds();
           totalB += getCurrentBreakSeconds();
           if (state.notes) notesList.push(state.notes);
-
-          const todayLoginStr = TimeZones.formatter(
-            getWorkZone(),
-            "time",
-          ).format(new Date(state.loginTimestamp));
-          if (loginStr === "—") loginStr = todayLoginStr;
-          if (state.currentMode === "work") {
-            logoutStr = "Active";
-          } else if (state.currentMode === "break") {
-            logoutStr = "Break";
-          } else {
-            logoutStr = "Paused";
-          }
         }
 
         const [m, d, y] = dateKey.split("/").map(Number);
@@ -29860,7 +30036,7 @@
 
         const todayStr = getWorkDate();
 
-        const iKey = `${currentInsightsView}|${bucketStartMs}|${todayStr}|${dataVersion}`;
+        const iKey = `${currentInsightsView}|${bucketStartMs}|${todayStr}|${dataVersion}|${zoneRenderKey()}`;
         if (iKey === insightsCacheKey) return;
         insightsCacheKey = iKey;
 
@@ -29893,10 +30069,7 @@
               w: 0,
               b: 0,
               goal: 0,
-              earliestLoginMin: null,
-              latestLogoutMin: null,
-              login: "—",
-              logout: "—",
+              records: [],
               notesList: [],
             };
           }
@@ -29924,40 +30097,7 @@
             }
           }
 
-          const loginMin = parseTimeToMinutes(l.login);
-          const logoutMin = parseTimeToMinutes(l.logout);
-
-          if (loginMin !== null) {
-            if (
-              logsByDate[l.displayDate].earliestLoginMin === null ||
-              loginMin < logsByDate[l.displayDate].earliestLoginMin
-            ) {
-              logsByDate[l.displayDate].earliestLoginMin = loginMin;
-              logsByDate[l.displayDate].login = l.login;
-            }
-          } else if (
-            l.login &&
-            l.login !== "—" &&
-            logsByDate[l.displayDate].login === "—"
-          ) {
-            logsByDate[l.displayDate].login = l.login;
-          }
-
-          if (logoutMin !== null) {
-            if (
-              logsByDate[l.displayDate].latestLogoutMin === null ||
-              logoutMin > logsByDate[l.displayDate].latestLogoutMin
-            ) {
-              logsByDate[l.displayDate].latestLogoutMin = logoutMin;
-              logsByDate[l.displayDate].logout = l.logout;
-            }
-          } else if (
-            l.logout &&
-            l.logout !== "—" &&
-            logsByDate[l.displayDate].logout === "—"
-          ) {
-            logsByDate[l.displayDate].logout = l.logout;
-          }
+          logsByDate[l.displayDate].records.push(l);
         }
 
         const todayPST = getWorkDateObj();
@@ -30094,30 +30234,18 @@
                                 </div>`;
             } else {
               const dayLogs = logsByDate[dateStr];
-              let loginStr = "—";
-              let logoutStr = "—";
-
-              if (dayLogs) {
-                loginStr = escapeHTML(dayLogs.login || "—");
-                logoutStr = escapeHTML(dayLogs.logout || "—");
-              }
+              let { first: loginView, last: logoutView } = firstInLastOut(
+                dayLogs ? dayLogs.records : [],
+                { placeholders: true },
+              );
 
               if (isToday && state.loginTimestamp) {
-                const todayLoginStr = TimeZones.formatter(
-                  getWorkZone(),
-                  "time",
-                ).format(new Date(state.loginTimestamp));
-                if (loginStr === "—") {
-                  loginStr = escapeHTML(todayLoginStr);
-                }
-                if (state.currentMode === "work") {
-                  logoutStr = "Active";
-                } else if (state.currentMode === "break") {
-                  logoutStr = "Break";
-                } else {
-                  logoutStr = "Paused";
-                }
+                if (loginView.text === "—") loginView = liveLoginView();
+                logoutView = liveStatusView();
               }
+              const whenText = escapeHTML(
+                formatTimeRange(loginView, logoutView),
+              );
 
               breakdownHTML += `
                                 <div class="${rowClass}">
@@ -30135,7 +30263,7 @@
                                     </div>
                                   </div>
                                   <div class="breakdown-row-meta">
-                                    <span class="breakdown-row-when" ${isToday ? 'id="today-meta-val"' : ""}>${loginStr} - ${logoutStr}</span>
+                                    <span class="breakdown-row-when" ${isToday ? 'id="today-meta-val"' : ""}>${whenText}</span>
                                     <!-- "Worked", not "Worked Leave": it sits
                                          against a badge that has just said
                                          which leave this was, and the row has
@@ -30186,30 +30314,18 @@
               }
             } else {
               const dayLogs = logsByDate[dateStr];
-              let loginStr = "—";
-              let logoutStr = "—";
-
-              if (dayLogs) {
-                loginStr = escapeHTML(dayLogs.login || "—");
-                logoutStr = escapeHTML(dayLogs.logout || "—");
-              }
+              let { first: loginView, last: logoutView } = firstInLastOut(
+                dayLogs ? dayLogs.records : [],
+                { placeholders: true },
+              );
 
               if (isToday && state.loginTimestamp) {
-                const todayLoginStr = TimeZones.formatter(
-                  getWorkZone(),
-                  "time",
-                ).format(new Date(state.loginTimestamp));
-                if (loginStr === "—") {
-                  loginStr = escapeHTML(todayLoginStr);
-                }
-                if (state.currentMode === "work") {
-                  logoutStr = "Active";
-                } else if (state.currentMode === "break") {
-                  logoutStr = "Break";
-                } else {
-                  logoutStr = "Paused";
-                }
+                if (loginView.text === "—") loginView = liveLoginView();
+                logoutView = liveStatusView();
               }
+              const whenText = escapeHTML(
+                formatTimeRange(loginView, logoutView),
+              );
 
               // ========================================================================= SEGMENT BAR &
               // GOAL RESOLUTION:
@@ -30248,7 +30364,7 @@
                         </div>
                       </div>
                       <div class="breakdown-row-meta">
-                        <span ${isToday ? 'id="today-meta-val"' : ""}>${loginStr} - ${logoutStr}</span>
+                        <span ${isToday ? 'id="today-meta-val"' : ""}>${whenText}</span>
                         <div class="font-mono stats-alignment-wrapper" style="font-size: var(--font-size-entry-stats); color: var(--text-muted); display: flex; gap: 12px;">
                           <div class="stat-column work-col flex-center">
                             <span ${
@@ -31015,8 +31131,9 @@
         version: -1,
         w: 0,
         b: 0,
-        loginStr: "—",
-        logoutStr: "—",
+        zoneKey: null,
+        loginView: { text: "—", tag: "" },
+        logoutView: { text: "—", tag: "" },
       };
 
       function updateLiveTodayRow() {
@@ -31036,47 +31153,34 @@
 
         const todayStr = getWorkDate();
 
+        const zoneKey = zoneRenderKey();
         if (
           _todayRowCache.date !== todayStr ||
-          _todayRowCache.version !== dataVersion
+          _todayRowCache.version !== dataVersion ||
+          _todayRowCache.zoneKey !== zoneKey
         ) {
           const logs = getLogs();
           let loggedWork = 0;
           let loggedBreak = 0;
-          let earliestLoginMin = null;
-          let latestLogoutMin = null;
-          let loginStr = "—";
-          let logoutStr = "—";
+          const todayLogs = [];
 
           for (let i = 0; i < logs.length; i++) {
             const l = logs[i];
             if (l.date === todayStr || l.displayDate === todayStr) {
               loggedWork += l.workSec || 0;
               loggedBreak += l.breakSec || 0;
-
-              const loginMin = parseTimeToMinutes(l.login);
-              const logoutMin = parseTimeToMinutes(l.logout);
-              if (loginMin !== null) {
-                if (earliestLoginMin === null || loginMin < earliestLoginMin) {
-                  earliestLoginMin = loginMin;
-                  loginStr = l.login;
-                }
-              }
-              if (logoutMin !== null) {
-                if (latestLogoutMin === null || logoutMin > latestLogoutMin) {
-                  latestLogoutMin = logoutMin;
-                  logoutStr = l.logout;
-                }
-              }
+              todayLogs.push(l);
             }
           }
+          const ends = firstInLastOut(todayLogs);
           _todayRowCache = {
             date: todayStr,
             version: dataVersion,
+            zoneKey,
             w: loggedWork,
             b: loggedBreak,
-            loginStr,
-            logoutStr,
+            loginView: ends.first,
+            logoutView: ends.last,
           };
         }
 
@@ -31117,27 +31221,15 @@
 
         const todayMetaValEl = document.getElementById("today-meta-val");
         if (todayMetaValEl) {
-          let loginStr = _todayRowCache.loginStr;
-          let logoutStr = _todayRowCache.logoutStr;
+          let loginView = _todayRowCache.loginView;
+          let logoutView = _todayRowCache.logoutView;
 
           if (state.loginTimestamp) {
-            const todayLoginStr = TimeZones.formatter(
-              getWorkZone(),
-              "time",
-            ).format(new Date(state.loginTimestamp));
-            if (loginStr === "—") {
-              loginStr = todayLoginStr;
-            }
-            if (state.currentMode === "work") {
-              logoutStr = "Active";
-            } else if (state.currentMode === "break") {
-              logoutStr = "Break";
-            } else {
-              logoutStr = "Paused";
-            }
+            if (loginView.text === "—") loginView = liveLoginView();
+            logoutView = liveStatusView();
           }
 
-          const metaText = `${loginStr} - ${logoutStr}`;
+          const metaText = formatTimeRange(loginView, logoutView);
           if (todayMetaValEl.textContent !== metaText) {
             todayMetaValEl.textContent = metaText;
           }
@@ -37469,7 +37561,7 @@
         }
 
         const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-        const timeFormatter = TimeZones.formatter(getWorkZone(), "time");
+        const zoneKey = zoneRenderKey();
 
         for (let k = 0; k < targetPoolSize; k++) {
           const i = startIndex + k;
@@ -37482,7 +37574,7 @@
 
             const isMultiSelected =
               taskSelectMode && selectedTaskIds.has(task.id);
-            const rowKey = `${task.id}|${task.note}|${task.durationSec}|${task.startMs}|${task.endMs}|${isSelected}|${isMultiSelected}`;
+            const rowKey = `${task.id}|${task.note}|${task.durationSec}|${task.startMs}|${task.endMs}|${isSelected}|${isMultiSelected}|${task.tz || ""}|${task.date}|${zoneKey}`;
             if (child._rowKey !== rowKey) {
               child._rowKey = rowKey;
               child._isSelected = isSelected;
@@ -37510,13 +37602,12 @@
                 }
               } catch (e) {}
 
-              let startStr = "—",
-                endStr = "—";
+              let whenText = "— - —";
               try {
-                if (Number.isFinite(task.startMs))
-                  startStr = timeFormatter.format(new Date(task.startMs));
-                if (Number.isFinite(task.endMs))
-                  endStr = timeFormatter.format(new Date(task.endMs));
+                whenText = formatTimeRange(
+                  recordEndpointView(task, "in"),
+                  recordEndpointView(task, "out"),
+                );
               } catch (e) {}
 
               dom.noteText.textContent = task.note || "";
@@ -37527,7 +37618,7 @@
                 Number(task.pausedSec) > 0
                   ? ` · ${formatFriendlyDuration(task.pausedSec)} paused`
                   : "";
-              dom.metaText.textContent = `${logbookStyleDate} ${startStr} - ${endStr}${pausedNote}`;
+              dom.metaText.textContent = `${logbookStyleDate} ${whenText}${pausedNote}`;
 
               dom.editBtn.dataset.id = task.id;
               dom.copyBtn.dataset.id = task.id;
