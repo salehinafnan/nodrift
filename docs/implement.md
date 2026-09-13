@@ -1,13 +1,13 @@
 # Time zones: implementation blueprint
 
-> **Status:** Phase 0 complete (measurements only). Nothing in `index.html` has changed yet.
+> **Status:** Phases 0 and 1 complete. Every zone-dependent calculation goes through `TimeZones`; the zones themselves are still fixed (Los Angeles for work, Dhaka for local) until Phase 2.
 > **Baseline commit:** `9181afa` (all line numbers below refer to it and WILL drift — re-grep before editing).
 > **Rule:** one phase at a time. A phase starts only when the previous phase's exit criteria are green and committed.
 
 | Phase | Title                                                | Touches data?    | Needs live account? | Size            | State       |
 | ----- | ---------------------------------------------------- | ---------------- | ------------------- | --------------- | ----------- |
 | 0     | Groundwork, probes, fixtures                         | no               | one read-only probe | S               | **done**    |
-| 1     | `TimeZones` core + behaviour-identical refactor      | no               | regression only     | L (split 1a/1b) | not started |
+| 1     | `TimeZones` core + behaviour-identical refactor      | no               | regression only     | L (split 1a/1b) | **done**    |
 | 2     | Data model: work / local / session / record zones    | **yes**          | regression only     | L               | not started |
 | 3     | Rendering and editing records in their own zone      | yes (edit paths) | no                  | M–L             | not started |
 | 4     | The zone picker component                            | no               | no                  | M–L             | not started |
@@ -535,6 +535,35 @@ function getWorkDateObj()  /* was getPSTDateObj */
 **Exit:** all of the above green; `grep "new Intl.DateTimeFormat"` shows no `timeZone` outside `TimeZones`; `grep "Asia/Dhaka\|APP_TZ"` shows only `LEGACY_TZ` and the temporary `getLocalZone` literal; anchors 0 misses.
 
 **Commits:** `refactor(time): one module for every zone-dependent calculation` (1a) and `refactor(time): route every call site through TimeZones` (1b).
+
+#### Phase 1 results (2026-09-13)
+
+**Committed:** 1a as `7e5ccad`, 1b as `e641ae0`. `index.html` only; the harness is git-ignored.
+
+**Where it lands, and how it differs from the sketch above:**
+
+- `TimeZones`, `LEGACY_TZ`, `getWorkZone()` and `getLocalZone()` live in section **3b. TIME ZONES**, directly after `updatePrimaryFormatter`. The two resolvers arrived in 1a rather than 1b so the module's tests could name them.
+- Validation is **shape plus membership**: an `Area/Location` id (or `UTC`), canonicalised by the engine, and then found in `supportedValuesOf`. `Etc/GMT±N` is let through for already-stored values (D8). The verdict cache is capped at 64 entries, because ids also arrive from sync and import.
+- `wallToInstant` returns `{ ms, status, alt }`; a gap's `ms` is the post-transition reading, which is what the old loop returned, so `getEpochFromDateTimeString` is unchanged to the millisecond.
+- The four "next business date" computations formatted **noon UTC in the zone**. That is correct from UTC−11 to UTC+11 and a day off beyond, so they became `TimeZones.keyFromYMD(y, m, d + 1)`, pure calendar arithmetic, rather than the `addDays` call the sketch named.
+- `checkMidnightReset`'s one-minute date cache is keyed on the zone as well, like `getWorkDate`'s and `getWorkDateObj`'s.
+- Removed as dead once nothing used them: `getPSTClock`, `_cachedResolvedTz`, `_sharedDateForPST`, `getCachedTzFormatter`, `getCachedTimeOnlyFormatter`.
+- `getPSTDate` / `getPSTDateObj` remain as two one-line aliases for the harness (Phase 7 removes them).
+- Untouched on purpose (Phase 5): `#primary-tz`, the PST/MST/CST/EST pills, the `BST` label, `TZ_KEY`.
+
+**Tests — `nodrift-harness/harness-tz-core.js`, 80 checks, all pass:**
+
+- 59 on the module, run under four device zones (Los Angeles, Dhaka, Kiritimati, Pago Pago) with identical results required, against the Phase 0 fixture: validation (and a negative control proving the raw formatter accepts the junk), offsets at every pinned transition, the true start of 38 days in 14 zones, calendar keys, byte-identity with every legacy formatter it replaced, gap / ambiguous / ok cases in three DST shapes, and a property check inverting 10 000 random instants plus a minute-by-minute sweep across every transition in 13 zones.
+- 16 wiring checks under two device zones, moving the work zone by replacing `window.getWorkZone`: the date helpers follow a zone change in the same second, typed times are read in the work zone, and a real `checkMidnightReset` files a three-hour shift ending exactly at **Honolulu's** and **Kolkata's** midnight. Los Angeles cannot show any of this, because the old guess was exact there.
+- 5 source checks that keep the exit criteria true in later phases: no zoned `Intl.DateTimeFormat` outside the module, no zone spelled out except `LEGACY_TZ` and `getLocalZone`, none of the old formatter names, and no call to the old date names beyond the two aliases.
+
+**Mutations:** 11 new, all caught. Eight are on the module (hour-rounded offsets, the later occurrence, a gap's other reading, a device-zone date key, a zone-less formatter cache, sanitize trusting the formatter, an unchecked zone handed to Intl, `startOfDay` skipping the bisection). Three are on the wiring (the 08:00 guess restored, `getWorkDate` caching without the zone, typed times hardwired to Los Angeles). The existing "use this device's clock" mutation, renamed to `getWorkDate`, was re-graded and is still caught by `harness.js`. One wiring mutation first reported BAD with an empty failure list: the harness had failed to launch straight after the previous run. Applied by hand and re-run alone, it is caught. Two mutations are deliberately absent, and `mutation-test.js` says why beside the others: the noon-UTC next date (no wiring zone reaches UTC+12) and the minute cache's zone key (it would pass or fail by time of day). Anchors: 162, 0 misses.
+
+**Regression, one suite at a time — identical to the Phase 0 baseline:** `harness-progress` 25, `harness-motion` 43, `harness-cloud-panel` 27, `harness-security` 15, `probe-leave-rows` 12, `probe-csv-shape` 14, `probe-backup-and-leave` 25, `probe-lease-endshift` 30, `probe-shift-rewind` ALL PASS, `harness.js` ALL PASS (80 PASS lines), `harness-handoff` 22 checks ALL PASS.
+
+**Harness edits made alongside:** `tests-phase5.js` compares against `TimeZones.dateKey(Date.now(), getWorkZone())` instead of the deleted `pstDateFormatter`; one `mutation-test.js` anchor now names `getWorkDate`.
+
+**Carried into Phase 2:** `TimeZones.version` / `bumpVersion()` exist but nothing bumps them yet (the `onZoneContextChanged()` funnel does). `getWorkZone()` and `getLocalZone()` still return constants, and those two function bodies are the only lines Phase 2 has to widen for every call site to follow.
 
 ### Phase 2 — Data model: work, local, session and record zones
 
