@@ -1243,6 +1243,14 @@
         font-weight: 600;
       }
 
+      /* The zone an edit dialog's times are in, shown only when it is not
+         the work zone. */
+      .modal-zone-hint {
+        margin: calc(-1 * var(--space-2)) 0 var(--space-3);
+        font-size: var(--font-size-entry-meta);
+        color: var(--text-muted);
+      }
+
       .modal-header {
         margin-top: 0;
         margin-bottom: var(--space-4);
@@ -10785,6 +10793,7 @@
           </svg>
         </button>
         <h3 class="modal-header">Edit Task</h3>
+        <p id="edit-task-zone-hint" class="modal-zone-hint" hidden></p>
         <div class="form-group">
           <label class="form-label" for="edit-task-date">Date (MM/DD/YY)</label>
           <div class="date-picker-group">
@@ -11027,6 +11036,7 @@
           </svg>
         </button>
         <h3 class="modal-header">Edit Shift</h3>
+        <p id="edit-zone-hint" class="modal-zone-hint" hidden></p>
         <div class="form-row">
           <div class="form-group">
             <label class="form-label" for="edit-date">Date (MM/DD/YY)</label>
@@ -17412,6 +17422,7 @@
           },
           tzShort: { timeZoneName: "short" },
           tzShortGeneric: { timeZoneName: "shortGeneric" },
+          tzLongGeneric: { timeZoneName: "longGeneric" },
         };
 
         let supported = null;
@@ -17722,6 +17733,15 @@
           return offsetLabel(offsetMinutes(ms, zone));
         }
 
+        /* "Pacific Time": a zone's name for a sentence. The city from the id
+           when the engine has only an offset to offer. */
+        function longName(zone, ms) {
+          const name = zoneName(zone, ms, "tzLongGeneric");
+          if (name && !/^GMT[+−-]/.test(name)) return name;
+          const z = sanitize(zone, null) || String(zone);
+          return z.split("/").pop().replace(/_/g, " ");
+        }
+
         return {
           isValid,
           sanitize,
@@ -17748,6 +17768,7 @@
           formatTime,
           offsetLabel,
           label,
+          longName,
         };
       })();
 
@@ -18111,6 +18132,23 @@
         );
       }
 
+      /* One end's time in the record's own zone: what the edit dialogs fill
+         in. The stored string when it still agrees with its instant (same
+         minute of the day), else the instant formatted; a placeholder, or an
+         end with no time at all, as stored. */
+      function recordEndpointText(record, end) {
+        const e = recordEndpoint(record, end);
+        if (e.placeholder || e.ms === null) return e.str;
+        const home = recordZone(record);
+        return memoRecordTime(`h|${home}|${e.ms}|${e.str}`, () => {
+          if (e.minutes !== null) {
+            const p = TimeZones.parts(e.ms, home);
+            if (p.h * 60 + p.mi === e.minutes) return e.str;
+          }
+          return TimeZones.formatTime(e.ms, home);
+        });
+      }
+
       /* { text, tag } for one end of a record. */
       function recordEndpointView(record, end) {
         const e = recordEndpoint(record, end);
@@ -18123,11 +18161,7 @@
           `t|${zone}|${home}|${date}|${e.ms}|${e.str}`,
           () => {
             if (TimeZones.same(zone, home)) {
-              if (e.minutes !== null) {
-                const p = TimeZones.parts(e.ms, zone);
-                if (p.h * 60 + p.mi === e.minutes) return e.str;
-              }
-              return TimeZones.formatTime(e.ms, zone);
+              return recordEndpointText(record, end);
             }
             return (
               TimeZones.formatTime(e.ms, zone) + dayMarker(e.ms, zone, date)
@@ -31306,8 +31340,12 @@
         if (!log) return;
         editingLogId = log.id;
         DOM.editDate.value = log.date;
-        DOM.editLogin.value = log.login || "";
-        DOM.editLogout.value = log.logout || "";
+        /* In the record's own zone (§3.7), remembered so that saving without
+           touching a time keeps the instant it already has. */
+        DOM.editLogin.value = recordEndpointText(log, "in");
+        DOM.editLogout.value = recordEndpointText(log, "out");
+        editOriginal = typedOriginal(log, log.date);
+        showTypedZoneHint("edit-zone-hint", log);
         DOM.editWork.value = formatDuration(log.workSec);
         DOM.editBreak.value = formatDuration(log.breakSec);
 
@@ -31349,10 +31387,13 @@
       function closeEditModal() {
         DOM.editModal.style.display = "none";
         editingLogId = null;
+        editOriginal = null;
         isEditSubmitting = false;
       }
 
       let editingTaskId = null;
+      let editOriginal = null;
+      let editTaskOriginal = null;
 
       window.openEditTaskModal = function (taskId, focusNotes = false) {
         const task = cachedTaskLogs.find((t) => t.id === taskId);
@@ -31366,18 +31407,15 @@
         const noteEl = document.getElementById("edit-task-notes");
 
         if (dateEl) dateEl.value = task.date || "";
-        if (startEl)
-          startEl.value = task.startMs
-            ? TimeZones.formatter(getWorkZone(), "time").format(
-                new Date(task.startMs),
-              )
-            : "";
-        if (endEl)
-          endEl.value = task.endMs
-            ? TimeZones.formatter(getWorkZone(), "time").format(
-                new Date(task.endMs),
-              )
-            : "";
+        /* In the task's own zone, as editSingleShift does for shifts. */
+        if (startEl) {
+          startEl.value = task.startMs ? recordEndpointText(task, "in") : "";
+        }
+        if (endEl) {
+          endEl.value = task.endMs ? recordEndpointText(task, "out") : "";
+        }
+        editTaskOriginal = typedOriginal(task, task.date || "");
+        showTypedZoneHint("edit-task-zone-hint", task);
         if (durEl) durEl.value = formatDuration(task.durationSec || 0);
         if (noteEl) noteEl.value = task.note || "";
 
@@ -31403,12 +31441,22 @@
         const modal = document.getElementById("edit-task-modal");
         if (modal) modal.style.display = "none";
         editingTaskId = null;
+        editTaskOriginal = null;
       };
 
       window.saveEditTaskModal = function () {
         if (!editingTaskId) return;
         const task = cachedTaskLogs.find((t) => t.id === editingTaskId);
         if (!task) return;
+        const typedZone = recordZone(task);
+        const typedOriginalNow =
+          editTaskOriginal && editTaskOriginal.id === task.id
+            ? editTaskOriginal
+            : null;
+        const keepTyped = (d, s, e) => ({
+          start: keptTypedInstant(typedOriginalNow, d, "in", s),
+          end: keptTypedInstant(typedOriginalNow, d, "out", e),
+        });
 
         const dateInput = document.getElementById("edit-task-date");
         const startInput = document.getElementById("edit-task-start");
@@ -31437,11 +31485,27 @@
           if (dateInput) dateInput.value = dateStr;
         }
 
-        let startMs = getEpochFromDateTimeString(dateStr, startStr);
-        let endMs = getEpochFromDateTimeString(dateStr, endStr);
+        const kept = keepTyped(dateStr, startStr, endStr);
+        const typedWindow = resolveTypedWindow(
+          dateStr,
+          startStr,
+          endStr,
+          typedZone,
+          false,
+          kept.start,
+        );
+        if (typedWindow.error) {
+          showAppToast(typedWindow.error, "warning");
+          return;
+        }
+        let startMs = typedWindow.loginMs;
+        let endMs =
+          kept.end !== null && (startMs === null || kept.end >= startMs)
+            ? kept.end
+            : typedWindow.logoutMs;
 
         if (startMs !== null && endMs !== null) {
-          if (endMs < startMs) endMs += 86400000;
+          /* Both placed by resolveTypedWindow, or kept as they were. */
         } else if (startMs !== null && durSec !== null) {
           endMs = startMs + durSec * 1000;
         } else if (endMs !== null && durSec !== null) {
@@ -31461,6 +31525,7 @@
         }
 
         task.date = dateStr;
+        task.tz = typedZone;
         task.startMs = startMs;
         task.endMs = endMs;
         task.durationSec = durSec !== null ? durSec : 0;
@@ -31514,6 +31579,8 @@
       };
 
       window.saveManualTaskModal = function () {
+        const typedZone = getWorkZone();
+        const keepTyped = () => ({ start: null, end: null });
         const dateInput = document.getElementById("manual-task-date");
         const startInput = document.getElementById("manual-task-start");
         const endInput = document.getElementById("manual-task-end");
@@ -31541,11 +31608,27 @@
           if (dateInput) dateInput.value = dateStr;
         }
 
-        let startMs = getEpochFromDateTimeString(dateStr, startStr);
-        let endMs = getEpochFromDateTimeString(dateStr, endStr);
+        const kept = keepTyped(dateStr, startStr, endStr);
+        const typedWindow = resolveTypedWindow(
+          dateStr,
+          startStr,
+          endStr,
+          typedZone,
+          false,
+          kept.start,
+        );
+        if (typedWindow.error) {
+          showAppToast(typedWindow.error, "warning");
+          return;
+        }
+        let startMs = typedWindow.loginMs;
+        let endMs =
+          kept.end !== null && (startMs === null || kept.end >= startMs)
+            ? kept.end
+            : typedWindow.logoutMs;
 
         if (startMs !== null && endMs !== null) {
-          if (endMs < startMs) endMs += 86400000;
+          /* Both placed by resolveTypedWindow, or kept as they were. */
         } else if (startMs !== null && durSec !== null) {
           endMs = startMs + durSec * 1000;
         } else if (endMs !== null && durSec !== null) {
@@ -31570,7 +31653,7 @@
             Math.random().toString(36).substring(2, 11) +
             Date.now().toString(36),
           date: dateStr,
-          tz: getWorkZone(),
+          tz: typedZone,
           startMs: startMs,
           endMs: endMs,
           durationSec: durSec || 0,
@@ -31671,26 +31754,46 @@
             0,
           );
 
-          let derivedLoginEpochMs = getEpochFromDateTimeString(
+          /* Read in the shift's own zone, not today's work zone (§3.7). */
+          const editZone = recordZone(log);
+          const editOriginalNow =
+            editOriginal && editOriginal.id === log.id ? editOriginal : null;
+          const keptLogin = keptTypedInstant(
+            editOriginalNow,
             newDate,
+            "in",
             newLogin,
           );
-          let derivedLogoutEpochMs = getEpochFromDateTimeString(
+          const keptLogout = keptTypedInstant(
+            editOriginalNow,
             newDate,
+            "out",
             newLogout,
           );
+          const typedWindow = resolveTypedWindow(
+            newDate,
+            newLogin,
+            newLogout,
+            editZone,
+            newLogin.toLowerCase() === newLogout.toLowerCase() &&
+              wSec + bSec > 0,
+            keptLogin,
+          );
+          if (typedWindow.error) {
+            showAppToast(typedWindow.error, "warning");
+            return;
+          }
+          let derivedLoginEpochMs = typedWindow.loginMs;
+          let derivedLogoutEpochMs =
+            keptLogout !== null &&
+            (derivedLoginEpochMs === null || keptLogout >= derivedLoginEpochMs)
+              ? keptLogout
+              : typedWindow.logoutMs;
           const editHadBothEndpoints =
             derivedLoginEpochMs !== null && derivedLogoutEpochMs !== null;
 
           if (derivedLoginEpochMs !== null && derivedLogoutEpochMs !== null) {
-            if (derivedLogoutEpochMs < derivedLoginEpochMs) {
-              derivedLogoutEpochMs += 86400000;
-            } else if (
-              derivedLogoutEpochMs === derivedLoginEpochMs &&
-              newLogin.toLowerCase() === newLogout.toLowerCase()
-            ) {
-              if (wSec + bSec > 0) derivedLogoutEpochMs += 86400000;
-            }
+            /* Both placed by resolveTypedWindow, or kept as they were. */
           } else if (derivedLoginEpochMs !== null) {
             derivedLogoutEpochMs = derivedLoginEpochMs + (wSec + bSec) * 1000;
           } else if (derivedLogoutEpochMs !== null) {
@@ -31700,8 +31803,13 @@
             derivedLogoutEpochMs = derivedLoginEpochMs + (wSec + bSec) * 1000;
           }
 
-          derivedLoginEpochMs = Math.floor(derivedLoginEpochMs / 1000) * 1000;
-          derivedLogoutEpochMs = Math.floor(derivedLogoutEpochMs / 1000) * 1000;
+          if (derivedLoginEpochMs !== keptLogin) {
+            derivedLoginEpochMs = Math.floor(derivedLoginEpochMs / 1000) * 1000;
+          }
+          if (derivedLogoutEpochMs !== keptLogout) {
+            derivedLogoutEpochMs =
+              Math.floor(derivedLogoutEpochMs / 1000) * 1000;
+          }
 
           /* Same check as the manual and tracked paths. An edit is just as
              capable of producing a window too short to hold its own hours. */
@@ -31772,6 +31880,7 @@
             const logBackup = Object.assign({}, log);
             try {
               log.date = newDate;
+              log.tz = editZone;
               const _parts = newDate.split("/");
               if (_parts.length === 3) {
                 const _yy = _parts[2];
@@ -36875,28 +36984,28 @@
             0,
           );
 
-          let derivedLoginEpochMs = getEpochFromDateTimeString(
+          /* A new shift is filed in the work zone, so it is typed in it. */
+          const manualZone = getWorkZone();
+          const typedWindow = resolveTypedWindow(
             dateStr,
             loginStr,
-          );
-          let derivedLogoutEpochMs = getEpochFromDateTimeString(
-            dateStr,
             logoutStr,
+            manualZone,
+            wSec > 0 || bSec > 0,
           );
+          if (typedWindow.error) {
+            showAppToast(typedWindow.error, "warning");
+            return;
+          }
+          let derivedLoginEpochMs = typedWindow.loginMs;
+          let derivedLogoutEpochMs = typedWindow.logoutMs;
           /* Both endpoints typed means the user asserted a window. Only one, or
              neither, means the window is ours to derive from the hours. */
           const manualHadBothEndpoints =
             derivedLoginEpochMs !== null && derivedLogoutEpochMs !== null;
 
           if (derivedLoginEpochMs !== null && derivedLogoutEpochMs !== null) {
-            if (derivedLogoutEpochMs < derivedLoginEpochMs) {
-              derivedLogoutEpochMs += 86400000;
-            } else if (
-              derivedLogoutEpochMs === derivedLoginEpochMs &&
-              (wSec > 0 || bSec > 0)
-            ) {
-              derivedLogoutEpochMs += 86400000;
-            }
+            /* Both placed by resolveTypedWindow. */
           } else if (derivedLoginEpochMs !== null) {
             derivedLogoutEpochMs = derivedLoginEpochMs + (wSec + bSec) * 1000;
           } else if (derivedLogoutEpochMs !== null) {
@@ -36981,7 +37090,7 @@
                 Math.random().toString(36).substring(2, 11) +
                 Date.now().toString(36),
               date: dateStr,
-              tz: getWorkZone(),
+              tz: manualZone,
               displayDate: dateStr.replace(/\/20(\d{2})$/, "/$1"),
               epochMs: epochMs,
               login: loginStr,
@@ -39725,7 +39834,14 @@
         };
       };
 
-      function getEpochFromDateTimeString(dateStr, timeStr) {
+      /* ---- Typed times (docs/implement.md §3.7) ----
+
+         A clock time typed on a date, read in `zone`, `dayOffset` calendar
+         days later: wallToInstant's { ms, status, alt } plus the date key and
+         seconds it read, or null when either string is not a date or a time.
+         The offset goes on the wall date, never on the instant, so "the next
+         day" stays right on a 23- or 25-hour day (I9). */
+      function typedTimeInZone(dateStr, timeStr, zone, dayOffset = 0) {
         if (
           !dateStr ||
           !timeStr ||
@@ -39736,9 +39852,9 @@
           return null;
         const parsedDate = parseDateStringLocal(dateStr);
         if (!parsedDate) return null;
-        let mm = parsedDate.m;
-        let dd = parsedDate.d;
-        let fullYear = parsedDate.y;
+        const mm = parsedDate.m;
+        const dd = parsedDate.d;
+        const fullYear = parsedDate.y;
 
         if (mm < 1 || mm > 12 || dd < 1 || dd > 31) return null;
         const daysInMonth = new Date(fullYear, mm, 0).getDate();
@@ -39747,28 +39863,155 @@
         const timeSec = parseClockTimeToSeconds(timeStr);
         if (timeSec === null) return null;
 
-        /* Manual entries are interpreted in the business timezone, exactly
-           like automatic ones. Reading the cosmetic dropdown here meant a user
-           who switched the clock to their home zone got manual shifts stamped
-           hours away from the automatic ones sitting next to them. */
-        const localH = Math.floor(timeSec / 3600);
-        const localM = Math.floor((timeSec % 3600) / 60);
-        const localS = timeSec % 60;
-
-        /* A time inside the spring-forward gap resolves to the reading with
-           the post-transition offset, and one inside the repeated hour to the
-           earlier occurrence -- exactly what the convergence loop this
-           replaced returned, measured before it was removed. Refusing a gap
-           time instead is a later decision (docs/implement.md, D6). */
-        return TimeZones.wallToInstant(
+        const read = TimeZones.wallToInstant(
           fullYear,
           mm,
-          dd,
-          localH,
-          localM,
-          localS,
-          getWorkZone(),
-        ).ms;
+          dd + dayOffset,
+          Math.floor(timeSec / 3600),
+          Math.floor((timeSec % 3600) / 60),
+          timeSec % 60,
+          zone,
+        );
+        return Object.assign(read, {
+          dateKey: TimeZones.keyFromYMD(fullYear, mm, dd + dayOffset),
+          timeSec,
+        });
+      }
+
+      /* Typed times in the work zone, with a gap read the old way. Kept for
+         the harness, which measured it in Phase 0; the dialogs all go
+         through resolveTypedWindow. */
+      function getEpochFromDateTimeString(dateStr, timeStr) {
+        const typed = typedTimeInZone(dateStr, timeStr, getWorkZone());
+        return typed ? typed.ms : null;
+      }
+
+      /* "2:30 AM doesn't exist on 03/08/26 in Pacific Time — clocks jumped
+         forward." (decision D6) */
+      function typedGapMessage(typed, zone) {
+        const h = Math.floor(typed.timeSec / 3600);
+        const m = Math.floor((typed.timeSec % 3600) / 60);
+        const s = typed.timeSec % 60;
+        const two = (n) => String(n).padStart(2, "0");
+        const clock = `${h % 12 || 12}:${two(m)}${s ? `:${two(s)}` : ""} ${h % 24 < 12 ? "AM" : "PM"}`;
+        return `${clock} doesn't exist on ${typed.dateKey} in ${TimeZones.longName(zone, typed.ms)} — clocks jumped forward.`;
+      }
+
+      /* A typed In/Out pair on one date, read in `zone`, as
+         { loginMs, logoutMs, error }. An end not typed comes back null, and
+         `error` is the sentence to refuse the save with.
+
+         - A time in a spring-forward gap never happened. It is refused
+           (D6) rather than quietly moved an hour.
+         - In the repeated hour the login takes the earlier reading; the
+           logout takes the earlier reading that is not before the login,
+           else the later one.
+         - A logout still before the login is on the next calendar day. One
+           equal to the login is too when `sameMeansNextDay` says so: each
+           dialog has always had its own rule for that.
+         - `knownLoginMs` stands in for a login the caller kept unchanged. */
+      function resolveTypedWindow(
+        dateStr,
+        loginStr,
+        logoutStr,
+        zone,
+        sameMeansNextDay,
+        knownLoginMs,
+      ) {
+        const out = { loginMs: null, logoutMs: null, error: null };
+        if (Number.isFinite(knownLoginMs)) {
+          out.loginMs = knownLoginMs;
+        } else {
+          const typedIn = typedTimeInZone(dateStr, loginStr, zone);
+          if (typedIn && typedIn.status === "gap") {
+            out.error = typedGapMessage(typedIn, zone);
+            return out;
+          }
+          if (typedIn) out.loginMs = typedIn.ms;
+        }
+        const typedOut = typedTimeInZone(dateStr, logoutStr, zone);
+        if (typedOut && typedOut.status === "gap") {
+          out.error = typedGapMessage(typedOut, zone);
+          return out;
+        }
+        if (!typedOut) return out;
+        if (out.loginMs === null) {
+          out.logoutMs = typedOut.ms;
+          return out;
+        }
+        const fits = (ms) =>
+          ms > out.loginMs || (ms === out.loginMs && !sameMeansNextDay);
+        if (fits(typedOut.ms)) {
+          out.logoutMs = typedOut.ms;
+        } else if (typedOut.status === "ambiguous" && fits(typedOut.alt)) {
+          out.logoutMs = typedOut.alt;
+        } else {
+          const nextDay = typedTimeInZone(dateStr, logoutStr, zone, 1);
+          if (nextDay.status === "gap") {
+            out.error = typedGapMessage(nextDay, zone);
+            return out;
+          }
+          out.logoutMs = nextDay.ms;
+        }
+        return out;
+      }
+
+      /* The zone a dialog's typed times are read in: an existing record's
+         own zone, else the work zone, which new records are filed in. */
+      function typedFormZone(prefix) {
+        if (prefix === "edit") {
+          const log = getLogs().find((l) => l.id === editingLogId);
+          if (log) return recordZone(log);
+        } else if (prefix === "edit-task") {
+          const task = cachedTaskLogs.find((t) => t.id === editingTaskId);
+          if (task) return recordZone(task);
+        }
+        return getWorkZone();
+      }
+
+      /* A typed time as the dialogs hold it after blur ("9:00 am" becomes
+         "09:00:00 AM"), so "unchanged" compares like with like. */
+      function normalizeTypedTime(value) {
+        const text = String(value == null ? "" : value).trim();
+        return parseClockTimePreview(text) || text;
+      }
+
+      /* A record's times as its dialog opened with them. */
+      function typedOriginal(record, dateStr) {
+        const end = (which) => ({
+          text: normalizeTypedTime(recordEndpointText(record, which)),
+          ms: recordEndpoint(record, which).ms,
+        });
+        return { id: record.id, date: dateStr, in: end("in"), out: end("out") };
+      }
+
+      /* The instant to keep for an end saved untouched, else null. Saving
+         without changing a time keeps it byte for byte (§3.7): reading the
+         text again would move a login in the repeated hour to its earlier
+         reading, and drop a tracked shift's milliseconds. */
+      function keptTypedInstant(original, dateStr, end, typedValue) {
+        if (!original || original.date !== dateStr) return null;
+        const o = original[end];
+        if (!o || !Number.isFinite(o.ms)) return null;
+        if (parseTimeToMinutes(typedValue) === null) return null;
+        return normalizeTypedTime(typedValue) === o.text ? o.ms : null;
+      }
+
+      /* "Times are in UTC+6, the zone this was recorded in." Only when that
+         is not the work zone, so a single-zone logbook looks as it always
+         has. The label can carry a synced nickname: textContent only (I14). */
+      function showTypedZoneHint(id, record) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        const at = recordEndpoint(record, "in").ms;
+        const tag = zoneTag(
+          recordZone(record),
+          Number.isFinite(at) ? at : Date.now(),
+        );
+        el.textContent = tag
+          ? `Times are in ${tag}, the zone this was recorded in.`
+          : "";
+        el.hidden = !tag;
       }
 
       function resolveTimeConstraints(prefix) {
@@ -39830,19 +40073,21 @@
 
           // Try to calculate using true epoch time (respects DST)
           if (dateVal) {
-            const epochIn = getEpochFromDateTimeString(dateVal, vals.login);
-            let epochOut = getEpochFromDateTimeString(dateVal, vals.logout);
-
-            if (epochIn !== null && epochOut !== null) {
-              if (epochOut < epochIn) {
-                epochOut += 86400000; // Add 24 hours
-              } else if (
-                epochOut === epochIn &&
-                vals.login.toLowerCase() === vals.logout.toLowerCase()
-              ) {
-                epochOut += 86400000; // Add 24 hours for exact same time
-              }
-              elapsedSec = Math.floor((epochOut - epochIn) / 1000);
+            const typedWindow = resolveTypedWindow(
+              dateVal,
+              vals.login,
+              vals.logout,
+              typedFormZone(prefix),
+              vals.login.toLowerCase() === vals.logout.toLowerCase(),
+            );
+            if (
+              !typedWindow.error &&
+              typedWindow.loginMs !== null &&
+              typedWindow.logoutMs !== null
+            ) {
+              elapsedSec = Math.floor(
+                (typedWindow.logoutMs - typedWindow.loginMs) / 1000,
+              );
             }
           }
 
