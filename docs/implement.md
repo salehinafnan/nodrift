@@ -1,19 +1,19 @@
 # Time zones: implementation blueprint
 
-> **Status:** Phases 0–4 complete. Every zone-dependent calculation goes through `TimeZones`, and the zone model exists (unset preferences keep Los Angeles for work and Dhaka for local until Phase 5's UI). Every record is shown, edited, exported and searched in the zone it was filed in. A searchable picker over every time zone exists, reachable only from tests. Phase 5a is done: the status bar shows live work and local clocks, read-only. Phase 5b1 (clock buttons, settings card, phone sheet, change flows) is next.
+> **Status:** Phases 0–4 complete. Every zone-dependent calculation goes through `TimeZones`, and the zone model exists (unset preferences keep Los Angeles for work and Dhaka for local until Phase 5's UI). Every record is shown, edited, exported and searched in the zone it was filed in. A searchable picker over every time zone exists, reachable only from tests. Phase 5a is done: the status bar shows live work and local clocks. Phase 5b1 is done: zones are changed from the clock labels, a settings card and the phone sheet, with a confirmation for the work zone, a banner with Undo during a shift, and a toast for a zone synced from another device. Phase 5b2 (label footer, first-launch notice, D5, a local default of "auto", guide rewrite) is next.
 > **Baseline commit:** `9181afa` (all line numbers below refer to it and WILL drift — re-grep before editing).
 > **Rule:** one phase at a time. A phase starts only when the previous phase's exit criteria are green and committed.
 
-| Phase | Title                                                | Touches data?    | Needs live account? | Size                 | State       |
-| ----- | ---------------------------------------------------- | ---------------- | ------------------- | -------------------- | ----------- |
-| 0     | Groundwork, probes, fixtures                         | no               | one read-only probe | S                    | **done**    |
-| 1     | `TimeZones` core + behaviour-identical refactor      | no               | regression only     | L (split 1a/1b)      | **done**    |
-| 2     | Data model: work / local / session / record zones    | **yes**          | regression only     | L (split 2a/2b)      | **done**    |
-| 3     | Rendering and editing records in their own zone      | yes (edit paths) | no                  | M–L (split 3a/3b)    | **done**    |
-| 4     | The zone picker component                            | no               | no                  | M–L (split 4a/4b)    | **done**    |
-| 5     | Status bar, settings card, phone sheet, change flows | prefs            | no                  | L (split 5a/5b1/5b2) | **5a done** |
-| 6     | Sync hardening + multi-device + iPhone verification  | no               | **yes**             | M                    | not started |
-| 7     | Cleanup, aliases removed, docs, guide                | no               | full sweep          | S                    | not started |
+| Phase | Title                                                | Touches data?    | Needs live account? | Size                 | State        |
+| ----- | ---------------------------------------------------- | ---------------- | ------------------- | -------------------- | ------------ |
+| 0     | Groundwork, probes, fixtures                         | no               | one read-only probe | S                    | **done**     |
+| 1     | `TimeZones` core + behaviour-identical refactor      | no               | regression only     | L (split 1a/1b)      | **done**     |
+| 2     | Data model: work / local / session / record zones    | **yes**          | regression only     | L (split 2a/2b)      | **done**     |
+| 3     | Rendering and editing records in their own zone      | yes (edit paths) | no                  | M–L (split 3a/3b)    | **done**     |
+| 4     | The zone picker component                            | no               | no                  | M–L (split 4a/4b)    | **done**     |
+| 5     | Status bar, settings card, phone sheet, change flows | prefs            | no                  | L (split 5a/5b1/5b2) | **5b1 done** |
+| 6     | Sync hardening + multi-device + iPhone verification  | no               | **yes**             | M                    | not started  |
+| 7     | Cleanup, aliases removed, docs, guide                | no               | full sweep          | S                    | not started  |
 
 ---
 
@@ -1153,6 +1153,93 @@ The plan's other two, the banner's inline display and `RELOCATIONS` still pointi
 
 - **A flex label reads "UTC", a line break, then "+6".** `inline-flex` makes each of the two spans its own block, which is invisible on screen and wrong in anything that copies or reads the text. The label is `inline-block`.
 - **`scrollWidth` counts a closed popover.** At 1149 px the goal presets, laid out at opacity 0, reached 55 px past the bar. The probe measures only what is painted.
+
+#### Phase 5b1 results (2026-09-14)
+
+**Committed as** `feat(time): choose zones from settings and the phone sheet`.
+
+**What changed:**
+
+- **Clock labels** are buttons (`.tz-clock-btn`) that open `ZonePicker` for their role. Each carries its tooltip as `aria-label`.
+  - **No chevrons.** With two of them the pane ratio measured 1.627 at 1440 px and 1.868 at 1280 px, against limits of 1.542 and 1.764, and the 1149 px bar wrapped to 83 px again. A hover and focus tint marks the buttons instead.
+  - **Phone:** the bar only reads (`pointer-events: none`). The 5.5ch cap moved from the label to its text span, because not every engine draws an ellipsis inside a button's own box.
+- **Settings card** (`.tz-settings-card`), first in the settings panel:
+  - rows for the work and local zones, each showing the zone as its clock labels it, the city and a chevron;
+  - a "Show log times in" dropdown, which merges the mode into `tzDisplay` so nicknames stay;
+  - hover help for all three rows;
+  - redrawn through `onZoneContextChanged()`, and whenever the panel or the phone sheet opens.
+- **Phone sheet:** `RELOCATIONS` moves the card into a restored Time Zone section, between Goals and Appearance. Its rows are 48 px and the dropdown 44 px.
+- **One path for every control:** `chooseWorkZone`, `chooseLocalZone`, `chooseLogTimes` and `undoPendingWorkZone`. Choosing the zone already in use does nothing.
+- **Work zone, no shift running:** the shared confirmation, "Change work time zone?", in three lines:
+  - from and to, by long name and city;
+  - "Today becomes Tue 09/15/26 (was Mon 09/14/26)." or "Today stays …";
+  - the §4.4 reassurance about existing logs.
+
+  The zones and the day are bold, built from text nodes (I14). Change goes through `setWorkZonePref`, so a shift started while the dialog was up simply defers it. A toast confirms.
+
+- **Work zone, shift running:** no dialog. The preference is saved, and `#tz-pending-banner` under the progress bar reads "Work time zone changes to Dhaka (UTC+6) when this shift ends · Undo".
+  - It is toggled by a class (I13), and drawn from `renderStaticUI()` and once a minute with the clock labels.
+  - Undo sets the preference back to the shift's zone.
+  - It takes an `!important` sans font, because `.timers-wrapper *` gives everything under the timers the number font with `!important`.
+- **Local zone:** applies at once, with no dialog.
+- **Work zone synced from another device:** `Sync.applyPrefs` calls `announceAdoptedWorkZone()` after the funnel.
+  - The toast reads "Work time zone synced: Tokyo (UTC+9)", or adds ", from the end of this shift" when the change waits.
+  - It stays silent when the zone is the same one: a new spelling, or an unset preference made explicit (I7).
+- **Guide:** three passages now say where zones are changed. The full rewrite is 5b2.
+
+**Tests.**
+
+- **`probe-tz-ui.js`, 93 checks** (was 51):
+  - **the card:** first in the panel, reading both zones; hover help on each row;
+  - **the confirmation:**
+    - the title is read before anything is clicked;
+    - both zones and the new day, with the bold built from text;
+    - Cancel changes nothing; Change applies at once, today's date follows, and the toast and the card agree;
+    - "Today stays" for a zone with the same date, and no dialog for the zone already in use;
+  - **during a shift:**
+    - no dialog, and the preference saved and waiting;
+    - the banner's text, and its class;
+    - Undo, and the hand-over when the shift ends;
+    - a zone adopted from another device, waiting behind the banner;
+  - **local zone:** applies at once and moves no other stored field (I10); Automatic;
+  - **log times:** written, nicknames kept, and shown by the dropdown;
+  - **sync toast:** names the zone; silent for the same zone, a new spelling or an unset preference made explicit;
+  - **by real mouse and keys, desktop:**
+    - each clock opens its own picker;
+    - the card's work row, a search for Tokyo and Enter raise the confirmation, whose title is checked before Change is clicked;
+    - Change applies, and the settings panel stays open behind the dialog;
+    - the log times dropdown works by click;
+    - a long city is cut inside the card;
+  - **phone, loaded at 390 px:**
+    - the Time Zone section sits between Goals and Appearance, with touch-sized rows;
+    - a tap lands on a row, which opens the picker over the sheet;
+    - a tap on a clock never reaches its button;
+    - the banner shows on the timer pane without moving the buttons (390×844 and 375×667), and is hidden off it;
+    - the card returns to the panel on the desktop;
+  - **geometry as after 5a:** pane ratio 1.498 at 1440 px and 1.709 at 1280 px; the 1149 px bar is one line (38 px).
+
+**Regression, one suite at a time.** 24 suites; 22 green inside the chain.
+
+- `probe-tz-picker` stopped at its first evaluate, before the page had booted.
+- `probe-lease-endshift` never started (exit 127, empty log).
+- Both passed alone: 176 checks and 30 checks. The laptop was on AC throughout.
+
+**Mutations:** 13 new (237–249), all caught, each on the check written for it, on AC:
+
+- the plan's three for 5b1: the banner shown by an inline display, the confirmation skipped, and `RELOCATIONS` still pointing at the old menu;
+- a change during a shift asking anyway, and Undo keeping the pending zone;
+- no toast for a synced zone, and a toast for a new spelling;
+- the local clock opening the work picker, and the phone's bar reachable by a tap;
+- today named in the old zone, the card missing a change, log times dropping the nicknames, and no hover help.
+
+Anchors: 250, 0 misses. `index.html` was restored byte-identical.
+
+**Found while testing:**
+
+- **Chevrons** cost more width than the plan allows (above).
+- **`.custom-select { width: 100% }`** comes later in the stylesheet than the dropdown's own width, and squeezed the "Show log times in" label onto four lines. The dropdown's width now uses two classes.
+- **The banner drew in the number font** (above).
+- **In the harness, no synthesized touch produces a click in headless Chrome**, not even on the Cloud row. Phone taps are checked by where they land, then delivered with `click()`. Switching from desktop to phone metrics without a reload also left a layout viewport about 2800 px tall, so the phone section reloads first.
 
 ### Phase 6 — Sync hardening, multi-device, iPhone
 
