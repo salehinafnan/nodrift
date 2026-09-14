@@ -21740,6 +21740,28 @@
           prefsPrint = print;
         }
 
+        /* A preference the app works out for itself is not an edit (I11).
+           The daily goal is the one: autoPopulateDailyGoal rewrites it at
+           startup, on a new day, when a zone change moves the day and
+           whenever the logbook or the leave days change, and every device
+           works out the same goal from the same records. Read by the beat as
+           a change, that rewrite stamped and uploaded the whole settings
+           blob. On a device that had not yet heard the account's settings --
+           a fresh sign-in whose day moves when the account's logs arrive --
+           the blob it uploaded was its own defaults, stamped newer than the
+           account's, and every other device adopted them
+           (docs/implement.md §5 row 31). So the write re-takes the baseline,
+           unless a real edit was already waiting to be sent: that one still
+           goes, and carries the rewritten goal with it. */
+        function notePrefsDerived(write) {
+          const pending =
+            prefsPrint !== null && JSON.stringify(readPrefs()) !== prefsPrint;
+          write();
+          if (prefsPrint !== null && !pending) {
+            prefsPrint = JSON.stringify(readPrefs());
+          }
+        }
+
         /* Adopting a settings blob must not read back as a local edit on the
            very next save, or two devices ping-pong the same preferences
            forever, each one's adoption outranking the other's. */
@@ -21863,6 +21885,7 @@
           markDirty,
           noteStateSaved,
           notePrefsChanged,
+          notePrefsDerived,
           applyPrefs,
           readPrefs,
           onDirty(fn) {
@@ -22990,6 +23013,12 @@
                pull. */
             if (typeof renderLogbook === "function") renderLogbook();
             if (typeof renderInsights === "function") renderInsights();
+            /* A leave day moves today's goal. Adding one here works the goal
+               out again, and now that a worked-out goal is never uploaded,
+               a leave day arriving from another device has to do the same. */
+            if (typeof autoPopulateDailyGoal === "function") {
+              autoPopulateDailyGoal(state.activeDate);
+            }
             return;
           }
           if (kind === "view") {
@@ -27571,9 +27600,17 @@
         DOM.goalHours.value = String(targetH).padStart(2, "0");
         DOM.goalMins.value = String(targetM).padStart(2, "0");
         DOM.goalSecs.value = String(targetS).padStart(2, "0");
-        localStorage.setItem(GOAL_H_KEY, targetH);
-        localStorage.setItem(GOAL_M_KEY, targetM);
-        localStorage.setItem(GOAL_S_KEY, targetS);
+        /* Worked out, not chosen, so never uploaded as an edit (I11). */
+        const writeGoal = () => {
+          localStorage.setItem(GOAL_H_KEY, targetH);
+          localStorage.setItem(GOAL_M_KEY, targetM);
+          localStorage.setItem(GOAL_S_KEY, targetS);
+        };
+        if (window.Sync && typeof Sync.notePrefsDerived === "function") {
+          Sync.notePrefsDerived(writeGoal);
+        } else {
+          writeGoal();
+        }
         syncGoalTimeInput();
         updatePresetHighlights();
         renderTimersOnly();
