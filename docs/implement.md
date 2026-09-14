@@ -1,6 +1,6 @@
 # Time zones: implementation blueprint
 
-> **Status:** Phases 0–4 complete. Every zone-dependent calculation goes through `TimeZones`, and the zone model exists (an unset work zone is Los Angeles on a device with data from before zones and the device's own zone for a new user; an unset local zone follows the device). Every record is shown, edited, exported and searched in the zone it was filed in. A searchable picker over every time zone opens from the clocks and the settings card. Phase 5a is done: the status bar shows live work and local clocks. Phase 5b1 is done: zones are changed from the clock labels, a settings card and the phone sheet, with a confirmation for the work zone, a banner with Undo during a shift, and a toast for a zone synced from another device. Phase 5b2a is done: a new user's work zone starts as the device's own and is pinned at the first clock-in, and an unset local zone follows the device. Phase 5b2b is done: clock labels (a style, and a nickname per zone) from the Time zones card, a one-time notice on devices that used nodrift before zones, and a rewritten guide section. Phase 5 is complete; Phase 6 (sync hardening, multi-device, iPhone) is next.
+> **Status:** Phases 0–4 complete. Every zone-dependent calculation goes through `TimeZones`, and the zone model exists (an unset work zone is Los Angeles on a device with data from before zones and the device's own zone for a new user; an unset local zone follows the device). Every record is shown, edited, exported and searched in the zone it was filed in. A searchable picker over every time zone opens from the clocks and the settings card. Phase 5a is done: the status bar shows live work and local clocks. Phase 5b1 is done: zones are changed from the clock labels, a settings card and the phone sheet, with a confirmation for the work zone, a banner with Undo during a shift, and a toast for a zone synced from another device. Phase 5b2a is done: a new user's work zone starts as the device's own and is pinned at the first clock-in, and an unset local zone follows the device. Phase 5b2b is done: clock labels (a style, and a nickname per zone) from the Time zones card, a one-time notice on devices that used nodrift before zones, and a rewritten guide section. Phase 5 is complete. Phase 6a is done: the live suites found that a new device signing in could replace the account's settings with its own defaults when its day moved, fixed by never uploading a goal the app works out for itself; an old-client check runs the build from before zones beside this one. The rest of Phase 6 (the remaining multi-device edge cases, then the iPhone checklist) is next.
 > **Baseline commit:** `9181afa` (all line numbers below refer to it and WILL drift — re-grep before editing).
 > **Rule:** one phase at a time. A phase starts only when the previous phase's exit criteria are green and committed.
 
@@ -12,7 +12,7 @@
 | 3     | Rendering and editing records in their own zone      | yes (edit paths) | no                  | M–L (split 3a/3b)    | **done**    |
 | 4     | The zone picker component                            | no               | no                  | M–L (split 4a/4b)    | **done**    |
 | 5     | Status bar, settings card, phone sheet, change flows | prefs            | no                  | L (split 5a/5b1/5b2) | **done**    |
-| 6     | Sync hardening + multi-device + iPhone verification  | no               | **yes**             | M                    | not started |
+| 6     | Sync hardening + multi-device + iPhone verification  | no               | **yes**             | M                    | **6a done** |
 | 7     | Cleanup, aliases removed, docs, guide                | no               | full sweep          | S                    | not started |
 
 ---
@@ -1432,6 +1432,91 @@ Anchors: 278, 0 misses. `index.html` was restored byte-identical.
 **Exit:** all live suites green; user confirms the checklist.
 
 **Commit:** test-only changes live in the ignored harness; commit any app fixes found as `fix(time): …`.
+
+#### Phase 6a results (2026-09-15)
+
+**Committed as** `fix(time): a goal the app works out is not a settings edit`.
+
+**Baseline.** The live suites ran one at a time on the Phase 5 tree, starting at 02:30 Dhaka:
+
+- green: handoff 22, signin-render 12, wipe 18, realtime 16, lease 20, lease-prompt 23, devices 29, import 9, shift-rewind 13;
+- `harness-phase8` failed 3 of 13, `probe-beat-cost` 8 of 9, and `probe-live-gate` stopped in its setup.
+
+Every Phase 5b2 run had happened around 21:00 Dhaka, when Dhaka and Los Angeles share a date. Between 00:00 and 13:00 Dhaka they do not.
+
+**Found: a new device could replace the account's settings with its own defaults.** A diagnostic logged every preference write and every `sync_session` body on three devices, and showed this:
+
+1. A fresh device takes its day from its own zone (D5) and fills in that day's goal. The goal counts up through the week, so a Tuesday with nothing logged on Monday asks 16 h.
+2. Its first sync pulls the account's logs. Logs from before zones make the work zone Los Angeles, the day moves back to Monday, and `autoPopulateDailyGoal` rewrites the goal to 8 h.
+3. The next beat's preference fingerprint read that rewrite as the user's edit. It stamped the device's own settings and uploaded them: idle limit 60, and no theme, work zone, presets or leave allowances.
+4. That upload was newer than the account's settings, so the server replaced them and every device adopted the defaults (I11, §5 row 31).
+
+This is not only a zone problem. Any automatic goal rewrite between startup and a device's first look at the account's settings does the same. One example is a fresh sign-in on a Wednesday to an account with logs from earlier that week.
+
+Every automatic rewrite on a device that already held the account's settings was uploaded too. That did no harm to the data, but cost a settings upload and a realtime message each time.
+
+**Fix (decided with the user: an automatic goal is not an edit).**
+
+- `Sync.notePrefsDerived(write)` runs the write, then re-takes the preference baseline. It does not re-take it when a real edit was already waiting to be sent; that edit still goes, carrying the new goal with it.
+- `autoPopulateDailyGoal` writes the goal through it. A goal the user types or picks still syncs.
+- A leave day arriving by sync now works out the goal again, as adding one on the device always did. Pulled logs already did this, through `saveLogs`.
+
+**Tests.**
+
+- **`probe-tz-ui.js`, 149 checks** (was 146). Dates in the week of 03/15/27, so the result does not depend on the day it runs:
+  - an automatic rewrite stamps and queues nothing;
+  - a goal picked by the user is still an edit;
+  - an edit already waiting survives an automatic rewrite.
+- **`harness-signin-render.js`, 16 checks** (was 12):
+  - **Section 4, row 31:** a fresh device in a zone whose date differs from Los Angeles' signs in. It resolves Los Angeles and its day and goal move. The server's settings and their stamp stay unchanged, and the device takes them. The zone (Kiritimati or Pago Pago) is chosen at run time. On a Los Angeles weekend from 04:00, when every date's goal is the same, the section prints SKIP.
+  - **With the automatic goal off,** a leave day arriving by sync still redraws insights.
+- **`harness-phase8.js`, 14 checks** (was 13):
+  - its devices now run on Los Angeles' date, since the suite is about parity;
+  - a leave day arriving by sync recomputes that device's goal.
+- Before the fix, the row 31, goal and leave recompute checks each failed for the reason written for them. After it, all pass.
+
+**Harness fixes, no app defect:**
+
+- `probe-live-gate.js` deleted every device row without clearing `Sync.deviceRegisteredFor`. That is the trap fixed in three other suites in `26bd02b`, and here the device signed itself out. It passes 12 of 12 after the fix.
+- `probe-beat-cost.js`'s one socket-driven beat was this defect. Its fixture's shift moved the day, and the goal rewrite uploaded the settings. It passes 9 of 9 after the fix.
+
+**Old-client check** (`probe-tz-oldclient.js`, new, 8 checks, live). Device A runs this build and device B the build from `9181afa`, both on the test account:
+
+- B pulls records carrying a zone, keeps the field and throws nothing.
+- B edits a Los Angeles record through its own edit dialog. The record keeps its zone, instants and date, and A shows the same In and Out.
+- B's edit of a Dhaka record keeps the zone.
+- A shift crosses both ways: B mirrors a shift A started, and A adopts a shift B authored and keeps Los Angeles for it.
+- B's settings upload leaves A's work zone, local zone and clock labels in place.
+
+Two things were measured that no change to this build can reach (§3.8, "Older cached client"):
+
+- **A non-Los Angeles record saved on the old build moves.** Its dialog shows the stored times (09:00 AM – 05:00 PM, Dhaka) and reads them in Los Angeles. Saving only a note moved the instants 13 h, and A now shows 10:00 PM – 06:00 AM. Every record this team holds is Los Angeles, and the service worker updates an old client on its next launch.
+- **The old build's settings blob has no zone preferences,** so its upload replaces the server's copy without them. Devices that already hold them keep them, because an absent key never deletes. A device signing in for the first time before a new-build device next changes a preference works out its zones from the records, and has no nicknames.
+
+**Regression**, one suite at a time, on AC throughout (03:03–03:15):
+
+- **The 24 suites of the time zone chain** are green, at the numbers from before this phase apart from `probe-tz-ui` 149, `harness-signin-render` 15 (16 with the check added later), `harness-phase8` 14 and `probe-beat-cost` 9.
+- **The other live suites:** `harness-lease` 20, `harness-devices` 29, `probe-live-gate` 12, `probe-tz-oldclient` 8.
+- **`harness-realtime`** failed 2 of 16 inside the chain, on the timing pair already known ("a row change arrives over the socket", "and a second one nudges the lease"). It passed 16 of 16 alone.
+- **`harness-signin-render`'s view-prune check** ("the next launch keeps the user's and drops the furniture") failed in three runs today, one of them on the Phase 5 tree, and passed alone. It is the timing flake already recorded for it.
+
+**Mutations:** 4 new (278–281), each caught on the check written for it, on AC:
+
+- an automatic goal uploaded as an edit (`probe-tz-ui`);
+- an automatic rewrite swallowing an edit waiting to be sent (`probe-tz-ui`).
+  - It escaped at first, because the check's waiting edit was a goal picked from the presets. Picking a goal turns the automatic goal off, so the rewrite never ran.
+  - The waiting edit is now the theme, and the check asserts that the goal moved.
+- a leave day arriving by sync leaving the goal alone (`harness-phase8`);
+- row 31: a fresh device uploading its automatic goal over the account (`harness-signin-render`).
+
+**Mutation 84** ("let the insights tab redraw itself after a merge"):
+
+1. It first missed its anchor, because the new recompute sits where it matched. It was re-anchored with the same intent.
+2. Graded, it then escaped.
+3. A controlled revert put the Phase 5 `index.html` back with only that mutation applied, and the suite failed there. So the escape came from the fix: while the automatic goal is on, the goal recompute on a pulled leave day redraws insights too.
+4. With the automatic goal off, the merge's own `renderInsights()` is still the only redraw. The check added for that catches mutation 84.
+
+Anchors: 282, 0 misses. `index.html` was restored byte-identical after every run.
 
 ### Phase 7 — Cleanup, docs, release
 
