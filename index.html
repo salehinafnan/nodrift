@@ -2760,7 +2760,8 @@
         margin-top: 0.5em;
       }
 
-      #confirm-desc strong {
+      #confirm-desc strong,
+      #zone-notice-desc strong {
         color: var(--text-main);
         font-weight: 600;
       }
@@ -4692,6 +4693,40 @@
         top: calc(100% + 4px);
         bottom: auto;
         box-shadow: var(--elev-2);
+      }
+
+      /* The clock labels dialog. [hidden] has to be said here: a class that
+         sets its own display outranks the attribute's user-agent rule. */
+      .zone-labels-field[hidden],
+      .zone-labels-error[hidden] {
+        display: none;
+      }
+
+      .zone-labels-hint {
+        margin: 4px 0 0;
+        font-size: var(--text-xs);
+        color: var(--text-muted);
+      }
+
+      .zone-labels-error {
+        margin: 0 0 var(--space-3);
+        font-size: var(--text-xs);
+        color: var(--accent-break);
+      }
+
+      .zone-labels-preview {
+        margin: 0 0 var(--space-3);
+        font-size: var(--text-sm);
+        color: var(--text-muted);
+      }
+
+      .zone-labels-preview strong {
+        color: var(--text-main);
+        font-weight: 600;
+      }
+
+      .zone-labels-preview-title {
+        margin-right: var(--space-2);
       }
 
       /* The trailing half of a heading row: how many devices there are, or
@@ -10013,6 +10048,182 @@
       </div>
     </div>
 
+    <!-- Clock labels (docs/implement.md §4.2, §4.5): openZoneLabels(), from
+         the Time zones card. The label style, and a nickname for the zone
+         each clock shows. -->
+    <div id="zone-labels-modal" class="modal-overlay">
+      <div
+        class="modal-container modal-width-sm accent-info"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="zone-labels-title"
+      >
+        <button
+          class="modal-close-btn"
+          aria-label="Close"
+          onclick="closeZoneLabels()"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+        <h3 id="zone-labels-title" class="modal-header">Clock labels</h3>
+        <div class="form-group">
+          <label class="form-label" for="zone-labels-style">Style</label>
+          <div class="custom-select zone-labels-style">
+            <select
+              id="zone-labels-style"
+              style="display: none"
+              onchange="previewZoneLabels()"
+            >
+              <option value="abbr">Abbreviation</option>
+              <option value="generic">Generic name</option>
+              <option value="offset">UTC offset</option>
+            </select>
+            <button
+              type="button"
+              class="custom-select-trigger cs-md"
+              data-for="zone-labels-style"
+              aria-haspopup="listbox"
+            >
+              <span class="cs-trigger-val">Abbreviation</span>
+              <svg
+                class="cs-chevron"
+                viewBox="0 0 24 24"
+                width="14"
+                height="14"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+            </button>
+            <div class="custom-select-panel cs-compact" role="listbox">
+              <button
+                type="button"
+                class="custom-select-option cs-selected"
+                data-value="abbr"
+              >
+                Abbreviation
+              </button>
+              <button
+                type="button"
+                class="custom-select-option"
+                data-value="generic"
+              >
+                Generic name
+              </button>
+              <button
+                type="button"
+                class="custom-select-option"
+                data-value="offset"
+              >
+                UTC offset
+              </button>
+            </div>
+          </div>
+        </div>
+        <!-- The nickname fields carry no type attribute on purpose: the bare
+             input[type="text"] rule outranks .input-standard and would
+             shrink them on the desktop. A missing type is still a text field. -->
+        <div class="form-group zone-labels-field">
+          <label class="form-label" for="zone-labels-work"
+            >Work clock nickname</label
+          >
+          <input
+            id="zone-labels-work"
+            class="input-standard"
+            maxlength="6"
+            autocomplete="off"
+            autocapitalize="characters"
+            spellcheck="false"
+            oninput="previewZoneLabels()"
+            onkeydown="if (event.key === 'Enter') saveZoneLabels();"
+          />
+          <p class="zone-labels-hint">
+            <span id="zone-labels-work-zone"></span> · empty shows
+            <span id="zone-labels-work-auto"></span>
+          </p>
+        </div>
+        <div id="zone-labels-local-group" class="form-group zone-labels-field">
+          <label class="form-label" for="zone-labels-local"
+            >Local clock nickname</label
+          >
+          <input
+            id="zone-labels-local"
+            class="input-standard"
+            maxlength="6"
+            autocomplete="off"
+            autocapitalize="characters"
+            spellcheck="false"
+            oninput="previewZoneLabels()"
+            onkeydown="if (event.key === 'Enter') saveZoneLabels();"
+          />
+          <p class="zone-labels-hint">
+            <span id="zone-labels-local-zone"></span> · empty shows
+            <span id="zone-labels-local-auto"></span>
+          </p>
+        </div>
+        <p
+          id="zone-labels-error"
+          class="zone-labels-error"
+          role="alert"
+          hidden
+        ></p>
+        <p class="zone-labels-preview" aria-live="polite">
+          <span class="zone-labels-preview-title">Clocks</span>
+          <strong id="zone-labels-preview-work"></strong
+          ><span id="zone-labels-preview-second">
+            · <strong id="zone-labels-preview-local"></strong
+          ></span>
+        </p>
+        <div class="action-row">
+          <button class="btn-secondary" onclick="closeZoneLabels()">
+            Cancel
+          </button>
+          <button
+            id="zone-labels-done"
+            class="btn-info-outline idle-action-btn"
+            onclick="saveZoneLabels()"
+          >
+            Done
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- The time zones notice (docs/implement.md §4.4): once, on a device
+         that used nodrift before zones. offerZoneNotice() fills and raises
+         it when the screen is clear. -->
+    <div id="zone-notice-modal" class="modal-overlay">
+      <div
+        class="modal-container modal-width-sm accent-info"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="zone-notice-title"
+        aria-describedby="zone-notice-desc"
+      >
+        <h3 id="zone-notice-title" class="modal-header">Time zones are here</h3>
+        <p id="zone-notice-desc" class="modal-body-text"></p>
+        <div class="action-row">
+          <button class="btn-secondary" onclick="reviewZoneNotice()">
+            Review
+          </button>
+          <button
+            id="zone-notice-ok"
+            class="btn-info-outline idle-action-btn"
+            onclick="dismissZoneNotice()"
+          >
+            OK
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- Help & User Guide Modal -->
     <div id="help-modal" class="modal-overlay">
       <div
@@ -10205,7 +10416,8 @@
               panel up from the bottom, in labelled sections:
               <strong>Goals</strong> — the Daily Goal and the Weekly goal
               together, which is where the weekly one lives on a phone;
-              <strong>Time Zone</strong> for your work and local time zones;
+              <strong>Time Zone</strong> for your work and local time zones, the
+              clock labels, and the zone log times are shown in;
               <strong>Appearance</strong> for the theme; a
               <strong>Cloud sync</strong> row showing the signed-in account,
               which opens the sync sheet on top; and <strong>Tools</strong>, the
@@ -10892,7 +11104,7 @@
             </li>
           </ul>
           <hr />
-          <h4>Theme, time zone and goal presets</h4>
+          <h4>Theme and goal presets</h4>
           <ul>
             <li>
               <strong>Theme</strong> — the theme button in the top bar offers
@@ -10900,18 +11112,7 @@
               <strong>E-Ink</strong> and <strong>Vercel Dark</strong>. Hovering
               a name previews it; clicking keeps it.
             </li>
-            <li>
-              <strong>Time zones</strong> — the first clock shows your work time
-              and the second your local time, each labelled with its zone (PDT
-              in summer and PST in winter for Pacific Time). When both are the
-              same zone, one clock is shown. Change either by clicking its
-              label, or under <strong>Settings &rarr; Time zones</strong> (on a
-              phone, the <strong>Time Zone</strong> section of Settings &amp;
-              Tools). A new work zone asks first, because it can change today's
-              date; your existing logs keep their dates and times. During a
-              shift the change waits for the shift to end, with an
-              <strong>Undo</strong> under the progress bar.
-            </li>
+
             <li>
               <strong>Goal presets</strong> — click the Daily Goal to open its
               presets, nudge it with <strong>&minus;15m</strong> and
@@ -10924,6 +11125,59 @@
               to reduce motion, nodrift drops all of it and simply switches.
               There is nothing to turn on: it follows the setting your operating
               system already has.
+            </li>
+          </ul>
+          <hr />
+          <h4>Time zones</h4>
+          <p>
+            nodrift keeps two time zones. The top bar shows a clock for each,
+            your work time first and your local time second, and a single clock
+            when both are the same zone.
+          </p>
+          <ul>
+            <li>
+              <strong>Work time zone</strong> — the zone your team works and
+              reports in. It decides today's date, when a shift rolls over at
+              midnight, the date a shift is saved under, and your weekly totals.
+            </li>
+            <li>
+              <strong>Local time zone</strong> — where you are. Only the second
+              clock and the finish estimate use it. Left on
+              <strong>Automatic</strong>, it follows your device, so it moves
+              with you when you travel.
+            </li>
+            <li>
+              <strong>Where to change them</strong> — click a clock's label, or
+              open <strong>Settings &rarr; Time zones</strong>. On a phone, open
+              <strong>Settings &amp; Tools</strong> and use its
+              <strong>Time Zone</strong> section.
+            </li>
+            <li>
+              <strong>Changing the work time zone</strong> asks first, and names
+              the date today becomes. Logs you have already saved keep their
+              dates and times. During a shift the change waits until the shift
+              ends, with an <strong>Undo</strong> under the progress bar. A
+              change made on another of your devices arrives with a short
+              message.
+            </li>
+            <li>
+              <strong>Show log times in</strong> — each log normally shows the
+              times it was recorded with, tagged with its zone when that differs
+              from your work time zone. Choose <strong>Work zone</strong> or
+              <strong>Local zone</strong> to see every log in one zone; a time
+              that falls on another day is marked +1d or −1d.
+            </li>
+            <li>
+              <strong>Clock labels</strong> — choose how the clocks name their
+              zones (an abbreviation such as PDT, a generic name such as PT, or
+              the UTC offset), and give a zone a nickname of up to six
+              characters, such as BST.
+            </li>
+            <li>
+              <strong>A new device</strong> — where nodrift was already in use,
+              the work time zone stays Pacific Time. On a brand-new install it
+              starts as the device's own zone and is kept from your first shift,
+              so travelling later does not move it.
             </li>
           </ul>
           <hr />
@@ -14617,6 +14871,27 @@
                       <g data-sprite="sprite-029"></g>
                     </svg>
                   </button>
+                  <button
+                    type="button"
+                    id="tz-labels-row"
+                    class="settings-row tz-setting-row"
+                    onclick="openZoneLabels()"
+                  >
+                    <span class="settings-label">Clock labels</span>
+                    <span id="tz-labels-value" class="tz-setting-value"></span>
+                    <svg
+                      class="tz-setting-chevron"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.8"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      aria-hidden="true"
+                    >
+                      <g data-sprite="sprite-029"></g>
+                    </svg>
+                  </button>
                   <div class="settings-row tz-log-times-row">
                     <span class="settings-label">Show log times in</span>
                     <div class="custom-select tz-log-times-select">
@@ -16591,6 +16866,10 @@
          "upgrade" or "fresh", decided once, on the first launch of a build
          that has them. Device-local, never synced. */
       const TZ_INSTALL_KEY = "nodrift_tz_install_v1";
+      /* Whether this device has dismissed the time zones notice (§4.4).
+         Device-local like the verdict above, never synced, and wiped with
+         it by a factory reset. */
+      const TZ_NOTICE_KEY = "nodrift_tz_notice_v1";
       const THEME_KEY = "production_theme_pref";
       const PRESET_VALUES_KEY = "production_custom_presets_v2";
       const LEAVE_DATES_KEY = "production_leave_dates_v1";
@@ -17275,6 +17554,31 @@
         tzWorkValue: document.getElementById("tz-work-value"),
         tzLocalValue: document.getElementById("tz-local-value"),
         tzLogTimesSelect: document.getElementById("tz-log-times-select"),
+        tzLabelsValue: document.getElementById("tz-labels-value"),
+        zoneLabelsModal: document.getElementById("zone-labels-modal"),
+        zoneLabelsStyle: document.getElementById("zone-labels-style"),
+        zoneLabelsWork: document.getElementById("zone-labels-work"),
+        zoneLabelsLocal: document.getElementById("zone-labels-local"),
+        zoneLabelsLocalGroup: document.getElementById(
+          "zone-labels-local-group",
+        ),
+        zoneLabelsWorkZone: document.getElementById("zone-labels-work-zone"),
+        zoneLabelsLocalZone: document.getElementById("zone-labels-local-zone"),
+        zoneLabelsWorkAuto: document.getElementById("zone-labels-work-auto"),
+        zoneLabelsLocalAuto: document.getElementById("zone-labels-local-auto"),
+        zoneLabelsPreviewWork: document.getElementById(
+          "zone-labels-preview-work",
+        ),
+        zoneLabelsPreviewSecond: document.getElementById(
+          "zone-labels-preview-second",
+        ),
+        zoneLabelsPreviewLocal: document.getElementById(
+          "zone-labels-preview-local",
+        ),
+        zoneLabelsError: document.getElementById("zone-labels-error"),
+        zoneLabelsDone: document.getElementById("zone-labels-done"),
+        zoneNoticeModal: document.getElementById("zone-notice-modal"),
+        zoneNoticeDesc: document.getElementById("zone-notice-desc"),
         workTimerDigits: Array.from(
           document.querySelectorAll("#work-timer .timer-digit"),
         ),
@@ -17821,6 +18125,13 @@
         const NICKNAME = /^[A-Za-z0-9+:−-]{1,6}$/;
         const LETTERS = /^[A-Z]{2,5}$/;
 
+        /* A nickname a label may show: short, and nothing that could be
+           markup (I14). The one rule, shared by label(), the display
+           preference's validator and the clock labels dialog. */
+        function isNickname(v) {
+          return typeof v === "string" && NICKNAME.test(v);
+        }
+
         const STYLES = {
           parts: {
             year: "numeric",
@@ -18172,7 +18483,7 @@
            letters, else the UTC offset. Only 111 of 418 zones have letters in
            en-US, so the offset is the common case, not the fallback. */
         function label(zone, ms, style, nickname) {
-          if (typeof nickname === "string" && NICKNAME.test(nickname)) {
+          if (isNickname(nickname)) {
             return nickname;
           }
           if (style !== "offset") {
@@ -18368,6 +18679,7 @@
           formatTime,
           offsetLabel,
           label,
+          isNickname,
           longName,
           city,
           zoneFacts,
@@ -18404,8 +18716,7 @@
           if (keys.length > 64) return false;
           for (let i = 0; i < keys.length; i++) {
             if (!TimeZones.isValid(keys[i])) return false;
-            if (typeof n[keys[i]] !== "string") return false;
-            if (!/^[A-Za-z0-9+:−-]{1,6}$/.test(n[keys[i]])) return false;
+            if (!TimeZones.isNickname(n[keys[i]])) return false;
           }
         }
         return true;
@@ -23268,6 +23579,45 @@
       })();
       window.SyncEngine = SyncEngine;
 
+      /* Whether a prompt nobody asked for would land somewhere the user is
+         actually looking. The takeover offer and the time zones notice both
+         wait for it; `except` is the prompt's own overlay, the thing being
+         raised rather than something standing in its way.
+
+         On the desktop the timer is never off screen, so the only thing
+         worth waiting for is a dialog that is already up. On a phone the
+         timer is one tab of four: thrown over the logbook, or on top of an
+         open sheet, a prompt interrupts something unrelated to answer a
+         question the user cannot see the subject of. That is how a prompt
+         becomes something people dismiss without reading. */
+      function promptSurfaceReady(except) {
+        if (otherDialogUp(except)) return false;
+        const shell = window.MobileShell;
+        if (!shell || !shell.active) return true;
+        if (shell.pane !== "timer") return false;
+        /* The footer panels are bottom sheets at this width and cover the
+           timer as thoroughly as a dialog would. They need no test of their
+           own: closing the Settings & Tools sheet closes them with it, so
+           one of them being up implies the sheet is up. */
+        return !document.body.classList.contains("m-sheet-open");
+      }
+
+      /* Any dialog at all, rather than only the ones the keyboard layer
+         arbitrates between: every scrim-bearing overlay in the document is a
+         .modal-overlay by construction, whereas MODAL_IDS carries deliberate
+         omissions. */
+      function otherDialogUp(except) {
+        const overlays = document.querySelectorAll(".modal-overlay");
+        for (let i = 0; i < overlays.length; i++) {
+          const el = overlays[i];
+          if (el.id === except) continue;
+          if (el.style.display === "flex" || el.style.display === "block") {
+            return true;
+          }
+        }
+        return false;
+      }
+
       /* ═══════════════════════════════════════════════════════════════════ CROSS-DEVICE SYNC — the session lease.
 
          There is exactly one running timer in the real world, so exactly one
@@ -24302,51 +24652,12 @@
 
         /* ── prompts ───────────────────────────────────────────────────── */
 
-        /* Whether the offer would land somewhere the user is actually looking.
-
-           On the desktop the timer is never off screen, so the only thing
-           worth waiting for is a dialog that is already up. On a phone the
-           timer is one tab of four, and this prompt is about the session on
-           that tab: thrown over the logbook, or on top of an open sheet, it
-           interrupts something unrelated to answer a question the user cannot
-           see the subject of. That is how a prompt becomes something people
-           dismiss without reading, which is the same failure the once-per-
-           holder rule below exists to prevent. */
-        function promptSurfaceReady() {
-          if (otherDialogUp()) return false;
-          const shell = window.MobileShell;
-          if (!shell || !shell.active) return true;
-          if (shell.pane !== "timer") return false;
-          /* The footer panels are bottom sheets at this width and cover the
-             timer as thoroughly as a dialog would. They need no test of their
-             own: closing the Settings & Tools sheet closes them with it, so
-             one of them being up implies the sheet is up. */
-          return !document.body.classList.contains("m-sheet-open");
-        }
-
-        /* Any dialog at all, rather than only the ones the keyboard layer
-           arbitrates between: every scrim-bearing overlay in the document is a
-           .modal-overlay by construction, whereas MODAL_IDS carries deliberate
-           omissions. The offer's own dialog is excluded -- it is the thing
-           being raised, not something standing in its way. */
-        function otherDialogUp() {
-          const overlays = document.querySelectorAll(".modal-overlay");
-          for (let i = 0; i < overlays.length; i++) {
-            const el = overlays[i];
-            if (el.id === "lease-modal") continue;
-            if (el.style.display === "flex" || el.style.display === "block") {
-              return true;
-            }
-          }
-          return false;
-        }
-
         /* Once per holder, not once per beat. Being asked the same question
            every fifteen seconds is how a prompt becomes something people
            dismiss without reading. */
         function offerTakeover() {
           if (promptedFor === owner) return;
-          if (!promptSurfaceReady()) {
+          if (!promptSurfaceReady("lease-modal")) {
             /* Held rather than dropped, and deliberately not latched: the beat
                goes on reporting the refusal, so the next one asks again by
                itself, and retryOffer() asks the moment the screen clears. */
@@ -26109,11 +26420,14 @@
         });
       }
 
-      /* The confirmation's text, with some words in bold. Built from text
-         nodes, never markup: a zone's name is not ours to trust (I14). In
-         each line a string is plain text and a one-item array is bold. */
+      /* A dialog's text, with some words in bold. Built from text nodes,
+         never markup: a zone's name is not ours to trust (I14). In each line
+         a string is plain text and a one-item array is bold. */
       function fillConfirmDesc(lines) {
-        const p = DOM.confirmDesc;
+        fillTextLines(DOM.confirmDesc, lines);
+      }
+
+      function fillTextLines(p, lines) {
         p.textContent = "";
         lines.forEach((line) => {
           const row = document.createElement("span");
@@ -26246,6 +26560,19 @@
             ? read(local)
             : `Auto · ${TimeZones.city(currentDeviceZone())}`,
         );
+        /* What the clocks are called now: both labels, or one for one zone. */
+        if (DOM.tzLabelsValue) {
+          const work = getWorkZone();
+          const local = getLocalZone();
+          const label = (zone) =>
+            TimeZones.label(zone, now, zoneLabelStyle(), zoneNickname(zone));
+          setText(
+            DOM.tzLabelsValue,
+            TimeZones.same(work, local)
+              ? label(work)
+              : `${label(work)} · ${label(local)}`,
+          );
+        }
         /* The custom dropdown redraws its trigger when this value is set. */
         const select = DOM.tzLogTimesSelect;
         const mode = zoneDisplayMode();
@@ -26265,6 +26592,218 @@
             ? `Work time zone synced: ${where}, from the end of this shift`
             : `Work time zone synced: ${where}`,
         );
+      }
+
+      /* ---- Clock labels (docs/implement.md §4.2's label footer, §4.5) ----
+
+         Opened from the Time zones card: the picker keeps picking and
+         closing on a tap (decided 2026-09-14). The style is one setting for
+         every label. A nickname belongs to a zone, stored under its id in
+         tzDisplay.nicknames, so it never follows the user to another zone;
+         the dialog edits the zones the clocks show now. */
+      let _zoneLabelsFor = null;
+
+      function openZoneLabels() {
+        const now = Date.now();
+        const work = getWorkZone();
+        const local = getLocalZone();
+        const single = TimeZones.same(work, local);
+        _zoneLabelsFor = {
+          work,
+          local,
+          single,
+          opener: document.activeElement,
+        };
+        DOM.zoneLabelsStyle.value = zoneLabelStyle();
+        DOM.zoneLabelsWork.value = zoneNickname(work) || "";
+        DOM.zoneLabelsLocal.value = single ? "" : zoneNickname(local) || "";
+        setText(DOM.zoneLabelsWorkZone, zoneWhere(work, now));
+        setText(DOM.zoneLabelsLocalZone, zoneWhere(local, now));
+        DOM.zoneLabelsLocalGroup.hidden = single;
+        DOM.zoneLabelsPreviewSecond.hidden = single;
+        previewZoneLabels();
+        DOM.zoneLabelsModal.style.display = "flex";
+        /* Desktop only: on a phone a focused field raises the keyboard over
+           the preview the user came to see. */
+        if (!isPhoneLayout()) DOM.zoneLabelsWork.focus();
+        return true;
+      }
+
+      function closeZoneLabels() {
+        const was = _zoneLabelsFor;
+        _zoneLabelsFor = null;
+        if (DOM.zoneLabelsModal.style.display !== "none") {
+          DOM.zoneLabelsModal.style.display = "none";
+        }
+        if (was && was.opener && document.contains(was.opener)) {
+          try {
+            was.opener.focus();
+          } catch (e) {}
+        }
+      }
+
+      /* What the form says. An empty field means the zone's own label; bad
+         is the first nickname that could not be one. */
+      function readZoneLabelsForm() {
+        const raw = DOM.zoneLabelsStyle.value;
+        const style = ["abbr", "generic", "offset"].includes(raw)
+          ? raw
+          : "abbr";
+        const work = DOM.zoneLabelsWork.value.trim();
+        const local = DOM.zoneLabelsLocal.value.trim();
+        const single = !!_zoneLabelsFor && _zoneLabelsFor.single;
+        const bad = [work, single ? "" : local].find(
+          (n) => n !== "" && !TimeZones.isNickname(n),
+        );
+        return { style, work, local, bad: bad === undefined ? null : bad };
+      }
+
+      function previewZoneLabels() {
+        const f = _zoneLabelsFor;
+        if (!f) return;
+        const form = readZoneLabelsForm();
+        const now = Date.now();
+        const label = (zone, nickname) =>
+          TimeZones.label(zone, now, form.style, nickname || null);
+        setText(DOM.zoneLabelsWorkAuto, label(f.work, null));
+        setText(DOM.zoneLabelsLocalAuto, label(f.local, null));
+        setText(DOM.zoneLabelsPreviewWork, label(f.work, form.work));
+        setText(DOM.zoneLabelsPreviewLocal, label(f.local, form.local));
+        /* The typed text is quoted back as text, never as markup (I14): it
+           is exactly the string that failed the rule. */
+        setText(
+          DOM.zoneLabelsError,
+          form.bad === null
+            ? ""
+            : `“${form.bad}” can’t be a label: use up to 6 letters, digits, +, − or :.`,
+        );
+        DOM.zoneLabelsError.hidden = form.bad === null;
+        DOM.zoneLabelsDone.disabled = form.bad !== null;
+      }
+
+      function saveZoneLabels() {
+        const f = _zoneLabelsFor;
+        if (!f) return false;
+        const form = readZoneLabelsForm();
+        if (form.bad !== null) {
+          previewZoneLabels();
+          return false;
+        }
+        const unchanged =
+          form.style === zoneLabelStyle() &&
+          form.work === (zoneNickname(f.work) || "") &&
+          (f.single || form.local === (zoneNickname(f.local) || ""));
+        closeZoneLabels();
+        /* Nothing chosen, nothing written: an edit that changes nothing
+           would still be uploaded as one. */
+        if (unchanged) return true;
+        const display = Object.assign({}, readZonePrefs().display || {});
+        const names = Object.assign({}, display.nicknames || {});
+        /* Every spelling of the zone goes first (I7), so one zone keeps one
+           nickname. */
+        const put = (zone, nickname) => {
+          Object.keys(names).forEach((k) => {
+            if (TimeZones.same(k, zone)) delete names[k];
+          });
+          if (nickname) names[zone] = nickname;
+        };
+        put(f.work, form.work);
+        if (!f.single) put(f.local, form.local);
+        display.labelStyle = form.style;
+        display.nicknames = names;
+        return setZoneDisplayPref(display);
+      }
+
+      /* ---- The time zones notice (docs/implement.md §4.4) ----
+
+         Once, on a device that used nodrift before zones: what the two zones
+         are now. It waits its turn exactly as the takeover offer does
+         (promptSurfaceReady): no other dialog up, and on a phone the timer
+         in front with the sheet closed. Latched on this device when it is
+         dismissed -- never synced, and forgotten by a factory reset along
+         with the verdict it reads. */
+      let _zoneNoticeTimer = null;
+
+      function zoneNoticeDue() {
+        try {
+          return (
+            localStorage.getItem(TZ_INSTALL_KEY) === "upgrade" &&
+            localStorage.getItem(TZ_NOTICE_KEY) === null
+          );
+        } catch (e) {
+          return false;
+        }
+      }
+
+      function stopZoneNoticeTimer() {
+        clearInterval(_zoneNoticeTimer);
+        _zoneNoticeTimer = null;
+      }
+
+      /* Raises the notice if it is due and the screen is clear. Called at
+         startup, every two seconds while it waits, and whenever the phone
+         shell changes what is on screen. */
+      function offerZoneNotice() {
+        const modal = DOM.zoneNoticeModal;
+        if (!modal || !zoneNoticeDue()) {
+          stopZoneNoticeTimer();
+          return false;
+        }
+        if (isModalVisible(modal)) return true;
+        if (!promptSurfaceReady("zone-notice-modal")) return false;
+        stopZoneNoticeTimer();
+        const now = Date.now();
+        const work = getWorkZone();
+        const local = getLocalZone();
+        const chosenLocal = readZonePrefs().local;
+        fillTextLines(DOM.zoneNoticeDesc, [
+          [
+            "Work: ",
+            [zoneWhere(work, now)],
+            TimeZones.same(work, LEGACY_TZ) ? ", as before." : ".",
+          ],
+          [
+            "Local: ",
+            [TimeZones.city(local)],
+            chosenLocal && chosenLocal !== "auto" ? "." : ", from this device.",
+          ],
+        ]);
+        modal.style.display = "flex";
+        return true;
+      }
+
+      function scheduleZoneNotice() {
+        if (_zoneNoticeTimer || !zoneNoticeDue()) return;
+        if (offerZoneNotice()) return;
+        _zoneNoticeTimer = setInterval(offerZoneNotice, 2000);
+      }
+
+      function dismissZoneNotice() {
+        try {
+          localStorage.setItem(TZ_NOTICE_KEY, String(Date.now()));
+        } catch (e) {}
+        stopZoneNoticeTimer();
+        if (DOM.zoneNoticeModal) DOM.zoneNoticeModal.style.display = "none";
+      }
+
+      /* Review: the Time zones card, wherever this layout keeps it. */
+      function reviewZoneNotice() {
+        dismissZoneNotice();
+        const shell = window.MobileShell;
+        if (shell && shell.active) {
+          shell.openSheet();
+          const slot = document.querySelector('.m-sheet-slot[data-slot="tz"]');
+          if (slot) {
+            slot.scrollIntoView({
+              block: "start",
+              behavior: scrollResetBehavior(),
+            });
+          }
+          return;
+        }
+        if (!DOM.settingsConfigPopup.classList.contains("show")) {
+          toggleSettingsPopup();
+        }
       }
 
       /**
@@ -35150,6 +35689,7 @@
           TZ_DISPLAY_KEY,
           TZ_RECENT_KEY, // The zone picker's recent choices
           TZ_INSTALL_KEY, // Whether this device predates zones
+          TZ_NOTICE_KEY, // Whether it has dismissed the time zones notice
           THEME_KEY,
           PRESET_VALUES_KEY,
           LEAVE_DATES_KEY,
@@ -36104,6 +36644,8 @@
         "heatmap-modal",
         "add-leave-type-modal",
         "zone-picker-modal",
+        "zone-labels-modal",
+        "zone-notice-modal",
       ]);
 
       function isModalVisible(el) {
@@ -36308,6 +36850,7 @@
         if (typeof closeAddLeaveTypeModal === "function")
           closeAddLeaveTypeModal();
         if (typeof closeZonePicker === "function") closeZonePicker();
+        if (typeof closeZoneLabels === "function") closeZoneLabels();
 
         // Both helpers are idempotent, so the previous contains("show") guards are redundant.
         if (typeof window.closeFooterPopups === "function")
@@ -36354,6 +36897,10 @@
         "preset-modal": () => closePresetModal(),
         "add-leave-type-modal": () => closeAddLeaveTypeModal(),
         "zone-picker-modal": () => closeZonePicker(),
+        "zone-labels-modal": () => closeZoneLabels(),
+        /* Escape is a dismissal like OK: the notice has said what it came
+           to say. */
+        "zone-notice-modal": () => dismissZoneNotice(),
       });
 
       /* Dismisses only the dialog on top, so Escape inside a nested dialog does
@@ -36823,7 +37370,12 @@
             renderVirtualTaskItems();
           }
 
-          closeAllActiveModals();
+          /* The same route as Escape from a field above: the dialog on top
+             first, through MODAL_CLOSERS, and the sweep only when no dialog
+             is up. The sweep names dialogs one by one, so a dialog with
+             nothing focused in it -- the time zones notice -- would
+             otherwise never close. */
+          if (!closeTopmostModal()) closeAllActiveModals();
         }
       });
 
@@ -43180,6 +43732,8 @@
             "Work Time Zone: Decides today's date, when a shift rolls over at midnight and the date new records are filed under. Changed during a shift, it applies when the shift ends.",
           "tz-local-row":
             "Local Time Zone: Where you are. Only the second clock and the finish estimate use it; nothing stored changes.",
+          "tz-labels-row":
+            "Clock Labels: How the clocks name their zones: an abbreviation such as PDT, a generic name such as PT, or the UTC offset. A nickname of up to six characters, such as BST, replaces the label for that zone.",
           "tz-log-times-select":
             "Log Times: Show each record's In and Out times in the zone it was recorded in, or all of them in your work or local zone.",
           "goal-autopopulate-toggle":
@@ -43281,6 +43835,7 @@
         const rowIds = [
           "tz-work-row",
           "tz-local-row",
+          "tz-labels-row",
           "tz-log-times-select",
           "goal-autopopulate-toggle",
           "weekly-goal-hours",
@@ -43443,6 +43998,9 @@
                automated driver reaches the page long before it and would
                otherwise have its writes adopted as the baseline. */
             window.bootCompletedAt = Date.now();
+            /* The time zones notice, when this device is due one: after
+               startup, and only once the screen is clear. */
+            scheduleZoneNotice();
           });
         }
 
@@ -44249,6 +44807,8 @@
           ) {
             SessionLease.retryOffer();
           }
+          /* The time zones notice waits for the same moment. */
+          if (typeof offerZoneNotice === "function") offerZoneNotice();
         }
 
         /* Public navigation entry point used by the tab bar. */
