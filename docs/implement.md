@@ -1,19 +1,19 @@
 # Time zones: implementation blueprint
 
-> **Status:** Phases 0–4 complete. Every zone-dependent calculation goes through `TimeZones`, and the zone model exists (an unset work zone is Los Angeles on a device with data from before zones and the device's own zone for a new user; an unset local zone follows the device). Every record is shown, edited, exported and searched in the zone it was filed in. A searchable picker over every time zone exists, reachable only from tests. Phase 5a is done: the status bar shows live work and local clocks. Phase 5b1 is done: zones are changed from the clock labels, a settings card and the phone sheet, with a confirmation for the work zone, a banner with Undo during a shift, and a toast for a zone synced from another device. Phase 5b2a is done: a new user's work zone starts as the device's own and is pinned at the first clock-in, and an unset local zone follows the device. Phase 5b2b (clock labels, the first-launch notice, the guide rewrite) is next.
+> **Status:** Phases 0–4 complete. Every zone-dependent calculation goes through `TimeZones`, and the zone model exists (an unset work zone is Los Angeles on a device with data from before zones and the device's own zone for a new user; an unset local zone follows the device). Every record is shown, edited, exported and searched in the zone it was filed in. A searchable picker over every time zone opens from the clocks and the settings card. Phase 5a is done: the status bar shows live work and local clocks. Phase 5b1 is done: zones are changed from the clock labels, a settings card and the phone sheet, with a confirmation for the work zone, a banner with Undo during a shift, and a toast for a zone synced from another device. Phase 5b2a is done: a new user's work zone starts as the device's own and is pinned at the first clock-in, and an unset local zone follows the device. Phase 5b2b is done: clock labels (a style, and a nickname per zone) from the Time zones card, a one-time notice on devices that used nodrift before zones, and a rewritten guide section. Phase 5 is complete; Phase 6 (sync hardening, multi-device, iPhone) is next.
 > **Baseline commit:** `9181afa` (all line numbers below refer to it and WILL drift — re-grep before editing).
 > **Rule:** one phase at a time. A phase starts only when the previous phase's exit criteria are green and committed.
 
-| Phase | Title                                                | Touches data?    | Needs live account? | Size                 | State         |
-| ----- | ---------------------------------------------------- | ---------------- | ------------------- | -------------------- | ------------- |
-| 0     | Groundwork, probes, fixtures                         | no               | one read-only probe | S                    | **done**      |
-| 1     | `TimeZones` core + behaviour-identical refactor      | no               | regression only     | L (split 1a/1b)      | **done**      |
-| 2     | Data model: work / local / session / record zones    | **yes**          | regression only     | L (split 2a/2b)      | **done**      |
-| 3     | Rendering and editing records in their own zone      | yes (edit paths) | no                  | M–L (split 3a/3b)    | **done**      |
-| 4     | The zone picker component                            | no               | no                  | M–L (split 4a/4b)    | **done**      |
-| 5     | Status bar, settings card, phone sheet, change flows | prefs            | no                  | L (split 5a/5b1/5b2) | **5b2a done** |
-| 6     | Sync hardening + multi-device + iPhone verification  | no               | **yes**             | M                    | not started   |
-| 7     | Cleanup, aliases removed, docs, guide                | no               | full sweep          | S                    | not started   |
+| Phase | Title                                                | Touches data?    | Needs live account? | Size                 | State       |
+| ----- | ---------------------------------------------------- | ---------------- | ------------------- | -------------------- | ----------- |
+| 0     | Groundwork, probes, fixtures                         | no               | one read-only probe | S                    | **done**    |
+| 1     | `TimeZones` core + behaviour-identical refactor      | no               | regression only     | L (split 1a/1b)      | **done**    |
+| 2     | Data model: work / local / session / record zones    | **yes**          | regression only     | L (split 2a/2b)      | **done**    |
+| 3     | Rendering and editing records in their own zone      | yes (edit paths) | no                  | M–L (split 3a/3b)    | **done**    |
+| 4     | The zone picker component                            | no               | no                  | M–L (split 4a/4b)    | **done**    |
+| 5     | Status bar, settings card, phone sheet, change flows | prefs            | no                  | L (split 5a/5b1/5b2) | **done**    |
+| 6     | Sync hardening + multi-device + iPhone verification  | no               | **yes**             | M                    | not started |
+| 7     | Cleanup, aliases removed, docs, guide                | no               | full sweep          | S                    | not started |
 
 ---
 
@@ -1320,6 +1320,106 @@ Anchors: 250, 0 misses. `index.html` was restored byte-identical.
 Anchors: 263, 0 misses. `index.html` was restored byte-identical.
 
 **Found while testing:** the probe's reload helper returned as soon as sync was ready, which can come before startup has finished. Two mutations that never touch the redraw also failed the "records arriving" check for that reason. The helper now waits for startup to finish.
+
+#### Phase 5b2b results (2026-09-14)
+
+**Committed as** `feat(time): clock labels, the time zones notice and the guide`.
+
+**What changed:**
+
+- **Clock labels** (§4.2's label footer, §4.5). A "Clock labels" row in the Time zones card shows both labels, or one when both clocks share a zone. It opens `#zone-labels-modal`:
+  - **the form:**
+    - a style dropdown (Abbreviation, Generic name, UTC offset);
+    - a nickname field for each clock's zone, or a single field when both clocks share a zone;
+    - under each field, its zone and the label an empty field shows;
+    - a live preview of the labels.
+  - **Done** saves the style and the nicknames under the zones' ids in `tzDisplay`, replacing every spelling of each zone (I7). Nothing is written when nothing changed. Cancel and Escape keep nothing.
+  - **A nickname outside the rule** is quoted back as text in the error line, and Done is disabled (I14). The rule is `TimeZones.isNickname`, now shared by the labels, the stored preference's validator and the dialog.
+  - **Layout:**
+    - the nickname fields carry no `type` attribute, so the bare `input[type="text"]` rule cannot shrink them on the desktop;
+    - on the phone the dialog is a bottom sheet with 44 px fields, and no field takes focus when it opens.
+- **The time zones notice** (§4.4). `#zone-notice-modal` reads "Time zones are here. Work: Pacific Time (Los Angeles), as before. Local: Dhaka, from this device.", with Review and OK.
+  - **When:** only on a device whose install verdict is `"upgrade"`. It is offered at the end of startup, retried every two seconds and whenever the phone shell changes pane, and raised only when `promptSurfaceReady` allows.
+  - **Latch:** OK, Review and Escape all latch it on this device (`nodrift_tz_notice_v1`). The latch is never synced, and a factory reset wipes it.
+  - **Review** opens the settings panel on the desktop, or the sheet at its Time Zone section on the phone.
+- **One rule for when a prompt may appear.** `promptSurfaceReady(except)` and `otherDialogUp(except)` moved out of `SessionLease` to top level. The takeover offer passes `"lease-modal"`, and the notice passes its own id.
+- **Escape with nothing focused** now closes the dialog on top through `MODAL_CLOSERS`, the same route as Escape from a field, and falls back to the sweep only when no dialog is up.
+- **Guide:**
+  - a new "Time zones" section in the Settings tab: the two clocks, what each zone decides, where to change them, changing the work zone, log times, clock labels, and a new device;
+  - the old time zone bullet is gone from the list above it, which is now headed "Theme and goal presets";
+  - the phone sheet passage mentions clock labels and log times.
+- **Hover help** for the Clock labels row.
+
+**Tests.**
+
+- **`probe-tz-ui.js`, 146 checks** (was 113):
+  - **the labels dialog:**
+    - the card row and what it shows;
+    - the fields, hints and preview;
+    - typing and a style change each preview at once and save nothing;
+    - Done saves under the zone's id, and the clocks and the card follow, as a settings edit;
+    - a nickname belongs to its zone;
+    - reopening shows what was saved;
+    - Done with nothing changed writes and redraws nothing;
+    - Cancel keeps nothing, and an emptied field removes the nickname;
+    - `<img>` is quoted back as text and cannot be saved;
+    - one field for one zone;
+    - another spelling of a zone is found, and leaves one entry (I7);
+    - the shared nickname rule;
+  - **the notice:**
+    - never on a fresh install;
+    - held behind another dialog, then shown;
+    - §4.4's wording, with bold built from text;
+    - dismissing latches it without touching a synced preference, and a latched notice is not offered again;
+    - a factory reset forgets the latch;
+    - one copy of the surface rule;
+  - **by hand on the desktop:**
+    - the row opens the dialog over the settings panel, with the work field focused and full height;
+    - typing and Enter save;
+    - the style dropdown works by click;
+    - Escape closes the dialog and leaves the panel open;
+    - the notice appears by itself at startup;
+    - OK latches it across a reload;
+    - Escape dismisses it with nothing focused;
+    - Review opens the Time zones card;
+  - **on the phone:**
+    - the notice waits for the timer tab and appears the moment it is in front;
+    - Review opens the sheet at Time Zone;
+    - the labels dialog fits once it has risen into place, with touch-sized fields and no keyboard;
+    - the sheet's Time Zone section now has four rows.
+- **Harness:** the two lease-prompt mutations follow the moved surface rule, and mutation 249's pattern includes the new row.
+
+**Regression, one suite at a time:** 24 suites, on AC throughout, all at the numbers before 5b2b apart from `probe-tz-ui`. `harness-signin-render` failed "signing in to an empty account uploads nothing" inside the chain, the same check as in earlier chains, and passed 12 of 12 alone. `harness-lease-prompt` passed 23 of 23 with the surface rule moved out of `SessionLease`.
+
+**Mutations:** 15 new (263–277), all caught, each on the check written for it, on AC throughout:
+
+- **the labels dialog:**
+  - a bad nickname quoted back as markup (the plan's "nickname via `innerHTML`");
+  - the local preview waiting for something else to redraw it;
+  - the local nickname saved on the work zone;
+  - Done writing when nothing changed;
+  - a bad nickname closing the dialog;
+  - two spellings of a zone keeping two nicknames;
+  - no hover help for the row;
+- **the notice:**
+  - shown on a fresh install;
+  - dismissing it without a latch;
+  - shown over another dialog;
+  - never retried by the phone shell;
+  - never offered at startup;
+  - a factory reset keeping the latch;
+  - Review only dismissing it;
+- **Escape** with nothing focused skipping the dialog on top.
+
+Anchors: 278, 0 misses. `index.html` was restored byte-identical.
+
+**Found while testing:**
+
+- **Escape with nothing focused** only ran the sweep, which names dialogs one by one and knew neither new dialog. The notice has no field to focus, so Escape could never close it. Fixed at the route (above), with a mutation.
+- **A phone dialog rises into place.** Measured at once, the labels sheet was still below the screen. Settled, it fits at 390×844 and at 375×667.
+- **A style change redraws the whole preview**, which would hide a nickname field that never redraws it by itself. The probe reads the preview between the two.
+- **Rewriting identical JSON leaves storage and the preference fingerprint looking untouched, but still redraws.** The unchanged-Done check also compares `TimeZones.version`.
+- **Only a profile that held data before its first boot of the zone build is due the notice.** Every other suite starts on an empty profile and never sees it.
 
 ### Phase 6 — Sync hardening, multi-device, iPhone
 
