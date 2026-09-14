@@ -1,19 +1,19 @@
 # Time zones: implementation blueprint
 
-> **Status:** Phases 0–4 complete. Every zone-dependent calculation goes through `TimeZones`, and the zone model exists (unset preferences keep Los Angeles for work and Dhaka for local until Phase 5's UI). Every record is shown, edited, exported and searched in the zone it was filed in. A searchable picker over every time zone exists, reachable only from tests. Phase 5a is done: the status bar shows live work and local clocks. Phase 5b1 is done: zones are changed from the clock labels, a settings card and the phone sheet, with a confirmation for the work zone, a banner with Undo during a shift, and a toast for a zone synced from another device. Phase 5b2 (label footer, first-launch notice, D5, a local default of "auto", guide rewrite) is next.
+> **Status:** Phases 0–4 complete. Every zone-dependent calculation goes through `TimeZones`, and the zone model exists (an unset work zone is Los Angeles on a device with data from before zones and the device's own zone for a new user; an unset local zone follows the device). Every record is shown, edited, exported and searched in the zone it was filed in. A searchable picker over every time zone exists, reachable only from tests. Phase 5a is done: the status bar shows live work and local clocks. Phase 5b1 is done: zones are changed from the clock labels, a settings card and the phone sheet, with a confirmation for the work zone, a banner with Undo during a shift, and a toast for a zone synced from another device. Phase 5b2a is done: a new user's work zone starts as the device's own and is pinned at the first clock-in, and an unset local zone follows the device. Phase 5b2b (clock labels, the first-launch notice, the guide rewrite) is next.
 > **Baseline commit:** `9181afa` (all line numbers below refer to it and WILL drift — re-grep before editing).
 > **Rule:** one phase at a time. A phase starts only when the previous phase's exit criteria are green and committed.
 
-| Phase | Title                                                | Touches data?    | Needs live account? | Size                 | State        |
-| ----- | ---------------------------------------------------- | ---------------- | ------------------- | -------------------- | ------------ |
-| 0     | Groundwork, probes, fixtures                         | no               | one read-only probe | S                    | **done**     |
-| 1     | `TimeZones` core + behaviour-identical refactor      | no               | regression only     | L (split 1a/1b)      | **done**     |
-| 2     | Data model: work / local / session / record zones    | **yes**          | regression only     | L (split 2a/2b)      | **done**     |
-| 3     | Rendering and editing records in their own zone      | yes (edit paths) | no                  | M–L (split 3a/3b)    | **done**     |
-| 4     | The zone picker component                            | no               | no                  | M–L (split 4a/4b)    | **done**     |
-| 5     | Status bar, settings card, phone sheet, change flows | prefs            | no                  | L (split 5a/5b1/5b2) | **5b1 done** |
-| 6     | Sync hardening + multi-device + iPhone verification  | no               | **yes**             | M                    | not started  |
-| 7     | Cleanup, aliases removed, docs, guide                | no               | full sweep          | S                    | not started  |
+| Phase | Title                                                | Touches data?    | Needs live account? | Size                 | State         |
+| ----- | ---------------------------------------------------- | ---------------- | ------------------- | -------------------- | ------------- |
+| 0     | Groundwork, probes, fixtures                         | no               | one read-only probe | S                    | **done**      |
+| 1     | `TimeZones` core + behaviour-identical refactor      | no               | regression only     | L (split 1a/1b)      | **done**      |
+| 2     | Data model: work / local / session / record zones    | **yes**          | regression only     | L (split 2a/2b)      | **done**      |
+| 3     | Rendering and editing records in their own zone      | yes (edit paths) | no                  | M–L (split 3a/3b)    | **done**      |
+| 4     | The zone picker component                            | no               | no                  | M–L (split 4a/4b)    | **done**      |
+| 5     | Status bar, settings card, phone sheet, change flows | prefs            | no                  | L (split 5a/5b1/5b2) | **5b2a done** |
+| 6     | Sync hardening + multi-device + iPhone verification  | no               | **yes**             | M                    | not started   |
+| 7     | Cleanup, aliases removed, docs, guide                | no               | full sweep          | S                    | not started   |
 
 ---
 
@@ -135,6 +135,10 @@ getDisplayZone(record):                  // for In/Out times only
 
 - **`sessionHoldsZone(state)`** = `currentMode !== null || idleLock || loginTimestamp || workAccumulated > 0 || breakAccumulated > 0`. This is the same predicate `SessionLease` uses as `hasLiveSession()` (20773, module-private today). **Extract it to top level and have `SessionLease` call the shared one** — two copies of "is a session live" would drift.
 - **Clock-in pin.** When `switchMode` mints a new session (every `mintSessionId` call site; known: 24534, 26103), set `state.sessionTz = getWorkZone()` _and_, if the `workTz` pref is absent, write it and stamp it as a settings edit. This is the one derived value that becomes explicit, because a real shift now depends on it.
+  - **Narrowed (decided 2026-09-14, Phase 5b2):**
+    - The pin applies only when the default came from the device's own zone. A zone read from the logbook is the same on every device holding that logbook, so it stays derived.
+    - It never applies on a signed-in device before its first sync has finished, because that sync may bring the account's own choice or its legacy logs.
+    - "`state.activeDate` predates the feature" is the device's install verdict (`nodrift_tz_install_v1` = `"upgrade"`, recorded in Phase 5a).
 - **Retirement.** Everywhere `sessionIdWire` is retired (26116, 32933, `resetSession` 26168, and any others the grep finds), retire `sessionTz` in the same statement.
 - **Order at session end:** clear the session (so `sessionHoldsZone` is false) **before** computing the next `activeDate`, or the new day is computed in the old zone.
 
@@ -1082,6 +1086,17 @@ An earlier run was stopped when the laptop came off AC. It had started on batter
 - **5b1:** the clock buttons that open the picker, the settings card and the `RELOCATIONS` swap, hover help, the work-zone confirm, the deferred banner with Undo, local-zone immediate apply, and the sync toast.
 - **5b2:** the label footer (§4.2), the first-launch notice, D5 (the device default and the clock-in pin), a local default of "auto", the guide rewrite (§4.6) and the "nickname via `innerHTML`" mutation.
 
+**5b2 split again (decided 2026-09-14), each part its own commit:**
+
+- **5b2a:** D5 and the local default. Nothing on screen changes for a device with data from before zones.
+- **5b2b:** the clock labels, the first-launch notice, the guide rewrite and the `innerHTML` mutation.
+
+**Decisions asked before 5b2 (2026-09-14):**
+
+- **Label controls:** a "Clock labels" row in the Time zones card opens a small dialog: the style, a nickname for each clock's zone, and a live preview. The picker keeps picking and closing on a tap.
+- **Clock-in pin:** only for a zone taken from the device, and not before a signed-in device's first sync (§3.3).
+- **Notice:** a small dialog that waits its turn the way the takeover offer does.
+
 #### Phase 5a results (2026-09-14)
 
 **Committed as** `feat(time): two live clocks for work and local time`. The clocks are read-only: nothing on screen changes a zone yet.
@@ -1240,6 +1255,71 @@ Anchors: 250, 0 misses. `index.html` was restored byte-identical.
 - **`.custom-select { width: 100% }`** comes later in the stylesheet than the dropdown's own width, and squeezed the "Show log times in" label onto four lines. The dropdown's width now uses two classes.
 - **The banner drew in the number font** (above).
 - **In the harness, no synthesized touch produces a click in headless Chrome**, not even on the Cloud row. Phone taps are checked by where they land, then delivered with `click()`. Switching from desktop to phone metrics without a reload also left a layout viewport about 2800 px tall, so the phone section reloads first.
+
+#### Phase 5b2a results (2026-09-14)
+
+**Committed as** `feat(time): default zones from the device`.
+
+**What changed:**
+
+- **The work zone nobody chose (D5)**, from `derivedWorkZone()`, never stored:
+  - Los Angeles on a device that used nodrift before zones (the install verdict from 5a), or when any log or task has no zone;
+  - otherwise the zone of the most recently changed record, tasks included, with ties broken by zone id;
+  - otherwise the device's own zone.
+
+  It is cached on the verdict, the device zone, `dataVersion` and the two record lists.
+
+  When records arriving move the answer, as when a new device's first sync pulls legacy logs, the funnel runs once. It waits until startup has finished: the logbook loads before the saved state, and an earlier redraw would realign a day that had not been read yet.
+
+- **Clock-in pin:** `pinWorkZoneAtClockIn()` runs wherever a shift gets its zone, in `switchMode` and when an idle lock is resolved as work.
+  - It writes the preference, and stamps it as a settings edit at once.
+  - It only runs when the default came from the device.
+  - A signed-in device skips it until `SyncEngine.lastSyncAt` (a new getter) is set.
+- **Local zone:** unset means automatic. The clocks, the card ("Auto · Dhaka") and the picker (Automatic ticked) agree, and choosing Automatic writes nothing.
+- **Device zone:** read once through `currentDeviceZone()`. `checkDeviceZone()` refreshes it once a minute, and now also when the app becomes visible, gains focus or is restored from the page cache.
+  - A move redraws when the local zone is automatic, or when the work zone is still taken from the device.
+- **Copy diagnostics:** the work line says where a default came from ("by default from device").
+
+**For this team nothing changes.** A device with data from before zones resolves Los Angeles from that data and uploads nothing. The iPhone's automatic local zone is Dhaka.
+
+**Tests.**
+
+- **`probe-tz-ui.js`, 113 checks** (was 93):
+  - **a brand-new user:** the device's zone for work and local, one clock, nothing written, synced or counted as an edit;
+  - **the default from data:** a device from before zones, a logbook holding a log from before zones, and the newest record, tasks included;
+  - **records arriving:** legacy logs redraw the page and realign today;
+  - **the pin:**
+    - written for a brand-new user and stamped as an edit;
+    - not written for a device from before zones, or for a zone read from records;
+    - held on a signed-in device until its first sync;
+    - written when an idle lock is resolved as work;
+  - **an unset local zone:** the card and the picker say Automatic; no formatter is created across 200 reads;
+  - **the device moving:**
+    - a work zone taken from the device follows, with the day and the clock;
+    - a pinned work zone stays put;
+    - an automatic local zone follows, and catches up on focus;
+  - **Pago Pago:** an unset local zone is the device's own;
+  - **edge case 33:** after a factory reset the work zone is a brand-new user's again.
+
+  Every earlier section plays this team's device: the reset helper marks it as predating zones, so the earlier numbers stay comparable.
+
+- **Premise updates, no app defect found.** Their first run failed 60 checks across four suites, all resting on "unset means Los Angeles and Dhaka":
+  - `harness-tz-model`: three checks now state D5;
+  - `harness-tz-core`: section 8 marks the device as predating zones, then restores it;
+  - `harness-tz-display`: its zone reset does the same.
+
+**Regression, one suite at a time:** 24 suites, all green inside one chain, on AC throughout. The baseline numbers are unchanged apart from `probe-tz-ui`.
+
+**Mutations:** 13 new (250–262), all caught, each on the check written for it, on AC throughout:
+
+- **the default:** no device default for a brand-new user; a log filed before zones ignored; the install verdict ignored; the default written to storage;
+- **the pin:** missing at the first clock-in; applied to a zone read from records; applied before a signed-in device's first sync;
+- **moves:** records arriving that move the default without a redraw; a work zone taken from the device ignoring a move of the device;
+- **the local zone:** unset still meaning Dhaka; the device's zone read on every call; not rechecked on focus; the picker marking Dhaka for an unset local zone.
+
+Anchors: 263, 0 misses. `index.html` was restored byte-identical.
+
+**Found while testing:** the probe's reload helper returned as soon as sync was ready, which can come before startup has finished. Two mutations that never touch the redraw also failed the "records arriving" check for that reason. The helper now waits for startup to finish.
 
 ### Phase 6 — Sync hardening, multi-device, iPhone
 
