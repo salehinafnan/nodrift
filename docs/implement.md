@@ -1,19 +1,19 @@
 # Time zones: implementation blueprint
 
-> **Status:** Phases 0–4 complete. Every zone-dependent calculation goes through `TimeZones`, and the zone model exists (unset preferences keep Los Angeles for work and Dhaka for local until Phase 5's UI). Every record is shown, edited, exported and searched in the zone it was filed in. A searchable picker over every time zone exists, reachable only from tests. Phase 5 (status bar, settings card, phone sheet, change flows) is next.
+> **Status:** Phases 0–4 complete. Every zone-dependent calculation goes through `TimeZones`, and the zone model exists (unset preferences keep Los Angeles for work and Dhaka for local until Phase 5's UI). Every record is shown, edited, exported and searched in the zone it was filed in. A searchable picker over every time zone exists, reachable only from tests. Phase 5a is done: the status bar shows live work and local clocks, read-only. Phase 5b1 (clock buttons, settings card, phone sheet, change flows) is next.
 > **Baseline commit:** `9181afa` (all line numbers below refer to it and WILL drift — re-grep before editing).
 > **Rule:** one phase at a time. A phase starts only when the previous phase's exit criteria are green and committed.
 
-| Phase | Title                                                | Touches data?    | Needs live account? | Size              | State       |
-| ----- | ---------------------------------------------------- | ---------------- | ------------------- | ----------------- | ----------- |
-| 0     | Groundwork, probes, fixtures                         | no               | one read-only probe | S                 | **done**    |
-| 1     | `TimeZones` core + behaviour-identical refactor      | no               | regression only     | L (split 1a/1b)   | **done**    |
-| 2     | Data model: work / local / session / record zones    | **yes**          | regression only     | L (split 2a/2b)   | **done**    |
-| 3     | Rendering and editing records in their own zone      | yes (edit paths) | no                  | M–L (split 3a/3b) | **done**    |
-| 4     | The zone picker component                            | no               | no                  | M–L (split 4a/4b) | **done**    |
-| 5     | Status bar, settings card, phone sheet, change flows | prefs            | no                  | L (split 5a/5b)   | not started |
-| 6     | Sync hardening + multi-device + iPhone verification  | no               | **yes**             | M                 | not started |
-| 7     | Cleanup, aliases removed, docs, guide                | no               | full sweep          | S                 | not started |
+| Phase | Title                                                | Touches data?    | Needs live account? | Size                 | State       |
+| ----- | ---------------------------------------------------- | ---------------- | ------------------- | -------------------- | ----------- |
+| 0     | Groundwork, probes, fixtures                         | no               | one read-only probe | S                    | **done**    |
+| 1     | `TimeZones` core + behaviour-identical refactor      | no               | regression only     | L (split 1a/1b)      | **done**    |
+| 2     | Data model: work / local / session / record zones    | **yes**          | regression only     | L (split 2a/2b)      | **done**    |
+| 3     | Rendering and editing records in their own zone      | yes (edit paths) | no                  | M–L (split 3a/3b)    | **done**    |
+| 4     | The zone picker component                            | no               | no                  | M–L (split 4a/4b)    | **done**    |
+| 5     | Status bar, settings card, phone sheet, change flows | prefs            | no                  | L (split 5a/5b1/5b2) | **5a done** |
+| 6     | Sync hardening + multi-device + iPhone verification  | no               | **yes**             | M                    | not started |
+| 7     | Cleanup, aliases removed, docs, guide                | no               | full sweep          | S                    | not started |
 
 ---
 
@@ -1076,6 +1076,83 @@ An earlier run was stopped when the laptop came off AC. It had started on batter
 **Mutations:** inline `display` on the banner; single-zone never collapses; phone label cap removed; ETA formatted in work zone; confirm skipped; `RELOCATIONS` still points at `.tz-presets`.
 
 **Commits:** `feat(time): two live clocks for work and local time` (5a) and `feat(time): choose zones from settings and the phone sheet` (5b), plus `docs(guide): …` separately.
+
+**Split (decided 2026-09-14):** the clocks are read-only in 5a, so a 5a deploy on its own can never change the work zone without the confirmation 5b adds. 5b becomes two parts:
+
+- **5b1:** the clock buttons that open the picker, the settings card and the `RELOCATIONS` swap, hover help, the work-zone confirm, the deferred banner with Undo, local-zone immediate apply, and the sync toast.
+- **5b2:** the label footer (§4.2), the first-launch notice, D5 (the device default and the clock-in pin), a local default of "auto", the guide rewrite (§4.6) and the "nickname via `innerHTML`" mutation.
+
+#### Phase 5a results (2026-09-14)
+
+**Committed as** `feat(time): two live clocks for work and local time`. The clocks are read-only: nothing on screen changes a zone yet.
+
+**What changed:**
+
+- **Gone:**
+  - `#primary-tz`, the `.tz-presets` menu and its trigger, and the static `BST` label;
+  - `updatePrimaryFormatter`, `selectPresetTZ` and `updateTZLabel`;
+  - `tzPref` in `PREF_KEYS` (the storage key stays, and a factory reset still wipes it), and the menu's `FAMILIES` entry;
+  - the phone sheet's Time Zone section, which 5b1 brings back with the settings card.
+- **Clocks:** `#work-clock` shows `getWorkZone()` and `#local-clock` shows `getLocalZone()`.
+  - Each has a label (`.tz-clock-label`) drawn by `renderClockLabels()` from the label policy (§4.5), and a tooltip such as "Work time · Pacific Time (Los Angeles) · UTC−7".
+  - Labels are redrawn once a minute, and at once through `onZoneContextChanged()`, which now also resets the tick's per-second guard.
+  - The tick's minute cache is keyed on the epoch minute and the work zone, because a shift that ends hands over to a pending work zone without passing through the funnel.
+- **Single-zone mode:** `.m-clock-cluster.is-single-zone` hides the divider, the local label and the local clock (I13).
+- **Phone:**
+  - an offset label drops its "UTC" by a stylesheet rule (`+5:30`);
+  - a label is capped at 5.5ch with an ellipsis, so a six-character nickname is cut and a five-character one is not.
+- **Tablet band:** the work clock alone, as before. With the menu's chevron gone the bar fits one line at 1149 px (38 px, was 83 px); it still wraps at 1024 px and below.
+- **Est. EOD:** in the local zone, labelled like the local clock at the finish instant.
+- **D3:** `seedZoneLabels()` runs while the script is evaluated, before Sync takes its preference baseline.
+  - On the first launch of this build it records `nodrift_tz_install_v1` as "upgrade" (the device already holds state or logs) or "fresh".
+  - An upgrade with no display preference gets `{ nicknames: { "Asia/Dhaka": "BST" } }`, so this team's screens still read BST.
+  - The verdict is device-local and wiped by a factory reset. 5b2's first-launch notice will read it.
+- **Guide:** the passages that described the PST/MST/CST/EST menu and the fixed BST clock now describe the two clocks. The full rewrite is 5b2.
+
+**Tests.**
+
+- **`probe-tz-ui.js`, 51 checks** (ports 8876/9476):
+  - **D3:**
+    - a fresh install is fresh, and stays fresh after its first boot;
+    - an upgrade gets BST, and the estimate uses it;
+    - the seed is not a settings edit (I11);
+    - a removed nickname stays removed, and an existing display preference is kept;
+    - a factory reset forgets the verdict;
+  - **old chrome:** the menu and `tzPref` are gone, and the zone preferences still sync;
+  - **labels:**
+    - both clocks' times and labels, PDT in July and PST in January, and the tooltips;
+    - the offset, generic and nickname styles;
+    - a hostile stored nickname is ignored and never becomes markup;
+  - **zone changes:**
+    - the label changes at once on a zone change, and a work zone other than Los Angeles is shown;
+    - single-zone mode by class, with two spellings of one zone counting as one (I7), and the second clock coming back;
+    - the estimate in the local zone;
+    - the hand-over at the end of a shift within one minute;
+  - **cost and device zone:** 3 s of ticks on a settled page create no formatter; the same results under device zone Pago Pago;
+  - **geometry:**
+    - 1440, 1280, 1149, 1024, 820, 768, 430, 390 and 375 px in four themes;
+    - the pane ratio against the baseline measured before 5a: 1440 px 1.498 (was 1.512), 1280 px 1.709 (was 1.729);
+    - the longest labels on a 375 px phone (edge case 38), the phone cap, and single-zone mode on the phone.
+- **`harness-progress.js`:** the ETA pattern accepts any label.
+- **`harness-phase8.js`:** the parity case moves from `tzPref` to `workTz`, set to `America/Vancouver`. It keeps Los Angeles' clocks all year, so no date on the shared account moves.
+
+**Regression, one suite at a time — at baseline.** 24 suites, with `probe-tz-ui` (51) first. Every other suite read the same number as after Phase 4, `harness-phase8` 13 with its new case.
+
+- `harness-signin-render` failed "signing in to an empty account uploads nothing" inside the chain, the same check as in earlier chains. It passed 12 of 12 alone.
+- The laptop came off AC near the end of the chain. Nothing timing-graded failed; `probe-tz-picker` ran in its first minute.
+
+**Mutations:** 10 new, all caught, each on the check written for it, on AC throughout:
+
+- the plan's four that apply to 5a: single-zone mode never collapses; the second clock hidden by an inline display; no phone label cap; the estimate in the work zone;
+- labels ignoring daylight saving; the minute cache ignoring the work zone; the work clock stuck on Los Angeles;
+- the D3 seed ignoring the verdict; the seed on fresh installs; `tzPref` still synced.
+
+The plan's other two, the banner's inline display and `RELOCATIONS` still pointing at `.tz-presets`, belong to 5b1. Anchors: 237, 0 misses. `index.html` was restored byte-identical.
+
+**Two faults the first run of the probe found:**
+
+- **A flex label reads "UTC", a line break, then "+6".** `inline-flex` makes each of the two spans its own block, which is invisible on screen and wrong in anything that copies or reads the text. The label is `inline-block`.
+- **`scrollWidth` counts a closed popover.** At 1149 px the goal presets, laid out at opacity 0, reached 55 px past the bar. The probe measures only what is painted.
 
 ### Phase 6 — Sync hardening, multi-device, iPhone
 
