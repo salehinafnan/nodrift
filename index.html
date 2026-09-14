@@ -5721,6 +5721,131 @@
         pointer-events: none;
       }
 
+      /* Zone picker (docs/implement.md §4.2).
+
+         One scroller. The container is a fixed-height column and only the
+         list scrolls: on the phone sheet a scroller inside a scroller fights
+         the sheet for the same drag, the reason the cloud panel was split
+         into bands. Rows are sized by class, never inline, and skip layout
+         and paint while off screen. */
+      #zone-picker-modal > .modal-container {
+        width: 520px;
+        max-width: 95vw;
+        height: min(640px, 85vh);
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .zone-picker-search {
+        position: relative;
+        flex: none;
+        margin-bottom: var(--space-2);
+      }
+
+      /* 36px: the help search's 32px would read as a short standalone field
+         to probe-field-sweep, and this is the dialog's main control. */
+      #zone-picker-search {
+        height: 36px;
+        padding-left: 2.2rem;
+        font-size: var(--text-sm);
+      }
+
+      .zone-picker-search .help-search-icon {
+        position: absolute;
+        left: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        pointer-events: none;
+      }
+
+      .zone-picker-hint {
+        flex: none;
+        margin: 0 0 var(--space-2);
+        font-size: 0.75rem;
+        color: var(--text-muted);
+      }
+
+      .zone-picker-list {
+        flex: 1;
+        min-height: 0;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+      }
+
+      /* The phone sheet's section label, borrowed (.m-sheet-slot::before). */
+      .zone-picker-heading {
+        margin: var(--space-3) var(--space-2) 0.35rem;
+        font-size: 0.68rem;
+        font-weight: 700;
+        letter-spacing: 0.07em;
+        color: var(--text-muted);
+      }
+
+      .zone-picker-heading:first-child {
+        margin-top: var(--space-1);
+      }
+
+      .zone-picker-row {
+        display: flex;
+        align-items: center;
+        gap: var(--space-2);
+        min-height: 40px;
+        padding: 3px var(--space-2);
+        border-radius: var(--radius-md);
+        cursor: pointer;
+        content-visibility: auto;
+        contain-intrinsic-size: auto 40px;
+      }
+
+      .zone-picker-row:hover,
+      .zone-picker-row.is-active {
+        background: var(--element-hover);
+      }
+
+      .zone-picker-check {
+        flex: none;
+        width: 1rem;
+        color: var(--accent-blue);
+        font-weight: 700;
+        text-align: center;
+      }
+
+      .zone-picker-place {
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+        font-size: var(--text-sm);
+        color: var(--text-main);
+      }
+
+      .zone-picker-country {
+        color: var(--text-muted);
+      }
+
+      .zone-picker-meta {
+        flex: none;
+        text-align: right;
+        font-size: 0.72rem;
+        line-height: 1.3;
+        color: var(--text-muted);
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+      }
+
+      .zone-picker-time {
+        display: block;
+        color: var(--text-main);
+      }
+
+      .zone-picker-empty {
+        padding: var(--space-4) var(--space-2);
+        font-size: var(--text-sm);
+        color: var(--text-muted);
+      }
+
       /* Help Modal specific tab layouts */
       .help-tab-nav {
         display: flex;
@@ -8779,6 +8904,20 @@
           padding-top: 1.15rem;
         }
 
+        /* The zone picker takes the same full-width sheet as help, and its
+           rows the 44px touch target. The id outranks the sheet's own
+           `.modal-container { overflow-y: auto }`, which would otherwise
+           make the sheet a second scroller around the list. */
+        #zone-picker-modal > .modal-container {
+          height: 88svh;
+          overflow: hidden;
+        }
+
+        .zone-picker-row {
+          min-height: 44px;
+          contain-intrinsic-size: auto 44px;
+        }
+
         /* 2-column form rows and action row for compact modal layout */
         .modal-container .form-row {
           flex-direction: row;
@@ -9707,6 +9846,65 @@
 
     <!-- Sync Session Toast Notification -->
     <div id="sync-toast"></div>
+
+    <!-- Zone picker (docs/implement.md §4.2): ZonePicker.open(). Nothing
+         opens it until Phase 5 gives it its triggers. -->
+    <div id="zone-picker-modal" class="modal-overlay">
+      <div
+        class="modal-container"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="zone-picker-title"
+      >
+        <button
+          class="modal-close-btn"
+          aria-label="Close"
+          onclick="closeZonePicker()"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+        <h3 id="zone-picker-title" class="modal-header">Time zone</h3>
+        <div class="zone-picker-search">
+          <input
+            type="text"
+            id="zone-picker-search"
+            class="input-standard"
+            placeholder="Search city, country, zone or UTC offset"
+            autocomplete="off"
+            spellcheck="false"
+            role="combobox"
+            aria-expanded="true"
+            aria-autocomplete="list"
+            aria-controls="zone-picker-list"
+          />
+          <svg
+            class="help-search-icon"
+            viewBox="0 0 24 24"
+            width="14"
+            height="14"
+            fill="none"
+            stroke="var(--text-muted)"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <g data-sprite="sprite-026"></g>
+          </svg>
+        </div>
+        <p id="zone-picker-hint" class="zone-picker-hint" hidden>
+          Searching all time zones…
+        </p>
+        <div
+          id="zone-picker-list"
+          class="zone-picker-list"
+          role="listbox"
+          aria-label="Time zones"
+        ></div>
+      </div>
+    </div>
 
     <!-- Help & User Guide Modal -->
     <div id="help-modal" class="modal-overlay">
@@ -18984,6 +19182,429 @@
           fold,
         };
       })();
+
+      /*==========================================================================
+       * 3d. ZONE PICKER
+       *
+       * ZonePicker.open({ role, current, onPick }): the searchable list of
+       * every time zone (docs/implement.md §4.2). role is "work" or "local";
+       * only the local picker offers Automatic, which onPick receives as
+       * "auto". Tapping a row, or Enter on the highlighted one, picks it and
+       * closes. The nickname and label-style controls arrive in Phase 5 with
+       * the clocks that show them.
+       *
+       * It is a .modal-overlay opened by inline display, like every dialog
+       * here, so the takeover offer waits behind it, the keyboard layer traps
+       * Tab and routes Escape to closeZonePicker(), and the phone gives it the
+       * help modal's sheet.
+       *
+       * Every label goes in with textContent (I14). A row is built once per
+       * zone and section and reused by every search after; its time, offset
+       * and abbreviation are filled only once it scrolls into view (§3.11).
+       * =========================================================================*/
+      const ZonePicker = (() => {
+        const RERENDER_MS = 300;
+        const RELABEL_MS = 15000;
+        /* Rows drawn before the first paint: a screenful and some. The rest
+           follow in small tasks, so opening costs about the same with 400
+           zones as with 40 (§3.11: first paint under 100 ms at 4x; drawing
+           all 421 rows at once measured 137-153 ms). */
+        const FIRST_ROWS = 24;
+        const CHUNK_ROWS = 60;
+
+        let state = null; // { role, current, onPick } while open
+        let opener = null;
+        let choices = []; // [{ index, key, id, city, country, row }] in order
+        let items = []; // the choices and their section headings, in order
+        let painted = 0; // how many of items are in the list so far
+        let generation = 0;
+        let active = -1;
+        let lastQuery = null;
+        let lastRender = 0;
+        let observer = null;
+        let relabelTimer = null;
+        let wired = false;
+        const visible = new Set();
+        const rows = new Map();
+
+        const byId = (id) => document.getElementById(id);
+
+        function wire() {
+          if (wired) return;
+          wired = true;
+          const input = byId("zone-picker-search");
+          const list = byId("zone-picker-list");
+          input.addEventListener("input", () => render());
+          input.addEventListener("keydown", onSearchKey);
+          list.addEventListener("click", (e) => {
+            const row = e.target.closest(".zone-picker-row");
+            if (row && list.contains(row)) pick(Number(row.dataset.index));
+          });
+          /* Type-ahead: a printable key pressed anywhere while the picker is
+             up goes to the search field, which is where it was meant. Its
+             default action still types the character there; stopping it
+             here keeps the app's own shortcuts (Space starts the timer) from
+             reading a letter meant for the search. */
+          document.addEventListener(
+            "keydown",
+            (e) => {
+              if (!state || e.target === input) return;
+              if (e.key.length !== 1 || e.ctrlKey || e.metaKey || e.altKey) {
+                return;
+              }
+              input.focus();
+              e.stopPropagation();
+            },
+            true,
+          );
+        }
+
+        function onSearchKey(e) {
+          const n = choices.length;
+          const nav =
+            e.key === "ArrowDown" ||
+            e.key === "ArrowUp" ||
+            e.key === "Home" ||
+            e.key === "End";
+          if (nav) {
+            e.preventDefault();
+            e.stopPropagation();
+            if (!n) return;
+            if (e.key === "Home") setActive(0);
+            else if (e.key === "End") setActive(n - 1);
+            else {
+              const step = e.key === "ArrowDown" ? 1 : -1;
+              setActive(
+                active < 0
+                  ? step > 0
+                    ? 0
+                    : n - 1
+                  : Math.max(0, Math.min(n - 1, active + step)),
+              );
+            }
+          } else if (e.key === "Enter") {
+            /* Stopped here: the keyboard layer's Enter would otherwise act on
+               a dialog it has no confirm action for. */
+            e.preventDefault();
+            e.stopPropagation();
+            if (n) pick(active >= 0 ? active : 0);
+          }
+        }
+
+        function setActive(i) {
+          const input = byId("zone-picker-search");
+          const before = choices[active];
+          if (before && before.row) before.row.classList.remove("is-active");
+          active = i;
+          const now = choices[active];
+          if (now && !now.row) paintUntil(() => !!now.row);
+          if (now && now.row) {
+            now.row.classList.add("is-active");
+            input.setAttribute("aria-activedescendant", now.row.id);
+            now.row.scrollIntoView({ block: "nearest" });
+          } else {
+            input.removeAttribute("aria-activedescendant");
+          }
+        }
+
+        function part(tag, className, parent) {
+          const node = document.createElement(tag);
+          node.className = className;
+          parent.appendChild(node);
+          return node;
+        }
+
+        function rowFor(key) {
+          let row = rows.get(key);
+          if (row) return row;
+          row = document.createElement("div");
+          row.className = "zone-picker-row";
+          row.id = `zone-picker-option-${rows.size}`;
+          row.setAttribute("role", "option");
+          row.zpCheck = part("span", "zone-picker-check", row);
+          row.zpCheck.setAttribute("aria-hidden", "true");
+          const place = part("span", "zone-picker-place", row);
+          row.zpCity = part("span", "zone-picker-city", place);
+          row.zpCountry = part("span", "zone-picker-country", place);
+          const meta = part("span", "zone-picker-meta", row);
+          row.zpTime = part("span", "zone-picker-time", meta);
+          row.zpZone = part("span", "zone-picker-zone", meta);
+          rows.set(key, row);
+          return row;
+        }
+
+        function headingFor(key, text) {
+          let node = rows.get(key);
+          if (!node) {
+            node = document.createElement("div");
+            node.className = "zone-picker-heading";
+            node.setAttribute("aria-hidden", "true");
+            node.textContent = text;
+            rows.set(key, node);
+          }
+          return node;
+        }
+
+        /* The time, offset and abbreviation for one row, redone once a
+           minute at most. */
+        function label(row) {
+          const zone =
+            row.dataset.zone === "auto"
+              ? TimeZones.deviceZone()
+              : row.dataset.zone;
+          const now = Date.now();
+          const stamp = `${zone}|${Math.floor(now / 60000)}`;
+          if (row.zpStamp === stamp) return;
+          const facts = ZoneCatalog.describe(zone, now);
+          if (!facts) return;
+          row.zpStamp = stamp;
+          row.zpTime.textContent = facts.time;
+          row.zpZone.textContent = facts.abbr
+            ? `${facts.abbr} · ${facts.offsetText}`
+            : facts.offsetText;
+        }
+
+        function watch(row) {
+          if (typeof IntersectionObserver !== "function") {
+            label(row);
+            return;
+          }
+          if (!observer) {
+            observer = new IntersectionObserver(
+              (seen) => {
+                seen.forEach((x) => {
+                  if (x.isIntersecting) {
+                    visible.add(x.target);
+                    label(x.target);
+                  } else {
+                    visible.delete(x.target);
+                  }
+                });
+              },
+              { root: byId("zone-picker-list"), rootMargin: "120px 0px" },
+            );
+          }
+          observer.observe(row);
+        }
+
+        /* Appends items to the list until done() says to stop. A choice gets
+           its row only here, which is why a keyboard move past the painted
+           end paints up to where it lands. */
+        function paintUntil(done) {
+          if (!state) return;
+          const list = byId("zone-picker-list");
+          const frag = document.createDocumentFragment();
+          while (painted < items.length && !done()) {
+            const item = items[painted++];
+            if (item.heading) {
+              frag.appendChild(headingFor(item.heading, item.text));
+              continue;
+            }
+            const row = rowFor(item.key);
+            row.dataset.zone = item.id;
+            row.dataset.index = String(item.index);
+            if (row.zpCity.textContent !== item.city) {
+              row.zpCity.textContent = item.city;
+            }
+            if (row.zpCountry.textContent !== item.country) {
+              row.zpCountry.textContent = item.country;
+            }
+            const selected = item.id === state.current;
+            row.setAttribute("aria-selected", selected ? "true" : "false");
+            row.zpCheck.textContent = selected ? "✓" : "";
+            row.classList.remove("is-active");
+            item.row = row;
+            frag.appendChild(row);
+            watch(row);
+          }
+          list.appendChild(frag);
+        }
+
+        function render() {
+          if (!state) return;
+          const input = byId("zone-picker-search");
+          const list = byId("zone-picker-list");
+          const query = input.value;
+          const blank = query.trim() === "";
+          const found = ZoneCatalog.search(query);
+          const hint = byId("zone-picker-hint");
+          const searching = !blank && found.pending;
+          if (hint.hidden === searching) hint.hidden = !searching;
+
+          const keepId =
+            query === lastQuery && choices[active] ? choices[active].id : null;
+          const next = [];
+          const ordered = [];
+          const add = (key, id, city, country) => {
+            const choice = { index: next.length, key, id, city, country };
+            choice.row = null;
+            next.push(choice);
+            ordered.push(choice);
+          };
+          const heading = (key, text) => ordered.push({ heading: key, text });
+          const place = (e, note) =>
+            [e.country, note]
+              .filter(Boolean)
+              .map((t) => ` · ${t}`)
+              .join("");
+
+          if (blank) {
+            const device = TimeZones.deviceZone();
+            const shown = new Set();
+            heading("h|suggested", "SUGGESTED");
+            if (state.role === "local") {
+              add(
+                "s|auto",
+                "auto",
+                "Automatic",
+                ` · use this device’s time zone (${TimeZones.city(device)})`,
+              );
+            }
+            const current =
+              state.current && state.current !== "auto"
+                ? ZoneCatalog.entry(state.current)
+                : null;
+            const here = ZoneCatalog.entry(device);
+            [current, here].forEach((e) => {
+              if (!e || shown.has(e.id)) return;
+              shown.add(e.id);
+              const note = here && e.id === here.id ? "this device" : "";
+              add(`s|${e.id}`, e.id, e.city, place(e, note));
+            });
+            const recent = ZoneCatalog.recents()
+              .map((z) => ZoneCatalog.entry(z))
+              .filter((e) => e && !shown.has(e.id));
+            if (recent.length) {
+              heading("h|recent", "RECENT");
+              recent.forEach((e) => {
+                shown.add(e.id);
+                add(`r|${e.id}`, e.id, e.city, place(e, ""));
+              });
+            }
+            heading("h|all", "ALL TIME ZONES");
+          }
+          found.results.forEach((e) =>
+            add(`a|${e.id}`, e.id, e.city, place(e, "")),
+          );
+          list.textContent = "";
+          if (!blank && !found.results.length && !found.pending) {
+            const empty = document.createElement("p");
+            empty.className = "zone-picker-empty";
+            empty.textContent = `No time zone matches “${query.trim()}”.`;
+            list.appendChild(empty);
+          }
+          choices = next;
+          items = ordered;
+          painted = 0;
+          active = -1;
+          const gen = ++generation;
+          paintUntil(() => {
+            const last = items[painted - 1];
+            return !!last && !last.heading && last.index >= FIRST_ROWS - 1;
+          });
+          /* The rest of the list, a chunk per task. A newer render or a
+             close supersedes it. */
+          const more = () => {
+            if (gen !== generation || !state) return;
+            const stop = painted + CHUNK_ROWS;
+            paintUntil(() => painted >= stop);
+            if (painted < items.length) setTimeout(more, 0);
+          };
+          if (painted < items.length) setTimeout(more, 0);
+          if (query !== lastQuery) list.scrollTop = 0;
+          lastQuery = query;
+          lastRender = Date.now();
+          const keep = keepId ? next.findIndex((c) => c.id === keepId) : -1;
+          if (keep >= 0) setActive(keep);
+          else if (!blank && next.length) setActive(0);
+          else setActive(-1);
+        }
+
+        /* A live query picks up offsets, abbreviations and names as the index
+           gathers them, without redrawing on every one of its ~100 slices. */
+        function onIndexProgress(s) {
+          if (!state) return;
+          const input = byId("zone-picker-search");
+          if (input.value.trim() === "") {
+            if (s.indexDone) byId("zone-picker-hint").hidden = true;
+            return;
+          }
+          if (s.indexDone || Date.now() - lastRender >= RERENDER_MS) render();
+        }
+
+        function open(options) {
+          const o = options || {};
+          wire();
+          const role = o.role === "local" ? "local" : "work";
+          state = {
+            role,
+            current:
+              role === "local" && o.current === "auto"
+                ? "auto"
+                : TimeZones.sanitize(o.current, null),
+            onPick: typeof o.onPick === "function" ? o.onPick : null,
+          };
+          opener = document.activeElement;
+          byId("zone-picker-title").textContent =
+            role === "local" ? "Local time zone" : "Work time zone";
+          byId("zone-picker-search").value = "";
+          lastQuery = null;
+          render();
+          byId("zone-picker-modal").style.display = "flex";
+          /* Desktop only: focusing a field on the phone raises its keyboard
+             over the list the user came to look at. */
+          if (!isPhoneLayout()) byId("zone-picker-search").focus();
+          ZoneCatalog.buildIndex({ onProgress: onIndexProgress });
+          clearInterval(relabelTimer);
+          relabelTimer = setInterval(() => visible.forEach(label), RELABEL_MS);
+          return true;
+        }
+
+        function close() {
+          const modal = byId("zone-picker-modal");
+          const wasOpen = !!state;
+          state = null;
+          clearInterval(relabelTimer);
+          relabelTimer = null;
+          if (observer) observer.disconnect();
+          observer = null;
+          visible.clear();
+          if (modal && modal.style.display !== "none") {
+            modal.style.display = "none";
+          }
+          if (wasOpen && opener && document.contains(opener)) {
+            try {
+              opener.focus();
+            } catch (e) {}
+          }
+          opener = null;
+        }
+
+        function pick(index) {
+          const choice = choices[index];
+          if (!choice || !state) return;
+          const onPick = state.onPick;
+          if (choice.id !== "auto") ZoneCatalog.remember(choice.id);
+          close();
+          if (onPick) {
+            try {
+              onPick(choice.id);
+            } catch (e) {
+              console.error("ZonePicker onPick failed", e);
+            }
+          }
+        }
+
+        return {
+          open,
+          close,
+          isOpen: () => !!state,
+        };
+      })();
+
+      function closeZonePicker() {
+        ZonePicker.close();
+      }
 
       /*==========================================================================
        * 4. SYSTEM CLOCK POLICY
@@ -34841,6 +35462,7 @@
         "conflict-wizard-modal",
         "heatmap-modal",
         "add-leave-type-modal",
+        "zone-picker-modal",
       ]);
 
       function isModalVisible(el) {
@@ -35044,6 +35666,7 @@
         if (typeof closePresetModal === "function") closePresetModal();
         if (typeof closeAddLeaveTypeModal === "function")
           closeAddLeaveTypeModal();
+        if (typeof closeZonePicker === "function") closeZonePicker();
 
         // Both helpers are idempotent, so the previous contains("show") guards are redundant.
         if (typeof window.closeFooterPopups === "function")
@@ -35089,6 +35712,7 @@
         "lease-modal": () => closeLeaseModal(),
         "preset-modal": () => closePresetModal(),
         "add-leave-type-modal": () => closeAddLeaveTypeModal(),
+        "zone-picker-modal": () => closeZonePicker(),
       });
 
       /* Dismisses only the dialog on top, so Escape inside a nested dialog does
