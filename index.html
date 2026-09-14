@@ -18375,11 +18375,9 @@
         };
       })();
 
-      /* Where the second clock pointed before local zones existed, and what
-         an unset preference still means. Both defaults stay as they were
-         until a user can see and change the setting (Phase 5 of
-         docs/implement.md): changing a default nobody can see would silently
-         move somebody's day. */
+      /* Where the second clock pointed before local zones existed. No longer
+         a default -- an unset local zone follows the device -- only the zone
+         decision D3 keeps the "BST" nickname for. */
       const LEGACY_LOCAL_TZ = "Asia/Dhaka";
 
       /* A settings blob, a backup and localStorage are all things somebody
@@ -18423,15 +18421,21 @@
         let work = null;
         let local = null;
         let display = null;
+        let install = null;
         try {
           work = localStorage.getItem(WORK_TZ_KEY);
           local = localStorage.getItem(LOCAL_TZ_KEY);
+          install = localStorage.getItem(TZ_INSTALL_KEY);
           display = JSON.parse(localStorage.getItem(TZ_DISPLAY_KEY) || "null");
         } catch (e) {}
         _zonePrefs = {
           work: TimeZones.sanitize(work, null),
           local: local === "auto" ? "auto" : TimeZones.sanitize(local, null),
           display: isZoneDisplayPref(display) ? display : null,
+          /* Not a preference: whether this device used nodrift before zones
+             (seedZoneLabels). Cached with them because the work zone's
+             default reads it many times a tick. */
+          upgrade: install === "upgrade",
         };
         return _zonePrefs;
       }
@@ -18457,9 +18461,113 @@
         return false;
       }
 
-      /* The work zone the user chose, whatever is running. */
+      let _lastDeviceZone = null;
+      let _deviceZoneCheckMin = -1;
+
+      /* The device's own zone, as last read by checkDeviceZone(): once a
+         minute from the tick, and whenever the app comes back to the
+         foreground. Reading it builds a formatter, and an unset local zone
+         asks for it on every clock draw. */
+      function currentDeviceZone() {
+        if (_lastDeviceZone === null) _lastDeviceZone = TimeZones.deviceZone();
+        return _lastDeviceZone;
+      }
+
+      let _derivedWork = null;
+
+      /* Decision D5: the work zone of somebody who has not chosen one
+         (docs/implement.md §3.3). Worked out from what the device holds, so
+         devices with the same logbook agree, and never written anywhere
+         (I11):
+         - a device that used nodrift before zones, or any log or task filed
+           without a zone, means Los Angeles, where all of those were filed;
+         - otherwise the zone of the most recently changed record;
+         - otherwise, for a brand-new user, the device's own zone.
+         Kept until what it read changes. When records arriving move the
+         answer -- the first sync of a new device pulling legacy logs -- the
+         funnel runs once, after the caller has its answer; a move of the
+         device's zone is checkDeviceZone's to announce. Not before startup
+         has finished: the logbook loads before the saved state does, and a
+         redraw in between would realign a day that has not been read yet. */
+      function derivedWorkZone() {
+        const prefs = readZonePrefs();
+        const device = currentDeviceZone();
+        let logs = [];
+        let tasks = [];
+        let version = 0;
+        try {
+          logs = Array.isArray(cachedLogs) ? cachedLogs : [];
+          tasks = Array.isArray(cachedTaskLogs) ? cachedTaskLogs : [];
+          version = dataVersion;
+        } catch (e) {}
+        const was = _derivedWork;
+        if (
+          was &&
+          was.upgrade === prefs.upgrade &&
+          was.device === device &&
+          was.version === version &&
+          was.logs === logs &&
+          was.logCount === logs.length &&
+          was.tasks === tasks &&
+          was.taskCount === tasks.length
+        ) {
+          return was;
+        }
+        let zone = device;
+        let source = "device";
+        if (prefs.upgrade) {
+          zone = LEGACY_TZ;
+          source = "legacy";
+        } else {
+          let newestAt = -Infinity;
+          scan: for (const list of [logs, tasks]) {
+            for (let i = 0; i < list.length; i++) {
+              const r = list[i];
+              if (!r) continue;
+              const tz = TimeZones.sanitize(r.tz, null);
+              if (!tz) {
+                zone = LEGACY_TZ;
+                source = "legacy";
+                break scan;
+              }
+              const at = Number(r.lastModified) || 0;
+              /* Ties broken by the id itself, so the order records happen
+                 to be held in cannot make two devices disagree. */
+              if (at > newestAt || (at === newestAt && tz < zone)) {
+                newestAt = at;
+                zone = tz;
+                source = "records";
+              }
+            }
+          }
+        }
+        _derivedWork = {
+          zone,
+          source,
+          upgrade: prefs.upgrade,
+          device,
+          version,
+          logs,
+          logCount: logs.length,
+          tasks,
+          taskCount: tasks.length,
+        };
+        if (
+          was &&
+          was.device === device &&
+          !prefs.work &&
+          window.bootCompletedAt &&
+          !TimeZones.same(was.zone, zone)
+        ) {
+          setTimeout(onZoneContextChanged, 0);
+        }
+        return _derivedWork;
+      }
+
+      /* The work zone the user chose, whatever is running -- or, until they
+         choose one, the default decision D5 works out. */
       function getPreferredWorkZone() {
-        return readZonePrefs().work || LEGACY_TZ;
+        return readZonePrefs().work || derivedWorkZone().zone;
       }
 
       /* The zone business logic uses: what "today" is, when a shift rolls
@@ -18478,11 +18586,11 @@
       }
 
       /* The zone the second clock and the finish estimate are shown in.
-         Display only (I10): nothing stored ever depends on it. */
+         Display only (I10): nothing stored ever depends on it. Unset means
+         automatic, the device's own zone (docs/implement.md §3.3). */
       function getLocalZone() {
         const v = readZonePrefs().local;
-        if (v === "auto") return TimeZones.deviceZone();
-        return v || LEGACY_LOCAL_TZ;
+        return v && v !== "auto" ? v : currentDeviceZone();
       }
 
       /* The zone a record was filed in. A record without one predates zones
@@ -18592,6 +18700,41 @@
         return true;
       }
 
+      /* Decision D5's second half: a work zone taken from the device becomes
+         a real choice when a shift first depends on it. The device's zone can
+         move -- travel, the OS setting -- and a user's day must not move with
+         it. This is the one default that is ever uploaded (I11). A zone
+         worked out from the logbook is not pinned: every device holding the
+         same records already agrees on it. A signed-in device that has not
+         finished a sync yet leaves it to a later shift, because that first
+         sync may bring the account's own choice or its legacy logs. */
+      function pinWorkZoneAtClockIn() {
+        if (readZonePrefs().work) return false;
+        const derived = derivedWorkZone();
+        if (derived.source !== "device") return false;
+        try {
+          if (SyncNet.signedIn && !SyncEngine.lastSyncAt) return false;
+        } catch (e) {}
+        try {
+          localStorage.setItem(WORK_TZ_KEY, derived.zone);
+        } catch (e) {
+          return false;
+        }
+        /* The zone in effect is the same one, so there is nothing to redraw;
+           only the cached preferences are out of date. */
+        _zonePrefs = null;
+        /* Stamped at the clock-in, rather than whenever the next beat
+           happens to notice the preference. */
+        if (
+          window.bootCompletedAt &&
+          window.Sync &&
+          typeof Sync.notePrefsChanged === "function"
+        ) {
+          Sync.notePrefsChanged();
+        }
+        return true;
+      }
+
       /* Decision D3: this team's second clock has always said "BST", so a
          device that used nodrift before zones keeps that name for Dhaka, as a
          nickname that can be changed like any other. Decided once per device,
@@ -18612,18 +18755,17 @@
               TZ_DISPLAY_KEY,
               JSON.stringify({ nicknames: { [LEGACY_LOCAL_TZ]: "BST" } }),
             );
-            _zonePrefs = null;
           }
+          _zonePrefs = null;
         } catch (e) {}
       }
       seedZoneLabels();
 
-      let _lastDeviceZone = null;
-      let _deviceZoneCheckMin = -1;
-
       /* A device changes zone under a running page (travel, or the OS
-         setting). It matters only to a local zone of "auto", and only to the
-         display, so a look once a minute is enough. */
+         setting). That matters to a local zone left automatic, and to a work
+         zone still taken from the device (D5, until a clock-in pins it). A
+         look once a minute from the tick, and whenever the app comes back to
+         the foreground. */
       function checkDeviceZone() {
         const z = TimeZones.deviceZone();
         if (_lastDeviceZone === null || z === _lastDeviceZone) {
@@ -18631,7 +18773,11 @@
           return false;
         }
         _lastDeviceZone = z;
-        if (readZonePrefs().local === "auto") onZoneContextChanged();
+        const prefs = readZonePrefs();
+        const localFollows = !prefs.local || prefs.local === "auto";
+        const workFollows =
+          !prefs.work && derivedWorkZone().source === "device";
+        if (localFollows || workFollows) onZoneContextChanged();
         return true;
       }
 
@@ -23075,6 +23221,11 @@
             listeners.add(fn);
             return () => listeners.delete(fn);
           },
+          /* Zero until a sync cycle has completed since the page loaded.
+             Cheap, unlike status(). */
+          get lastSyncAt() {
+            return lastSyncAt;
+          },
           status() {
             /* deriveOutbox walks the whole logbook, so it runs once here and
                is handed to describe rather than being called again inside
@@ -25947,7 +26098,7 @@
         if (role === "local") {
           return ZonePicker.open({
             role: "local",
-            current: readZonePrefs().local || LEGACY_LOCAL_TZ,
+            current: readZonePrefs().local || "auto",
             onPick: chooseLocalZone,
           });
         }
@@ -26037,7 +26188,8 @@
         const next =
           value === "auto" ? "auto" : TimeZones.sanitize(value, null);
         if (!next) return false;
-        const current = readZonePrefs().local || LEGACY_LOCAL_TZ;
+        /* Unset is automatic, so choosing Automatic then writes nothing. */
+        const current = readZonePrefs().local || "auto";
         if (
           next === "auto" ? current === "auto" : TimeZones.same(next, current)
         ) {
@@ -26090,9 +26242,9 @@
         const local = readZonePrefs().local;
         setText(
           DOM.tzLocalValue,
-          local === "auto"
-            ? `Auto · ${TimeZones.city(TimeZones.deviceZone())}`
-            : read(local || LEGACY_LOCAL_TZ),
+          local && local !== "auto"
+            ? read(local)
+            : `Auto · ${TimeZones.city(currentDeviceZone())}`,
         );
         /* The custom dropdown redraws its trigger when this value is set. */
         const select = DOM.tzLogTimesSelect;
@@ -27218,6 +27370,7 @@
             /* The preferred zone, not getWorkZone(): the mode is already
                set, so the session reads as live and has no zone yet. */
             state.sessionTz = getPreferredWorkZone();
+            pinWorkZoneAtClockIn();
             state.shiftStartGoalSec =
               domWriteCache._goalSecCached ||
               getGoalSeconds(
@@ -28827,6 +28980,7 @@
             state.loginTimestamp = resolutionTime - totalIdleSeconds * 1000;
             state.sessionIdWire = mintSessionId(state.loginTimestamp);
             state.sessionTz = getPreferredWorkZone();
+            pinWorkZoneAtClockIn();
           }
         } else if (choice === "break") {
           state.breakAccumulated =
@@ -35861,6 +36015,9 @@
           renewLease(true);
           syncTickerState();
         } else {
+          /* First, so a wake-up that crosses a day does it in the zone the
+             device is in now, when the work zone still follows it (D5). */
+          checkDeviceZone();
           syncTickerState();
           renewLease(true);
           handleWakeUpRecovery();
@@ -35869,6 +36026,7 @@
 
       // Handle deep OS wake events that don't trigger standard visibility changes
       window.addEventListener("focus", () => {
+        checkDeviceZone();
         handleWakeUpRecovery();
       });
 
@@ -35880,6 +36038,7 @@
         } catch (e) {
           /* lease renewal is best-effort; checkLeaseState below also runs */
         }
+        checkDeviceZone();
         syncTickerState();
         handleWakeUpRecovery();
         if (typeof remeasureVirtualScrollers === "function") {
@@ -37925,7 +38084,8 @@
                 const s = currentState();
                 const pending = pendingWorkZone();
                 return (
-                  `${getWorkZone()} (preferred ${getPreferredWorkZone()}, ` +
+                  `${getWorkZone()} (preferred ${getPreferredWorkZone()}` +
+                  `${readZonePrefs().work ? "" : ` by default from ${derivedWorkZone().source}`}, ` +
                   `shift ${(s && s.sessionTz) || "none"}` +
                   `${pending ? `, changes to ${pending} after it` : ""})`
                 );
@@ -37938,7 +38098,7 @@
             "local",
             (() => {
               try {
-                const setting = readZonePrefs().local || "default";
+                const setting = readZonePrefs().local || "automatic";
                 return `${getLocalZone()} (setting ${setting}, device ${TimeZones.deviceZone()}, v${TimeZones.version})`;
               } catch (e) {
                 return "unavailable";
