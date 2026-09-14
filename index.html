@@ -1009,20 +1009,11 @@
           3.3. SF THEMES-SPECIFIC HARMONIZATION OVERRIDES (GEOMETRY & SPACING)
           ========================================================================= */
       /* Geometry only. */
-      [data-theme^="sf-"] .tz-presets,
       [data-theme^="sf-"] .goal-presets,
       [data-theme^="sf-"] .theme-presets {
         border-radius: var(--radius-lg);
         gap: 6px;
         padding: 6px;
-      }
-
-      [data-theme^="sf-"] .tz-presets {
-        transform: translate3d(-50%, 6px, 0);
-      }
-
-      [data-theme^="sf-"] .tz-container:hover .tz-presets {
-        transform: translate3d(-50%, 6px, 0);
       }
 
       [data-theme^="sf-"] .preset-pill,
@@ -1402,8 +1393,7 @@
       input:focus-visible,
       select:focus-visible,
       textarea:focus-visible,
-      .preset-pill:focus-visible,
-      .tz-trigger:focus-visible {
+      .preset-pill:focus-visible {
         outline: 1px solid var(--accent-blue) !important;
         outline-offset: 0px;
       }
@@ -1523,8 +1513,8 @@
 
       /* 2. Dashboard metrics, progress ratios, and input numbers (premium proportional tabular digits) */
       .timer-val,
-      #primary-clock,
-      #bst-clock,
+      #work-clock,
+      #local-clock,
       .stat-val,
       input[type="number"],
       #goal-time {
@@ -1542,7 +1532,7 @@
 
       /* 3. Primary text elements, forms, and general metadata layout rules */
       .status-time,
-      .tz-static-label,
+      .tz-clock-label,
       .goal-inputs,
       .goal-inputs input[type="text"],
       .breakdown-row,
@@ -1735,8 +1725,8 @@
         padding: 0 1rem;
       }
 
-      #primary-clock,
-      #bst-clock {
+      #work-clock,
+      #local-clock {
         color: var(--text-main);
         font-size: 1rem;
         font-variant-numeric: tabular-nums;
@@ -1798,123 +1788,32 @@
         display: contents;
       }
 
-      .tz-container {
-        position: relative;
-        display: inline-flex;
-        align-items: center;
-        margin-right: 6px;
-        align-self: stretch;
-        height: auto;
-      }
-
-      .tz-trigger {
+      /* The clocks' zone labels (docs/implement.md §4.1, §4.5). Read-only
+         for now: nothing on the bar changes a zone. Two spans each, so the
+         phone can drop the "UTC" of an offset label with a stylesheet rule,
+         which follows a breakpoint crossing without any script. */
+      /* Inline-block, not flex: flex would make the two spans separate
+         items, and anything that copies or reads the text would get "UTC",
+         a line break, then "+6". */
+      .tz-clock-label {
         font-size: 1rem;
         font-weight: 600;
         color: var(--accent-blue);
         font-family: var(--font-mono);
-        display: inline-flex;
-        align-items: center;
-        gap: 4px;
-        cursor: pointer;
-        padding: 0.25rem 4px;
-        border-radius: 0.5rem;
-        transition: none;
-        user-select: none;
-        height: 100%;
-      }
-
-      /* Open-state paint follows the same split as the menu itself: hover where
-         there is a pointer to hover with, .popover-open everywhere else. */
-      @media (hover: hover) and (pointer: fine) {
-        .tz-container:hover .tz-trigger,
-        .tz-container:focus-within .tz-trigger {
-          background: var(--element-hover);
-          color: var(--text-main);
-        }
-      }
-
-      .tz-container.popover-open .tz-trigger {
-        background: var(--element-hover);
-        color: var(--text-main);
-      }
-
-      .tz-chevron {
-        color: currentColor;
-        flex-shrink: 0;
-        transition:
-          transform 0.2s,
-          color 0.2s;
-      }
-
-      @media (hover: hover) and (pointer: fine) {
-        .tz-container:hover .tz-chevron,
-        .tz-container:focus-within .tz-chevron {
-          transform: rotate(180deg);
-        }
-      }
-
-      .tz-container.popover-open .tz-chevron {
-        transform: rotate(180deg);
-      }
-
-      .tz-static-label {
-        font-size: 1rem;
-        font-weight: 600;
-        color: var(--accent-blue);
-        font-family: var(--font-mono);
-        display: inline-flex;
-        align-items: center;
+        display: inline-block;
         padding: 0.25rem 0;
         margin-right: 10px;
+        white-space: nowrap;
         user-select: none;
       }
 
-      .tz-presets {
-        position: absolute;
-        top: 100%;
-        left: 50%;
-        opacity: 0;
-        pointer-events: none;
-        display: flex;
-        flex-direction: column;
-        gap: 4px;
-        padding: 6px;
-        /* Level 3. Was --element-hover, which put this popover a full step
-           off the dropdowns it sits beside. */
-        background: var(--surface-3);
-        -webkit-backdrop-filter: var(--blur-3);
-        backdrop-filter: var(--blur-3);
-        border: var(--hairline);
-        border-radius: var(--header-el-radius);
-        box-shadow: var(--elev-1);
-        transform: translate3d(-50%, 4px, 0);
-        z-index: var(--z-dropdown);
-        transition: opacity 0.15s ease;
-      }
-
-      .tz-presets::before {
-        content: "";
-        position: absolute;
-        top: -10px;
-        left: 0;
-        right: 0;
-        height: 10px;
-      }
-
-      /* Hover only opens this where a pointer can also leave it again. On a
-         touch screen the open state is owned by .popover-open -- see the
-         POINTER-DRIVEN POPOVERS controller. */
-      @media (hover: hover) and (pointer: fine) {
-        .tz-container:hover .tz-presets,
-        .tz-container:focus-within .tz-presets {
-          opacity: 1;
-          pointer-events: auto;
-        }
-      }
-
-      .tz-container.popover-open .tz-presets {
-        opacity: 1;
-        pointer-events: auto;
+      /* One zone, one clock: work and local are the same place. Toggled by a
+         class, never an inline display (I13). The id and the doubled class
+         outrank the phone's and the tablet's own display rules. */
+      .m-clock-cluster.is-single-zone > .clock-divider,
+      .m-clock-cluster.is-single-zone > .tz-clock-label.tz-local,
+      .m-clock-cluster.is-single-zone > #local-clock {
+        display: none;
       }
 
       .goal-inputs {
@@ -2501,7 +2400,7 @@
         display: flex;
         gap: 6px;
         padding: 6px;
-        /* Level 3 -- see .tz-presets. */
+        /* Level 3, like every in-page popover (see 3.25). */
         background: var(--surface-3);
         -webkit-backdrop-filter: var(--blur-3);
         backdrop-filter: var(--blur-3);
@@ -5237,7 +5136,8 @@
          specificity zero.
          ===================================================================== */
       :is(
-        #bst-clock,
+        #work-clock,
+        #local-clock,
         .progress-rail,
         .log-row,
         .stat-card,
@@ -5245,7 +5145,6 @@
         .timer-val
       ):has(
         .view-container,
-        .tz-container,
         .goal-container,
         .theme-container,
         .heatmap-year-container,
@@ -6275,7 +6174,6 @@
         .sidebar-footer,
         .theme-toggle-btn,
         .goal-presets,
-        .tz-presets,
         .modal-overlay,
         #undo-toast,
         #sync-toast,
@@ -6928,7 +6826,7 @@
         flex-direction: column;
         gap: 6px;
         padding: 6px;
-        /* Level 3 -- see .tz-presets. */
+        /* Level 3, like every in-page popover (see 3.25). */
         background: var(--surface-3);
         -webkit-backdrop-filter: var(--blur-3);
         backdrop-filter: var(--blur-3);
@@ -7343,36 +7241,33 @@
           display: none;
         }
 
-        .status-bar .tz-static-label {
-          display: inline-flex;
+        /* Five characters at most (docs/implement.md §4.1): an offset label
+           drops its "UTC" (+5:30), and a six-character nickname is cut with
+           an ellipsis. The 5.5ch leaves room for the minus sign, which the
+           monospace fallback may draw from a wider font. A flex item is
+           blockified, which is what lets the ellipsis apply. */
+        .status-bar .tz-clock-label {
+          display: inline-block;
           font-size: 0.78rem;
           margin: 0;
+          max-width: 5.5ch;
+          overflow: hidden;
+          text-overflow: ellipsis;
         }
 
-        .status-bar #primary-clock,
-        .status-bar #bst-clock {
+        .status-bar .tz-label-utc {
+          display: none;
+        }
+
+        .status-bar #work-clock,
+        .status-bar #local-clock {
           display: inline-block;
           font-size: 0.78rem;
         }
 
-        .status-bar #primary-clock .clock-ampm,
-        .status-bar #bst-clock .clock-ampm {
+        .status-bar #work-clock .clock-ampm,
+        .status-bar #local-clock .clock-ampm {
           font-size: 0.6rem;
-        }
-
-        /* The timezone control is a settings affordance, and settings live in the sheet on a phone -- the bar only has to READ the current zone. */
-        .status-bar .tz-container,
-        .status-bar .tz-trigger {
-          display: contents;
-        }
-
-        .status-bar #tz-current-label {
-          font-size: 0.78rem;
-          color: var(--accent-blue);
-        }
-
-        .status-bar .tz-chevron {
-          display: none;
         }
 
         /* Empty on a phone -- goal and theme are relocated into the sheet. */
@@ -7458,7 +7353,6 @@
         /* Controls relocated into the sheet must not keep their desktop
            absolute/hover popover behaviour once they are out of the bar. */
         #m-sheet .goal-container,
-        #m-sheet .tz-container,
         #m-sheet .theme-container {
           position: static;
           display: block;
@@ -7467,7 +7361,6 @@
 
         /* The compact bar trigger is redundant next to the always-open preset
            list, except for the goal, whose editable time field lives inside it. */
-        #m-sheet .tz-trigger,
         #m-sheet .theme-toggle-btn {
           display: none;
         }
@@ -7610,7 +7503,6 @@
            it covers the one thing the axis cannot, a call site that states a
            filter outright instead of reading the rung's token. */
         #m-sheet .goal-presets,
-        #m-sheet .tz-presets,
         #m-sheet .theme-presets {
           position: static;
           opacity: 1;
@@ -7633,10 +7525,9 @@
            10px dead-zone bridges, there so a mouse can cross the gap from the
            trigger to the popover without dismissing it. In the sheet there is
            no trigger and no gap, and with the row now `position: static` they
-           resolve against #m-sheet itself -- three full-width invisible boxes
+           resolve against #m-sheet itself -- full-width invisible boxes
            straddling its top edge, eating backdrop taps that should close it. */
         #m-sheet .goal-presets::before,
-        #m-sheet .tz-presets::before,
         #m-sheet .theme-presets::before {
           display: none;
         }
@@ -9019,9 +8910,12 @@
           margin-bottom: 1rem;
         }
 
+        /* The work clock alone, as it always was here: the bar is already
+           tight in this band and wraps to two lines at 1024 px and below
+           (83 px, measured before Phase 5a). */
         .status-bar .clock-divider,
-        .status-bar .tz-static-label,
-        .status-bar #bst-clock {
+        .status-bar .tz-clock-label.tz-local,
+        .status-bar #local-clock {
           display: none;
         }
 
@@ -9079,7 +8973,6 @@
 
         /* These popovers are centred on their trigger with translateX(-50%). */
         .goal-presets,
-        .tz-presets,
         .theme-presets {
           left: 0;
           transform: none;
@@ -9089,8 +8982,6 @@
 
         .goal-container:hover .goal-presets,
         .goal-container:focus-within .goal-presets,
-        .tz-container:hover .tz-presets,
-        .tz-container:focus-within .tz-presets,
         .theme-container:hover .theme-presets,
         .theme-container:focus-within .theme-presets {
           transform: none;
@@ -10061,8 +9952,8 @@
               <strong>Tasks</strong> for a separate small stopwatch.
             </li>
             <li>
-              <strong>Top bar.</strong> Your time zone and two live clocks, the
-              Daily Goal, and the theme picker.
+              <strong>Top bar.</strong> Two live clocks — your work time first,
+              then your local time — the Daily Goal, and the theme picker.
             </li>
             <li>
               <strong>Bottom toolbar.</strong> Backup JSON, Restore JSON,
@@ -10097,13 +9988,12 @@
               panel up from the bottom, in labelled sections:
               <strong>Goals</strong> — the Daily Goal and the Weekly goal
               together, which is where the weekly one lives on a phone;
-              <strong>Time Zone</strong>; <strong>Appearance</strong> for the
-              theme; a <strong>Cloud sync</strong> row showing the signed-in
-              account, which opens the sync sheet on top; and
-              <strong>Tools</strong>, the toolbar buttons as a grid. Close it by
-              tapping the <strong>&times;</strong>, tapping the dimmed area
-              behind it, or dragging the small bar at the top of the panel
-              downwards.
+              <strong>Appearance</strong> for the theme; a
+              <strong>Cloud sync</strong> row showing the signed-in account,
+              which opens the sync sheet on top; and <strong>Tools</strong>, the
+              toolbar buttons as a grid. Close it by tapping the
+              <strong>&times;</strong>, tapping the dimmed area behind it, or
+              dragging the small bar at the top of the panel downwards.
             </li>
           </ul>
           <p>
@@ -10163,7 +10053,7 @@
             </li>
             <li>
               <strong>Right of the bar</strong> estimates what time you will
-              finish, shown on the fixed BST clock.
+              finish, in your local time.
             </li>
             <li>The bar turns fully green once you reach the goal.</li>
           </ul>
@@ -10793,9 +10683,10 @@
               a name previews it; clicking keeps it.
             </li>
             <li>
-              <strong>Time zone</strong> — click the time zone label to switch
-              the main clock between PST, MST, CST and EST. The second clock is
-              always BST, as a fixed reference.
+              <strong>Time zones</strong> — the first clock shows your work time
+              and the second your local time, each labelled with its zone (PDT
+              in summer and PST in winter for Pacific Time). When both are the
+              same zone, one clock is shown.
             </li>
             <li>
               <strong>Goal presets</strong> — click the Daily Goal to open its
@@ -12373,69 +12264,30 @@
               <div class="nodrift-cursor" id="nodrift-cursor"></div>
             </div>
 
-            <!-- Hidden native select for standard app compatibility -->
-            <select id="primary-tz" style="display: none">
-              <option value="America/Los_Angeles">PST</option>
-              <option value="America/Denver">MST</option>
-              <option value="America/Chicago">CST</option>
-              <option value="America/New_York">EST</option>
-            </select>
-
-            <!-- Grouping wrappers for the phone status bar's three-column grid: logo | clocks | tail. -->
+            <!-- Grouping wrappers for the phone status bar's three-column grid: logo | clocks | tail.
+                 Work clock first, local clock second; the labels are filled
+                 in by renderClockLabels(). -->
             <div class="m-clock-cluster">
-              <div class="tz-container">
-                <div class="tz-trigger" tabindex="0">
-                  <!-- Inline chevron SVG matching the goal control chevron -->
-                  <svg
-                    class="tz-chevron"
-                    width="12"
-                    height="12"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="1.8"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                  >
-                    <g data-sprite="sprite-016"></g>
-                  </svg>
-                  <span id="tz-current-label">PST</span>
-                </div>
-                <div class="tz-presets">
-                  <button
-                    class="preset-pill"
-                    onclick="selectPresetTZ('America/Los_Angeles')"
-                  >
-                    PST
-                  </button>
-                  <button
-                    class="preset-pill"
-                    onclick="selectPresetTZ('America/Denver')"
-                  >
-                    MST
-                  </button>
-                  <button
-                    class="preset-pill"
-                    onclick="selectPresetTZ('America/Chicago')"
-                  >
-                    CST
-                  </button>
-                  <button
-                    class="preset-pill"
-                    onclick="selectPresetTZ('America/New_York')"
-                  >
-                    EST
-                  </button>
-                </div>
-              </div>
-
-              <span id="primary-clock"
+              <span
+                id="work-clock-label"
+                class="tz-clock-label"
+                data-title="Work time"
+                ><span class="tz-label-utc"></span
+                ><span class="tz-label-text"></span
+              ></span>
+              <span id="work-clock"
                 ><span class="clock-time-text"></span
                 ><span class="clock-ampm"></span
               ></span>
               <i class="clock-divider"></i>
-              <span class="tz-static-label">BST</span>
-              <span id="bst-clock"
+              <span
+                id="local-clock-label"
+                class="tz-clock-label tz-local"
+                data-title="Local time"
+                ><span class="tz-label-utc"></span
+                ><span class="tz-label-text"></span
+              ></span>
+              <span id="local-clock"
                 ><span class="clock-time-text"></span
                 ><span class="clock-ampm"></span
               ></span>
@@ -12682,7 +12534,7 @@
               "
             >
               <span id="progress-text">0.0% (Remaining: 08:00:00)</span>
-              <span id="eta-text">Est. EOD: --:-- BST</span>
+              <span id="eta-text">Est. EOD: --:--</span>
             </div>
           </div>
 
@@ -15538,13 +15390,12 @@
         </button>
       </header>
       <div id="m-sheet-body">
-        <!-- Live nodes (goal / timezone / theme / tool icons) are relocated here by MobileShell.mount() and returned to their original parents by. -->
+        <!-- Live nodes (goal / theme / tool icons) are relocated here by MobileShell.mount() and returned to their original parents by. -->
         <div
           class="m-sheet-slot m-goal-slot"
           data-slot="goal"
           data-label="Goals"
         ></div>
-        <div class="m-sheet-slot" data-slot="tz" data-label="Time Zone"></div>
         <div
           class="m-sheet-slot"
           data-slot="theme"
@@ -16358,6 +16209,9 @@
       const GOAL_H_KEY = "production_goal_h_v2";
       const GOAL_M_KEY = "production_goal_m_v2";
       const GOAL_S_KEY = "production_goal_s_v2";
+      /* Retired: the cosmetic PST/MST/CST/EST choice for the first clock,
+         which now always shows the work zone. Nothing reads it and it no
+         longer syncs; a factory reset still wipes it. */
       const TZ_KEY = "production_tz_pref";
       /* The time zone preferences (docs/implement.md §3.8). All three sync
          as settings; every write goes through onZoneContextChanged(). */
@@ -16367,6 +16221,10 @@
       /* The zone picker's last five choices. Device-local on purpose: never
          synced and never backed up, but wiped by a factory reset. */
       const TZ_RECENT_KEY = "nodrift_tz_recent_v1";
+      /* Whether this device held nodrift data before time zones arrived:
+         "upgrade" or "fresh", decided once, on the first launch of a build
+         that has them. Device-local, never synced. */
+      const TZ_INSTALL_KEY = "nodrift_tz_install_v1";
       const THEME_KEY = "production_theme_pref";
       const PRESET_VALUES_KEY = "production_custom_presets_v2";
       const LEAVE_DATES_KEY = "production_leave_dates_v1";
@@ -17039,12 +16897,13 @@
        * 2. DOM ELEMENT BINDINGS
        * =========================================================================*/
       const DOM = {
-        primaryClockTime: document.querySelector(
-          "#primary-clock .clock-time-text",
-        ),
-        primaryClockAmpm: document.querySelector("#primary-clock .clock-ampm"),
-        bstClockTime: document.querySelector("#bst-clock .clock-time-text"),
-        bstClockAmpm: document.querySelector("#bst-clock .clock-ampm"),
+        workClockTime: document.querySelector("#work-clock .clock-time-text"),
+        workClockAmpm: document.querySelector("#work-clock .clock-ampm"),
+        localClockTime: document.querySelector("#local-clock .clock-time-text"),
+        localClockAmpm: document.querySelector("#local-clock .clock-ampm"),
+        workClockLabel: document.getElementById("work-clock-label"),
+        localClockLabel: document.getElementById("local-clock-label"),
+        clockCluster: document.querySelector(".m-clock-cluster"),
         workTimerDigits: Array.from(
           document.querySelectorAll("#work-timer .timer-digit"),
         ),
@@ -17053,8 +16912,7 @@
         ),
         workTimer: document.getElementById("work-timer"),
         breakTimer: document.getElementById("break-timer"),
-        primaryClock: document.getElementById("primary-clock"),
-        bstClock: document.getElementById("bst-clock"),
+
         startBtn: document.getElementById("start-btn"),
         pauseBtn: document.getElementById("pause-btn"),
         progressFill: document.getElementById("progress-fill"),
@@ -17075,7 +16933,6 @@
         goalHours: document.getElementById("goal-hours"),
         goalMins: document.getElementById("goal-mins"),
         goalSecs: document.getElementById("goal-secs"),
-        primaryTz: document.getElementById("primary-tz"),
         weeklyGoalHours: document.getElementById("weekly-goal-hours"),
         submitModal: document.getElementById("submit-modal"),
         modalShiftNotes: document.getElementById("modal-shift-notes"),
@@ -17223,7 +17080,7 @@
         syncToast: document.getElementById("sync-toast"),
         appToast: document.getElementById("app-toast"),
         confirmModal: document.getElementById("confirm-modal"),
-        tzCurrentLabel: document.getElementById("tz-current-label"),
+
         tooltipWorkVal: document.getElementById("tooltip-work-val"),
         tooltipBreakVal: document.getElementById("tooltip-break-val"),
         goalToastTime: document.getElementById("goal-toast-time"),
@@ -17548,22 +17405,6 @@
       const _cachedLocaleDayFirst = new Intl.DateTimeFormat()
         .format(new Date(2026, 11, 25))
         .startsWith("25");
-      let primaryFormatter;
-
-      /**
-       * Updates the clock formatter for the user's primary selected timezone.
-       *
-       * Purely cosmetic: #primary-tz re-skins the first clock and nothing
-       * else. Anything that reads it to interpret or stamp DATA is a bug --
-       * data asks getWorkZone(), so that a display preference can never move
-       * an existing entry onto a different clock.
-       */
-      function updatePrimaryFormatter() {
-        primaryFormatter = TimeZones.formatter(
-          TimeZones.sanitize(DOM.primaryTz.value, LEGACY_TZ),
-          "time",
-        );
-      }
 
       /*==========================================================================
        * 3b. TIME ZONES
@@ -18311,6 +18152,9 @@
         window._lastClockMinCache = -1;
         try {
           domWriteCache.etaTargetMin = null;
+          /* The clocks are redrawn below, usually within the second the tick
+             has already drawn, which it would otherwise skip. */
+          _lastClockTickSec = -1;
         } catch (e) {}
         if (typeof invalidateDerivedCaches === "function") {
           invalidateDerivedCaches();
@@ -18376,6 +18220,32 @@
         return true;
       }
 
+      /* Decision D3: this team's second clock has always said "BST", so a
+         device that used nodrift before zones keeps that name for Dhaka, as a
+         nickname that can be changed like any other. Decided once per device,
+         on the first launch of a build with zones: data already on the device
+         means an upgrade; none means a fresh install, which gets the zone's
+         own label. Runs while the script is evaluated, before Sync takes its
+         first look at the preferences, so the seed is where this device
+         starts rather than an edit to upload (I11). */
+      function seedZoneLabels() {
+        try {
+          if (localStorage.getItem(TZ_INSTALL_KEY) !== null) return;
+          const upgrade =
+            localStorage.getItem(STATE_KEY) !== null ||
+            localStorage.getItem(LOG_KEY) !== null;
+          localStorage.setItem(TZ_INSTALL_KEY, upgrade ? "upgrade" : "fresh");
+          if (upgrade && localStorage.getItem(TZ_DISPLAY_KEY) === null) {
+            localStorage.setItem(
+              TZ_DISPLAY_KEY,
+              JSON.stringify({ nicknames: { [LEGACY_LOCAL_TZ]: "BST" } }),
+            );
+            _zonePrefs = null;
+          }
+        } catch (e) {}
+      }
+      seedZoneLabels();
+
       let _lastDeviceZone = null;
       let _deviceZoneCheckMin = -1;
 
@@ -18427,6 +18297,12 @@
          that ends hands over to a pending work zone without the funnel. */
       function zoneRenderKey() {
         return `${TimeZones.version}|${zoneDisplayMode()}|${getWorkZone()}`;
+      }
+
+      /* The label style every zone label uses (docs/implement.md §4.5). */
+      function zoneLabelStyle() {
+        const display = readZonePrefs().display;
+        return (display && display.labelStyle) || "abbr";
       }
 
       function zoneNickname(zone) {
@@ -20697,7 +20573,7 @@
           dailyGoalH: { key: GOAL_H_KEY, json: false },
           dailyGoalM: { key: GOAL_M_KEY, json: false },
           dailyGoalS: { key: GOAL_S_KEY, json: false },
-          tzPref: { key: TZ_KEY, json: false },
+
           /* Validated on the way in: a zone from another device reaches
              Intl on this one, and a bad one must be skipped, not applied. */
           workTz: {
@@ -25611,36 +25487,44 @@
         if (ampmEl.textContent !== ampmPart) ampmEl.textContent = ampmPart;
       }
 
-      /**
-       * Executes selectPresetTZ logic.
-       */
-      function selectPresetTZ(tzValue) {
-        const select = DOM.primaryTz;
-        if (select) {
-          select.value = tzValue;
-          select.dispatchEvent(new Event("change"));
+      /* One clock's zone label (docs/implement.md §4.5): a nickname, else the
+         style's name when it is plain letters, else the UTC offset. An offset
+         label is split so the phone can drop its "UTC" (§4.1). Nicknames are
+         user- and sync-supplied, so the text reaches the page through
+         textContent only (I14). */
+      function renderClockLabel(el, zone, ms, role) {
+        if (!el) return;
+        const text = TimeZones.label(
+          zone,
+          ms,
+          zoneLabelStyle(),
+          zoneNickname(zone),
+        );
+        const offset = /^UTC[+−-]/.test(text);
+        setText(el.firstElementChild, offset ? "UTC" : "");
+        setText(el.lastElementChild, offset ? text.slice(3) : text);
+        const name = TimeZones.longName(zone, ms);
+        const city = TimeZones.city(zone);
+        const where = name === city ? city : `${name} (${city})`;
+        const title = `${role} time · ${where} · ${TimeZones.offsetLabel(
+          TimeZones.offsetMinutes(ms, zone),
+        )}`;
+        if (el.getAttribute("data-title") !== title) {
+          el.setAttribute("data-title", title);
         }
       }
 
-      /**
-       * Executes updateTZLabel logic.
-       */
-      function updateTZLabel() {
-        const select = DOM.primaryTz;
-        const label = DOM.tzCurrentLabel;
-        if (select && label) {
-          const activeOpt = select.options[select.selectedIndex];
-          if (activeOpt) {
-            label.textContent = activeOpt.textContent;
-            const pills = document.querySelectorAll(".tz-presets .preset-pill");
-            pills.forEach((pill) => {
-              if (pill.textContent.trim() === activeOpt.textContent.trim()) {
-                pill.classList.add("active");
-              } else {
-                pill.classList.remove("active");
-              }
-            });
-          }
+      /* Both clocks' labels, once a minute and whenever a zone changes. One
+         zone for both is one clock (§4.1), hidden by a class (I13), and ids
+         are compared canonically (I7). */
+      function renderClockLabels(workZone, localZone, ms) {
+        renderClockLabel(DOM.workClockLabel, workZone, ms, "Work");
+        const single = TimeZones.same(workZone, localZone);
+        if (DOM.clockCluster) {
+          DOM.clockCluster.classList.toggle("is-single-zone", single);
+        }
+        if (!single) {
+          renderClockLabel(DOM.localClockLabel, localZone, ms, "Local");
         }
       }
 
@@ -27060,17 +26944,26 @@
           }
           const tickSec = Math.floor(nowMs / 1000);
           if (tickSec !== _lastClockTickSec) {
-            if (!primaryFormatter) return;
             _lastClockTickSec = tickSec;
 
-            const currentMin = nowDate.getMinutes();
-            if (currentMin !== window._lastClockMinCache) {
-              window._lastClockMinCache = currentMin;
-              window._cachedPrimaryBase = primaryFormatter.format(nowDate);
-              window._cachedBstBase = TimeZones.formatter(
-                getLocalZone(),
+            /* Keyed on the work zone as well as the minute: a shift that ends
+               hands over to a pending work zone without passing through
+               onZoneContextChanged(). The minute is counted from the epoch,
+               so a page left hidden for exactly an hour still redraws. */
+            const workZone = getWorkZone();
+            const clockKey = `${Math.floor(nowMs / 60000)}|${workZone}`;
+            if (clockKey !== window._lastClockMinCache) {
+              window._lastClockMinCache = clockKey;
+              const localZone = getLocalZone();
+              window._cachedWorkClockBase = TimeZones.formatter(
+                workZone,
                 "time",
               ).format(nowDate);
+              window._cachedLocalClockBase = TimeZones.formatter(
+                localZone,
+                "time",
+              ).format(nowDate);
+              renderClockLabels(workZone, localZone, nowMs);
             }
 
             const secStr = String(nowDate.getSeconds()).padStart(2, "0");
@@ -27089,14 +26982,14 @@
             };
 
             setClock(
-              DOM.primaryClockTime,
-              DOM.primaryClockAmpm,
-              buildTime(window._cachedPrimaryBase),
+              DOM.workClockTime,
+              DOM.workClockAmpm,
+              buildTime(window._cachedWorkClockBase),
             );
             setClock(
-              DOM.bstClockTime,
-              DOM.bstClockAmpm,
-              buildTime(window._cachedBstBase),
+              DOM.localClockTime,
+              DOM.localClockAmpm,
+              buildTime(window._cachedLocalClockBase),
             );
           }
         }
@@ -27574,12 +27467,22 @@
                 if (domWriteCache.etaTargetMin !== targetMin) {
                   domWriteCache.etaTargetMin = targetMin;
                   _sharedFinishDate.setTime(targetMs);
-                  domWriteCache.cachedEtaString = TimeZones.formatter(
-                    getLocalZone(),
-                    "hm",
-                  ).format(_sharedFinishDate);
+                  /* In the local zone, labelled like the local clock but at
+                     the finish instant: a shift that runs past a DST change
+                     finishes on the other side of it. */
+                  const etaZone = getLocalZone();
+                  const etaTime = TimeZones.formatter(etaZone, "hm").format(
+                    _sharedFinishDate,
+                  );
+                  const etaLabel = TimeZones.label(
+                    etaZone,
+                    targetMs,
+                    zoneLabelStyle(),
+                    zoneNickname(etaZone),
+                  );
+                  domWriteCache.cachedEtaString = `${etaTime} ${etaLabel}`;
                 }
-                etaText = `Est. EOD: ${domWriteCache.cachedEtaString} BST`;
+                etaText = `Est. EOD: ${domWriteCache.cachedEtaString}`;
                 etaColorClass = "text-main";
               }
             }
@@ -34431,8 +34334,9 @@
        * puts it back on the screen.
        *
        * syncSettingsUI covers the settings that live in `state`. These do
-       * not, so without this a theme or timezone arriving from another
-       * device would sit in storage until the next reload.
+       * not, so without this a theme arriving from another device would sit
+       * in storage until the next reload. Zone preferences need nothing here:
+       * applyPrefs sends them through onZoneContextChanged().
        */
       function applySyncedPrefsToUI() {
         try {
@@ -34444,17 +34348,6 @@
             syncColorSchemeMeta(currentTheme);
             document.documentElement.setAttribute("data-theme", currentTheme);
             if (typeof renderThemeToggle === "function") renderThemeToggle();
-          }
-        } catch (e) {}
-
-        try {
-          const tz = safeGetLocalStorage(TZ_KEY, LEGACY_TZ);
-          if (DOM.primaryTz && DOM.primaryTz.value !== tz) {
-            DOM.primaryTz.value = tz;
-            if (typeof updatePrimaryFormatter === "function") {
-              updatePrimaryFormatter();
-            }
-            if (typeof updateTZLabel === "function") updateTZLabel();
           }
         } catch (e) {}
 
@@ -34514,6 +34407,7 @@
           LOCAL_TZ_KEY,
           TZ_DISPLAY_KEY,
           TZ_RECENT_KEY, // The zone picker's recent choices
+          TZ_INSTALL_KEY, // Whether this device predates zones
           THEME_KEY,
           PRESET_VALUES_KEY,
           LEAVE_DATES_KEY,
@@ -34747,7 +34641,7 @@
               renderPresets();
               // THEME_KEY was just removed above;
               applySystemTheme();
-              selectPresetTZ(LEGACY_TZ);
+
               resetSession(true);
               syncSettingsUI();
 
@@ -41691,16 +41585,6 @@
         }
       });
 
-      DOM.primaryTz.value = safeGetLocalStorage(TZ_KEY, LEGACY_TZ);
-      updateTZLabel();
-      DOM.primaryTz.addEventListener("change", () => {
-        localStorage.setItem(TZ_KEY, DOM.primaryTz.value);
-        updatePrimaryFormatter();
-        window._lastClockMinCache = -1;
-        renderTimersOnly();
-        updateTZLabel();
-      });
-
       window.addEventListener("beforeunload", () => {
         saveState(true); // Guarantee final active seconds are cemented before tab death
         try {
@@ -42726,7 +42610,6 @@
         async function completeStartup() {
           cachedTodayDate = null;
           displayBaseDate = getWorkDateObj();
-          updatePrimaryFormatter();
           loadState();
           await rebuildWeeklyCache();
 
@@ -43375,7 +43258,7 @@
 
       /* =========================================================================
        * POINTER-DRIVEN POPOVERS
-       * The saved-view, heatmap-year, timezone and theme menus were written as
+       * The saved-view, heatmap-year and theme menus were written as
        * hover popovers: :hover or :focus-within opens them, moving away closes
        * them. A touch screen has no "away" -- iOS latches :hover on the last
        * element tapped and holds it until something else is tapped, and a tap
@@ -43399,7 +43282,7 @@
             holder: ".heatmap-year-container",
             trigger: ".heatmap-year-trigger",
           },
-          { holder: ".tz-container", trigger: ".tz-trigger" },
+
           { holder: ".theme-container", trigger: ".theme-toggle-btn" },
         ];
         const HOLDERS = FAMILIES.map((f) => f.holder).join(", ");
@@ -43473,7 +43356,7 @@
         const RELOCATIONS = [
           { slot: "goal", selector: ".goal-container" },
           { slot: "goal", selector: ".weekly-goal-container" },
-          { slot: "tz", selector: ".tz-presets" },
+
           { slot: "theme", selector: ".theme-container" },
           { slot: "tools", selector: ".footer-icons" },
         ];
@@ -43863,7 +43746,7 @@
                 btn.id === "m-sync-row"
               )
                 return;
-              // Preset pills in the goal / timezone / appearance sections are adjustments rather than
+              // Preset pills in the goal / appearance sections are adjustments rather than
               // navigation;
               if (!btn.closest('.m-sheet-slot[data-slot="tools"]')) return;
 
@@ -43918,7 +43801,7 @@
             setTimeout(updateKeyboardInset, 50);
           });
 
-          // The timezone / goal / appearance / saved-view popovers open on :hover OR :focus-within.
+          // The goal / appearance / saved-view popovers open on :hover OR :focus-within.
           document.addEventListener(
             "pointerdown",
             function (e) {
@@ -43926,7 +43809,7 @@
               const open = document.activeElement;
               if (!open || open === document.body) return;
               const holder = open.closest(
-                ".tz-container, .goal-container, .theme-container, .view-container, .heatmap-year-container",
+                ".goal-container, .theme-container, .view-container, .heatmap-year-container",
               );
               if (holder && !holder.contains(e.target)) open.blur();
             },
