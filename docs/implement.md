@@ -1,19 +1,19 @@
 # Time zones: implementation blueprint
 
-> **Status:** Phases 0–3 complete. Every zone-dependent calculation goes through `TimeZones`, and the zone model exists (unset preferences keep Los Angeles for work and Dhaka for local until Phase 5's UI). Every record is shown, edited, exported and searched in the zone it was filed in. Phase 4 (the zone picker) is next.
+> **Status:** Phases 0–3 complete. Every zone-dependent calculation goes through `TimeZones`, and the zone model exists (unset preferences keep Los Angeles for work and Dhaka for local until Phase 5's UI). Every record is shown, edited, exported and searched in the zone it was filed in. Phase 4a, the catalog and search behind the zone picker, is committed; 4b (the picker dialog) is next.
 > **Baseline commit:** `9181afa` (all line numbers below refer to it and WILL drift — re-grep before editing).
 > **Rule:** one phase at a time. A phase starts only when the previous phase's exit criteria are green and committed.
 
-| Phase | Title                                                | Touches data?    | Needs live account? | Size              | State       |
-| ----- | ---------------------------------------------------- | ---------------- | ------------------- | ----------------- | ----------- |
-| 0     | Groundwork, probes, fixtures                         | no               | one read-only probe | S                 | **done**    |
-| 1     | `TimeZones` core + behaviour-identical refactor      | no               | regression only     | L (split 1a/1b)   | **done**    |
-| 2     | Data model: work / local / session / record zones    | **yes**          | regression only     | L (split 2a/2b)   | **done**    |
-| 3     | Rendering and editing records in their own zone      | yes (edit paths) | no                  | M–L (split 3a/3b) | **done**    |
-| 4     | The zone picker component                            | no               | no                  | M–L               | not started |
-| 5     | Status bar, settings card, phone sheet, change flows | prefs            | no                  | L (split 5a/5b)   | not started |
-| 6     | Sync hardening + multi-device + iPhone verification  | no               | **yes**             | M                 | not started |
-| 7     | Cleanup, aliases removed, docs, guide                | no               | full sweep          | S                 | not started |
+| Phase | Title                                                | Touches data?    | Needs live account? | Size              | State            |
+| ----- | ---------------------------------------------------- | ---------------- | ------------------- | ----------------- | ---------------- |
+| 0     | Groundwork, probes, fixtures                         | no               | one read-only probe | S                 | **done**         |
+| 1     | `TimeZones` core + behaviour-identical refactor      | no               | regression only     | L (split 1a/1b)   | **done**         |
+| 2     | Data model: work / local / session / record zones    | **yes**          | regression only     | L (split 2a/2b)   | **done**         |
+| 3     | Rendering and editing records in their own zone      | yes (edit paths) | no                  | M–L (split 3a/3b) | **done**         |
+| 4     | The zone picker component                            | no               | no                  | M–L (split 4a/4b) | 4a done, 4b next |
+| 5     | Status bar, settings card, phone sheet, change flows | prefs            | no                  | L (split 5a/5b)   | not started      |
+| 6     | Sync hardening + multi-device + iPhone verification  | no               | **yes**             | M                 | not started      |
+| 7     | Cleanup, aliases removed, docs, guide                | no               | full sweep          | S                 | not started      |
 
 ---
 
@@ -883,6 +883,96 @@ Anchors: 199, 0 misses. `index.html` was restored byte-identical.
 **Mutations:** country not indexed; aliases missing; Enter does nothing; not a `.modal-overlay`; metadata built at boot; rows below 44 px.
 
 **Commit:** `feat(time): a searchable picker over every time zone`.
+
+Split in two so each commit is safe to deploy on its own: **4a** is the catalog and its search, which nothing calls yet; **4b** is the dialog, still reachable only from tests.
+
+#### Phase 4a results (2026-09-14)
+
+**Committed as** `feat(time): a searchable catalog of every time zone`. No screen changes: nothing calls the catalog until 4b.
+
+**What exists now:**
+
+- **`ZoneCatalog`** (section "3c. ZONE CATALOG", built on first use, never at boot):
+  - `entries()` — every zone the engine lists, `Etc/*` hidden (D8), `UTC` added. Each has a city, a country (code and English name) and a region, sorted alphabetically by city with accents and punctuation folded away, so São Paulo sits among the S's.
+  - `entry(id)` — also accepts a hidden or differently spelled zone (a stored `Etc/GMT+5`, `Asia/Kolkata` on Chrome); `null` for anything invalid.
+  - `search(query)` — ranked, in two tiers:
+    - **At once, from strings:** city, other spellings, country, region and id. Accents and punctuation are ignored, and several words must all match.
+    - **As the index arrives:** abbreviations in January, July and now (`pst` finds Los Angeles in September), offsets (`utc+6`, `+06:00`, `5:30` matching both signs; today's offset outranks a seasonal one), and generic names (`pacific time`).
+    - It returns `pending` until the index is done.
+  - `buildIndex()` — offsets, abbreviations and generic names for every zone, one throwaway formatter at a time. It yields whenever a slice has run 8 ms, is cached for the page's life and is rebuilt once an hour old.
+  - `describe(id, ms)` — what a row shows: `12:00 PM`, `UTC−7`, `PDT`. It uses at most two cached formatters per zone.
+  - `recents()` / `remember(id)` — the last five choices, device-local (`nodrift_tz_recent_v1`), validated on read and wiped by a factory reset.
+- **Three generated tables** (`nodrift-harness/gen-zone-data.js`, from Node's ICU, which lists the same 418 zones as Chrome 152):
+  - the zone list (3.9 KB), the fallback for engines without `supportedValuesOf`;
+  - one CLDR country per zone (0.8 KB), choosing the live code where retired ones (SU, UK) also map;
+  - 123 other spellings the engine itself resolves (3.5 KB): renamed cities, merged zones, `US/Pacific`-style links.
+- **`TimeZones` gains:**
+  - `city(zone)`: today's spelling (Kolkata, Kyiv, Ho Chi Minh City, Nuuk…) and accents (São Paulo, Reykjavík, St. John’s);
+  - `zoneFacts` (the index's uncached formatters, so I8 holds);
+  - `clockFacts` (row labels, with a parts fallback where `shortOffset` is missing);
+  - a `clock` style;
+  - a verdict shortcut: an id in the engine's own list is its own canonical form (checked for all 418).
+- **Phase 3 carry-over:** a record's search terms carry both spellings (`kolkata calcutta`).
+
+**Measured under 4× CPU throttle, and what it changed:**
+
+| What                                 | First version                                         | Shipped                                                                                              |
+| ------------------------------------ | ----------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| Full index                           | 14.3 s — `requestIdleCallback` waited out its timeout | **1.14 s** — background-priority tasks (`scheduler.postTask`)                                        |
+| First search (builds the list)       | 107.7 ms, itself a long task                          | **36 ms** — ASCII skips normalising, one lookup per country, no `Collator`, word lists on demand     |
+| Longest index slice                  | —                                                     | 13.5 ms: one zone's three formatters can take 15 ms, so the deadline is checked after each formatter |
+| A screenful of row labels (14 zones) | —                                                     | 18 ms (budget 60)                                                                                    |
+
+One formatter per zone per kind costs 150–260 ms across all 418 zones at 4×. A cold first build in a fresh process cost 90 ms before the changes and about 21 ms warm, profiled with the CDP sampling profiler.
+
+**Tests — `probe-tz-picker.js`, 135 checks, no account.** Ports 8875/9475, shared with the measure-only `probe-tz-picker-cost.js`.
+
+- **Budgets** at 4× on a fresh page: first search, index total, longest slice, long tasks against a quiet control window, row labels.
+- **The catalog** under two device zones, each on a fresh page:
+  - not built at boot;
+  - the list: counts, `Etc/*` hidden (two injected into the engine's list) but accepted, `UTC` once, sorting, a country for every zone, spellings and accents;
+  - 19 tier-one and 14 tier-two searches;
+  - row facts in July and January;
+  - recents, including corrupt and hostile stored values;
+  - both search-term spellings, and a zone-less record still adding nothing (I3).
+- **The fallback engine** (edge case 35): `supportedValuesOf` deleted and the newer `timeZoneName` styles throwing, installed before the app loads. The list comes from the embedded table, offsets from parts, and the index and searches still work.
+
+**Regression, one suite at a time — at baseline.** Numbers below are checks. The regression script now runs 23 suites: `probe-tz-picker.js` first, and `harness-lease-prompt.js` (the takeover gate that Phase 4b must respect) last. The lease-prompt suite was baselined at 21 on the unmodified tree.
+
+- **Time zone suites:** `probe-tz-picker` 135, `harness-tz-display` 129, `harness-tz-core` 80, `harness-tz-model` 28.
+- **No-account suites:**
+  - `harness-progress` 25, `harness-motion` 43, `harness-cloud-panel` 27, `harness-security` 17;
+  - `probe-leave-rows` 12, `probe-csv-shape` 15, `probe-backup-and-leave` 26, `probe-lease-endshift` 30;
+  - `probe-field-sweep` unchanged (19 short fields on desktop, 0 on the phone), and `harness.js` ALL PASS.
+- **Live account and the long suites:**
+  - `harness-handoff` 22, `harness-signin-render` 12, `probe-shift-rewind` ALL PASS;
+  - `harness-phase7` 21, `harness-phase8` 13, `harness-import` 9, `harness-wipe` 18;
+  - `probe-beat-cost` 9: owner 120 messages an hour, idle 0;
+  - `harness-lease-prompt` 21.
+
+Two live suites each failed one check inside the chain. Both passed on their own straight afterwards, and 4a changes nothing in sync:
+
+- `harness-signin-render`, "signing in to an empty account uploads nothing" (got 1). It ran right after `harness-handoff`; this is the account-residue failure seen in 3b1.
+- `harness-phase7`, "uploading marks the push time and leaves the pull time" (the cycle uploaded 0). It ran right after `probe-shift-rewind`.
+
+**Mutations:** 13 new, all caught, each on the check written for it:
+
+- country left out of search; the other spellings ignored; the list built at boot;
+- diacritics not folded (caught by the accented country and the sort order: "sao paulo" still finds São Paulo through the engine's ASCII spelling);
+- the index built in one slice; slices spaced by idle periods;
+- `Etc/GMT` zones listed; UTC left out; recents unbounded;
+- no parts fallback without `shortOffset`;
+- Kolkata spelled Calcutta; record search terms in the engine's spelling only;
+- the list sorted by the raw city name.
+
+Anchors: 212, 0 misses. `index.html` was restored byte-identical.
+
+**Measuring on a laptop.** The first mutation run started on a baseline that was already red on every 4× budget: timings came in 5–7× slow and the unmutated page crashed. The laptop was on battery, with the CPU held at 1.0 of 2.4 GHz. Plugged in, the same code measured 31 ms for the first search and 1.0 s for the index, and the re-run above is on AC. Two probe changes came out of it:
+
+- A budget that misses is measured again on a fresh page, and graded on the better of the two runs.
+- The index measurement is bounded at 20 s, so a crawling index fails its check instead of the harness.
+
+Check the power state before any timing-graded run.
 
 ### Phase 5 — Status bar, settings card, phone sheet, change flows
 
