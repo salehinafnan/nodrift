@@ -1788,10 +1788,11 @@
         display: contents;
       }
 
-      /* The clocks' zone labels (docs/implement.md §4.1, §4.5). Read-only
-         for now: nothing on the bar changes a zone. Two spans each, so the
-         phone can drop the "UTC" of an offset label with a stylesheet rule,
-         which follows a breakpoint crossing without any script. */
+      /* The clocks' zone labels (docs/implement.md §4.1, §4.5). Each is a
+         button that opens the picker for its role; the phone's bar only
+         reads. Two spans each, so the phone can drop the "UTC" of an offset
+         label with a stylesheet rule, which follows a breakpoint crossing
+         without any script. */
       /* Inline-block, not flex: flex would make the two spans separate
          items, and anything that copies or reads the text would get "UTC",
          a line break, then "+6". */
@@ -1805,6 +1806,26 @@
         margin-right: 10px;
         white-space: nowrap;
         user-select: none;
+      }
+
+      /* The base button's own dress taken off, so a label looks the way it
+         did as a span: no fill, and the line height of the bar around it. */
+      .tz-clock-btn {
+        background: none;
+        border-radius: 4px;
+        line-height: inherit;
+        letter-spacing: inherit;
+      }
+
+      /* No chevron. Two of them cost the right pane 7% of its width at 1440
+         and 1280 px, where the plan allows 2%, and put the 1149 px bar back
+         on two lines. The pointer, the tooltip and this tint say "button"
+         instead; the shadow widens the tint without widening the bar. */
+      .tz-clock-btn:hover,
+      .tz-clock-btn:focus-visible {
+        background: color-mix(in srgb, var(--accent-blue) 14%, transparent);
+        box-shadow: 0 0 0 3px
+          color-mix(in srgb, var(--accent-blue) 14%, transparent);
       }
 
       /* One zone, one clock: work and local are the same place. Toggled by a
@@ -2680,6 +2701,68 @@
       .remote-session-banner button {
         padding: 4px 12px;
         font-size: 0.8rem;
+      }
+
+      /* A work zone chosen while a shift runs applies when the shift ends
+         (decision D2), and this line under the progress bar says so. Toggled
+         by a class for the same reason as the banner above: it lives under
+         .main-ui, whose children the phone hides per tab (I13). Nothing when
+         hidden -- a display: none child takes no gap in its flex column. */
+      /* A sentence with a button at its end, set as text so that on a phone
+         it wraps into two even lines instead of three ragged items. */
+      .tz-pending-banner {
+        display: none;
+        font-size: 0.75rem;
+        line-height: 1.5;
+        color: var(--text-muted);
+        text-align: center;
+        text-wrap: balance;
+      }
+
+      .tz-pending-banner.is-visible {
+        display: block;
+      }
+
+      /* Words, not figures. `.timers-wrapper *` gives everything under the
+         timers the number font with !important, so an exception has to say
+         so too, as the progress text and the timer labels already do; this
+         rule comes later in the sheet, which settles the tie. */
+      .tz-pending-banner,
+      .tz-pending-banner * {
+        font-family: var(--font-sans) !important;
+      }
+
+      .tz-pending-banner strong {
+        color: var(--text-main);
+        font-weight: 600;
+      }
+
+      .tz-pending-undo {
+        padding: 2px 6px;
+        background: none;
+        border-radius: 6px;
+        color: var(--accent-blue);
+        font-size: inherit;
+      }
+
+      .tz-pending-undo:hover:not(:disabled) {
+        text-decoration: underline;
+      }
+
+      /* A confirmation written in lines, some words in bold (see
+         fillConfirmDesc). Any other caller sets plain text, which clears
+         them. */
+      .confirm-line {
+        display: block;
+      }
+
+      .confirm-line + .confirm-line {
+        margin-top: 0.5em;
+      }
+
+      #confirm-desc strong {
+        color: var(--text-main);
+        font-weight: 600;
       }
 
       .btn-log {
@@ -4535,11 +4618,80 @@
          Which is also why the markup carries no inline font-weight any more:
          an inline style outranks this and each of the four headings would
          have had to be corrected by hand. */
-      .sync-details-heading .settings-label {
+      .sync-details-heading .settings-label,
+      .tz-settings-heading {
         font-size: 0.68rem;
         font-weight: 700;
         letter-spacing: 0.07em;
         color: var(--text-muted);
+      }
+
+      /* The time zones card (docs/implement.md §4.3), first in the settings
+         panel. Its two zone rows are buttons shaped like settings rows --
+         label, the zone, a chevron -- and the heading takes the same
+         treatment as the cloud panel's. */
+      .tz-settings-card {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+
+      .tz-setting-row {
+        gap: 8px;
+        min-height: 26px;
+        padding: 0;
+        background: none;
+        border-radius: 6px;
+        color: var(--text-main);
+        font-size: inherit;
+        text-align: left;
+      }
+
+      .tz-setting-row .settings-label {
+        flex: 0 0 auto;
+      }
+
+      /* Takes the slack and gives it back by truncating, so a long city
+         never pushes the chevron out of the card. The span is its own
+         overflow box: an ellipsis inside a button's box is not drawn by
+         every engine. */
+      .tz-setting-value {
+        margin-left: auto;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-size: 0.72rem;
+        font-weight: 500;
+      }
+
+      .tz-setting-chevron {
+        width: 14px;
+        height: 14px;
+        flex: 0 0 auto;
+        color: var(--text-muted);
+      }
+
+      /* Two classes: .custom-select's own width: 100% comes later in the
+         sheet and would otherwise take the row from the label. */
+      .tz-log-times-row .tz-log-times-select {
+        width: 8.5rem;
+        flex: 0 0 auto;
+      }
+
+      /* Anchored to the row's end, so a menu wider than its trigger grows
+         over the label rather than out of the card. */
+      .tz-log-times-select .custom-select-panel {
+        left: auto;
+        right: 0;
+      }
+
+      /* Every other dropdown in this panel sits low and opens upwards; this
+         one is at the top, where upwards is off the panel. */
+      #settings-config-popup .tz-settings-card .custom-select-panel {
+        top: calc(100% + 4px);
+        bottom: auto;
+        box-shadow: var(--elev-2);
       }
 
       /* The trailing half of a heading row: how many devices there are, or
@@ -7244,15 +7396,25 @@
         /* Five characters at most (docs/implement.md §4.1): an offset label
            drops its "UTC" (+5:30), and a six-character nickname is cut with
            an ellipsis. The 5.5ch leaves room for the minus sign, which the
-           monospace fallback may draw from a wider font. A flex item is
-           blockified, which is what lets the ellipsis apply. */
+           monospace fallback may draw from a wider font. The cap is on the
+           text rather than on the label, which is a button: not every
+           engine draws an ellipsis inside a button's own box.
+
+           The bar only reads here (§4.1). Zones are changed in the sheet's
+           Time Zone section, whose rows are sized for a thumb. */
         .status-bar .tz-clock-label {
           display: inline-block;
           font-size: 0.78rem;
           margin: 0;
+          pointer-events: none;
+        }
+
+        .status-bar .tz-label-text {
+          display: inline-block;
           max-width: 5.5ch;
           overflow: hidden;
           text-overflow: ellipsis;
+          vertical-align: bottom;
         }
 
         .status-bar .tz-label-utc {
@@ -7661,6 +7823,60 @@
           height: 16px;
           flex: 0 0 auto;
           color: var(--text-muted);
+        }
+
+        /* The time zones card, borrowed from the settings panel
+           (RELOCATIONS). The section label above it names it, so its own
+           heading steps aside, and its rows take the Cloud row's shape and
+           48px height. */
+        #m-sheet .tz-settings-card {
+          padding: 0;
+          background: none;
+          border: 0;
+          gap: 0.5rem;
+        }
+
+        #m-sheet .tz-settings-heading {
+          display: none;
+        }
+
+        #m-sheet .tz-setting-row,
+        #m-sheet .tz-log-times-row {
+          gap: 0.6rem;
+          min-height: 48px;
+          padding: 0 0.85rem;
+          background: var(--surface-1);
+          border: var(--hairline);
+          border-radius: var(--radius-md);
+        }
+
+        #m-sheet .tz-setting-row:active {
+          background: var(--element-hover);
+        }
+
+        #m-sheet .tz-settings-card .settings-label {
+          font-size: var(--field-text-touch);
+          font-weight: 600;
+          letter-spacing: normal;
+          color: var(--text-main);
+        }
+
+        #m-sheet .tz-setting-value {
+          font-size: 0.8rem;
+          color: var(--text-muted);
+        }
+
+        #m-sheet .tz-setting-chevron {
+          width: 16px;
+          height: 16px;
+        }
+
+        #m-sheet .tz-log-times-select {
+          width: 9rem;
+        }
+
+        #m-sheet .tz-log-times-row .custom-select-trigger {
+          min-height: 44px;
         }
 
         /* Timer pane The timer is the hero of this screen. */
@@ -9953,7 +10169,8 @@
             </li>
             <li>
               <strong>Top bar.</strong> Two live clocks — your work time first,
-              then your local time — the Daily Goal, and the theme picker.
+              then your local time; click either one's label to change its zone
+              — the Daily Goal, and the theme picker.
             </li>
             <li>
               <strong>Bottom toolbar.</strong> Backup JSON, Restore JSON,
@@ -9988,6 +10205,7 @@
               panel up from the bottom, in labelled sections:
               <strong>Goals</strong> — the Daily Goal and the Weekly goal
               together, which is where the weekly one lives on a phone;
+              <strong>Time Zone</strong> for your work and local time zones;
               <strong>Appearance</strong> for the theme; a
               <strong>Cloud sync</strong> row showing the signed-in account,
               which opens the sync sheet on top; and <strong>Tools</strong>, the
@@ -10686,7 +10904,13 @@
               <strong>Time zones</strong> — the first clock shows your work time
               and the second your local time, each labelled with its zone (PDT
               in summer and PST in winter for Pacific Time). When both are the
-              same zone, one clock is shown.
+              same zone, one clock is shown. Change either by clicking its
+              label, or under <strong>Settings &rarr; Time zones</strong> (on a
+              phone, the <strong>Time Zone</strong> section of Settings &amp;
+              Tools). A new work zone asks first, because it can change today's
+              date; your existing logs keep their dates and times. During a
+              shift the change waits for the shift to end, with an
+              <strong>Undo</strong> under the progress bar.
             </li>
             <li>
               <strong>Goal presets</strong> — click the Daily Goal to open its
@@ -12266,27 +12490,34 @@
 
             <!-- Grouping wrappers for the phone status bar's three-column grid: logo | clocks | tail.
                  Work clock first, local clock second; the labels are filled
-                 in by renderClockLabels(). -->
+                 in by renderClockLabels(), and each opens the picker for its
+                 own zone (the phone's bar only reads). -->
             <div class="m-clock-cluster">
-              <span
+              <button
+                type="button"
                 id="work-clock-label"
-                class="tz-clock-label"
+                class="tz-clock-label tz-clock-btn"
                 data-title="Work time"
-                ><span class="tz-label-utc"></span
-                ><span class="tz-label-text"></span
-              ></span>
+                onclick="openZonePickerFor('work')"
+              >
+                <span class="tz-label-utc"></span
+                ><span class="tz-label-text"></span>
+              </button>
               <span id="work-clock"
                 ><span class="clock-time-text"></span
                 ><span class="clock-ampm"></span
               ></span>
               <i class="clock-divider"></i>
-              <span
+              <button
+                type="button"
                 id="local-clock-label"
-                class="tz-clock-label tz-local"
+                class="tz-clock-label tz-clock-btn tz-local"
                 data-title="Local time"
-                ><span class="tz-label-utc"></span
-                ><span class="tz-label-text"></span
-              ></span>
+                onclick="openZonePickerFor('local')"
+              >
+                <span class="tz-label-utc"></span
+                ><span class="tz-label-text"></span>
+              </button>
               <span id="local-clock"
                 ><span class="clock-time-text"></span
                 ><span class="clock-ampm"></span
@@ -12535,6 +12766,25 @@
             >
               <span id="progress-text">0.0% (Remaining: 08:00:00)</span>
               <span id="eta-text">Est. EOD: --:--</span>
+            </div>
+            <!-- A work zone chosen during a shift, waiting for the shift to
+                 end (decision D2). Shown by renderPendingZoneBanner(), by
+                 class. -->
+            <div id="tz-pending-banner" class="tz-pending-banner" role="status">
+              <span
+                >Work time zone changes to
+                <strong id="tz-pending-zone"></strong> when this shift
+                ends</span
+              >
+              <span aria-hidden="true">·</span>
+              <button
+                type="button"
+                id="tz-pending-undo"
+                class="tz-pending-undo"
+                onclick="undoPendingWorkZone()"
+              >
+                Undo
+              </button>
             </div>
           </div>
 
@@ -14315,6 +14565,121 @@
                     </svg>
                   </button>
                 </div>
+                <!-- Card 0: Time zones. First, because the work zone decides
+                     what "today" is for every card below it
+                     (docs/implement.md §4.3). One node for both layouts: the
+                     phone sheet borrows it into its Time Zone section (see
+                     MobileShell's RELOCATIONS). The read-outs are filled in
+                     by renderZoneSettings(). -->
+                <div class="settings-card tz-settings-card">
+                  <span class="settings-label tz-settings-heading"
+                    >Time zones</span
+                  >
+                  <button
+                    type="button"
+                    id="tz-work-row"
+                    class="settings-row tz-setting-row"
+                    onclick="openZonePickerFor('work')"
+                  >
+                    <span class="settings-label">Work time zone</span>
+                    <span id="tz-work-value" class="tz-setting-value"></span>
+                    <svg
+                      class="tz-setting-chevron"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.8"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      aria-hidden="true"
+                    >
+                      <g data-sprite="sprite-029"></g>
+                    </svg>
+                  </button>
+                  <button
+                    type="button"
+                    id="tz-local-row"
+                    class="settings-row tz-setting-row"
+                    onclick="openZonePickerFor('local')"
+                  >
+                    <span class="settings-label">Local time zone</span>
+                    <span id="tz-local-value" class="tz-setting-value"></span>
+                    <svg
+                      class="tz-setting-chevron"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.8"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      aria-hidden="true"
+                    >
+                      <g data-sprite="sprite-029"></g>
+                    </svg>
+                  </button>
+                  <div class="settings-row tz-log-times-row">
+                    <span class="settings-label">Show log times in</span>
+                    <div class="custom-select tz-log-times-select">
+                      <select
+                        id="tz-log-times-select"
+                        style="display: none"
+                        onchange="chooseLogTimes(this.value)"
+                      >
+                        <option value="recorded">Recorded zone</option>
+                        <option value="work">Work zone</option>
+                        <option value="local">Local zone</option>
+                      </select>
+                      <button
+                        type="button"
+                        class="custom-select-trigger cs-sm"
+                        data-for="tz-log-times-select"
+                        aria-haspopup="listbox"
+                      >
+                        <span class="cs-trigger-val">Recorded zone</span>
+                        <svg
+                          class="cs-chevron"
+                          viewBox="0 0 24 24"
+                          width="14"
+                          height="14"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="1.8"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                        >
+                          <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                      </button>
+                      <div
+                        class="custom-select-panel cs-compact"
+                        role="listbox"
+                      >
+                        <button
+                          type="button"
+                          class="custom-select-option cs-selected"
+                          data-value="recorded"
+                        >
+                          Recorded zone
+                        </button>
+                        <button
+                          type="button"
+                          class="custom-select-option"
+                          data-value="work"
+                        >
+                          Work zone
+                        </button>
+                        <button
+                          type="button"
+                          class="custom-select-option"
+                          data-value="local"
+                        >
+                          Local zone
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
                 <!-- Card 1: Tracking Behavior -->
                 <div
                   class="settings-card"
@@ -15396,6 +15761,7 @@
           data-slot="goal"
           data-label="Goals"
         ></div>
+        <div class="m-sheet-slot" data-slot="tz" data-label="Time Zone"></div>
         <div
           class="m-sheet-slot"
           data-slot="theme"
@@ -16904,6 +17270,11 @@
         workClockLabel: document.getElementById("work-clock-label"),
         localClockLabel: document.getElementById("local-clock-label"),
         clockCluster: document.querySelector(".m-clock-cluster"),
+        tzPendingBanner: document.getElementById("tz-pending-banner"),
+        tzPendingZone: document.getElementById("tz-pending-zone"),
+        tzWorkValue: document.getElementById("tz-work-value"),
+        tzLocalValue: document.getElementById("tz-local-value"),
+        tzLogTimesSelect: document.getElementById("tz-log-times-select"),
         workTimerDigits: Array.from(
           document.querySelectorAll("#work-timer .timer-digit"),
         ),
@@ -18180,6 +18551,7 @@
           if (typeof renderLogbook === "function") renderLogbook();
           if (typeof renderTaskLogbook === "function") renderTaskLogbook();
           if (typeof renderInsights === "function") renderInsights();
+          if (typeof renderZoneSettings === "function") renderZoneSettings();
         } catch (e) {
           console.warn("Could not redraw after a time zone change", e);
         }
@@ -20645,6 +21017,11 @@
           if (!prefs || typeof prefs !== "object") return false;
           let changed = false;
           let zoneChanged = false;
+          /* For the toast below: the work zone before this blob. */
+          const workWas =
+            typeof getPreferredWorkZone === "function"
+              ? getPreferredWorkZone()
+              : null;
           for (const name in PREF_KEYS) {
             if (!(name in prefs)) continue;
             const spec = PREF_KEYS[name];
@@ -20673,6 +21050,9 @@
           }
           if (zoneChanged && typeof onZoneContextChanged === "function") {
             onZoneContextChanged();
+            if (workWas && typeof announceAdoptedWorkZone === "function") {
+              announceAdoptedWorkZone(workWas);
+            }
           }
           return changed;
         }
@@ -25501,16 +25881,18 @@
           zoneNickname(zone),
         );
         const offset = /^UTC[+−-]/.test(text);
-        setText(el.firstElementChild, offset ? "UTC" : "");
-        setText(el.lastElementChild, offset ? text.slice(3) : text);
-        const name = TimeZones.longName(zone, ms);
-        const city = TimeZones.city(zone);
-        const where = name === city ? city : `${name} (${city})`;
-        const title = `${role} time · ${where} · ${TimeZones.offsetLabel(
+        setText(el.querySelector(".tz-label-utc"), offset ? "UTC" : "");
+        setText(
+          el.querySelector(".tz-label-text"),
+          offset ? text.slice(3) : text,
+        );
+        const title = `${role} time · ${zoneWhere(zone, ms)} · ${TimeZones.offsetLabel(
           TimeZones.offsetMinutes(ms, zone),
         )}`;
         if (el.getAttribute("data-title") !== title) {
           el.setAttribute("data-title", title);
+          /* "PDT" alone is no name for a button. */
+          el.setAttribute("aria-label", title);
         }
       }
 
@@ -25526,6 +25908,211 @@
         if (!single) {
           renderClockLabel(DOM.localClockLabel, localZone, ms, "Local");
         }
+        /* Also here, once a minute and whenever the work zone moves, so the
+           offset the banner quotes stays current. */
+        renderPendingZoneBanner(ms);
+      }
+
+      /* ---- Changing zones (docs/implement.md §3.5, §4.3, §4.4) ----
+
+         The clock buttons, the settings card and the phone sheet all change
+         a zone through the choose* functions below, so a change takes one
+         path whichever control started it. */
+
+      const ZONE_WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+      /* "Pacific Time (Los Angeles)": a zone named for a sentence. */
+      function zoneWhere(zone, ms) {
+        const name = TimeZones.longName(zone, ms);
+        const city = TimeZones.city(zone);
+        return name === city ? city : `${name} (${city})`;
+      }
+
+      /* "Dhaka (UTC+6)". */
+      function zoneCityOffset(zone, ms) {
+        const offset = TimeZones.offsetLabel(TimeZones.offsetMinutes(ms, zone));
+        return `${TimeZones.city(zone)} (${offset})`;
+      }
+
+      /* "Sat 09/13/26". The weekday is read from the date itself, so no zone
+         can move it. */
+      function businessDayLabel(key) {
+        const p = TimeZones.parseKey(key);
+        if (!p) return String(key);
+        const day = new Date(Date.UTC(p.y, p.m - 1, p.d, 12)).getUTCDay();
+        return `${ZONE_WEEKDAYS[day]} ${key}`;
+      }
+
+      function openZonePickerFor(role) {
+        if (role === "local") {
+          return ZonePicker.open({
+            role: "local",
+            current: readZonePrefs().local || LEGACY_LOCAL_TZ,
+            onPick: chooseLocalZone,
+          });
+        }
+        return ZonePicker.open({
+          role: "work",
+          current: getPreferredWorkZone(),
+          onPick: chooseWorkZone,
+        });
+      }
+
+      /* The confirmation's text, with some words in bold. Built from text
+         nodes, never markup: a zone's name is not ours to trust (I14). In
+         each line a string is plain text and a one-item array is bold. */
+      function fillConfirmDesc(lines) {
+        const p = DOM.confirmDesc;
+        p.textContent = "";
+        lines.forEach((line) => {
+          const row = document.createElement("span");
+          row.className = "confirm-line";
+          line.forEach((piece) => {
+            if (Array.isArray(piece)) {
+              const b = document.createElement("strong");
+              b.textContent = piece[0];
+              row.appendChild(b);
+            } else {
+              row.appendChild(document.createTextNode(piece));
+            }
+          });
+          p.appendChild(row);
+        });
+      }
+
+      /* The work zone decides what "today" is, so with no shift running a
+         change is confirmed first, naming the day it will be. With a shift
+         running it is saved at once and waits for the shift to end (decision
+         D2): getWorkZone() keeps the shift's zone, and the banner says so.
+         Change goes through setWorkZonePref either way, so a shift started
+         while the dialog was up simply defers it. */
+      function chooseWorkZone(id) {
+        const next = TimeZones.sanitize(id, null);
+        if (!next || TimeZones.same(next, getPreferredWorkZone())) return false;
+        const s = currentState();
+        if (s && sessionIsLive(s)) return setWorkZonePref(next);
+        const from = getWorkZone();
+        const now = window.Sync ? Sync.trueNow() : Date.now();
+        const today = TimeZones.dateKey(now, from);
+        const then = TimeZones.dateKey(now, next);
+        openConfirmModal(
+          "Change work time zone?",
+          "",
+          () => {
+            if (setWorkZonePref(next)) {
+              showAppToast(
+                `Work time zone set to ${zoneCityOffset(next, Date.now())}`,
+                "success",
+              );
+            }
+          },
+          false,
+          "Change",
+        );
+        fillConfirmDesc([
+          [
+            "From ",
+            [zoneWhere(from, now)],
+            " to ",
+            [zoneWhere(next, now)],
+            ".",
+          ],
+          today === then
+            ? ["Today stays ", [businessDayLabel(today)], "."]
+            : [
+                "Today becomes ",
+                [businessDayLabel(then)],
+                ` (was ${businessDayLabel(today)}).`,
+              ],
+          [
+            "Your existing logs keep their dates and times. New shifts, today’s goal and your weekly totals follow the new zone.",
+          ],
+        ]);
+        return true;
+      }
+
+      /* Display only (I10): the clocks and the finish estimate move at once,
+         and there is nothing to confirm. */
+      function chooseLocalZone(value) {
+        const next =
+          value === "auto" ? "auto" : TimeZones.sanitize(value, null);
+        if (!next) return false;
+        const current = readZonePrefs().local || LEGACY_LOCAL_TZ;
+        if (
+          next === "auto" ? current === "auto" : TimeZones.same(next, current)
+        ) {
+          return false;
+        }
+        return setLocalZonePref(next);
+      }
+
+      /* "Show log times in" (decision D1). The display preference also holds
+         the nicknames and the label style, so the mode is merged into it. */
+      function chooseLogTimes(mode) {
+        if (!["recorded", "work", "local"].includes(mode)) return false;
+        if (mode === zoneDisplayMode()) return false;
+        const display = readZonePrefs().display || {};
+        return setZoneDisplayPref(
+          Object.assign({}, display, { logTimes: mode }),
+        );
+      }
+
+      /* A pending change is only the preference differing from the zone the
+         shift holds, so undoing it is putting the preference back. */
+      function undoPendingWorkZone() {
+        const s = currentState();
+        if (!s || !sessionIsLive(s)) return false;
+        return setWorkZonePref(TimeZones.sanitize(s.sessionTz, LEGACY_TZ));
+      }
+
+      /* The line under the progress bar while a chosen work zone waits for
+         the shift to end. By class, never an inline display (I13). */
+      function renderPendingZoneBanner(ms) {
+        const el = DOM.tzPendingBanner;
+        if (!el) return;
+        const pending = pendingWorkZone();
+        if (pending) {
+          const at = ms === undefined ? Date.now() : ms;
+          setText(DOM.tzPendingZone, zoneCityOffset(pending, at));
+        }
+        el.classList.toggle("is-visible", !!pending);
+      }
+
+      /* The settings card's read-outs: each zone as its clock labels it, and
+         the log times mode. Redrawn by the funnel, and when the settings
+         panel or the phone sheet opens. */
+      function renderZoneSettings() {
+        if (!DOM.tzWorkValue || !DOM.tzLocalValue) return;
+        const now = Date.now();
+        const read = (zone) =>
+          `${TimeZones.label(zone, now, zoneLabelStyle(), zoneNickname(zone))} · ${TimeZones.city(zone)}`;
+        setText(DOM.tzWorkValue, read(getPreferredWorkZone()));
+        const local = readZonePrefs().local;
+        setText(
+          DOM.tzLocalValue,
+          local === "auto"
+            ? `Auto · ${TimeZones.city(TimeZones.deviceZone())}`
+            : read(local || LEGACY_LOCAL_TZ),
+        );
+        /* The custom dropdown redraws its trigger when this value is set. */
+        const select = DOM.tzLogTimesSelect;
+        const mode = zoneDisplayMode();
+        if (select && select.value !== mode) select.value = mode;
+      }
+
+      /* A work zone adopted from another device (§3.5). It was confirmed where
+         it was chosen, so there is no dialog here, only a toast naming it --
+         and not even that when the zone is the same one in another spelling,
+         or an unset preference made explicit (I7). */
+      function announceAdoptedWorkZone(was) {
+        const now = getPreferredWorkZone();
+        if (TimeZones.same(was, now)) return;
+        const where = zoneCityOffset(now, Date.now());
+        showAppToast(
+          pendingWorkZone()
+            ? `Work time zone synced: ${where}, from the end of this shift`
+            : `Work time zone synced: ${where}`,
+        );
       }
 
       /**
@@ -26712,6 +27299,7 @@
           document.documentElement.removeAttribute("data-session-remote");
         }
         renderRemoteSessionBanner(leased);
+        renderPendingZoneBanner();
 
         if (!hasStarted) {
           DOM.startBtn.style.display = "flex";
@@ -37813,6 +38401,7 @@
       }
 
       function syncSettingsUI() {
+        renderZoneSettings();
         if (DOM.weeklyGoalHours) {
           DOM.weeklyGoalHours.value = String(
             Number.isFinite(state.weeklyGoalHours) && state.weeklyGoalHours > 0
@@ -42427,6 +43016,12 @@
 
       function initSettingsHoverHelp() {
         const descriptions = {
+          "tz-work-row":
+            "Work Time Zone: Decides today's date, when a shift rolls over at midnight and the date new records are filed under. Changed during a shift, it applies when the shift ends.",
+          "tz-local-row":
+            "Local Time Zone: Where you are. Only the second clock and the finish estimate use it; nothing stored changes.",
+          "tz-log-times-select":
+            "Log Times: Show each record's In and Out times in the zone it was recorded in, or all of them in your work or local zone.",
           "goal-autopopulate-toggle":
             "Auto-Populate: Adjusts your daily target dynamically to pace you toward a 40-hour work week.",
           "weekly-goal-hours":
@@ -42524,6 +43119,9 @@
         };
 
         const rowIds = [
+          "tz-work-row",
+          "tz-local-row",
+          "tz-log-times-select",
           "goal-autopopulate-toggle",
           "weekly-goal-hours",
           "idle-toggle",
@@ -43356,6 +43954,7 @@
         const RELOCATIONS = [
           { slot: "goal", selector: ".goal-container" },
           { slot: "goal", selector: ".weekly-goal-container" },
+          { slot: "tz", selector: ".tz-settings-card" },
 
           { slot: "theme", selector: ".theme-container" },
           { slot: "tools", selector: ".footer-icons" },
@@ -43407,6 +44006,11 @@
 
         function openSheet() {
           if (!state.active) return;
+          /* The Time Zone section reads the preferences. The funnel keeps it
+             current while the sheet is open; this, while it was not. */
+          if (typeof window.renderZoneSettings === "function") {
+            window.renderZoneSettings();
+          }
           document.body.classList.add("m-sheet-open");
           const btn = el("m-more-btn");
           if (btn) btn.setAttribute("aria-expanded", "true");
