@@ -1,19 +1,19 @@
 # Time zones: implementation blueprint
 
-> **Status:** Phases 0–3 complete. Every zone-dependent calculation goes through `TimeZones`, and the zone model exists (unset preferences keep Los Angeles for work and Dhaka for local until Phase 5's UI). Every record is shown, edited, exported and searched in the zone it was filed in. Phase 4a, the catalog and search behind the zone picker, is committed; 4b (the picker dialog) is next.
+> **Status:** Phases 0–4 complete. Every zone-dependent calculation goes through `TimeZones`, and the zone model exists (unset preferences keep Los Angeles for work and Dhaka for local until Phase 5's UI). Every record is shown, edited, exported and searched in the zone it was filed in. A searchable picker over every time zone exists, reachable only from tests. Phase 5 (status bar, settings card, phone sheet, change flows) is next.
 > **Baseline commit:** `9181afa` (all line numbers below refer to it and WILL drift — re-grep before editing).
 > **Rule:** one phase at a time. A phase starts only when the previous phase's exit criteria are green and committed.
 
-| Phase | Title                                                | Touches data?    | Needs live account? | Size              | State            |
-| ----- | ---------------------------------------------------- | ---------------- | ------------------- | ----------------- | ---------------- |
-| 0     | Groundwork, probes, fixtures                         | no               | one read-only probe | S                 | **done**         |
-| 1     | `TimeZones` core + behaviour-identical refactor      | no               | regression only     | L (split 1a/1b)   | **done**         |
-| 2     | Data model: work / local / session / record zones    | **yes**          | regression only     | L (split 2a/2b)   | **done**         |
-| 3     | Rendering and editing records in their own zone      | yes (edit paths) | no                  | M–L (split 3a/3b) | **done**         |
-| 4     | The zone picker component                            | no               | no                  | M–L (split 4a/4b) | 4a done, 4b next |
-| 5     | Status bar, settings card, phone sheet, change flows | prefs            | no                  | L (split 5a/5b)   | not started      |
-| 6     | Sync hardening + multi-device + iPhone verification  | no               | **yes**             | M                 | not started      |
-| 7     | Cleanup, aliases removed, docs, guide                | no               | full sweep          | S                 | not started      |
+| Phase | Title                                                | Touches data?    | Needs live account? | Size              | State       |
+| ----- | ---------------------------------------------------- | ---------------- | ------------------- | ----------------- | ----------- |
+| 0     | Groundwork, probes, fixtures                         | no               | one read-only probe | S                 | **done**    |
+| 1     | `TimeZones` core + behaviour-identical refactor      | no               | regression only     | L (split 1a/1b)   | **done**    |
+| 2     | Data model: work / local / session / record zones    | **yes**          | regression only     | L (split 2a/2b)   | **done**    |
+| 3     | Rendering and editing records in their own zone      | yes (edit paths) | no                  | M–L (split 3a/3b) | **done**    |
+| 4     | The zone picker component                            | no               | no                  | M–L (split 4a/4b) | **done**    |
+| 5     | Status bar, settings card, phone sheet, change flows | prefs            | no                  | L (split 5a/5b)   | not started |
+| 6     | Sync hardening + multi-device + iPhone verification  | no               | **yes**             | M                 | not started |
+| 7     | Cleanup, aliases removed, docs, guide                | no               | full sweep          | S                 | not started |
 
 ---
 
@@ -295,7 +295,7 @@ One component, three presentations: centred dialog on desktop/tablet, full-scree
 - **Search** (diacritic-insensitive, prefix-ranked), in two tiers. **Immediate** (static strings, no `Intl`): city, region segment, country name, aliases (`Calcutta↔Kolkata`, `Kiev↔Kyiv`, `Katmandu↔Kathmandu`, `Saigon↔Ho Chi Minh`, `Rangoon↔Yangon`, `US/Pacific`…). **As the idle index completes:** generic names (`longGeneric` → "Pacific Time", "Bangladesh Standard Time"), abbreviations (`short` → "PDT"; `shortGeneric` → "PT"), offsets (`utc+6`, `gmt+6`, `+6`, `+06:00`, `+5:30`). "bangladesh" → Dhaka at once; "pst" → Los Angeles and "5:30" → Kolkata once indexed.
 - **Keyboard / a11y:** `role="listbox"`, `aria-activedescendant`, ↑ ↓ Home End Enter Esc, type-ahead focuses search. Autofocus search on desktop only (house rule: no autofocus that raises the phone keyboard).
 - **Touch:** rows ≥ 44 px on the touch layouts; the list is the only scroller (no nested scroller fighting the sheet drag).
-- **Label footer:** nickname per zone (stored in `tzDisplay.nicknames[zoneId]`, so a nickname never follows you to another zone) and style (Abbreviation / Generic / Offset).
+- **Label footer — moved to Phase 5 (decided 2026-09-14):** nickname per zone (stored in `tzDisplay.nicknames[zoneId]`, so a nickname never follows you to another zone) and style (Abbreviation / Generic / Offset). Nothing shows either until Phase 5's clocks, so it arrives with them and is tested against a real label. The picker ships without it: tapping a row, or Enter on the highlighted one, picks and closes.
 - **Recents:** last 5 chosen, device-local, not synced.
 
 ### 4.3 Settings card and phone sheet
@@ -974,11 +974,100 @@ Anchors: 212, 0 misses. `index.html` was restored byte-identical.
 
 Check the power state before any timing-graded run.
 
+#### Phase 4b results (2026-09-14)
+
+**Committed as** `feat(time): a searchable picker over every time zone`. Still reachable only from tests: Phase 5 adds the clocks and settings rows that open it. The label footer moved to Phase 5 (§4.2).
+
+**What exists now:**
+
+- **`ZonePicker.open({ role, current, onPick })`**, plus `close()`, `isOpen()` and `closeZonePicker()`.
+- **`#zone-picker-modal` is a `.modal-overlay`** like every other dialog, so the existing machinery covers it:
+  - it is listed in `MODAL_IDS` (Tab stays inside), in `MODAL_CLOSERS` (Escape) and in `closeAllActiveModals`;
+  - the takeover offer's gate and `body[data-modal-raised]` see it with no extra wiring.
+- **With an empty search:**
+  - **SUGGESTED:** Automatic (local picker only), the current zone (✓), and this device's zone, labelled;
+  - **RECENT**;
+  - **ALL TIME ZONES**.
+- **With a query:** the ranked results. "Searching all time zones…" shows while the index is still pending; a search with no match says so.
+- **Rows:** city · country on the left, the time over abbreviation · offset on the right.
+  - The labels are filled only as a row scrolls into view, and refreshed every 15 s while the picker is open.
+  - Rows are 40 px on the desktop and 44 px on the phone.
+- **Keys:**
+  - ↑ ↓ Home End move the highlight, read out through `aria-activedescendant` on the search field;
+  - Enter picks and Escape closes;
+  - a printable key pressed anywhere in the open dialog goes to the search, and never reaches the app's shortcuts (Space would otherwise start the timer).
+- **Desktop:** a 520 px dialog, search focused, rising in like the others.
+- **Phone:** the help modal's full-width sheet, with no autofocus and the list as the only scroller.
+- **A pick** is remembered in recents (Automatic never is), and focus returns to whatever opened the picker.
+- **First paint** draws the headings and the first 24 rows; the rest follow 60 rows per task. A keyboard move paints ahead to wherever it lands.
+  - Drawing all 421 rows at once measured 137–153 ms at 4×, against a 100 ms budget.
+  - Chunked with 40 rows first it measured 86–103 ms, so the first paint was cut to 24 rows, still a full screen on both layouts.
+
+**Tests.**
+
+- **`probe-tz-picker.js` gains 41 dialog checks, 176 in all.**
+  - **Desktop:**
+    - wiring, and hidden and unbuilt at boot;
+    - the first open at 4×;
+    - titles, suggested rows and the selection mark;
+    - labels only on screen;
+    - search, Enter, recents and focus return;
+    - arrows, Home and End, including End past the painted rows;
+    - Escape, type-ahead, and Space not starting the timer;
+    - `closeAllActiveModals`, and Automatic in the local picker;
+    - a stored `Etc/GMT` zone shown as current;
+    - a hostile current zone and recents never rendered as markup;
+    - the empty state and the pending hint;
+    - row height, one scroller, the entrance, reduced motion and all four themes.
+  - **Phone:** 390 px with no autofocus, 44 px rows, one scroller and a full-width sheet; no overflow at 375 px.
+- **`harness-lease-prompt.js` gains section 5b** (edge case 39): the real picker, opened on the phone over the timer, holds the takeover offer back, and closing it lets the offer through. 23 checks.
+
+**Regression, one suite at a time — at baseline.** Numbers below are checks.
+
+- **Time zone suites:** `probe-tz-picker` 176, `harness-tz-display` 129, `harness-tz-core` 80, `harness-tz-model` 28.
+- **No-account suites:**
+  - `harness-progress` 25, `harness-motion` 43, `harness-cloud-panel` 27, `harness-security` 17;
+  - `probe-leave-rows` 12, `probe-csv-shape` 15, `probe-backup-and-leave` 26, `probe-lease-endshift` 30;
+  - `probe-field-sweep` unchanged (19 short fields on desktop, 0 on the phone: the picker's 36 px search is not one of them), and `harness.js` ALL PASS.
+- **Live account and the long suites:**
+  - `harness-handoff` 22, `harness-signin-render` 12, `probe-shift-rewind` ALL PASS;
+  - `harness-phase7` 21, `harness-phase8` 13, `harness-import` 9, `harness-wipe` 18;
+  - `probe-beat-cost` 9;
+  - `harness-lease-prompt` 23, including section 5b (edge case 39).
+
+Five suites needed a run on their own, and all five passed alone:
+
+- **`harness-progress`** never started inside the chain (exit 127, empty log), so there was no result to read.
+- **`harness-handoff`** failed "a follower refuses a corrupt anchor" (read `null`), and **`harness-signin-render`** failed "uploads nothing" (got 1). These are the same two checks that failed inside the 3b1, 3b2 and 4a chains.
+  - `harness-handoff` passed on its second run alone. Its first solo run failed at the start together with its own negative control ("the domains are not actually separate"), the harness's sign of trouble outside the app.
+- **`harness-phase7`** failed "uploading marks the push time" (the pull stamp moved 1.8 s), the same check as in the 4a chain.
+- **`harness-wipe`** failed "the cloud row really carries the running shift" (empty payload). This is the first time that check has failed, and nothing in 4b touches sync or the wipe.
+
+**The first-open budget has little margin on this laptop.** In the chain, the first measurement was 155.6 ms and the retry on a fresh page 83.6 ms; the first run overlapped a formatting check started at the same moment. On a quiet machine with 40 rows drawn first it measured 102.9 ms and then 86.3 ms, which is why the first paint was cut to 24 rows. A cold first open sits near the 100 ms line at 4×; warm, about 84 ms.
+
+**Mutations:** 15 new, all caught, each on the check written for it:
+
+- Enter does nothing; not a `.modal-overlay`; phone rows below 44 px (the plan's three);
+- Automatic offered to the work picker; the search focused on the phone; every row labelled, on screen or not;
+- the dialog scrolling around the list; arrow keys not moving the highlight; a pick not remembered;
+- left out of `MODAL_CLOSERS`; type-ahead letting the app's shortcuts read the key;
+- every row drawn before the first paint; focus not handed back; opened by class instead of the inline display; the list not filled in after the first rows.
+
+Anchors: 227, 0 misses. `index.html` was restored byte-identical. The run was on AC throughout: the battery status and the 2419 MHz clock were logged at its start and end.
+
+An earlier run was stopped when the laptop came off AC. It had started on battery against a red baseline, so its results were discarded.
+
+**Phase 4 is complete.** Carried into Phase 5:
+
+- the triggers that open the picker: the clock buttons and the settings rows;
+- the label footer (§4.2);
+- the "nickname via `innerHTML`" mutation, once a nickname is rendered.
+
 ### Phase 5 — Status bar, settings card, phone sheet, change flows
 
 **5a — chrome:** remove `#primary-tz`, `.tz-presets`, the static `BST` label and `updatePrimaryFormatter`/`selectPresetTZ`/`updateTZLabel`; add the two clock buttons, single-zone mode, label policy, ETA label; update the POINTER-DRIVEN POPOVERS `FAMILIES` (41081) and the CSS blocks at 1012–1024, 1385, 1505–1524, 1717, 1775–1897, 5219–5227, 6132, 7170–7230, 7315–7493, 8863–8933; drop `tzPref` from `PREF_KEYS`.
 
-**5b — flows:** settings card, `RELOCATIONS` swap, hover help, work-zone confirm, deferred banner with Undo, local-zone immediate apply, sync toast, first-launch notice, guide rewrite (§4.6).
+**5b — flows:** settings card, `RELOCATIONS` swap, hover help, work-zone confirm, deferred banner with Undo, local-zone immediate apply, sync toast, first-launch notice, guide rewrite (§4.6), and the label footer moved here from the picker (§4.2): a nickname per zone and the label style, tested against the clocks that show them.
 
 **Tests — `probe-tz-ui.js`:** geometry at 1440 / 1280 / 1149 / 1024 / 820 / 768 / 430 / 390 / 375 px × 4 themes; pane ratio vs baseline; single-zone collapse; longest labels (row 38); banner uses a class (computed display off the timer pane on the phone); confirm asserts title before clicking; clicking a clock opens the picker for that role. Update `harness-phase8.js`'s parity case from `tzPref` to `workTz`/`localTz`/`tzDisplay`; update `harness-progress.js` if it reads the ETA text.
 
