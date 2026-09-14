@@ -1,6 +1,6 @@
 # Time zones: implementation blueprint
 
-> **Status:** Phases 0–4 complete. Every zone-dependent calculation goes through `TimeZones`, and the zone model exists (an unset work zone is Los Angeles on a device with data from before zones and the device's own zone for a new user; an unset local zone follows the device). Every record is shown, edited, exported and searched in the zone it was filed in. A searchable picker over every time zone opens from the clocks and the settings card. Phase 5a is done: the status bar shows live work and local clocks. Phase 5b1 is done: zones are changed from the clock labels, a settings card and the phone sheet, with a confirmation for the work zone, a banner with Undo during a shift, and a toast for a zone synced from another device. Phase 5b2a is done: a new user's work zone starts as the device's own and is pinned at the first clock-in, and an unset local zone follows the device. Phase 5b2b is done: clock labels (a style, and a nickname per zone) from the Time zones card, a one-time notice on devices that used nodrift before zones, and a rewritten guide section. Phase 5 is complete. Phase 6a is done: the live suites found that a new device signing in could replace the account's settings with its own defaults when its day moved, fixed by never uploading a goal the app works out for itself; an old-client check runs the build from before zones beside this one. The rest of Phase 6 (the remaining multi-device edge cases, then the iPhone checklist) is next.
+> **Status:** Phases 0–4 complete. Every zone-dependent calculation goes through `TimeZones`, and the zone model exists (an unset work zone is Los Angeles on a device with data from before zones and the device's own zone for a new user; an unset local zone follows the device). Every record is shown, edited, exported and searched in the zone it was filed in. A searchable picker over every time zone opens from the clocks and the settings card. Phase 5a is done: the status bar shows live work and local clocks. Phase 5b1 is done: zones are changed from the clock labels, a settings card and the phone sheet, with a confirmation for the work zone, a banner with Undo during a shift, and a toast for a zone synced from another device. Phase 5b2a is done: a new user's work zone starts as the device's own and is pinned at the first clock-in, and an unset local zone follows the device. Phase 5b2b is done: clock labels (a style, and a nickname per zone) from the Time zones card, a one-time notice on devices that used nodrift before zones, and a rewritten guide section. Phase 5 is complete. Phase 6a is done: the live suites found that a new device signing in could replace the account's settings with its own defaults when its day moved, fixed by never uploading a goal the app works out for itself; an old-client check runs the build from before zones beside this one. Phase 6b is done: rows 29, 30, 34 and 40 and the wipe of the zone preferences hold against the live database with no app change. The rest of Phase 6 is the iPhone checklist, after the push.
 > **Baseline commit:** `9181afa` (all line numbers below refer to it and WILL drift — re-grep before editing).
 > **Rule:** one phase at a time. A phase starts only when the previous phase's exit criteria are green and committed.
 
@@ -12,7 +12,7 @@
 | 3     | Rendering and editing records in their own zone      | yes (edit paths) | no                  | M–L (split 3a/3b)    | **done**    |
 | 4     | The zone picker component                            | no               | no                  | M–L (split 4a/4b)    | **done**    |
 | 5     | Status bar, settings card, phone sheet, change flows | prefs            | no                  | L (split 5a/5b1/5b2) | **done**    |
-| 6     | Sync hardening + multi-device + iPhone verification  | no               | **yes**             | M                    | **6a done** |
+| 6     | Sync hardening + multi-device + iPhone verification  | no               | **yes**             | M                    | **6b done** |
 | 7     | Cleanup, aliases removed, docs, guide                | no               | full sweep          | S                    | not started |
 
 ---
@@ -1517,6 +1517,54 @@ Two things were measured that no change to this build can reach (§3.8, "Older c
 4. With the automatic goal off, the merge's own `renderInsights()` is still the only redraw. The check added for that catches mutation 84.
 
 Anchors: 282, 0 misses. `index.html` was restored byte-identical after every run.
+
+#### Phase 6b results (2026-09-15)
+
+**No app change.** Rows 29, 30, 34 and 40, and the wipe of the zone preferences, were checked against the build committed in 6a (`index.html` md5 `79c372ee`). All behave as §3.5 and §3.8 say.
+
+**Tests.**
+
+- **`harness-tz-sync.js`**: new, 12 checks, live, two devices with the device zone Asia/Dhaka.
+  - **Row 29.** B runs a shift in Los Angeles, and A changes the work zone to Kolkata.
+    - B adopts the preference, but its shift keeps Los Angeles (I4).
+    - The banner names Kolkata, and the toast reads "Work time zone synced: Kolkata (UTC+5:30), from the end of this shift".
+    - Today's date does not move.
+    - B files the shift in Los Angeles, then works in Kolkata.
+  - **Row 30.** A runs a shift in Kolkata, and B's preference becomes Los Angeles.
+    - B mirrors the shift in Kolkata and shows the change waiting.
+    - B takes the shift over, and its rollover works in Kolkata.
+    - The record B files carries Kolkata and Kolkata's date: 09/15/26, while Los Angeles was still on 09/14.
+    - Afterwards, B's work zone is its own preference.
+  - **Row 34.** B holds Kolkata in Chrome's spelling (`Asia/Calcutta`) for both clocks.
+    - A sends Safari's spelling (`Asia/Kolkata`). B stores it with no zone toast and no banner, and its clocks still read as one zone.
+    - A shift started under Safari's spelling shows nothing pending on B.
+  - End of day goes through the app's own `executeSubmit`. It refuses a shift with no whole second of work, so each check waits for two seconds of work first.
+- **`harness-tz-core.js`**: 85 checks (was 80), no account. This covers **row 40**.
+  - The same story is set up in Los Angeles and in Dhaka, against each zone's own midnight: clocked in three hours before it, suspended two hours before it, and woken now with yesterday still the active day.
+  - The setup and the wake run in one synchronous block, through the app's `handleWakeUpRecovery`, so the page's tick cannot get in first.
+  - In both zones the wake raises the system pause prompt before any rollover: idle from the suspend, one hour banked, and yesterday still active.
+  - After Discard, both zones file one record on yesterday's date in their own zone, and the two records have the same shape.
+- **`harness-wipe.js`**: 18 checks.
+  - The settings the wipe must remove now include a work zone and clock labels. The precondition requires them to be in the server's copy first.
+  - All 18 pass: 12 keys seeded with the zone preferences included, and none left after the wipe.
+  - A device's own zone keys, the recent zones, the install verdict and the notice latch are graded in `probe-tz-ui.js`.
+
+**Found, not changed.** This happens the same way in Los Angeles, so it is not zone work.
+
+- It follows a suspend across midnight that the user resolves as Discard.
+- The rollover then files, on yesterday's date, a record whose window runs from now to an hour from now, so its logout is in the future.
+- That record holds the hour banked before the suspend.
+
+**Mutations:** 4 new (282–285), each caught on the check written for it, on AC:
+
+- a mirror ignoring the zone its shift started in (row 30);
+- a zone synced mid-shift applying at once (row 29);
+- another spelling of the shift's zone reading as a pending change (row 34);
+- the rollover after a wake working in Los Angeles (row 40, also caught by the Honolulu and Kolkata rollover checks).
+
+There is no mutation for "a zone toast when another device's spelling arrives". On Chrome both sides are already in the engine's one spelling, so no Chrome suite could tell `TimeZones.same` from `===` there.
+
+Anchors: 286, 0 misses. `index.html` was restored byte-identical.
 
 ### Phase 7 — Cleanup, docs, release
 
