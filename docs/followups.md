@@ -1,6 +1,6 @@
 # Follow-ups: work week, clock and date formats, re-filing records
 
-> **Status:** plan approved by the user on 2026-09-15, including every proposed default in §10. Phases W0 (measurements) and W1 (the `WorkWeek` module, behaviour-identical apart from two differences the user chose) are done; Phase W2 is next.
+> **Status:** plan approved by the user on 2026-09-15, including every proposed default in §10. Phases W0 (measurements), W1 (the `WorkWeek` module, behaviour-identical apart from two differences the user chose) and W2 (the schedule, its history and the generalised rules, still without a settings card) are done; Phase W3 is next.
 > **Baseline commit:** `0ba1bd6` (all line numbers below refer to it and WILL drift — re-grep before editing).
 > **Rule:** one phase at a time. A phase starts only when the previous phase's exit criteria are green and committed.
 > **Origin:** the candidate follow-ups in §9 of `docs/implement.md`. "More than two clocks; per-client zones" was dropped by the user (§11 here).
@@ -9,7 +9,7 @@
 | ----- | ----------------------------------------------------------------- | ---------------- | ------------------- | ----------------- | ------- |
 | W0    | Work week groundwork: golden master, probes, audit                | no               | one probe           | S–M               | done    |
 | W1    | `WorkWeek` core + behaviour-identical refactor                    | no               | regression only     | L (split W1a/W1b) | done    |
-| W2    | The schedule: preference, history, the generalised rules          | prefs            | stub / fake server  | L (split W2a/W2b) | planned |
+| W2    | The schedule: preference, history, the generalised rules          | prefs            | stub / fake server  | L (split W2a/W2b) | done    |
 | W3    | Work week UI: settings card, phone sheet, bar, labels, guide      | prefs            | no                  | M–L (split W3a/b) | planned |
 | W4    | Work week sync hardening, multi-device, iPhone                    | no               | **yes**             | M                 | planned |
 | C1    | 24-hour clock                                                     | prefs            | no                  | M                 | planned |
@@ -158,7 +158,7 @@ W1 any mix of the seven days, no presets · W2 the weekly goal is split equally 
 - **The current weekly goal stays `state.weeklyGoalHours`**, so a build from `0ba1bd6` keeps reading and editing the number it knows. Archived entries carry their own `weeklyGoalHours`.
 - The whole schedule is **one value**. Two devices racing never produce a mix of one device's work days and the other's catch-up mode: the newest whole schedule wins (the settings rule, `SYNC-BLUEPRINT.md`).
 - `v` and unknown top-level keys: the validator accepts `v === 1` and ignores unknown keys, so a later rotation (W10) can be added as a new key without breaking this build. A `v` it does not know is skipped whole (F4).
-- **Validation** (`isWorkWeekPref`): the types and ranges above; `workDays` non-empty; `until` parses with `TimeZones.parseKey`; `history` strictly ascending; every entry's `weeklyGoalHours` in (0, 168]; and the day goal of every schedule (current and archived) ≤ 24 h (P-W13). Anything else is refused whole.
+- **Validation** (`isWorkWeekPref`): the types and ranges above; `workDays` non-empty, unique and ascending; `until` a real date written `MM/DD/YY`; `history` strictly ascending and at most 520 entries; every entry's `weeklyGoalHours` in (0, 168]. Anything else is refused whole. A long work day is never a reason to refuse a stored, synced or imported schedule (decision W14): the 24-hour limit applies when the work days are chosen, and the weekly goal keeps its own 1–168 h range.
 
 ### 4.4 Resolution rules
 
@@ -221,7 +221,7 @@ Work week
 
 - Chips are two letters with a full-name `aria-label`; seven fit in 375 px (§4.7 row 42). The last work day cannot be switched off ("At least one work day").
 - With seven work days, the day-off rows are disabled with the note "No days off".
-- A combination whose work-day goal exceeds 24 h is refused with the reason (P-W13).
+- Choosing work days that would make a work day longer than 24 h is refused with the reason (P-W13, narrowed by W14); the weekly goal keeps its 1–168 h range.
 - Every change raises a toast with **Undo** that restores the previous preference byte-for-byte, history included: "Work days: Mon–Thu, from this week (Sep 14)". The weekly-goal toast gains the same wording.
 - A running shift is untouched (F6); the toast adds "Today's shift keeps its goal".
 - **Phone:** the card is one node, borrowed into a new sheet section "Work week" under the goal (`RELOCATIONS`, 44750), exactly as the Time zones card is. No `display` inline under `.main-ui` (I13).
@@ -518,7 +518,8 @@ Also from W0: `probe-workweek-audit.js` (no account; W0, then W2b, where its mea
 - `probe-shift-rewind.js`, `probe-lease-endshift.js`, `harness-handoff.js`;
 - `harness-tz-core.js`, `harness-tz-model.js`, `harness-tz-display.js`, `probe-tz-picker.js`, `probe-tz-ui.js`;
 - live phases add `harness-phase8.js`, `harness-signin-render.js` and `harness-wipe.js`;
-- from W1: `harness-workweek-core.js`, `probe-workweek-golden.js compare` (with the `--expect` of the phase) and `probe-workweek-eviction.js`.
+- from W1: `harness-workweek-core.js`, `probe-workweek-golden.js compare` (with the `--expect` of the phase) and `probe-workweek-eviction.js`;
+- from W2: `harness-workweek-model.js` and `probe-workweek-audit.js`.
 
 **House rules:**
 
@@ -736,6 +737,47 @@ All runs on AC power at 2419 MHz, one suite at a time.
 
 **Commits:** `feat(week): a work-week schedule that keeps past weeks` (W2a) and `feat(week): day-off goals, day-off work and catch-up modes` (W2b). **Deploy-safe:** without the UI nobody can write the preference, and an imported or synced one only moves numbers the model already proves.
 
+#### Phase W2 results (2026-09-16)
+
+All runs on AC power at 2419 MHz, one suite at a time.
+
+**Baseline on the unmodified tree** (`index.html` md5 `1bedca19`): the regression list, 22 of 22 green. `probe-tz-ui.js`'s timing check "3 s of ticks on a settled page create no formatter" missed once in the chain and passed alone (149 checks).
+
+**Decision W14** was asked while reading, before any code: the plan refused any schedule with a work day over 24 hours, but the weekly-goal field already allows 168 h on Monday–Friday. The limit now applies only when work days are chosen (§10).
+
+**W2a — the preference and its history** (`99e6ff2`, md5 `0c808ece`, +473 / −39 lines):
+
+- `WORK_WEEK_KEY` (`nodrift_work_week_v1`) and `isWorkWeekPref` (`WorkWeek.isValid`, the shape in §4.3, W14).
+- `scheduleFor` answers from the history (R1); weeks run from the week-start day to the day before the next, clipped to their schedule's period, so a week-start change makes a transition week and no week straddles two schedules (R3). `weeksInMonth` steps week by week; `yearGrid` keeps seven-day columns in the week start that governs Jan 1 (R9).
+- `WorkWeek.change(changes, todayKey)` (R4): the first change in a week archives the values from before it with `until` = the day before the week's start under the old schedule; later changes that week only replace the current values; unknown keys are kept (W10); choosing work days that make a work day over 24 h is refused (W14). `restore` (backups), `setSchedule` (the test door until W3), `invalidate`, `renderKey`.
+- Sync: `PREF_KEYS.workWeek` with `schedule: true` (applying it runs `onScheduleChanged()`) and `resendIfMissing: true`. **The old-build guard (W11):** `adoptSettings` calls `Sync.resendMissingPrefs` after taking its baselines; a device that adopts a blob without a schedule it holds (and holds validly) marks its settings edited, stamped after the adopted blob. Only an absent value triggers it: a value present but invalid here may come from a newer build.
+- Backups carry the schedule, an import restores a valid one whole and leaves an invalid one out (F4), a factory reset erases it. A weekly-goal edit goes through `WorkWeek.change`. `onScheduleChanged()` (F8) moves the version, re-populates today's automatic goal when no shift is running (F6) and redraws; the insights cache key and the logbook row key carry `WorkWeek.renderKey()`. The weekly day loop and the "This week" filter follow the week's own length.
+- Tests: core 78 / 0; golden master 300 sets, 0 differ (no preference written, F2); eviction 6 / 0; regression 22 of 23 in the chain — `harness-progress.js` failed the two checks that W2's intended difference changes (below), then passed 26 / 26 alone once its dates moved; **`harness-workweek-model.js`** (new; HTTP 8888, CDP 9484 and 9489), 84 / 0 at W2a. Part 1, one device: nothing written or synced by default; 26 hostile synced schedules each skipped whole with the previous one kept, and 520 history entries accepted; junk in storage read as none; W14 both ways; R1, R3 and R5 on a known history with a transition week; R3's properties over 40 random histories (1 154 weeks); R4 over 115 random changes (no date before a change's week moved; short weeks only where the week start changed); rows 11–15, 28, 34, 35, 38, 44 and F6/F8. Part 2, a fake server transcribed from `0004_sync_session.sql`: this build, the real `0ba1bd6` build (`git show`) and a fresh device. The old build's theme change drops the schedule from the account; this build puts the whole blob back on its next beat; the two then settle (no upload over four more rounds); the old build keeps its theme; the fresh device receives the schedule and uploads nothing (rows 3, 4, 36, 86).
+- Mutations: 9 GOOD (8 W2a and "a work day divides the weekly goal by 5", deferred from W1), and #99 / #100 re-graded GOOD on `harness-progress.js`'s moved checks.
+
+**W2b — the generalised rules** (`c6337e6`, md5 `f6780b44`, +72 / −23 lines):
+
+- R5: `dayOffGoalOf` — a typed day-off goal is that many hours whatever the weekly goal (P-W14), unset is three quarters of a work day, 0 is none.
+- R7: work on days off comes off what is owed when the schedule counts it; `"spread"` shares what is owed over the work days left that are not leave, today included, and on the last of them asks what `"next"` asks. With the defaults the arithmetic is the same expression as before (golden master identical).
+- F5: `resolveGoalSecForDate`'s fallback for a past date without a saved goal is that date's own work day; the heatmap's leave-only day takes R5's goal.
+- **W12:** `rehydrate` and `hydrateLogsInChunks` fill in only a missing `dayGoal`; a 0 is kept.
+- The weekly bar is rebuilt when the work days change, not only their count.
+- Tests: core 78 / 0; golden master 300 / 0; eviction 6 / 0; **`probe-workweek-audit.js` 11 / 0** — "the stored goal of 0 survives a reload" is green (0 when filed, 0 after the reload); model suite 114 / 0 (part 3, the rules on a device of its own: rows 2, 5–8, 10, 17–20, 22–24, 26, 29–31, 39, 41 and the F5 fallback; R7 against a brute-force reference over 300 random schedules and 4 500 dates in both catch-up modes, 0 differ; `"spread"` never negative and landing exactly on the target in 197 random weeks; the worker filing logs by their own day in a Sunday-start week; the live card's trend with day-off work counted; part 2 adds rows 36 and 85's pull); regression 24 / 24 in the chain (01:46–01:56).
+- Mutations, all GOOD in the end: "the worker regains a Monday key" (deferred from W1; a Sunday log of a Sunday-start week lands outside its week) and the eight W2b ones — `"spread"` sharing what is owed over leave days too; day-off work never counted; the day-off goal ignoring the hours typed for it; a goal of 0 filled in at load again (graded by `probe-workweek-audit.js`) and at pull again; the live card's trend ignoring whether day-off work counts; a past date's fallback on today's schedule; the weekly bar keeping its old days. That last one was first graded BAD: its check changed the number of work days as well as which ones, so the bar was rebuilt anyway, and the mutation was caught only by row 10. The check now changes the days and not their count (Sun–Thu to Mon–Fri) and both fail under the mutation. The re-anchored #100, "leave booked on a day off" and "the automatic goal counts today" were re-graded GOOD.
+
+**The difference W2 makes on purpose** (decision W7, §4.7 row 14): a weekly-goal edit applies from the week it is made in, and a week that has ended keeps its own target. `harness-progress.js`'s "the arithmetic, on dates that cannot drift" used fixed dates in August 2025 and edited the goal today, so after W2a those past weeks kept 8 h: its dates moved to the same days of 2031, and a new check holds a 2025 Monday at 8 h through the edit (26 checks).
+
+**Harness changes on the way:**
+
+- The model suite's part 2 launches a browser on a port part 1 had just left. Under the mutation runner's load one came up with no page target, the suite crashed before its first part-2 check, and "the old-build guard re-sends nothing" was graded BAD for the wrong reason. The suite now retries a launch up to three times and pauses after closing a browser; the mutation was re-graded GOOD.
+- Rows 17 and 2 first froze a running shift at a goal of 0 (the day already held a shift filed with 0), which could not fail; they now freeze 7 h 30 m.
+- Mutation anchors moved with the code: #169 (the logbook row key now ends in the work week's key), "a week starts on Sunday", #100, "leave booked on a day off", "the automatic goal counts today"; each re-graded.
+- `run-followups-regression.sh` also runs `harness-workweek-model.js` and `probe-workweek-audit.js`.
+
+**Not changed, for W3:** a day whose saved goal is 0 still colours the heatmap as exceeded (work ÷ 0) and reads as overtime; P-W16's "No goal" is W3's. The progress, tooltip and yearly baselines keep today's schedule, because they are about today.
+
+**§4.7 rows asserted in W2:** 1–20, 22–24, 26, 28–31, 33–36, 38, 39, 41, 44, 85 and 86. Rows 27, 42 and 43 belong to W3, row 37 to W4; rows 21, 25, 32 and 40 were W1's.
+
 ### Phase W3 — Work week UI
 
 **W3a** — the Work week card, its phone sheet section, chips, selects, the day-off input, the switch, toasts with Undo, the 24 h and one-day guards' messages, disabled rows at seven days.
@@ -877,6 +919,10 @@ All runs on AC power at 2419 MHz, one suite at a time.
 
 - **W13 — Every week keeps its history.** The weekly cache kept only the newest 60 weeks, so an older week showed empty (measured). W1b's day cache has no limit. Rejected: copying the 60-week limit into the new cache.
 
+**Confirmed during Phase W2 (2026-09-16):**
+
+- **W14 — The 24-hour limit applies only to new choices.** Choosing work days that would make a work day longer than 24 hours is refused with the reason. The weekly goal keeps today's 1–168 h range (on Monday–Friday, 168 h is already a 33.6-hour work day), and a stored, synced or imported schedule is refused only for a broken shape, never for a long day, so no saved history can be thrown away for it. Rejected: the limit everywhere, which would have narrowed the weekly goal to 120 h on Monday–Friday and dropped schedules already saved; no limit at all.
+
 **Proposed by the plan and confirmed with it on 2026-09-15** (the user approved the plan as written; any of these can still be revisited before the phase named):
 
 | #     | Question                            | Proposed                                                                         | Alternative                                        | Needed by |
@@ -884,7 +930,7 @@ All runs on AC power at 2419 MHz, one suite at a time.
 | S1    | Do the new settings sync?           | **Yes**, like the weekly goal and the time zones                                 | Per device                                         | W2, C1    |
 | P-W11 | "Weekend" wording                   | **"Day off"** from W3 on                                                         | Keep "Weekend" for Sat / Sun, "Day off" for others | W3        |
 | P-W12 | A week-start change mid-week        | **A short transition week** from this week's start to the new start day          | Apply week start from next week only               | W2        |
-| P-W13 | Weekly goal ÷ work days above 24 h  | **Refused** with the reason                                                      | Allowed                                            | W2        |
+| P-W13 | Weekly goal ÷ work days above 24 h  | **Refused** with the reason when the work days are chosen (narrowed by W14)      | Allowed                                            | W2        |
 | P-W14 | Day-off goal once typed             | **Fixed hours** until "Auto" is pressed; unset follows ¾ of the work-day goal    | Always a ratio                                     | W2        |
 | P-W15 | Schedule change during a shift      | **Never retargets the running shift** (F6)                                       | Ask, like "Update Session Goal?"                   | W2        |
 | P-W16 | A 0 h day-off goal                  | **"No goal"**, no Overtime, bar empty                                            | Show everything as overtime (today's 0 goal)       | W3        |
