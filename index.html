@@ -27434,15 +27434,6 @@
         }
       }
 
-      /* The old names, kept only because the test harness still calls them.
-         Nothing in the app does. Phase 7 of docs/implement.md removes both. */
-      function getPSTDate() {
-        return getWorkDate();
-      }
-      function getPSTDateObj() {
-        return getWorkDateObj();
-      }
-
       /**
        * Calculates the total work seconds logged in the database for today's date.
        * @returns {number} Today's archived shift durations in seconds.
@@ -28347,10 +28338,10 @@
         mondayUTC.setUTCHours(12, 0, 0, 0);
         const weekStartMs = mondayUTC.getTime();
 
-        const nowPST = getWorkDateObj();
-        const nowDay = nowPST.getUTCDay();
+        const nowWork = getWorkDateObj();
+        const nowDay = nowWork.getUTCDay();
         const nowDiffToMonday = nowDay === 0 ? -6 : 1 - nowDay;
-        const currentMondayMs = nowPST.getTime() + nowDiffToMonday * 86400000;
+        const currentMondayMs = nowWork.getTime() + nowDiffToMonday * 86400000;
         const currentMonday = new Date(currentMondayMs);
         const currentWeekStartMs = Date.UTC(
           currentMonday.getUTCFullYear(),
@@ -28570,12 +28561,12 @@
         const diffToMonday = day === 0 ? -6 : 1 - day;
         const weekStartMs = dObj.getTime() + diffToMonday * 86400000;
 
-        const todayPST = getWorkDateObj();
+        const todayWork = getWorkDateObj();
         const todayDObj = new Date(
           Date.UTC(
-            todayPST.getUTCFullYear(),
-            todayPST.getUTCMonth(),
-            todayPST.getUTCDate(),
+            todayWork.getUTCFullYear(),
+            todayWork.getUTCMonth(),
+            todayWork.getUTCDate(),
             12,
             0,
             0,
@@ -28676,8 +28667,8 @@
               : `${sessionPercent.toFixed(1)}% (Left: ${formatFriendlyDuration(Math.abs(sessionDiff), "0m")})`;
           setText(DOM.progressText, progStr);
 
-          const nowPST = getWorkDateObj();
-          const dayIdx = nowPST.getUTCDay();
+          const nowWork = getWorkDateObj();
+          const dayIdx = nowWork.getUTCDay();
           const isoDay = dayIdx === 0 ? 7 : dayIdx;
 
           // Helper to check if the currently displayed week matches today's active calendar week
@@ -30917,7 +30908,7 @@
         let absoluteEndMs = Infinity;
 
         // Pre-calculate timeframe bounds
-        const nowPSTObj = getWorkDateObj();
+        const nowWorkObj = getWorkDateObj();
         if (criteria.timeFilter === "TODAY") {
           const todayStr = getWorkDate();
           const [m, d, y] = todayStr.split("/");
@@ -30935,9 +30926,9 @@
         } else if (criteria.timeFilter === "WEEK") {
           const nowUTC = new Date(
             Date.UTC(
-              nowPSTObj.getUTCFullYear(),
-              nowPSTObj.getUTCMonth(),
-              nowPSTObj.getUTCDate(),
+              nowWorkObj.getUTCFullYear(),
+              nowWorkObj.getUTCMonth(),
+              nowWorkObj.getUTCDate(),
               12,
               0,
               0,
@@ -30949,16 +30940,16 @@
           absoluteEndMs = absoluteStartMs + 6 * 86400000;
         } else if (criteria.timeFilter === "MONTH") {
           absoluteStartMs = Date.UTC(
-            nowPSTObj.getUTCFullYear(),
-            nowPSTObj.getUTCMonth(),
+            nowWorkObj.getUTCFullYear(),
+            nowWorkObj.getUTCMonth(),
             1,
             12,
             0,
             0,
           );
           absoluteEndMs = Date.UTC(
-            nowPSTObj.getUTCFullYear(),
-            nowPSTObj.getUTCMonth() + 1,
+            nowWorkObj.getUTCFullYear(),
+            nowWorkObj.getUTCMonth() + 1,
             0,
             12,
             0,
@@ -32757,10 +32748,10 @@
           logsByDate[l.displayDate].records.push(l);
         }
 
-        const todayPST = getWorkDateObj();
-        const todayY = todayPST.getUTCFullYear();
-        const todayM = todayPST.getUTCMonth();
-        const todayD = todayPST.getUTCDate();
+        const todayWork = getWorkDateObj();
+        const todayY = todayWork.getUTCFullYear();
+        const todayM = todayWork.getUTCMonth();
+        const todayD = todayWork.getUTCDate();
         const todayDObj = new Date(Date.UTC(todayY, todayM, todayD, 12, 0, 0));
         const todayDay = todayDObj.getUTCDay();
         const todayDiffToMonday = todayDay === 0 ? -6 : 1 - todayDay;
@@ -33335,12 +33326,12 @@
           return mon.getTime();
         };
 
-        const todayPST = getWorkDateObj();
+        const todayWork = getWorkDateObj();
         const isTodayInView =
           (viewType === "monthly" &&
-            todayPST.getUTCFullYear() === fullYear &&
-            todayPST.getUTCMonth() === m) ||
-          (viewType === "yearly" && todayPST.getUTCFullYear() === fullYear);
+            todayWork.getUTCFullYear() === fullYear &&
+            todayWork.getUTCMonth() === m) ||
+          (viewType === "yearly" && todayWork.getUTCFullYear() === fullYear);
 
         if (isTodayInView && state.loginTimestamp) {
           const todayLogObj = {
@@ -33348,9 +33339,9 @@
             workSec: getCurrentWorkSeconds(),
             breakSec: getCurrentBreakSeconds(),
             epochMs: Date.UTC(
-              todayPST.getUTCFullYear(),
-              todayPST.getUTCMonth(),
-              todayPST.getUTCDate(),
+              todayWork.getUTCFullYear(),
+              todayWork.getUTCMonth(),
+              todayWork.getUTCDate(),
               12,
               0,
               0,
@@ -33361,7 +33352,7 @@
             if (macroBuckets.has(wMs))
               macroBuckets.get(wMs).logs.push(todayLogObj);
           } else {
-            macroBuckets.get(todayPST.getUTCMonth()).logs.push(todayLogObj);
+            macroBuckets.get(todayWork.getUTCMonth()).logs.push(todayLogObj);
           }
         }
 
@@ -33461,13 +33452,13 @@
           let isCurrentRow = false;
           if (
             viewType === "monthly" &&
-            bData.startMs === getWeekStartMs(todayPST.getTime())
+            bData.startMs === getWeekStartMs(todayWork.getTime())
           )
             isCurrentRow = true;
           if (
             viewType === "yearly" &&
-            bData.monthIdx === todayPST.getUTCMonth() &&
-            fullYear === todayPST.getUTCFullYear()
+            bData.monthIdx === todayWork.getUTCMonth() &&
+            fullYear === todayWork.getUTCFullYear()
           )
             isCurrentRow = true;
 
@@ -33581,7 +33572,7 @@
 
         let activeDaysRemaining = 0;
         let futureAndTodayGoalSec = 0;
-        const nowMs = todayPST.getTime();
+        const nowMs = todayWork.getTime();
         const liveGoalSec = getGoalSeconds(
           DOM.goalHours.value,
           DOM.goalMins.value,
@@ -33601,9 +33592,9 @@
           // Safely snap loop origin to 12:00:00 UTC to perfectly match limitMs boundary
           let loopDate = new Date(
             Date.UTC(
-              todayPST.getUTCFullYear(),
-              todayPST.getUTCMonth(),
-              todayPST.getUTCDate(),
+              todayWork.getUTCFullYear(),
+              todayWork.getUTCMonth(),
+              todayWork.getUTCDate(),
               12,
               0,
               0,
@@ -33643,8 +33634,8 @@
         } else {
           // Compare strictly past days: Subtract future days AND today from the total expected goal
           expectedSecSoFar = Math.max(0, grandGoal - futureAndTodayGoalSec);
-          const todayPSTDay = todayPST.getUTCDay();
-          const isTodayWeekend = todayPSTDay === 0 || todayPSTDay === 6;
+          const todayWorkDay = todayWork.getUTCDay();
+          const isTodayWeekend = todayWorkDay === 0 || todayWorkDay === 6;
           const todayLogged = isTodayWeekend
             ? 0
             : getTodayLoggedWorkSeconds() + getCurrentWorkSeconds();
@@ -36106,7 +36097,7 @@
 
       let _lastMidnightCheckMin = -1;
       let _lastMidnightCheckZone = null;
-      let _cachedCurrentDatePST = null;
+      let _cachedCurrentWorkDate = null;
       window.isRollingOver = false;
       /* Settles when the rollover in progress has finished. A second caller
          gets this instead of nothing, so one that must act on the settled day
@@ -36150,16 +36141,16 @@
           if (
             currentEpochMin !== _lastMidnightCheckMin ||
             workZone !== _lastMidnightCheckZone ||
-            !_cachedCurrentDatePST
+            !_cachedCurrentWorkDate
           ) {
-            _cachedCurrentDatePST = getWorkDate();
+            _cachedCurrentWorkDate = getWorkDate();
             _lastMidnightCheckMin = currentEpochMin;
             _lastMidnightCheckZone = workZone;
           }
-          let currentDatePST = _cachedCurrentDatePST;
+          let currentWorkDate = _cachedCurrentWorkDate;
 
           if (!state.activeDate) {
-            state.activeDate = currentDatePST;
+            state.activeDate = currentWorkDate;
             saveState();
             autoPopulateDailyGoal(state.activeDate);
             return;
@@ -36167,15 +36158,15 @@
 
           const previousActiveDate = state.activeDate;
 
-          if (state.activeDate === currentDatePST) {
+          if (state.activeDate === currentWorkDate) {
             return;
           }
 
           const actDate = parseDateStringLocal(state.activeDate);
-          const curDate = parseDateStringLocal(currentDatePST);
+          const curDate = parseDateStringLocal(currentWorkDate);
           if (!actDate || !curDate) {
             if (!actDate) {
-              state.activeDate = currentDatePST;
+              state.activeDate = currentWorkDate;
               saveState(true);
               autoPopulateDailyGoal(state.activeDate);
             }
@@ -36186,7 +36177,7 @@
 
           // Rollback protection fallback: realign date directly to avoid infinite loop freezes
           if (actEpoch > curEpoch) {
-            state.activeDate = currentDatePST;
+            state.activeDate = currentWorkDate;
             saveState(true);
             if (state.activeDate !== previousActiveDate) {
               autoPopulateDailyGoal(state.activeDate);
@@ -36201,7 +36192,10 @@
             : null;
 
           // Process sleep gaps iteratively to prevent date skipping (Phase 2, Item 3)
-          while (state.activeDate !== currentDatePST && safetyCounter++ < 366) {
+          while (
+            state.activeDate !== currentWorkDate &&
+            safetyCounter++ < 366
+          ) {
             /* Break counts here too. A shift that crossed midnight while on
                break has real time to file, and testing work alone used to send
                it down the "nothing happened, just advance the date" path where
@@ -36228,7 +36222,7 @@
                     Date.now(),
                   ).catch(() => {});
                 }
-                state.activeDate = currentDatePST;
+                state.activeDate = currentWorkDate;
                 saveState(true);
                 return;
               }
@@ -36259,7 +36253,7 @@
                     Date.now(),
                   ).catch(() => {});
                 }
-                state.activeDate = currentDatePST;
+                state.activeDate = currentWorkDate;
                 saveState(true);
                 return;
               }
@@ -36344,7 +36338,7 @@
                 });
               }
 
-              const nextDatePST = TimeZones.keyFromYMD(
+              const nextWorkDate = TimeZones.keyFromYMD(
                 parsedActive.y,
                 parsedActive.m,
                 parsedActive.d + 1,
@@ -36353,7 +36347,7 @@
               // Reset accumulators atomically
               state.workAccumulated = 0;
               state.breakAccumulated = 0;
-              state.activeDate = nextDatePST;
+              state.activeDate = nextWorkDate;
 
               // Adjust anchors for the loop's next iteration (or continuation)
               // Preserves all other state properties (settings, notes) intact.
@@ -36408,7 +36402,7 @@
                     Date.now(),
                   ).catch(() => {});
                 }
-                state.activeDate = currentDatePST;
+                state.activeDate = currentWorkDate;
                 saveState(true);
                 return;
               }
@@ -36422,7 +36416,7 @@
 
             // Failsafe break to guarantee we never infinitely loop if date advancement fails
             if (safetyCounter >= 366) {
-              state.activeDate = currentDatePST;
+              state.activeDate = currentWorkDate;
               requiresRender = true;
               break;
             }
@@ -41893,21 +41887,21 @@
           const parseDatePreview = (val) => {
             val = val.trim().toLowerCase();
             if (!val) return "";
-            const nowPST = getWorkDateObj();
-            const currentYearFull = nowPST.getUTCFullYear();
+            const nowWork = getWorkDateObj();
+            const currentYearFull = nowWork.getUTCFullYear();
             const currentYearShort = String(currentYearFull).slice(-2);
-            const currentMonth = String(nowPST.getUTCMonth() + 1).padStart(
+            const currentMonth = String(nowWork.getUTCMonth() + 1).padStart(
               2,
               "0",
             );
             let finalDateStr = "";
 
             if (val === "t" || val === "today" || val === "0") {
-              const m = String(nowPST.getUTCMonth() + 1).padStart(2, "0");
-              const d = String(nowPST.getUTCDate()).padStart(2, "0");
+              const m = String(nowWork.getUTCMonth() + 1).padStart(2, "0");
+              const d = String(nowWork.getUTCDate()).padStart(2, "0");
               finalDateStr = `${m}/${d}/${currentYearShort}`;
             } else if (val === "y" || val === "yesterday" || val === "-1") {
-              const yesterday = new Date(nowPST.getTime() - 86400000);
+              const yesterday = new Date(nowWork.getTime() - 86400000);
               const m = String(yesterday.getUTCMonth() + 1).padStart(2, "0");
               const d = String(yesterday.getUTCDate()).padStart(2, "0");
               const y = String(yesterday.getUTCFullYear()).slice(-2);
@@ -41915,7 +41909,7 @@
             } else if (val.match(/^-\d+$/)) {
               const daysOffset = parseInt(val, 10);
               const targetDate = new Date(
-                nowPST.getTime() + daysOffset * 86400000,
+                nowWork.getTime() + daysOffset * 86400000,
               );
               const m = String(targetDate.getUTCMonth() + 1).padStart(2, "0");
               const d = String(targetDate.getUTCDate()).padStart(2, "0");
@@ -42211,26 +42205,28 @@
         }
         if (val.endsWith("/")) return;
 
-        const nowPST = getWorkDateObj();
-        const currentYearFull = nowPST.getUTCFullYear();
+        const nowWork = getWorkDateObj();
+        const currentYearFull = nowWork.getUTCFullYear();
         const currentYearShort = String(currentYearFull).slice(-2);
-        const currentMonth = String(nowPST.getUTCMonth() + 1).padStart(2, "0");
+        const currentMonth = String(nowWork.getUTCMonth() + 1).padStart(2, "0");
 
         let finalDateStr = "";
 
         if (val === "t" || val === "today" || val === "0") {
-          const m = String(nowPST.getUTCMonth() + 1).padStart(2, "0");
-          const d = String(nowPST.getUTCDate()).padStart(2, "0");
+          const m = String(nowWork.getUTCMonth() + 1).padStart(2, "0");
+          const d = String(nowWork.getUTCDate()).padStart(2, "0");
           finalDateStr = `${m}/${d}/${currentYearShort}`;
         } else if (val === "y" || val === "yesterday" || val === "-1") {
-          const yesterday = new Date(nowPST.getTime() - 86400000);
+          const yesterday = new Date(nowWork.getTime() - 86400000);
           const m = String(yesterday.getUTCMonth() + 1).padStart(2, "0");
           const d = String(yesterday.getUTCDate()).padStart(2, "0");
           const y = String(yesterday.getUTCFullYear()).slice(-2);
           finalDateStr = `${m}/${d}/${y}`;
         } else if (val.match(/^-\d+$/)) {
           const daysOffset = parseInt(val, 10);
-          const targetDate = new Date(nowPST.getTime() + daysOffset * 86400000);
+          const targetDate = new Date(
+            nowWork.getTime() + daysOffset * 86400000,
+          );
           const m = String(targetDate.getUTCMonth() + 1).padStart(2, "0");
           const d = String(targetDate.getUTCDate()).padStart(2, "0");
           const y = String(targetDate.getUTCFullYear()).slice(-2);
@@ -43403,7 +43399,7 @@
         if (now - lastJumpTime < 300) return;
         lastJumpTime = now;
 
-        displayBaseDate = getWorkDateObj(); // Recalibrate baseline to today's PST date
+        displayBaseDate = getWorkDateObj(); // Recalibrate baseline to today's work date
         // Reset segment caches to force absolute redraw on week navigation
         domWriteCache.todaySegmentScale = -1;
         domWriteCache.todaySegmentBg = "";
