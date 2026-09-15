@@ -16420,9 +16420,13 @@
          is on day numbers -- whole days since 1970-01-01 -- so no zone and no
          DST change can move a week boundary (I2).
 
-         One schedule for now, today's: Monday to Friday, weeks starting on
-         Monday, a day off asking three quarters of a work day, and the whole
-         of a shortfall landing on the next work day. */
+         The schedule is the user's (docs/followups.md §4.3): the current one
+         is state.weeklyGoalHours plus the work week preference, and each
+         archived one governs the dates up to its "until", so a change never
+         rewrites a week that has ended (F5). With nothing stored it is
+         today's: Monday to Friday, weeks starting on Monday, a day off asking
+         three quarters of a work day, and the whole of a shortfall landing on
+         the next work day (F2). */
       const WorkWeek = (() => {
         const DAY_MS = 86400000;
 
@@ -16443,19 +16447,170 @@
           };
         }
 
-        /* Rebuilt only when the weekly goal moves. The goal is read through
-           getWeeklyGoalSec on every call rather than captured, so whatever
-           answers that name is what the schedule sees. */
-        let current = null;
-        function scheduleFor(dateKey) {
-          const weeklyGoalSec = getWeeklyGoalSec();
-          if (!current || current.weeklyGoalSec !== weeklyGoalSec) {
-            const s = defaults();
-            s.weeklyGoalSec = weeklyGoalSec;
-            s.workDaySet = new Set(s.workDays);
-            current = s;
+        /* §4.3, checked field by field, because storage, a synced blob and a
+           backup are all things somebody else can write (F4). The shape
+           only: decision W14 refuses a long work day when the days are
+           chosen, never here, so no saved history is thrown away for it.
+           Unknown keys are ignored, which leaves room for a rotation (W10);
+           a version this build does not know is refused whole. */
+        const HISTORY_LIMIT = 520;
+        const isPlainObject = (o) =>
+          !!o && typeof o === "object" && !Array.isArray(o);
+
+        function isValues(s) {
+          if (!isPlainObject(s)) return false;
+          const d = s.workDays;
+          if (!Array.isArray(d) || d.length < 1 || d.length > 7) return false;
+          for (let i = 0; i < d.length; i++) {
+            if (!Number.isInteger(d[i]) || d[i] < 0 || d[i] > 6) return false;
+            if (i > 0 && d[i] <= d[i - 1]) return false;
           }
-          return current;
+          if (s.weekStart !== 0 && s.weekStart !== 1 && s.weekStart !== 6) {
+            return false;
+          }
+          const g = s.dayOffGoalHours;
+          if (
+            g !== null &&
+            !(
+              typeof g === "number" &&
+              g >= 0 &&
+              g <= 24 &&
+              Number.isInteger(g * 4)
+            )
+          ) {
+            return false;
+          }
+          if (typeof s.dayOffCounts !== "boolean") return false;
+          return s.catchUp === "next" || s.catchUp === "spread";
+        }
+
+        function isValid(v) {
+          if (!isPlainObject(v) || v.v !== 1 || !isValues(v)) return false;
+          if (v.history === undefined) return true;
+          const h = v.history;
+          if (!Array.isArray(h) || h.length > HISTORY_LIMIT) return false;
+          let previous = -Infinity;
+          for (let i = 0; i < h.length; i++) {
+            const e = h[i];
+            if (!isValues(e)) return false;
+            const hours = e.weeklyGoalHours;
+            if (typeof hours !== "number" || !(hours > 0 && hours <= 168)) {
+              return false;
+            }
+            if (
+              typeof e.until !== "string" ||
+              !/^\d\d\/\d\d\/\d\d$/.test(e.until)
+            ) {
+              return false;
+            }
+            const n = dayNum(e.until);
+            if (keyOfDay(n) !== e.until || !(n > previous)) return false;
+            previous = n;
+          }
+          return true;
+        }
+
+        /* The stored preference, read once per version: onScheduleChanged()
+           moves the version, and anything that fails isValid is as good as
+           absent. The weekly goal is read through getWeeklyGoalSec on every
+           call rather than captured, so whatever answers that name is what
+           the current schedule sees. */
+        let version = 0;
+        let loaded = null;
+
+        function readStored() {
+          try {
+            const v = JSON.parse(localStorage.getItem(WORK_WEEK_KEY) || "null");
+            return isValid(v) ? v : null;
+          } catch (e) {
+            return null;
+          }
+        }
+
+        /* A schedule as the rules use it: its values, its weekly goal in
+           seconds, and the days it governs (R2). */
+        function resolved(values, weeklyGoalSec, fromDay, untilDay) {
+          return {
+            v: 1,
+            workDays: values.workDays.slice(),
+            weekStart: values.weekStart,
+            dayOffGoalHours: values.dayOffGoalHours,
+            dayOffCounts: values.dayOffCounts,
+            catchUp: values.catchUp,
+            weeklyGoalSec,
+            workDaySet: new Set(values.workDays),
+            fromDay,
+            untilDay,
+          };
+        }
+
+        function load() {
+          const weeklyGoalSec = getWeeklyGoalSec();
+          if (
+            loaded &&
+            loaded.version === version &&
+            loaded.weeklyGoalSec === weeklyGoalSec
+          ) {
+            return loaded;
+          }
+          const pref = readStored();
+          const archived = pref && pref.history ? pref.history : [];
+          const history = [];
+          let fromDay = -Infinity;
+          for (let i = 0; i < archived.length; i++) {
+            const untilDay = dayNum(archived[i].until);
+            history.push(
+              resolved(
+                archived[i],
+                Math.round(archived[i].weeklyGoalHours * 3600),
+                fromDay,
+                untilDay,
+              ),
+            );
+            fromDay = untilDay + 1;
+          }
+          loaded = {
+            version,
+            weeklyGoalSec,
+            pref,
+            history,
+            current: resolved(
+              pref || defaults(),
+              weeklyGoalSec,
+              fromDay,
+              Infinity,
+            ),
+          };
+          return loaded;
+        }
+
+        /* R1: the first archived schedule whose "until" is on or after the
+           day, otherwise the current one. */
+        function scheduleForDay(n) {
+          const s = load();
+          const h = s.history;
+          if (
+            !h.length ||
+            !Number.isFinite(n) ||
+            n > h[h.length - 1].untilDay
+          ) {
+            return s.current;
+          }
+          let lo = 0;
+          let hi = h.length - 1;
+          while (lo < hi) {
+            const mid = (lo + hi) >> 1;
+            if (h[mid].untilDay >= n) hi = mid;
+            else lo = mid + 1;
+          }
+          return h[lo];
+        }
+
+        /* With no date, the schedule from today on. */
+        function scheduleFor(dateKey) {
+          return dateKey === undefined
+            ? load().current
+            : scheduleForDay(dayNum(dateKey));
         }
 
         /* Whole days since 1970-01-01. A legacy "YYYY-MM-DD" key is read the
@@ -16483,7 +16638,7 @@
         const weekdayOf = (n) => (((n + 4) % 7) + 7) % 7;
 
         function isWorkDayNum(n) {
-          return scheduleFor().workDaySet.has(weekdayOf(n));
+          return scheduleForDay(n).workDaySet.has(weekdayOf(n));
         }
         function isWorkDay(dateKey) {
           return isWorkDayNum(dayNum(dateKey));
@@ -16491,29 +16646,40 @@
 
         /* Whether a day's work adds to its week's total. */
         function countsTowardNum(n) {
-          return isWorkDayNum(n) || scheduleFor().dayOffCounts;
+          const s = scheduleForDay(n);
+          return s.workDaySet.has(weekdayOf(n)) || s.dayOffCounts;
         }
         function countsToward(dateKey) {
           return countsTowardNum(dayNum(dateKey));
         }
 
-        /* R3: seven days from the latest week-start day on or before the
-           date. startMs is noon UTC on the first day, the instant every week
-           was keyed by before this module existed. */
+        /* R3: from the latest week-start day on or before the date to the day
+           before the next one, never outside the schedule's own period. So a
+           week is seven days, except the first after a week-start change (a
+           transition week), and no week straddles two schedules. startMs is
+           noon UTC on the first day, the instant every week was keyed by
+           before this module existed. */
         function weekOfDay(n) {
-          const startDay =
-            n - ((weekdayOf(n) - scheduleFor().weekStart + 7) % 7);
+          const s = scheduleForDay(n);
+          const startDay = Math.max(
+            n - ((weekdayOf(n) - s.weekStart + 7) % 7),
+            s.fromDay,
+          );
+          const endDay = Math.min(
+            startDay + 6 - ((weekdayOf(startDay) - s.weekStart + 7) % 7),
+            s.untilDay,
+          );
           const days = [];
           const keys = [];
-          for (let i = 0; i < 7; i++) {
-            days.push(startDay + i);
-            keys.push(keyOfDay(startDay + i));
+          for (let day = startDay; day <= endDay; day++) {
+            days.push(day);
+            keys.push(keyOfDay(day));
           }
           return {
             startDay,
-            endDay: startDay + 6,
+            endDay,
             startKey: keys[0],
-            endKey: keys[6],
+            endKey: keys[keys.length - 1],
             startMs: startDay * DAY_MS + DAY_MS / 2,
             days,
             keys,
@@ -16540,33 +16706,43 @@
           for (
             let w = weekOfDay(first);
             w.startDay <= last;
-            w = weekOfDay(w.startDay + 7)
+            w = weekOfDay(w.endDay + 1)
           ) {
             weeks.push(w);
           }
           return weeks;
         }
 
-        /* The heatmap's grid: the week holding Jan 1 to the week holding Dec 31. */
+        /* The heatmap's grid: whole seven-day columns from the week holding
+           Jan 1 to the week holding Dec 31, in the week start that governs
+           Jan 1 (R9). A grid has no transition weeks. */
         function yearGrid(year) {
+          const first = dayOfMs(Date.UTC(year, 0, 1));
+          const last = dayOfMs(Date.UTC(year, 11, 31));
+          const weekStart = scheduleForDay(first).weekStart;
           return {
-            startDay: weekOfDay(dayOfMs(Date.UTC(year, 0, 1))).startDay,
-            endDay: weekOfDay(dayOfMs(Date.UTC(year, 11, 31))).endDay,
+            startDay: first - ((weekdayOf(first) - weekStart + 7) % 7),
+            endDay: last + ((weekStart + 6 - weekdayOf(last)) % 7),
           };
         }
 
         /* R5: the weekly goal shared equally over the work days. */
-        function workDayGoalSec(dateKey) {
-          const s = scheduleFor(dateKey);
+        function goalOf(s) {
           return Math.round(s.weeklyGoalSec / s.workDays.length);
+        }
+        function workDayGoalSec(dateKey) {
+          return goalOf(scheduleFor(dateKey));
         }
 
         /* R5 before leave. A day off asks three quarters of a work day, held as
            a ratio so a lower weekly goal cannot leave Saturday asking more than
            Tuesday. */
         function dayGoalSecNum(n) {
-          const goal = workDayGoalSec();
-          return isWorkDayNum(n) ? goal : Math.round(goal * DAY_OFF_GOAL_RATIO);
+          const s = scheduleForDay(n);
+          const goal = goalOf(s);
+          return s.workDaySet.has(weekdayOf(n))
+            ? goal
+            : Math.round(goal * DAY_OFF_GOAL_RATIO);
         }
         function dayGoalSec(dateKey) {
           return dayGoalSecNum(dayNum(dateKey));
@@ -16667,8 +16843,155 @@
           return indexMemo.index;
         }
 
+        /* Drops everything worked out from the stored schedule. */
+        function invalidate() {
+          version++;
+          loaded = null;
+          indexMemo = { key: null, schedule: null, index: -1 };
+        }
+
+        /* Everything a week-shaped render depends on besides the records. */
+        const renderKey = () => `ww${version}|${getWeeklyGoalSec()}`;
+
+        function valuesOf(s) {
+          return {
+            workDays: s.workDays.slice(),
+            weekStart: s.weekStart,
+            dayOffGoalHours: s.dayOffGoalHours,
+            dayOffCounts: s.dayOffCounts,
+            catchUp: s.catchUp,
+          };
+        }
+
+        function sameValues(a, b) {
+          return (
+            a.workDays.join() === b.workDays.join() &&
+            a.weekStart === b.weekStart &&
+            a.dayOffGoalHours === b.dayOffGoalHours &&
+            a.dayOffCounts === b.dayOffCounts &&
+            a.catchUp === b.catchUp
+          );
+        }
+
+        /* R4. A change made on today's work date applies from the start of
+           today's week, as the schedule before the change drew that week, and
+           everything before it keeps what it had. The first change in a week
+           archives the values from before it; a later one that week only
+           replaces the current values, so a week gets one archive entry
+           however often it is edited. A change of work days that would make a
+           work day longer than 24 hours is refused (W14); the weekly goal
+           keeps its own 1-168 h range. Writes the preference, and
+           state.weeklyGoalHours when one is given; saving state and
+           onScheduleChanged() are the caller's. */
+        function change(changes, todayKey) {
+          const s = load();
+          const before = valuesOf(s.current);
+          const next = valuesOf(s.current);
+          for (const k in next) {
+            if (changes && changes[k] !== undefined) next[k] = changes[k];
+          }
+          if (Array.isArray(next.workDays)) {
+            next.workDays = next.workDays.slice().sort((a, b) => a - b);
+          }
+          if (!isValues(next)) {
+            return {
+              ok: false,
+              reason:
+                Array.isArray(next.workDays) && next.workDays.length === 0
+                  ? "At least one work day"
+                  : "Not a valid work week",
+            };
+          }
+          const hoursGiven = !!changes && changes.weeklyGoalHours !== undefined;
+          const hours = hoursGiven ? changes.weeklyGoalHours : null;
+          const beforeSec = s.weeklyGoalSec;
+          const nextSec = !hoursGiven
+            ? beforeSec
+            : Math.round(
+                (Number.isFinite(hours) && hours > 0
+                  ? hours
+                  : WEEKLY_GOAL_DEFAULT_HOURS) * 3600,
+              );
+          if (
+            next.workDays.join() !== before.workDays.join() &&
+            Math.round(nextSec / next.workDays.length) > 86400
+          ) {
+            return {
+              ok: false,
+              reason: "A work day would be longer than 24 hours",
+            };
+          }
+          if (sameValues(before, next) && nextSec === beforeSec) {
+            if (hoursGiven) state.weeklyGoalHours = hours;
+            return { ok: true, changed: false };
+          }
+          const today = dayNum(
+            todayKey === undefined ? getWorkDate() : todayKey,
+          );
+          const untilDay = weekOfDay(today).startDay - 1;
+          const history =
+            s.pref && s.pref.history ? s.pref.history.slice() : [];
+          const last = history[history.length - 1];
+          if (!last || dayNum(last.until) < untilDay) {
+            history.push(
+              Object.assign(
+                {
+                  until: keyOfDay(untilDay),
+                  weeklyGoalHours: beforeSec / 3600,
+                },
+                before,
+              ),
+            );
+            while (history.length > HISTORY_LIMIT) history.shift();
+          }
+          const pref = Object.assign({}, s.pref || {}, { v: 1 }, next, {
+            history,
+          });
+          try {
+            localStorage.setItem(WORK_WEEK_KEY, JSON.stringify(pref));
+          } catch (e) {
+            return { ok: false, reason: "Could not save the work week" };
+          }
+          if (hoursGiven) state.weeklyGoalHours = hours;
+          invalidate();
+          return { ok: true, changed: true };
+        }
+
+        /* A backup's schedule replaces this device's whole, history and all:
+           a restore is not an edit of this week, so nothing is archived. */
+        function restore(value) {
+          if (!isValid(value)) return false;
+          try {
+            localStorage.setItem(WORK_WEEK_KEY, JSON.stringify(value));
+          } catch (e) {
+            return false;
+          }
+          invalidate();
+          return true;
+        }
+
+        /* The one door that changes the schedule until the settings card
+           exists (W3); the headless tests go through it. */
+        function setSchedule(changes) {
+          const result = change(changes);
+          if (result.ok && result.changed) {
+            if (changes && changes.weeklyGoalHours !== undefined) {
+              if (window.Sync) window.Sync.markDirty("settings");
+              if (typeof saveState === "function") saveState(true);
+            }
+            onScheduleChanged();
+          }
+          return result;
+        }
+
         return {
           defaults,
+          isValid,
+          invalidate,
+          renderKey,
+          change,
+          restore,
+          setSchedule,
           scheduleFor,
           workDayIndex,
           weekday: (dateKey) => weekdayOf(dayNum(dateKey)),
@@ -16695,6 +17018,10 @@
         };
       })();
       window.WorkWeek = WorkWeek;
+
+      function isWorkWeekPref(v) {
+        return WorkWeek.isValid(v);
+      }
 
       function calculatePaceRequired(remainingSec, activeDaysRemaining) {
         if (activeDaysRemaining <= 0 || remainingSec <= 0) return "— / Day";
@@ -17090,6 +17417,9 @@
       const WORK_TZ_KEY = "nodrift_work_tz_v1";
       const LOCAL_TZ_KEY = "nodrift_local_tz_v1";
       const TZ_DISPLAY_KEY = "nodrift_tz_display_v1";
+      /* The work week and its history (docs/followups.md §4.3). Absent means
+         today's schedule, and nothing writes it but a change (F2). */
+      const WORK_WEEK_KEY = "nodrift_work_week_v1";
       /* The zone picker's last five choices. Device-local on purpose: never
          synced and never backed up, but wiped by a factory reset. */
       const TZ_RECENT_KEY = "nodrift_tz_recent_v1";
@@ -21672,6 +22002,22 @@
           themePref: { key: THEME_KEY, json: false },
           presets: { key: PRESET_VALUES_KEY, json: true },
           leaveAllowances: { key: LEAVE_ALLOWANCES_KEY, json: true },
+
+          /* The work week: one value, so two devices racing never mix one's
+             work days with the other's catch-up. A build that predates it
+             drops it from the account when it wins a settings race, and
+             resendIfMissing is how this build puts it back (decision W11). */
+          workWeek: {
+            key: WORK_WEEK_KEY,
+            json: true,
+            schedule: true,
+            resendIfMissing: true,
+            validate: (v) => {
+              if (isWorkWeekPref(v)) return true;
+              console.warn("Skipped a work week that is not a valid schedule");
+              return false;
+            },
+          },
         };
 
         /* A preference this device does not hold is OMITTED, never sent as
@@ -21720,6 +22066,7 @@
           if (!prefs || typeof prefs !== "object") return false;
           let changed = false;
           let zoneChanged = false;
+          let scheduleChanged = false;
           /* For the toast below: the work zone before this blob. */
           const workWas =
             typeof getPreferredWorkZone === "function"
@@ -21747,6 +22094,7 @@
               localStorage.setItem(spec.key, next);
               changed = true;
               if (spec.zone) zoneChanged = true;
+              if (spec.schedule) scheduleChanged = true;
             } catch (e) {
               console.warn("Could not apply synced preference " + name, e);
             }
@@ -21756,6 +22104,9 @@
             if (workWas && typeof announceAdoptedWorkZone === "function") {
               announceAdoptedWorkZone(workWas);
             }
+          }
+          if (scheduleChanged && typeof onScheduleChanged === "function") {
+            onScheduleChanged();
           }
           return changed;
         }
@@ -22024,6 +22375,35 @@
           persistMeta();
         }
 
+        /* Decision W11. A build that predates a preference uploads a blob
+           without it, the server keeps only the newest blob, and so the
+           account loses the preference while every device holding it keeps
+           its copy (applyPrefs never deletes). A device that adopts such a
+           blob while holding a valid copy of a resendIfMissing preference
+           marks its settings edited, stamped after the blob it adopted, so
+           its next beat puts the whole blob back and the next device to sign
+           in receives it. Only when the preference is absent: one that is
+           present but invalid here may come from a newer build, and is not
+           this build's to overwrite. */
+        function resendMissingPrefs(blob, modifiedWire) {
+          if (!blob || typeof blob !== "object") return false;
+          const held = readPrefs();
+          for (const name in PREF_KEYS) {
+            const spec = PREF_KEYS[name];
+            if (!spec.resendIfMissing || !(name in held)) continue;
+            if (blob[name] !== null && blob[name] !== undefined) continue;
+            if (spec.validate && !spec.validate(held[name])) continue;
+            markDirty("settings");
+            settingsModifiedWire = Math.max(
+              toWire(Date.now()),
+              (Number(modifiedWire) || 0) + 1,
+            );
+            persistMeta();
+            return true;
+          }
+          return false;
+        }
+
         /* ── boot ──────────────────────────────────────────────────────── */
 
         const ready = (async () => {
@@ -22148,6 +22528,7 @@
           taskFromWire,
           settingsToWire,
           noteSettingsAdopted,
+          resendMissingPrefs,
           get settingsModifiedWire() {
             return settingsModifiedWire;
           },
@@ -24479,6 +24860,8 @@
              now seen that version, and re-adopting it every beat would be
              noise. */
           Sync.noteSettingsAdopted(state, remoteWire);
+          /* After the baselines, so the stamp it may set is not taken back. */
+          Sync.resendMissingPrefs(blob, remoteWire);
           if (changed) {
             if (typeof saveState === "function") saveState(true);
           }
@@ -30967,7 +31350,8 @@
         } else if (criteria.timeFilter === "WEEK") {
           const week = WorkWeek.weekOf(formatUTCDayStr(nowWorkObj));
           absoluteStartMs = week.startMs;
-          absoluteEndMs = week.startMs + 6 * 86400000;
+          absoluteEndMs =
+            week.startMs + (week.endDay - week.startDay) * 86400000;
         } else if (criteria.timeFilter === "MONTH") {
           absoluteStartMs = Date.UTC(
             nowWorkObj.getUTCFullYear(),
@@ -31740,6 +32124,8 @@
         const leaveDateSet =
           typeof getLeaveDateSet === "function" ? getLeaveDateSet() : null;
         const zoneKey = zoneRenderKey();
+        /* A row's tag and its no-goal delta follow the work week. */
+        const weekKey = WorkWeek.renderKey();
 
         for (let k = 0; k < targetPoolSize; k++) {
           const i = startIndex + k;
@@ -31773,7 +32159,7 @@
               : false;
 
             const isMultiSelected = logSelectMode && selectedLogIds.has(log.id);
-            const rowKey = `${log.id}|${isSelected}|${isMultiSelected}|${log.date}|${log.login}|${log.logout}|${log.dayGoal}|${log.workSec}|${log.breakSec}|${isLogOver(log) ? "OVER" : "UNDER"}|${log.notes || ""}|${dtString}|${log.isLeaveRecord ? "LEAVE" : "WORK"}|${log.leaveType || ""}|${isWorkedLeave ? "WL" : ""}|${log.tz || ""}|${log.loginEpochMs}|${log.logoutEpochMs}|${zoneKey}`;
+            const rowKey = `${log.id}|${isSelected}|${isMultiSelected}|${log.date}|${log.login}|${log.logout}|${log.dayGoal}|${log.workSec}|${log.breakSec}|${isLogOver(log) ? "OVER" : "UNDER"}|${log.notes || ""}|${dtString}|${log.isLeaveRecord ? "LEAVE" : "WORK"}|${log.leaveType || ""}|${isWorkedLeave ? "WL" : ""}|${log.tz || ""}|${log.loginEpochMs}|${log.logoutEpochMs}|${zoneKey}|${weekKey}`;
             if (child._rowKey !== rowKey) {
               child._rowKey = rowKey;
               child._logId = log.id;
@@ -32705,7 +33091,7 @@
 
         const todayStr = getWorkDate();
 
-        const iKey = `${currentInsightsView}|${bucketStartMs}|${todayStr}|${dataVersion}|${zoneRenderKey()}`;
+        const iKey = `${currentInsightsView}|${bucketStartMs}|${todayStr}|${dataVersion}|${zoneRenderKey()}|${WorkWeek.renderKey()}`;
         if (iKey === insightsCacheKey) return;
         insightsCacheKey = iKey;
 
@@ -32807,7 +33193,7 @@
         const stats = WorkWeek.targetOf(workDayKeys, leaveSet);
         let dynamicWeeklyGoalSec = stats.targetSec;
 
-        for (let i = 0; i < 7; i++) {
+        for (let i = 0; i < week.keys.length; i++) {
           reusableDate.setTime(mondayUTC.getTime());
           reusableDate.setUTCDate(mondayUTC.getUTCDate() + i);
           const dayOfWeekIndex = reusableDate.getUTCDay();
@@ -34676,6 +35062,7 @@
           workTz: safeGetLocalStorage(WORK_TZ_KEY) || null,
           localTz: safeGetLocalStorage(LOCAL_TZ_KEY) || null,
           tzDisplay: readJSONKey(TZ_DISPLAY_KEY),
+          workWeek: readJSONKey(WORK_WEEK_KEY),
         };
       }
 
@@ -35206,6 +35593,11 @@
           if (data.workTz) setWorkZonePref(data.workTz);
           if (data.localTz) setLocalZonePref(data.localTz);
           if (data.tzDisplay) setZoneDisplayPref(data.tzDisplay);
+          /* The same for the work week: a schedule that is not one is left
+             out and this device keeps its own (F4). */
+          if (data.workWeek && WorkWeek.restore(data.workWeek)) {
+            onScheduleChanged();
+          }
           /* The restored logbook may carry leave types the restored ledger does
              not list. Clearing the latch re-runs the reconciliation on the next
              read so those types are folded in rather than orphaned. Cleared
@@ -35709,6 +36101,7 @@
           WORK_TZ_KEY,
           LOCAL_TZ_KEY,
           TZ_DISPLAY_KEY,
+          WORK_WEEK_KEY, // The work week and its history
           TZ_RECENT_KEY, // The zone picker's recent choices
           TZ_INSTALL_KEY, // Whether this device predates zones
           TZ_NOTICE_KEY, // Whether it has dismissed the time zones notice
@@ -35853,7 +36246,11 @@
           return;
         }
 
-        state.weeklyGoalHours = Math.round(raw * 2) / 2;
+        const hours = Math.round(raw * 2) / 2;
+        /* R4: the weeks before this one keep the goal they had. */
+        if (!WorkWeek.change({ weeklyGoalHours: hours }).ok) {
+          state.weeklyGoalHours = hours;
+        }
         el.value = String(state.weeklyGoalHours);
         if (window.Sync) window.Sync.markDirty("settings");
         saveState(true);
@@ -35888,6 +36285,43 @@
         );
       }
       window.onWeeklyGoalChange = onWeeklyGoalChange;
+
+      /* The one funnel for anything that changes the work week (F8): the
+         preference arriving by sync or from a backup, and the test door.
+         Moves WorkWeek's version, which every week-shaped cache key carries,
+         brings today's automatic goal onto the new schedule when no shift is
+         running (F6: a running shift keeps the goal it started with), and
+         redraws. */
+      function onScheduleChanged() {
+        WorkWeek.invalidate();
+        if (typeof invalidateDerivedCaches === "function") {
+          invalidateDerivedCaches();
+        }
+        const s = currentState();
+        if (
+          s &&
+          !sessionIsLive(s) &&
+          typeof autoPopulateDailyGoal === "function"
+        ) {
+          try {
+            autoPopulateDailyGoal(s.activeDate || getWorkDate());
+          } catch (e) {
+            console.warn(
+              "Could not update the goal after a work week change",
+              e,
+            );
+          }
+        }
+        try {
+          if (typeof renderStaticUI === "function") renderStaticUI();
+          if (typeof renderLogbook === "function") renderLogbook();
+          if (typeof renderInsights === "function") renderInsights();
+          if (typeof updateProgress === "function") updateProgress();
+        } catch (e) {
+          console.warn("Could not redraw after a work week change", e);
+        }
+      }
+      window.onScheduleChanged = onScheduleChanged;
 
       /**
        * Erases everything this browser holds and reboots into a clean install.
