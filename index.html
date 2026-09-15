@@ -13775,7 +13775,7 @@
             </div>
             <div id="weekly-status-msg">Calculating...</div>
 
-            <!-- Segmented Days Bar (Monday-Friday) -->
+            <!-- Segmented Days Bar: one segment per work day, rebuilt by renderInsights -->
             <div class="segmented-progress-bar">
               <div class="progress-segment" data-day="1">
                 <div class="progress-segment-fill"></div>
@@ -16389,13 +16389,6 @@
          still owes what the week owes. */
       const WEEKLY_GOAL_DEFAULT_HOURS = 40;
 
-      /* A weekend day is worth three quarters of an ordinary one: the six
-         hours this app has always asked for, against the default eight. Held
-         as a ratio rather than a flat six so that lowering the weekly goal
-         cannot leave Saturday asking for more than Tuesday. At 40 hours a
-         week it resolves to exactly six. */
-      const WEEKEND_GOAL_RATIO = 0.75;
-
       function getWeeklyGoalSec() {
         const h =
           typeof state !== "undefined" &&
@@ -16432,6 +16425,12 @@
          of a shortfall landing on the next work day. */
       const WorkWeek = (() => {
         const DAY_MS = 86400000;
+
+        /* A day off is worth three quarters of a work day: the six hours this
+           app has always asked of a weekend day against the default eight.
+           Held as a ratio rather than a flat six so that lowering the weekly
+           goal cannot leave Saturday asking more than Tuesday. */
+        const DAY_OFF_GOAL_RATIO = 0.75;
 
         function defaults() {
           return {
@@ -16567,7 +16566,7 @@
            Tuesday. */
         function dayGoalSecNum(n) {
           const goal = workDayGoalSec();
-          return isWorkDayNum(n) ? goal : Math.round(goal * WEEKEND_GOAL_RATIO);
+          return isWorkDayNum(n) ? goal : Math.round(goal * DAY_OFF_GOAL_RATIO);
         }
         function dayGoalSec(dateKey) {
           return dayGoalSecNum(dayNum(dateKey));
@@ -16604,7 +16603,7 @@
         function autoGoalSec(dateKey, logs, leaveSet) {
           const n = dayNum(dateKey);
           const goal = workDayGoalSec(dateKey);
-          if (!isWorkDayNum(n)) return Math.round(goal * WEEKEND_GOAL_RATIO);
+          if (!isWorkDayNum(n)) return Math.round(goal * DAY_OFF_GOAL_RATIO);
           let priorWorkDays = 0;
           let priorLeaveDays = 0;
           let priorWorkSec = 0;
@@ -16652,9 +16651,27 @@
           return count;
         }
 
+        /* Where a date sits among its week's work days -- its segment in the
+           weekly bar -- or -1 on a day off. Asked on every tick, so the last
+           answer is kept until the date or the schedule changes. */
+        let indexMemo = { key: null, schedule: null, index: -1 };
+        function workDayIndex(dateKey) {
+          const s = scheduleFor(dateKey);
+          if (indexMemo.key !== dateKey || indexMemo.schedule !== s) {
+            indexMemo = {
+              key: dateKey,
+              schedule: s,
+              index: workDaysOf(weekOf(dateKey)).indexOf(dateKey),
+            };
+          }
+          return indexMemo.index;
+        }
+
         return {
           defaults,
           scheduleFor,
+          workDayIndex,
+          weekday: (dateKey) => weekdayOf(dayNum(dateKey)),
           dayNum,
           keyOfDay,
           dayOfMs,
@@ -16679,29 +16696,6 @@
       })();
       window.WorkWeek = WorkWeek;
 
-      function calculatePeriodGoalStats(weekdayDateStrs) {
-        const leaveDates =
-          typeof getLeaveDates === "function" ? getLeaveDates() : [];
-        const leaveSet = new Set(
-          leaveDates.map((l) => (typeof l === "string" ? l : l.date)),
-        );
-        const isVacationDate = (dStr) => leaveSet.has(dStr);
-
-        let dynamicGoalSec = 0;
-        let leaveDays = 0;
-
-        for (let i = 0; i < weekdayDateStrs.length; i++) {
-          const dateStr = weekdayDateStrs[i];
-          if (isVacationDate(dateStr)) {
-            leaveDays++;
-          } else {
-            dynamicGoalSec += getStandardDayGoalSec();
-          }
-        }
-
-        return { dynamicGoalSec, leaveDays };
-      }
-
       function calculatePaceRequired(remainingSec, activeDaysRemaining) {
         if (activeDaysRemaining <= 0 || remainingSec <= 0) return "— / Day";
         const paceSec = Math.floor(remainingSec / activeDaysRemaining + 1e-9);
@@ -16717,29 +16711,6 @@
         }
         parts.push(`${paceS}s`);
         return `${parts.join(" ")} / Day`;
-      }
-
-      function getMonthlyWeeks(year, month) {
-        const weeks = [];
-        let d = new Date(Date.UTC(year, month, 1, 12, 0, 0));
-        const day = d.getUTCDay();
-        const diffToMonday = day === 0 ? -6 : 1 - day;
-        let currentMonday = new Date(d.getTime() + diffToMonday * 86400000);
-        currentMonday.setUTCHours(12, 0, 0, 0);
-
-        while (true) {
-          weeks.push(currentMonday.getTime());
-          currentMonday = new Date(currentMonday.getTime() + 7 * 86400000);
-          currentMonday.setUTCHours(12, 0, 0, 0);
-          if (
-            currentMonday.getUTCFullYear() > year ||
-            (currentMonday.getUTCFullYear() === year &&
-              currentMonday.getUTCMonth() > month)
-          ) {
-            break;
-          }
-        }
-        return weeks;
       }
 
       function escapeHTML(str) {
@@ -17636,10 +17607,25 @@
       let selectedLogIdx = -1; // Keyboard-navigated row index into virtualScrollLogs
       window.selectedLogId = null; // ID-based tracker to preserve keyboard focus state
       let currentInsightsView = "weekly";
-      let weeklyCache = new Map(); // Key: UTC Monday Epoch Milliseconds
+      /* Each day's logs, keyed by day number (whole days since 1970-01-01),
+         in the order the analytics worker left them. Weeks are assembled
+         from days by WorkWeek (F7), never by the worker. */
+      let dailyCache = new Map();
       let monthlyCache = new Map();
       let yearlyCache = new Map();
       let dailyAnchorMap = new Map(); // DateString -> GoalSeconds
+
+      /* A week's logs, newest first: its days from last to first, each in the
+         order the worker left it, which is the order a week's group always
+         had. */
+      function logsForWeek(week) {
+        const out = [];
+        for (let i = week.days.length - 1; i >= 0; i--) {
+          const day = dailyCache.get(week.days[i]);
+          if (day) for (let j = 0; j < day.length; j++) out.push(day[j]);
+        }
+        return out;
+      }
 
       function resolveGoalSecForDate(dateStr) {
         const todayStr = typeof getWorkDate === "function" ? getWorkDate() : "";
@@ -27236,7 +27222,7 @@
             ? l.dayGoal
             : window.dailyAnchorMap
               ? window.dailyAnchorMap.get(l.date)
-              : null) ?? 8 * 3600;
+              : null) ?? WorkWeek.dayGoalSec(l.date);
         return (l.workSec || 0) >= goal;
       }
 
@@ -27358,7 +27344,7 @@
       const workerCode = `
           self.onmessage = function(e) {
             const { txId, data: logs } = e.data
-            const weeklyGroups = {}
+            const dailyGroups = {}
             const monthlyGroups = {}
             const yearlyGroups = {}
             const dailyAnchors = {}
@@ -27370,17 +27356,11 @@
               const log = logs[i]
               if (!log.epochMs || log.epochMs <= 0) continue
 
-              // Calculate the day count and determine the day of the week
-              const daysSinceEpoch = Math.floor(log.epochMs / 86400000)
-              const dayOfWeek = (daysSinceEpoch + 4) % 7
-              const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek
-
-              // Fixed: We add 43200000ms (12 hours) to the key to match the 12:00:00 UTC anchor
-              // used in the UI and Manual Log upgrades.
-              const key = ((daysSinceEpoch + diffToMonday) * 86400000) + 43200000
-
-              if (!weeklyGroups[key]) weeklyGroups[key] = []
-              weeklyGroups[key].push(log)
+              // Grouped by business day only. Which week a day belongs to is
+              // decided on the main thread, by WorkWeek (F7).
+              const dayKey = Math.floor(log.epochMs / 86400000)
+              if (!dailyGroups[dayKey]) dailyGroups[dayKey] = []
+              dailyGroups[dayKey].push(log)
 
               let mStr = "";
               let fullYear = 0;
@@ -27410,8 +27390,8 @@
               }
             }
 
-            for (let key in weeklyGroups) {
-              weeklyGroups[key].sort((a, b) => b.epochMs - a.epochMs)
+            for (let key in dailyGroups) {
+              dailyGroups[key].sort((a, b) => b.epochMs - a.epochMs)
             }
             for (let key in monthlyGroups) {
               monthlyGroups[key].sort((a, b) => b.epochMs - a.epochMs)
@@ -27420,7 +27400,7 @@
               yearlyGroups[key].sort((a, b) => b.epochMs - a.epochMs)
             }
 
-            self.postMessage({ txId, weeklyGroups, monthlyGroups, yearlyGroups, dailyAnchors })
+            self.postMessage({ txId, dailyGroups, monthlyGroups, yearlyGroups, dailyAnchors })
           }
         `;
       let analyticsWorker;
@@ -27438,7 +27418,7 @@
           postMessage: function (payload) {
             setTimeout(() => {
               const { txId, data: logs } = payload;
-              const weeklyGroups = {};
+              const dailyGroups = {};
               const monthlyGroups = {};
               const yearlyGroups = {};
               const dailyAnchors = {};
@@ -27470,16 +27450,11 @@
                   mStr = String(parts[0]).padStart(2, "0");
                 }
 
-                const dObj = new Date(Date.UTC(fullYear, m - 1, d, 12, 0, 0));
-                const dayOfWeek = dObj.getUTCDay();
-                const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
-
-                const key =
-                  Date.UTC(fullYear, m - 1, d, 12, 0, 0) +
-                  diffToMonday * 86400000;
-
-                if (!weeklyGroups[key]) weeklyGroups[key] = [];
-                weeklyGroups[key].push(log);
+                const dayKey = Math.floor(
+                  Date.UTC(fullYear, m - 1, d, 12, 0, 0) / 86400000,
+                );
+                if (!dailyGroups[dayKey]) dailyGroups[dayKey] = [];
+                dailyGroups[dayKey].push(log);
 
                 const monthlyKey = fullYear + "-" + mStr;
                 const yearlyKey = String(fullYear);
@@ -27500,8 +27475,8 @@
                 }
               }
 
-              for (let key in weeklyGroups) {
-                weeklyGroups[key].sort((a, b) => b.epochMs - a.epochMs);
+              for (let key in dailyGroups) {
+                dailyGroups[key].sort((a, b) => b.epochMs - a.epochMs);
               }
               for (let key in monthlyGroups) {
                 monthlyGroups[key].sort((a, b) => b.epochMs - a.epochMs);
@@ -27514,7 +27489,7 @@
                 analyticsWorker.onmessage({
                   data: {
                     txId,
-                    weeklyGroups,
+                    dailyGroups,
                     monthlyGroups,
                     yearlyGroups,
                     dailyAnchors,
@@ -27564,13 +27539,8 @@
 
       // Receive processed arrays back from background thread
       analyticsWorker.onmessage = (e) => {
-        const {
-          txId,
-          weeklyGroups,
-          monthlyGroups,
-          yearlyGroups,
-          dailyAnchors,
-        } = e.data;
+        const { txId, dailyGroups, monthlyGroups, yearlyGroups, dailyAnchors } =
+          e.data;
         const logs = getLogs();
 
         // Create an O(N) lookup map for safe, race-immune log rehydration
@@ -27579,15 +27549,14 @@
           logMap.set(logs[i].id, logs[i]);
         }
 
-        weeklyCache.clear();
-        for (const [key, val] of Object.entries(weeklyGroups)) {
+        /* Every day with a log, however old. The weekly cache this replaced
+           kept only the newest 60 weeks, so Insights drew any older week as
+           empty. These are references to logs already held in memory. */
+        dailyCache.clear();
+        for (const [key, val] of Object.entries(dailyGroups)) {
           // Rehydrate using unique IDs instead of fragile array indices
           const hydrated = val.map((v) => logMap.get(v.id)).filter(Boolean);
-          weeklyCache.set(Number(key), hydrated);
-          // Evict oldest entry if cache exceeds 60 weeks to prevent unbounded growth
-          if (weeklyCache.size > 60) {
-            weeklyCache.delete(weeklyCache.keys().next().value);
-          }
+          dailyCache.set(Number(key), hydrated);
         }
 
         monthlyCache.clear();
@@ -27748,104 +27717,17 @@
           return;
         }
 
-        let m, d, y;
-        if (targetDateStr.includes("-")) {
-          const parts = targetDateStr.split("-").map(Number);
-          m = parts[1];
-          d = parts[2];
-          y = parts[0] % 100;
-        } else {
-          const parts = targetDateStr.split("/").map(Number);
-          m = parts[0];
-          d = parts[1];
-          y = parts[2];
-        }
-        const fullYear = y < 100 ? 2000 + y : y;
-        const dObj = new Date(Date.UTC(fullYear, m - 1, d, 12, 0, 0));
-        const dayOfWeek = dObj.getUTCDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
-
-        /* What one ordinary day is worth. This used to be a hardcoded eight
-           hours in three places below, which quietly made the weekly goal a
-           setting that moved the insights and the pace figure but not the
-           number this function writes into the goal field -- so a 20-hour week
-           still auto-populated eight-hour days. Reading it from the same
-           place everything else does is what makes the setting mean one
-           thing. At the default 40-hour week it is 28800, exactly as before. */
-        const standardDaySec = getStandardDayGoalSec();
-
-        /* Both branches below assign all three, so these only exist to be
-           assigned; an eight-hour initial value here would be the same
-           assumption again, written where nothing can see it. */
-        let targetH = 0;
-        let targetM = 0;
-        let targetS = 0;
-
-        if (dayOfWeek === 0 || dayOfWeek === 6) {
-          /* A weekend day asks three quarters of an ordinary one -- six hours
-             against the default eight. Held as a ratio rather than a flat six
-             so it stays below a weekday's target rather than above it when
-             the weekly goal is set lower than 40. */
-          const weekendSec = Math.round(standardDaySec * WEEKEND_GOAL_RATIO);
-          targetH = Math.floor(weekendSec / 3600);
-          targetM = Math.floor((weekendSec % 3600) / 60);
-          targetS = Math.floor(weekendSec % 60);
-        } else {
-          // Weekday (Monday-Friday)
-          const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
-          const mondayUTC = new Date(dObj.getTime() + diffToMonday * 86400000);
-          mondayUTC.setUTCHours(12, 0, 0, 0);
-
-          const leaves =
-            typeof getLeaveDates === "function" ? getLeaveDates() : [];
-          const isVacationDate = (dStr) =>
-            leaves.some((l) => (typeof l === "string" ? l : l.date) === dStr);
-
-          // Calculate total worked hours and leave days in this week prior to today
-          let totalW_MonFri_Prior = 0;
-          let priorLeaveDaysCount = 0;
-
-          const checkDate = new Date(mondayUTC);
-          for (let i = 0; i < dayOfWeek - 1; i++) {
-            checkDate.setTime(mondayUTC.getTime());
-            checkDate.setUTCDate(mondayUTC.getUTCDate() + i);
-            const checkDateStr = `${String(
-              checkDate.getUTCMonth() + 1,
-            ).padStart(2, "0")}/${String(checkDate.getUTCDate()).padStart(
-              2,
-              "0",
-            )}/${checkDate.getUTCFullYear().toString().slice(-2)}`;
-
-            if (isVacationDate(checkDateStr)) {
-              priorLeaveDaysCount++;
-            } else {
-              // Sum work hours logged on prior weekdays
-              const dayLogs = logs.filter((l) => l.date === checkDateStr);
-              dayLogs.forEach((l) => {
-                totalW_MonFri_Prior += l.workSec;
-              });
-            }
-          }
-
-          // If today is a registered vacation/leave date, set the goal to 0
-          const todayIsVacation = isVacationDate(targetDateStr);
-          if (todayIsVacation) {
-            targetH = 0;
-            targetM = 0;
-          } else {
-            // Cumulative target for weekday index (Monday = 1, Tuesday = 2, etc.)
-            const cumulativeTargetSec = dayOfWeek * standardDaySec;
-            const priorCreditsSec =
-              totalW_MonFri_Prior + priorLeaveDaysCount * standardDaySec;
-            const requiredSec = Math.max(
-              0,
-              cumulativeTargetSec - priorCreditsSec,
-            );
-
-            targetH = Math.floor(requiredSec / 3600);
-            targetM = Math.floor((requiredSec % 3600) / 60);
-            targetS = Math.floor(requiredSec % 60);
-          }
-        }
+        /* The arithmetic is WorkWeek's (R7): what a work day owes after the
+           week so far, what a day off asks, and that a leave work day asks
+           nothing. What stays here is when it runs and where the answer goes. */
+        const requiredSec = WorkWeek.autoGoalSec(
+          targetDateStr,
+          logs,
+          getLeaveDateSet(),
+        );
+        const targetH = Math.floor(requiredSec / 3600);
+        const targetM = Math.floor((requiredSec % 3600) / 60);
+        const targetS = Math.floor(requiredSec % 60);
 
         // Update input elements and persist preferences to local storage
         DOM.goalHours.value = String(targetH).padStart(2, "0");
@@ -28588,33 +28470,11 @@
         if (!force && currentMinute === lastWeeklyUpdateMinute) return;
         lastWeeklyUpdateMinute = currentMinute;
 
-        const y = displayBaseDate.getUTCFullYear();
-        const m = displayBaseDate.getUTCMonth();
-        const d_val = displayBaseDate.getUTCDate();
-        const dObj = new Date(Date.UTC(y, m, d_val, 12, 0, 0));
-        const day = dObj.getUTCDay();
-        const diffToMonday = day === 0 ? -6 : 1 - day;
-        const mondayUTC = new Date(dObj.getTime() + diffToMonday * 86400000);
-        mondayUTC.setUTCHours(12, 0, 0, 0);
-        const weekStartMs = mondayUTC.getTime();
+        const week = WorkWeek.weekOf(formatUTCDayStr(displayBaseDate));
+        const todayKey = formatUTCDayStr(getWorkDateObj());
+        if (week.startDay !== WorkWeek.weekOf(todayKey).startDay) return;
 
-        const nowWork = getWorkDateObj();
-        const nowDay = nowWork.getUTCDay();
-        const nowDiffToMonday = nowDay === 0 ? -6 : 1 - nowDay;
-        const currentMondayMs = nowWork.getTime() + nowDiffToMonday * 86400000;
-        const currentMonday = new Date(currentMondayMs);
-        const currentWeekStartMs = Date.UTC(
-          currentMonday.getUTCFullYear(),
-          currentMonday.getUTCMonth(),
-          currentMonday.getUTCDate(),
-          12,
-          0,
-          0,
-        );
-
-        if (weekStartMs !== currentWeekStartMs) return;
-
-        const weeklyLogs = weeklyCache.get(weekStartMs) || [];
+        const weeklyLogs = logsForWeek(week);
         const logsByDate = {};
         for (let i = 0; i < weeklyLogs.length; i++) {
           const l = weeklyLogs[i];
@@ -28630,29 +28490,17 @@
         const leaveSet = new Set(
           leaveDates.map((l) => (typeof l === "string" ? l : l.date)),
         );
-        const isVacationDate = (dStr) => leaveSet.has(dStr);
-
-        // ========================================================================= ARCHITECTURE
-        // NOTE:
-
         let totalW_MonFri = 0;
-        const reusableDate = new Date(mondayUTC);
-        const weekdays = [];
-
-        for (let i = 0; i < 5; i++) {
-          reusableDate.setTime(mondayUTC.getTime());
-          reusableDate.setUTCDate(mondayUTC.getUTCDate() + i);
-          const dateStr = formatUTCDayStr(reusableDate);
-
-          weekdays.push(dateStr);
-          const dayW = logsByDate[dateStr] ? logsByDate[dateStr].w : 0;
-          totalW_MonFri += dayW;
+        for (let i = 0; i < week.keys.length; i++) {
+          const dateStr = week.keys[i];
+          if (!WorkWeek.countsToward(dateStr)) continue;
+          totalW_MonFri += logsByDate[dateStr] ? logsByDate[dateStr].w : 0;
         }
 
-        const stats = calculatePeriodGoalStats(weekdays);
-        let dynamicWeeklyGoalSec = stats.dynamicGoalSec;
+        const stats = WorkWeek.targetOf(WorkWeek.workDaysOf(week), leaveSet);
+        let dynamicWeeklyGoalSec = stats.targetSec;
 
-        if (nowDay >= 1 && nowDay <= 5) {
+        if (WorkWeek.countsToward(todayKey)) {
           totalW_MonFri += getCurrentWorkSeconds();
         }
 
@@ -28691,42 +28539,14 @@
           );
 
           // Trend calculations comparing actual progress against expectations
-          let expectedSecSoFar = 0;
-          const isWeekend = nowDay === 0 || nowDay === 6;
-          const liveGoalSec =
-            domWriteCache._goalSecCached ||
-            getGoalSeconds(
-              DOM.goalHours.value,
-              DOM.goalMins.value,
-              DOM.goalSecs.value,
-            );
-          const baselineDailyGoalSec =
-            state.goalAutopopulateEnabled !== false
-              ? getStandardDayGoalSec()
-              : liveGoalSec;
-
-          for (let i = 0; i < 5; i++) {
-            const checkIdx = i + 1;
-            let includeDay = false;
-            if (isWeekend) {
-              includeDay = true;
-            } else {
-              includeDay = checkIdx < nowDay;
-            }
-
-            if (includeDay) {
-              reusableDate.setTime(mondayUTC.getTime());
-              reusableDate.setUTCDate(mondayUTC.getUTCDate() + i);
-              const dateStr = formatUTCDayStr(reusableDate);
-              if (!isVacationDate(dateStr)) {
-                expectedSecSoFar += getStandardDayGoalSec();
-              }
-            }
-          }
-
-          const todayLogged = isWeekend
-            ? 0
-            : getTodayLoggedWorkSeconds() + getCurrentWorkSeconds();
+          const expectedSecSoFar = WorkWeek.expectedSoFarSec(
+            week,
+            todayKey,
+            leaveSet,
+          );
+          const todayLogged = WorkWeek.countsToward(todayKey)
+            ? getTodayLoggedWorkSeconds() + getCurrentWorkSeconds()
+            : 0;
           const comparisonWorkSec = Math.max(0, totalW_MonFri - todayLogged);
           const trendDiffSec = comparisonWorkSec - expectedSecSoFar;
           const trendDiffH = (Math.abs(trendDiffSec) / 3600).toFixed(1);
@@ -28743,25 +28563,14 @@
           }
 
           if (remainingSec > 0) {
-            const todayIdx = nowDay === 0 ? 7 : nowDay;
-            if (todayIdx <= 5) {
-              let activeDaysRemaining = 0;
-              for (let d = todayIdx; d <= 5; d++) {
-                const checkDate = new Date(mondayUTC);
-                checkDate.setUTCDate(mondayUTC.getUTCDate() + (d - 1));
-                const checkDateStr = `${String(
-                  checkDate.getUTCMonth() + 1,
-                ).padStart(2, "0")}/${String(checkDate.getUTCDate()).padStart(
-                  2,
-                  "0",
-                )}/${checkDate.getUTCFullYear().toString().slice(-2)}`;
-                if (!isVacationDate(checkDateStr)) activeDaysRemaining++;
-              }
-
-              weekMsg.innerHTML = `Pace Required: ${calculatePaceRequired(remainingSec, activeDaysRemaining)}${trendHTML}`;
-            } else {
-              weekMsg.innerHTML = `Pace Required: — / Day${trendHTML}`;
-            }
+            /* None left on a day off at the week's end: calculatePaceRequired
+               then reads "— / Day". */
+            const activeDaysRemaining = WorkWeek.remainingWorkDays(
+              week,
+              todayKey,
+              leaveSet,
+            );
+            weekMsg.innerHTML = `Pace Required: ${calculatePaceRequired(remainingSec, activeDaysRemaining)}${trendHTML}`;
             weekMsg.className = "text-muted";
           } else {
             weekMsg.innerHTML = `Weekly Goal Achieved!${trendHTML}`;
@@ -28807,37 +28616,10 @@
        */
       function isViewingCurrentWeek() {
         if (!displayBaseDate) return true;
-        const dObj = new Date(
-          Date.UTC(
-            displayBaseDate.getUTCFullYear(),
-            displayBaseDate.getUTCMonth(),
-            displayBaseDate.getUTCDate(),
-            12,
-            0,
-            0,
-          ),
+        return (
+          WorkWeek.weekOf(formatUTCDayStr(displayBaseDate)).startDay ===
+          WorkWeek.weekOf(formatUTCDayStr(getWorkDateObj())).startDay
         );
-        const day = dObj.getUTCDay();
-        const diffToMonday = day === 0 ? -6 : 1 - day;
-        const weekStartMs = dObj.getTime() + diffToMonday * 86400000;
-
-        const todayWork = getWorkDateObj();
-        const todayDObj = new Date(
-          Date.UTC(
-            todayWork.getUTCFullYear(),
-            todayWork.getUTCMonth(),
-            todayWork.getUTCDate(),
-            12,
-            0,
-            0,
-          ),
-        );
-        const todayDay = todayDObj.getUTCDay();
-        const todayDiffToMonday = todayDay === 0 ? -6 : 1 - todayDay;
-        const todayWeekStartMs =
-          todayDObj.getTime() + todayDiffToMonday * 86400000;
-
-        return weekStartMs === todayWeekStartMs;
       }
 
       /* workSeconds carries the same contract as nowMs beside it: pass one to
@@ -28927,14 +28709,13 @@
               : `${sessionPercent.toFixed(1)}% (Left: ${formatFriendlyDuration(Math.abs(sessionDiff), "0m")})`;
           setText(DOM.progressText, progStr);
 
-          const nowWork = getWorkDateObj();
-          const dayIdx = nowWork.getUTCDay();
-          const isoDay = dayIdx === 0 ? 7 : dayIdx;
-
-          // Helper to check if the currently displayed week matches today's active calendar week
+          /* Today's segment: its place among the week's work days, -1 on a
+             day off. */
+          const segmentIndex = WorkWeek.workDayIndex(todayStr);
 
           // Only apply live scales to the active weekday segments when viewing the current week
-          const todaySegment = DOM.progressSegments[isoDay - 1];
+          const todaySegment =
+            segmentIndex >= 0 ? DOM.progressSegments[segmentIndex] : undefined;
           const isLeaveToday =
             todaySegment && todaySegment.classList.contains("is-leave");
 
@@ -28950,10 +28731,10 @@
 
           if (
             currentInsightsView === "weekly" &&
-            isoDay <= 5 &&
+            segmentIndex >= 0 &&
             isViewingCurrentWeek()
           ) {
-            const todaySegmentFill = DOM.progressSegmentFills[isoDay - 1];
+            const todaySegmentFill = DOM.progressSegmentFills[segmentIndex];
             if (todaySegmentFill) {
               let segmentClass;
               if (isLeaveToday) {
@@ -31184,20 +30965,9 @@
           absoluteStartMs = targetMs;
           absoluteEndMs = targetMs;
         } else if (criteria.timeFilter === "WEEK") {
-          const nowUTC = new Date(
-            Date.UTC(
-              nowWorkObj.getUTCFullYear(),
-              nowWorkObj.getUTCMonth(),
-              nowWorkObj.getUTCDate(),
-              12,
-              0,
-              0,
-            ),
-          );
-          const day = nowUTC.getUTCDay();
-          const diffToMonday = day === 0 ? -6 : 1 - day;
-          absoluteStartMs = nowUTC.getTime() + diffToMonday * 86400000;
-          absoluteEndMs = absoluteStartMs + 6 * 86400000;
+          const week = WorkWeek.weekOf(formatUTCDayStr(nowWorkObj));
+          absoluteStartMs = week.startMs;
+          absoluteEndMs = week.startMs + 6 * 86400000;
         } else if (criteria.timeFilter === "MONTH") {
           absoluteStartMs = Date.UTC(
             nowWorkObj.getUTCFullYear(),
@@ -31982,7 +31752,9 @@
 
             // Arithmetic rather than `new Date(...).getUTCDay()`:
             const dayNum = getUTCDayFromEpochMs(log.epochMs);
-            const isWeekend = dayNum === 0 || dayNum === 6;
+            const isWeekend = !WorkWeek.isWorkDayNum(
+              WorkWeek.dayOfMs(log.epochMs),
+            );
             const dateParts = log.date.split("/");
             const displayMonthDay =
               dateParts.length >= 2
@@ -32075,7 +31847,7 @@
                   log.workSec -
                     (log.dayGoal != null && log.dayGoal > 0
                       ? log.dayGoal
-                      : 8 * 3600),
+                      : WorkWeek.dayGoalSec(log.date)),
                 );
                 dom.diffText.textContent = formatFriendlyDuration(
                   rawDeltaSec,
@@ -32591,19 +32363,11 @@
 
         const currentYear = window.heatmapSelectedYearVal || systemYear;
 
-        // Find January 1st of the current year in UTC midday
-        const jan1 = new Date(Date.UTC(currentYear, 0, 1, 12, 0, 0));
-        const startDay = new Date(jan1);
-        const startDayOfWeek = jan1.getUTCDay();
-        const diffToMonday = startDayOfWeek === 0 ? -6 : 1 - startDayOfWeek;
-        startDay.setUTCDate(jan1.getUTCDate() + diffToMonday); // Snaps to Monday of Jan 1st week
-
-        // Find December 31st of the current year in UTC midday
-        const dec31 = new Date(Date.UTC(currentYear, 11, 31, 12, 0, 0));
-        const endDay = new Date(dec31);
-        const endDayOfWeek = dec31.getUTCDay();
-        const diffToSunday = endDayOfWeek === 0 ? 0 : 7 - endDayOfWeek;
-        endDay.setUTCDate(dec31.getUTCDate() + diffToSunday); // Snaps to Sunday of Dec 31st week
+        /* Whole weeks, at noon UTC: from the start of the week holding Jan 1
+           to the end of the week holding Dec 31. */
+        const grid = WorkWeek.yearGrid(currentYear);
+        const startDay = new Date(grid.startDay * 86400000 + 43200000);
+        const endDay = new Date(grid.endDay * 86400000 + 43200000);
 
         const totalDays =
           Math.round((endDay.getTime() - startDay.getTime()) / 86400000) + 1;
@@ -32842,8 +32606,9 @@
         for (let i = 0; i <= 364; i++) {
           const dateKey = formatUTCDayStr(streakDate);
           const data = heatmapMap[dateKey];
-          const dayOfWeek = streakDate.getUTCDay();
-          const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+          const isWeekend = !WorkWeek.isWorkDayNum(
+            WorkWeek.dayOfMs(streakDate.getTime()),
+          );
 
           if (
             data &&
@@ -32935,11 +32700,7 @@
         } else if (currentInsightsView === "monthly") {
           bucketStartMs = Date.UTC(y, m, 1, 12, 0, 0);
         } else {
-          const day = dObj.getUTCDay();
-          const diffToMonday = day === 0 ? -6 : 1 - day;
-          const mondayUTC = new Date(dObj.getTime() + diffToMonday * 86400000);
-          mondayUTC.setUTCHours(12, 0, 0, 0);
-          bucketStartMs = mondayUTC.getTime();
+          bucketStartMs = WorkWeek.weekOf(formatUTCDayStr(dObj)).startMs;
         }
 
         const todayStr = getWorkDate();
@@ -32960,13 +32721,11 @@
           return renderMacroInsights(y, m, bucketStartMs, todayStr);
         }
 
-        const day = dObj.getUTCDay();
-        const diffToMonday = day === 0 ? -6 : 1 - day;
-        const mondayUTC = new Date(dObj.getTime() + diffToMonday * 86400000);
-        mondayUTC.setUTCHours(12, 0, 0, 0);
+        const week = WorkWeek.weekOf(formatUTCDayStr(dObj));
+        const mondayUTC = new Date(week.startMs);
         const weekStartMs = bucketStartMs;
 
-        const weeklyLogs = weeklyCache.get(weekStartMs) || [];
+        const weeklyLogs = logsForWeek(week);
         const logsByDate = {};
         const oldestLogByDate = {}; // Explicitly track the oldest shift goal of the day
 
@@ -33008,18 +32767,7 @@
           logsByDate[l.displayDate].records.push(l);
         }
 
-        const todayWork = getWorkDateObj();
-        const todayY = todayWork.getUTCFullYear();
-        const todayM = todayWork.getUTCMonth();
-        const todayD = todayWork.getUTCDate();
-        const todayDObj = new Date(Date.UTC(todayY, todayM, todayD, 12, 0, 0));
-        const todayDay = todayDObj.getUTCDay();
-        const todayDiffToMonday = todayDay === 0 ? -6 : 1 - todayDay;
-        const todayMondayUTC = new Date(
-          todayDObj.getTime() + todayDiffToMonday * 86400000,
-        );
-        todayMondayUTC.setUTCHours(12, 0, 0, 0);
-        const todayWeekStartMs = todayMondayUTC.getTime();
+        const todayWeekStartMs = WorkWeek.weekOf(todayStr).startMs;
 
         const isCurrentWeek = weekStartMs === todayWeekStartMs;
 
@@ -33055,14 +32803,9 @@
         );
 
         const reusableDate = new Date(mondayUTC);
-        const weekdays = [];
-        for (let i = 0; i < 5; i++) {
-          reusableDate.setTime(mondayUTC.getTime());
-          reusableDate.setUTCDate(mondayUTC.getUTCDate() + i);
-          weekdays.push(formatUTCDayStr(reusableDate));
-        }
-        const stats = calculatePeriodGoalStats(weekdays);
-        let dynamicWeeklyGoalSec = stats.dynamicGoalSec;
+        const workDayKeys = WorkWeek.workDaysOf(week);
+        const stats = WorkWeek.targetOf(workDayKeys, leaveSet);
+        let dynamicWeeklyGoalSec = stats.targetSec;
 
         for (let i = 0; i < 7; i++) {
           reusableDate.setTime(mondayUTC.getTime());
@@ -33073,7 +32816,7 @@
 
           const displayDateNoYear = dateStr.slice(0, 5);
           const isToday = dateStr === todayStr;
-          const isWeekend = dayOfWeekIndex === 0 || dayOfWeekIndex === 6;
+          const isWeekend = !WorkWeek.isWorkDay(dateStr);
 
           let dayW = logsByDate[dateStr] ? logsByDate[dateStr].w : 0;
           let dayB = logsByDate[dateStr] ? logsByDate[dateStr].b : 0;
@@ -33084,8 +32827,8 @@
             dayB += getCurrentBreakSeconds();
           }
 
-          // Track Mon-Fri work
-          if (dayOfWeekIndex >= 1 && dayOfWeekIndex <= 5) {
+          // Work that counts toward the week
+          if (WorkWeek.countsToward(dateStr)) {
             totalW_MonFri += dayW;
           }
           totalB_AllWeek += dayB;
@@ -33296,22 +33039,21 @@
         const percentText = DOM.weeklyProgressPercent;
         const weekMsg = DOM.weeklyStatusMsg;
 
-        const isoDay = todayDay === 0 ? 7 : todayDay;
-
         const barContainer = document.querySelector(".segmented-progress-bar");
         if (barContainer) {
-          const weeklyLabels = ["M", "T", "W", "T", "F"];
+          /* One segment per work day, labelled with its day's initial. */
           if (
-            barContainer.children.length !== 5 ||
+            barContainer.children.length !== workDayKeys.length ||
             barContainer.dataset.viewType !== "weekly"
           ) {
             barContainer.dataset.viewType = "weekly";
             let barHTML = "";
-            for (let i = 0; i < 5; i++) {
+            for (let i = 0; i < workDayKeys.length; i++) {
+              const label = "SMTWTFS".charAt(WorkWeek.weekday(workDayKeys[i]));
               barHTML += `
                   <div class="progress-segment" data-day="${i + 1}">
                     <div class="progress-segment-fill"></div>
-                    <div class="day-segment-label">${weeklyLabels[i]}</div>
+                    <div class="day-segment-label">${label}</div>
                   </div>
                 `;
             }
@@ -33334,10 +33076,8 @@
           }
         });
 
-        for (let i = 0; i < 5; i++) {
-          const dayDate = new Date(mondayUTC);
-          dayDate.setUTCDate(mondayUTC.getUTCDate() + i);
-          const dateStr = formatUTCDayStr(dayDate);
+        for (let i = 0; i < workDayKeys.length; i++) {
+          const dateStr = workDayKeys[i];
 
           let dayWorkSeconds = logsByDate[dateStr] ? logsByDate[dateStr].w : 0;
           let dayBreakSeconds = logsByDate[dateStr] ? logsByDate[dateStr].b : 0;
@@ -33399,7 +33139,7 @@
                   ? "progress-segment-fill segment-completed"
                   : "progress-segment-fill segment-active";
             }
-            if (weekStartMs === todayWeekStartMs && i + 1 === isoDay) {
+            if (isCurrentWeek && dateStr === todayStr) {
               segment.classList.add("is-today");
             }
           }
@@ -33430,39 +33170,14 @@
         // ========================================================================= WEEKLY PACE
         // HELPER:
 
-        let expectedSecSoFar = 0;
+        const expectedSecSoFar = WorkWeek.expectedSoFarSec(
+          week,
+          todayStr,
+          leaveSet,
+        );
         let comparisonWorkSec = totalW_MonFri;
-        const isPastWeek = weekStartMs < todayWeekStartMs;
-        const isWeekend = todayDay === 0 || todayDay === 6;
-        const trendBaselineDailyGoalSec =
-          state.goalAutopopulateEnabled !== false
-            ? getStandardDayGoalSec()
-            : liveGoalSec;
 
-        for (let i = 0; i < 5; i++) {
-          const checkIdx = i + 1;
-          let includeDay = false;
-          if (isPastWeek) {
-            includeDay = true;
-          } else if (isCurrentWeek) {
-            if (isWeekend) {
-              includeDay = true;
-            } else {
-              includeDay = checkIdx < todayDay;
-            }
-          }
-
-          if (includeDay) {
-            reusableDate.setTime(mondayUTC.getTime());
-            reusableDate.setUTCDate(mondayUTC.getUTCDate() + i);
-            const dateStr = formatUTCDayStr(reusableDate);
-            if (!isVacationDate(dateStr)) {
-              expectedSecSoFar += getStandardDayGoalSec();
-            }
-          }
-        }
-
-        if (isCurrentWeek && !isWeekend) {
+        if (isCurrentWeek && WorkWeek.countsToward(todayStr)) {
           const todayLogged =
             getTodayLoggedWorkSeconds() + getCurrentWorkSeconds();
           comparisonWorkSec = Math.max(0, totalW_MonFri - todayLogged);
@@ -33509,13 +33224,11 @@
                 0,
                 dynamicWeeklyGoalSec - totalW_MonFri,
               );
-              let activeDaysRemaining = 0;
-              for (let d = todayDay === 0 ? 7 : todayDay; d <= 5; d++) {
-                reusableDate.setTime(mondayUTC.getTime());
-                reusableDate.setUTCDate(mondayUTC.getUTCDate() + (d - 1));
-                const ds = formatUTCDayStr(reusableDate);
-                if (!isVacationDate(ds)) activeDaysRemaining++;
-              }
+              const activeDaysRemaining = WorkWeek.remainingWorkDays(
+                week,
+                todayStr,
+                leaveSet,
+              );
               weekMsg.innerHTML = `Pace Required: ${calculatePaceRequired(remainingSec, activeDaysRemaining)}${trendHTML}`;
               weekMsg.className = "text-muted";
             }
@@ -33541,18 +33254,18 @@
 
         if (viewType === "monthly") {
           setText(DOM.weekMonthLabel, `${_MONTH_NAMES[m]} ${fullYear}`);
-          const weeks = getMonthlyWeeks(fullYear, m);
-          weeks.forEach((wMs) => {
-            const wd = new Date(wMs);
+          WorkWeek.weeksInMonth(fullYear, m).forEach((week) => {
+            const wd = new Date(week.startMs);
             const label = `Week of ${_SHORT_MONTHS[wd.getUTCMonth()]} ${wd.getUTCDate()}`;
-            macroBuckets.set(wMs, {
+            macroBuckets.set(week.startMs, {
               w: 0,
               b: 0,
               goal: 0,
               leaveDays: 0,
               label,
-              logs: weeklyCache.get(wMs) ? [...weeklyCache.get(wMs)] : [],
-              startMs: wMs,
+              logs: logsForWeek(week),
+              startMs: week.startMs,
+              week,
             });
           });
         } else {
@@ -33577,14 +33290,8 @@
           });
         }
 
-        const getWeekStartMs = (epochMs) => {
-          const dObj = new Date(epochMs);
-          const day = dObj.getUTCDay();
-          const diff = day === 0 ? -6 : 1 - day;
-          const mon = new Date(dObj.getTime() + diff * 86400000);
-          mon.setUTCHours(12, 0, 0, 0);
-          return mon.getTime();
-        };
+        const getWeekStartMs = (epochMs) =>
+          WorkWeek.weekOfDay(WorkWeek.dayOfMs(epochMs)).startMs;
 
         const todayWork = getWorkDateObj();
         const isTodayInView =
@@ -33644,8 +33351,7 @@
             ) {
               return;
             }
-            const dWk = new Date(l.epochMs).getUTCDay();
-            if (dWk >= 1 && dWk <= 5) {
+            if (WorkWeek.countsTowardNum(WorkWeek.dayOfMs(l.epochMs))) {
               bucketW += l.workSec || 0;
               bucketB += l.breakSec || 0;
               countedShifts++;
@@ -33670,34 +33376,24 @@
             ? `<span class="badge badge-leave" title="${formatFriendlyDuration(weekendW)} worked on ${weekendCount} weekend day${weekendCount === 1 ? "" : "s"} — shown for completeness, not counted toward the weekly target">${weekendCount} Weekend${weekendCount === 1 ? "" : "s"}</span>`
             : "";
 
-          let weekdays = [];
-          if (viewType === "monthly") {
-            const mon = new Date(bData.startMs);
-            for (let i = 0; i < 5; i++) {
-              const d = new Date(mon.getTime() + i * 86400000);
-              if (d.getUTCMonth() === m) {
-                const ds = formatUTCDayStr(d);
-                weekdays.push(ds);
-              }
-            }
-          } else {
-            const daysInMonth = new Date(
-              Date.UTC(fullYear, bData.monthIdx + 1, 0, 12, 0, 0),
-            ).getUTCDate();
-            for (let d = 1; d <= daysInMonth; d++) {
-              const dt = new Date(
-                Date.UTC(fullYear, bData.monthIdx, d, 12, 0, 0),
-              );
-              const dayWk = dt.getUTCDay();
-              if (dayWk >= 1 && dayWk <= 5) {
-                const ds = formatUTCDayStr(dt);
-                weekdays.push(ds);
-              }
-            }
-          }
+          /* The work days this row's target covers: a week's that fall in
+             the month shown, or a whole month's. */
+          const weekdays =
+            viewType === "monthly"
+              ? WorkWeek.workDaysOf(bData.week).filter(
+                  (ds) => Number(ds.slice(0, 2)) === m + 1,
+                )
+              : WorkWeek.workDaysInRange(
+                  formatUTCDayStr(
+                    new Date(Date.UTC(fullYear, bData.monthIdx, 1, 12)),
+                  ),
+                  formatUTCDayStr(
+                    new Date(Date.UTC(fullYear, bData.monthIdx + 1, 0, 12)),
+                  ),
+                );
 
-          const stats = calculatePeriodGoalStats(weekdays);
-          const bGoal = stats.dynamicGoalSec;
+          const stats = WorkWeek.targetOf(weekdays, getLeaveDateSet());
+          const bGoal = stats.targetSec;
           bData.leaveDays = stats.leaveDays;
 
           grandTotalW += bucketW;
@@ -33868,16 +33564,17 @@
           );
           const isVacationDate = (dStr) => leaveSet.has(dStr);
 
-          while (loopDate.getTime() <= limitMs) {
-            const dw = loopDate.getUTCDay();
-            if (dw >= 1 && dw <= 5) {
-              const ds = formatUTCDayStr(loopDate);
-              if (!isVacationDate(ds)) {
-                activeDaysRemaining++;
-                futureAndTodayGoalSec += getStandardDayGoalSec();
-              }
+          const remainingKeys = WorkWeek.workDaysInRange(
+            formatUTCDayStr(loopDate),
+            formatUTCDayStr(new Date(limitMs)),
+          );
+          for (let i = 0; i < remainingKeys.length; i++) {
+            if (!isVacationDate(remainingKeys[i])) {
+              activeDaysRemaining++;
+              futureAndTodayGoalSec += WorkWeek.workDayGoalSec(
+                remainingKeys[i],
+              );
             }
-            loopDate.setUTCDate(loopDate.getUTCDate() + 1);
           }
         }
 
@@ -33894,8 +33591,9 @@
         } else {
           // Compare strictly past days: Subtract future days AND today from the total expected goal
           expectedSecSoFar = Math.max(0, grandGoal - futureAndTodayGoalSec);
-          const todayWorkDay = todayWork.getUTCDay();
-          const isTodayWeekend = todayWorkDay === 0 || todayWorkDay === 6;
+          const isTodayWeekend = !WorkWeek.countsToward(
+            formatUTCDayStr(todayWork),
+          );
           const todayLogged = isTodayWeekend
             ? 0
             : getTodayLoggedWorkSeconds() + getCurrentWorkSeconds();
