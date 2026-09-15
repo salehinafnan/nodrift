@@ -1,6 +1,6 @@
 # Follow-ups: work week, clock and date formats, re-filing records
 
-> **Status:** plan approved by the user on 2026-09-15, including every proposed default in §10. Phase W0 is done (measurements only, no app change); Phase W1 is next.
+> **Status:** plan approved by the user on 2026-09-15, including every proposed default in §10. Phases W0 (measurements) and W1 (the `WorkWeek` module, behaviour-identical apart from two differences the user chose) are done; Phase W2 is next.
 > **Baseline commit:** `0ba1bd6` (all line numbers below refer to it and WILL drift — re-grep before editing).
 > **Rule:** one phase at a time. A phase starts only when the previous phase's exit criteria are green and committed.
 > **Origin:** the candidate follow-ups in §9 of `docs/implement.md`. "More than two clocks; per-client zones" was dropped by the user (§11 here).
@@ -8,7 +8,7 @@
 | Phase | Title                                                             | Touches data?    | Needs live account? | Size              | State   |
 | ----- | ----------------------------------------------------------------- | ---------------- | ------------------- | ----------------- | ------- |
 | W0    | Work week groundwork: golden master, probes, audit                | no               | one probe           | S–M               | done    |
-| W1    | `WorkWeek` core + behaviour-identical refactor                    | no               | regression only     | L (split W1a/W1b) | planned |
+| W1    | `WorkWeek` core + behaviour-identical refactor                    | no               | regression only     | L (split W1a/W1b) | done    |
 | W2    | The schedule: preference, history, the generalised rules          | prefs            | stub / fake server  | L (split W2a/W2b) | planned |
 | W3    | Work week UI: settings card, phone sheet, bar, labels, guide      | prefs            | no                  | M–L (split W3a/b) | planned |
 | W4    | Work week sync hardening, multi-device, iPhone                    | no               | **yes**             | M                 | planned |
@@ -517,7 +517,8 @@ Also from W0: `probe-workweek-audit.js` (no account; W0, then W2b, where its mea
 - `harness-security.js`, `probe-leave-rows.js`, `probe-csv-shape.js`, `probe-backup-and-leave.js`;
 - `probe-shift-rewind.js`, `probe-lease-endshift.js`, `harness-handoff.js`;
 - `harness-tz-core.js`, `harness-tz-model.js`, `harness-tz-display.js`, `probe-tz-picker.js`, `probe-tz-ui.js`;
-- live phases add `harness-phase8.js`, `harness-signin-render.js` and `harness-wipe.js`.
+- live phases add `harness-phase8.js`, `harness-signin-render.js` and `harness-wipe.js`;
+- from W1: `harness-workweek-core.js`, `probe-workweek-golden.js compare` (with the `--expect` of the phase) and `probe-workweek-eviction.js`.
 
 **House rules:**
 
@@ -650,6 +651,49 @@ const WorkWeek = {
 
 **Commits:** `refactor(week): one module for every work-week calculation` (W1a) and `refactor(week): route every call site through WorkWeek` (W1b).
 
+#### Phase W1 results (2026-09-15)
+
+All runs on AC power at 2419 MHz, one suite at a time.
+
+**Baseline on the unmodified tree** (`index.html` md5 `1ad7e159`): the §8 regression list, 19 of 19 green (`harness-phase8.js` died with exit 127 in the chain before any check and passed alone, 14 checks); the golden master, 300 sets compared, 0 differ.
+
+**W1a — the module** (`3f127b6`, md5 `c32ebfe9`, +262 / −2 lines). `WorkWeek` sits right after `getWeeklyGoalSec`, and `getStandardDayGoalSec` is now its alias. The API as built, with the names the call sites needed where they differ from the sketch above:
+
+- `defaults()`, `scheduleFor(dateKey)` (W1: always today's schedule, rebuilt only when the weekly goal moves);
+- `dayNum(key)`, `keyOfDay(n)`, `dayOfMs(ms)`, `weekday(key)`: all arithmetic is on day numbers, whole days since 1970-01-01, so no zone or DST can move a boundary;
+- `isWorkDay` / `isWorkDayNum`, `countsToward` / `countsTowardNum`;
+- `weekOf(key)` / `weekOfDay(n)` → `{ startDay, endDay, startKey, endKey, startMs, days, keys }`; `startMs` is noon UTC on the first day, the instant every week was keyed by before;
+- `workDaysOf(week)`, `workDayIndex(key)` (the weekly bar's segment, memoised for the tick, added in W1b), `weeksInMonth(y, m)`, `yearGrid(y)` (for "weekStartForYear");
+- `workDayGoalSec`, `dayGoalSec` (R5 before leave), `targetOf(keys, leaveSet)` (R6 over any list of dates, for "weekTargetSec"), `workDaysInRange(from, to)`;
+- `autoGoalSec(key, logs, leaveSet)` (R7 in exactly today's expression order, so fractional seconds round as before), `expectedSoFarSec` and `remainingWorkDays` (R8, for "pace" and "expectedSoFar").
+
+`harness-workweek-core.js` (new, no account, 8886 / 9487) checks every function against copies of the 0ba1bd6 inline arithmetic kept in the suite, over every date of 2026–2028 at seven weekly goals (40, 37.5, 20, 15, 1, 168, 0.5), random histories with fractional work and leave, and the year-end, DST and Saturday-leave weeks, plus "asking anything writes nothing" (F2) and two controls: 71 checks, 0 failures. Golden master 300 / 0 differ; control 240 / 300; regression 19 / 19.
+
+**W1b — every call site** (`3b9a873`, md5 `1bedca19`, +202 / −504 lines against W1a):
+
+- `autoPopulateDailyGoal` keeps its early returns and writes; its arithmetic is `WorkWeek.autoGoalSec`.
+- The analytics worker and its fallback group by business day only (F7). `weeklyCache` became `dailyCache` (day number → that day's logs), and `logsForWeek(week)` joins a week's days newest first, which is exactly the order a week's group had.
+- The live weekly card, `renderInsights`, `renderMacroInsights`, `isViewingCurrentWeek`, `updateProgress`'s segment, the "This week" filter, the logbook tag and fallback, `isLogOver`, and the heatmap grid and streak all read `WorkWeek`. The weekly bar is built from `workDaysOf(week)`, with labels from the day's initial. The wording stays "Weekend".
+- Removed: `calculatePeriodGoalStats`, `getMonthlyWeeks`, `WEEKLY_GOAL_WORKDAYS`; `WEEKEND_GOAL_RATIO` moved into `WorkWeek`.
+- Exit greps: 0 `diffToMonday`, 0 `=== 0 || … === 6`, 0 `for (let i = 0; i < 5`, 0 `getUTCDay() === 0`, 0 `weeklyCache`. The two `isoDay` left are the date picker's.
+- Tests: `harness-workweek-core.js` 78 / 0 (adds `workDayIndex` and `weekday` over every date in turn); golden master `compare --expect=w1` 300 / 0 differ; `probe-workweek-eviction.js` 6 / 0; regression 18 / 19 in the chain, with `harness-handoff.js`'s "a follower refuses a corrupt anchor" failing and then 24 / 24 alone (the check the harness notes list as sensitive to the check before it). Golden control: 252 of 300 sets differ (240 before; the 12 more are the "behind" logbook sets, whose no-goal rows now follow the day's goal, so a longer week reaches them). Mutations: 9 GOOD, 0 BAD (below).
+
+**The two differences W1 makes on purpose** (both the user's decisions):
+
+1. **§4.7 row 40:** a logbook row with no `dayGoal` is measured against the day's goal, not a hardcoded 8 h, and `isLogOver`'s last fallback follows. It is the golden master's only difference: the "behind" pattern's Thursday rows at 37.5 / 20 / 15 h read 45m / 4h 15m / 5h 15m instead of 15m. `compare --expect=w1` expects exactly that and nothing else.
+2. **Every week keeps its history (decision W13).** Measured on `3f127b6` with `probe-workweek-eviction.js`: 70 weekly 8-hour shifts, and the weeks 61–70 back read "0h / 40h" with an empty monthly row, because the weekly cache kept only the newest 60 weeks. After W1b those weeks read "8h / 40h" and their monthly row "W 8h … 1 Shift". The cache holds references to logs already in memory.
+
+**Harness changes made on the way:**
+
+- The golden probe's premise counts weeks from the logs (there is no `weeklyCache` after W1b), and its control now patches `getWeeklyGoalSec` (+300 s), which both builds call; the control still finds 240 / 300 sets different on 0ba1bd6.
+- **Leave-record rows are compared without their hidden stats.** The logbook reuses row nodes, and a leave row hides its stats with CSS (`.log-row.is-leave-row .log-stats-group { display: none }`) without writing them, so those nodes keep the text of whatever row used them last. W1b's first comparison caught a Saturday leave row carrying the no-goal row's delta. Those four fields of leave rows are left out on both sides.
+- `probe-workweek-golden-quick.js` runs three pages of the golden master with `--expect=w1` for `mutation-test.js`, which runs every harness without arguments. `run-followups-regression.sh` now passes `compare` to the golden probe.
+- The per-page runner re-ran one crashed page (Windows 0xC0000409, before any result) in three of the five full golden runs; no result was ever re-run.
+
+**Mutations:** #99 and #100 (the standard day and the weekend's flat six hours) were re-anchored onto `WorkWeek.autoGoalSec`; seven were added: the automatic goal counts today as already worked; a week starts on Sunday regardless; leave on a day off takes its goal away; the worker files a day's logs under the next day; the live card takes today's work off the trend on a day off; the analytics cache forgets old days again; a no-goal logbook row is measured against 8 h again. **All 9 graded GOOD, 0 BAD, 0 SKIP** (21:17–21:23, on AC; `index.html` and `sw.js` restored byte-identical after each). **Deferred to W2**, because no suite can see them while only today's schedule exists: "the worker regains a Monday key" (with Monday-start weeks a week's logs grouped under its Monday are the same logs) and "a work day divides the weekly goal by 5".
+
+**§4.7 rows asserted in W1:** 1 (the golden master), 19 (weekend work excluded: the golden "weekend" pattern), 21 (catch-up on the next work day: core and golden "behind"), 25 (leave on a work day: core `targetOf` and golden), 31 (the week across 12/31: core), 32 (the weekday comes from the business date only: all `WorkWeek` arithmetic is on the date key), 40 (above).
+
 ### Phase W2 — The schedule: preference, history, the generalised rules
 
 **W2a — the preference and history:**
@@ -685,7 +729,8 @@ const WorkWeek = {
 - the day-off goal ignores `dayOffGoalHours`;
 - a default written at boot;
 - the old-build guard re-sends nothing;
-- a goal of 0 filled in at load.
+- a goal of 0 filled in at load;
+- deferred from W1, visible only with another schedule: the worker regains a Monday key; a work day divides the weekly goal by 5.
 
 **Exit:** all green; rows 2–41, 85 and 86 asserted; anchors 0 misses.
 
@@ -827,6 +872,10 @@ const WorkWeek = {
 
 - **W11 — An older build erases the schedule from the account** when it wins a settings race. A new build that adopts such a blob sends its own copy back on its next beat (W2a). Rejected: accepting the gap until old builds update; a server-side merge migration.
 - **W12 — A goal of 0 is kept.** The reload and sync fallbacks fill in only a missing goal (W2b). Rejected: leaving 0 to become 8 h after a reload.
+
+**Confirmed during Phase W1 (2026-09-15):**
+
+- **W13 — Every week keeps its history.** The weekly cache kept only the newest 60 weeks, so an older week showed empty (measured). W1b's day cache has no limit. Rejected: copying the 60-week limit into the new cache.
 
 **Proposed by the plan and confirmed with it on 2026-09-15** (the user approved the plan as written; any of these can still be revisited before the phase named):
 
