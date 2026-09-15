@@ -1,13 +1,13 @@
 # Follow-ups: work week, clock and date formats, re-filing records
 
-> **Status:** plan approved by the user on 2026-09-15, including every proposed default in §10. Nothing is built; Phase W0 is next.
+> **Status:** plan approved by the user on 2026-09-15, including every proposed default in §10. Phase W0 is done (measurements only, no app change); Phase W1 is next.
 > **Baseline commit:** `0ba1bd6` (all line numbers below refer to it and WILL drift — re-grep before editing).
 > **Rule:** one phase at a time. A phase starts only when the previous phase's exit criteria are green and committed.
 > **Origin:** the candidate follow-ups in §9 of `docs/implement.md`. "More than two clocks; per-client zones" was dropped by the user (§11 here).
 
 | Phase | Title                                                             | Touches data?    | Needs live account? | Size              | State   |
 | ----- | ----------------------------------------------------------------- | ---------------- | ------------------- | ----------------- | ------- |
-| W0    | Work week groundwork: golden master, probes, audit                | no               | one probe           | S–M               | planned |
+| W0    | Work week groundwork: golden master, probes, audit                | no               | one probe           | S–M               | done    |
 | W1    | `WorkWeek` core + behaviour-identical refactor                    | no               | regression only     | L (split W1a/W1b) | planned |
 | W2    | The schedule: preference, history, the generalised rules          | prefs            | stub / fake server  | L (split W2a/W2b) | planned |
 | W3    | Work week UI: settings card, phone sheet, bar, labels, guide      | prefs            | no                  | M–L (split W3a/b) | planned |
@@ -84,7 +84,7 @@ The time zone invariants **I1–I14 of `docs/implement.md` §3.2 still hold** an
 - **F7 — Week boundaries are decided in one place.** The analytics worker stops computing weeks; it groups by business date, and `WorkWeek.weekOf` assembles weeks.
 - **F8 — One invalidation funnel per preference family.** A schedule change goes through `onScheduleChanged()`; a clock or date format change through `onDisplayFormatChanged()`. Each bumps a version that every cache key and row key includes (the logbook row key, `insightsCacheKey`, the heatmap), then redraws.
 - **F9 — Exports are explicit.** CSV, email and copy code call export formatters (`exportTime`, `exportDate`) and never the screen formatters, so a screen setting reaches an export only where §5/§6 say it does.
-- **F10 — Older builds lose nothing and break nothing.** A build from `0ba1bd6` ignores the new preference keys; W0 measures whether it can erase them from the account and W4 proves the answer.
+- **F10 — Older builds lose nothing and break nothing.** A build from `0ba1bd6` ignores the new preference keys, but when it wins a settings race the account's copy loses them (measured in W0). A new build that adopts settings missing a preference it holds therefore sends its own copy back on its next beat (W2a, decision W11); W4 proves it live.
 
 ---
 
@@ -248,52 +248,54 @@ Work week
 
 Each row becomes at least one assertion in the phase named.
 
-| #   | Scenario                                                                                        | Expected                                                                                                  | Phase  |
-| --- | ----------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- | ------ |
-| 1   | Existing user upgrades, no setting touched                                                      | Every figure identical to the `0ba1bd6` golden master                                                     | W1, W2 |
-| 2   | Upgrade lands mid-shift                                                                         | Shift goal unchanged; nothing re-dated                                                                    | W2     |
-| 3   | Fresh device signs into an account with a custom schedule                                       | Adopts it; uploads nothing                                                                                | W2, W4 |
-| 4   | Fresh device, account with no schedule                                                          | Defaults; no key written, nothing uploaded (F2)                                                           | W2, W4 |
-| 5   | Mon–Thu, 40 h                                                                                   | 10 h per work day; Fri–Sun days off at 7.5 h (automatic)                                                  | W2     |
-| 6   | Mon / Wed / Fri, 30 h, "next"                                                                   | Tuesday is a day off and never owes; Wednesday owes Monday's shortfall                                    | W2     |
-| 7   | Mon–Sat, 48 h                                                                                   | 8 h per work day; Sunday a day off                                                                        | W2     |
-| 8   | Seven work days                                                                                 | No days off; day-off rows disabled                                                                        | W2, W3 |
-| 9   | One work day at 40 h                                                                            | Refused: a 40 h day goal exceeds 24 h                                                                     | W2, W3 |
-| 10  | Sun–Thu with week start Sunday                                                                  | Fri / Sat days off; weekly rows Sun..Sat; bar S M T W T                                                   | W2, W3 |
-| 11  | Week start Mon → Sun on a Wednesday                                                             | Transition week Mon–Sat; Sunday-start weeks after; last week unchanged                                    | W2     |
-| 12  | Week start changed on the first day of a week                                                   | Transition week still starts at `ws`, runs to the new start (property of R3/R4)                           | W2     |
-| 13  | Work days changed mid-week                                                                      | Current week follows the new schedule; last week keeps its target and bar                                 | W2     |
-| 14  | Weekly goal changed                                                                             | Past weeks keep the old target (today they are rewritten — the one intended difference)                   | W2     |
-| 15  | Three changes in one week                                                                       | One archive entry, holding the values from before the week                                                | W2     |
-| 16  | Schedule changed during a shift                                                                 | Running shift's goal unchanged (F6); applied at the next populate                                         | W2, W3 |
-| 17  | Today becomes a day off during its shift                                                        | Goal kept; after EOD, today's work is day-off work in insights                                            | W2     |
-| 18  | Day-off goal 0                                                                                  | "No goal"; no Overtime; no toast; heatmap and streak handle a 0 goal                                      | W2, W3 |
-| 19  | Day-off work, switch off                                                                        | Excluded from totals, shown as "N Days off" — today's weekend behaviour                                   | W1, W2 |
-| 20  | Day-off work, switch on                                                                         | Counts in totals and reduces what the remaining work days owe; target unchanged                           | W2     |
-| 21  | "next": 6 h behind on Monday (Mon–Fri, 40 h)                                                    | Tuesday asks 14 h (identical)                                                                             | W1     |
-| 22  | "spread": 6 h behind on Monday                                                                  | Tuesday–Friday each ask 9 h 30 m; ahead lowers them; floored at 0                                         | W2     |
-| 23  | "spread" with leave on Thursday                                                                 | The shortfall is shared over Tue, Wed, Fri                                                                | W2     |
-| 24  | "spread" on the last work day                                                                   | Same as "next"                                                                                            | W2     |
-| 25  | Leave on a work day                                                                             | Goal 0; target drops one work-day goal (identical)                                                        | W1     |
-| 26  | Leave on a day off                                                                              | Day-off goal unchanged; booking toast says it is a day off                                                | W2, W3 |
-| 27  | Past week viewed after a schedule change                                                        | Its own segment count, target and result                                                                  | W3     |
-| 28  | Monthly view: a week straddling two months, and a transition week                               | Per-day schedule; month-clipped targets                                                                   | W2     |
-| 29  | Yearly view across a mid-month change                                                           | Per-day schedule                                                                                          | W2     |
-| 30  | Heatmap and streak with Sun–Thu                                                                 | Columns start Sunday; streak skips Fri / Sat                                                              | W2, W3 |
-| 31  | A week across 12/31 → 01/01 (two-digit year) under every week start                             | Correct dates, keys and totals                                                                            | W1, W2 |
-| 32  | Records of two zones on one business date                                                       | The weekday comes from the business date only (I2)                                                        | W1     |
-| 33  | Synced schedule invalid or hostile (empty days, weekStart 3, unsorted history, strings, `v: 2`) | Skipped whole; previous kept; no throw; anomaly logged                                                    | W2     |
-| 34  | Import a backup with a schedule / a legacy backup without                                       | Validated and applied / schedule untouched                                                                | W2     |
-| 35  | Factory reset                                                                                   | Key removed; defaults                                                                                     | W2     |
-| 36  | A `0ba1bd6` build edits the weekly goal beside a new build                                      | Schedule survives (measured W0, proven W4); no archive, so weeks since the last one follow the new number | W4     |
-| 37  | Two devices change the schedule at once                                                         | The newest whole schedule wins; never a mix                                                               | W4     |
-| 38  | Autopopulate off                                                                                | Nothing written; insights still follow the schedule                                                       | W2     |
-| 39  | A day with a saved shift                                                                        | Anchor locked; schedule does not move it                                                                  | W2     |
-| 40  | Logbook row with no `dayGoal`                                                                   | Delta against R5's goal, not 8 h                                                                          | W1     |
-| 41  | Filter "This week"                                                                              | The schedule's week                                                                                       | W2     |
-| 42  | 375 px phone                                                                                    | Seven chips without wrap; a seven-segment bar legible; card fits the sheet                                | W3     |
-| 43  | Week arrows across a transition week                                                            | Each week visited once, in order                                                                          | W3     |
-| 44  | Work zone change moves "today" across a week boundary                                           | Week follows the business date; no archive written                                                        | W2     |
+| #   | Scenario                                                                                            | Expected                                                                                                                                                                                                                                                                                       | Phase  |
+| --- | --------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
+| 1   | Existing user upgrades, no setting touched                                                          | Every figure identical to the `0ba1bd6` golden master                                                                                                                                                                                                                                          | W1, W2 |
+| 2   | Upgrade lands mid-shift                                                                             | Shift goal unchanged; nothing re-dated                                                                                                                                                                                                                                                         | W2     |
+| 3   | Fresh device signs into an account with a custom schedule                                           | Adopts it; uploads nothing                                                                                                                                                                                                                                                                     | W2, W4 |
+| 4   | Fresh device, account with no schedule                                                              | Defaults; no key written, nothing uploaded (F2)                                                                                                                                                                                                                                                | W2, W4 |
+| 5   | Mon–Thu, 40 h                                                                                       | 10 h per work day; Fri–Sun days off at 7.5 h (automatic)                                                                                                                                                                                                                                       | W2     |
+| 6   | Mon / Wed / Fri, 30 h, "next"                                                                       | Tuesday is a day off and never owes; Wednesday owes Monday's shortfall                                                                                                                                                                                                                         | W2     |
+| 7   | Mon–Sat, 48 h                                                                                       | 8 h per work day; Sunday a day off                                                                                                                                                                                                                                                             | W2     |
+| 8   | Seven work days                                                                                     | No days off; day-off rows disabled                                                                                                                                                                                                                                                             | W2, W3 |
+| 9   | One work day at 40 h                                                                                | Refused: a 40 h day goal exceeds 24 h                                                                                                                                                                                                                                                          | W2, W3 |
+| 10  | Sun–Thu with week start Sunday                                                                      | Fri / Sat days off; weekly rows Sun..Sat; bar S M T W T                                                                                                                                                                                                                                        | W2, W3 |
+| 11  | Week start Mon → Sun on a Wednesday                                                                 | Transition week Mon–Sat; Sunday-start weeks after; last week unchanged                                                                                                                                                                                                                         | W2     |
+| 12  | Week start changed on the first day of a week                                                       | Transition week still starts at `ws`, runs to the new start (property of R3/R4)                                                                                                                                                                                                                | W2     |
+| 13  | Work days changed mid-week                                                                          | Current week follows the new schedule; last week keeps its target and bar                                                                                                                                                                                                                      | W2     |
+| 14  | Weekly goal changed                                                                                 | Past weeks keep the old target (today they are rewritten — the one intended difference)                                                                                                                                                                                                        | W2     |
+| 15  | Three changes in one week                                                                           | One archive entry, holding the values from before the week                                                                                                                                                                                                                                     | W2     |
+| 16  | Schedule changed during a shift                                                                     | Running shift's goal unchanged (F6); applied at the next populate                                                                                                                                                                                                                              | W2, W3 |
+| 17  | Today becomes a day off during its shift                                                            | Goal kept; after EOD, today's work is day-off work in insights                                                                                                                                                                                                                                 | W2     |
+| 18  | Day-off goal 0                                                                                      | "No goal"; no Overtime; no toast; heatmap and streak handle a 0 goal                                                                                                                                                                                                                           | W2, W3 |
+| 19  | Day-off work, switch off                                                                            | Excluded from totals, shown as "N Days off" — today's weekend behaviour                                                                                                                                                                                                                        | W1, W2 |
+| 20  | Day-off work, switch on                                                                             | Counts in totals and reduces what the remaining work days owe; target unchanged                                                                                                                                                                                                                | W2     |
+| 21  | "next": 6 h behind on Monday (Mon–Fri, 40 h)                                                        | Tuesday asks 14 h (identical)                                                                                                                                                                                                                                                                  | W1     |
+| 22  | "spread": 6 h behind on Monday                                                                      | Tuesday–Friday each ask 9 h 30 m; ahead lowers them; floored at 0                                                                                                                                                                                                                              | W2     |
+| 23  | "spread" with leave on Thursday                                                                     | The shortfall is shared over Tue, Wed, Fri                                                                                                                                                                                                                                                     | W2     |
+| 24  | "spread" on the last work day                                                                       | Same as "next"                                                                                                                                                                                                                                                                                 | W2     |
+| 25  | Leave on a work day                                                                                 | Goal 0; target drops one work-day goal (identical)                                                                                                                                                                                                                                             | W1     |
+| 26  | Leave on a day off                                                                                  | Day-off goal unchanged; booking toast says it is a day off                                                                                                                                                                                                                                     | W2, W3 |
+| 27  | Past week viewed after a schedule change                                                            | Its own segment count, target and result                                                                                                                                                                                                                                                       | W3     |
+| 28  | Monthly view: a week straddling two months, and a transition week                                   | Per-day schedule; month-clipped targets                                                                                                                                                                                                                                                        | W2     |
+| 29  | Yearly view across a mid-month change                                                               | Per-day schedule                                                                                                                                                                                                                                                                               | W2     |
+| 30  | Heatmap and streak with Sun–Thu                                                                     | Columns start Sunday; streak skips Fri / Sat                                                                                                                                                                                                                                                   | W2, W3 |
+| 31  | A week across 12/31 → 01/01 (two-digit year) under every week start                                 | Correct dates, keys and totals                                                                                                                                                                                                                                                                 | W1, W2 |
+| 32  | Records of two zones on one business date                                                           | The weekday comes from the business date only (I2)                                                                                                                                                                                                                                             | W1     |
+| 33  | Synced schedule invalid or hostile (empty days, weekStart 3, unsorted history, strings, `v: 2`)     | Skipped whole; previous kept; no throw; anomaly logged                                                                                                                                                                                                                                         | W2     |
+| 34  | Import a backup with a schedule / a legacy backup without                                           | Validated and applied / schedule untouched                                                                                                                                                                                                                                                     | W2     |
+| 35  | Factory reset                                                                                       | Key removed; defaults                                                                                                                                                                                                                                                                          | W2     |
+| 36  | A `0ba1bd6` build wins a settings race beside a new build                                           | Measured in W0: the account's copy loses the schedule. The new build keeps its own and, on adopting that blob, sends it back (row 86), so a device signing in afterwards receives it. A weekly-goal edit on the old build writes no archive, so weeks since the last one follow the new number | W2, W4 |
+| 37  | Two devices change the schedule at once                                                             | The newest whole schedule wins; never a mix                                                                                                                                                                                                                                                    | W4     |
+| 38  | Autopopulate off                                                                                    | Nothing written; insights still follow the schedule                                                                                                                                                                                                                                            | W2     |
+| 39  | A day with a saved shift                                                                            | Anchor locked; schedule does not move it                                                                                                                                                                                                                                                       | W2     |
+| 40  | Logbook row with no `dayGoal`                                                                       | Delta against R5's goal, not 8 h                                                                                                                                                                                                                                                               | W1     |
+| 41  | Filter "This week"                                                                                  | The schedule's week                                                                                                                                                                                                                                                                            | W2     |
+| 42  | 375 px phone                                                                                        | Seven chips without wrap; a seven-segment bar legible; card fits the sheet                                                                                                                                                                                                                     | W3     |
+| 43  | Week arrows across a transition week                                                                | Each week visited once, in order                                                                                                                                                                                                                                                               | W3     |
+| 44  | Work zone change moves "today" across a week boundary                                               | Week follows the business date; no archive written                                                                                                                                                                                                                                             | W2     |
+| 85  | A shift filed with a goal of 0 (a worked leave day, a 0 h day off), after a reload and after a pull | `dayGoal` stays 0 (today it becomes 8 h, measured in W0); only a missing goal is filled in (decision W12)                                                                                                                                                                                      | W2     |
+| 86  | A new build adopts a settings blob without the schedule it holds                                    | It keeps its schedule and re-uploads the whole blob on its next beat; an old build adopting that loses nothing; no back-and-forth between devices (decision W11)                                                                                                                               | W2, W4 |
 
 ---
 
@@ -475,7 +477,7 @@ The zone is **which zone the form's times are read in**, so re-filing reuses the
 
 **Tools** (all existing, see the harness memory): the raw CDP harness in the git-ignored `nodrift-harness/`; `Emulation.setTimezoneOverride` for the device zone; the `Date.now` shim to pin instants (never depend on the day a test runs — arm a date by seeding `state.activeDate` and the shim); `preload-supabase-stub.js` and the in-process fake server for sync; `probe-tz-oldclient.js`'s pattern for an old build beside a new one.
 
-**The golden master (W0).** `probe-workweek-golden.js` loads the **unmodified** build and records, into `nodrift-harness/fixtures/workweek-golden-0ba1bd6.json`:
+**The golden master (W0).** `probe-workweek-golden.js` loads the **unmodified** build and records, into `nodrift-harness/fixtures/workweek-golden-0ba1bd6.json.gz`:
 
 - the automatic goal for every date of five pinned weeks, including a DST week and the 12/31 week;
 - the live weekly card's summary, percent, pace and trend;
@@ -494,7 +496,7 @@ It runs over a matrix of weekly goals (40, 37.5, 20, 15), log patterns (none, be
 
 **Zone matrix for the formats (C1, D1, Z1):** device zones `Asia/Dhaka`, `America/Los_Angeles`, `Pacific/Kiritimati`, `Pacific/Pago_Pago`; records in LA, Dhaka, London (DST), Santiago (the day with no midnight).
 
-**New suites.** Ports: the follow-up suites own HTTP 8881–8889 and CDP 9481–9489 (W0 checks nothing else uses them).
+**New suites.** Ports: the follow-up suites own HTTP 8881–8883 and 8885–8889 and CDP 9481–9489 (W0 found 8884 registered by Windows HTTP.sys on the development machine).
 
 | Suite                                                                                                                                                                                                    | Account            | Phase  |
 | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------ | ------ |
@@ -506,6 +508,8 @@ It runs over a matrix of weekly goals (40, 37.5, 20, 15), log patterns (none, be
 | `harness-formats.js` (clock and date, screens, typing, exports)                                                                                                                                          | none               | C1, D1 |
 | `probe-refile.js`                                                                                                                                                                                        | none               | Z1     |
 | extensions to `harness-progress.js`, `harness-phase8.js`, `harness-wipe.js`, `harness-security.js`, `probe-csv-shape.js`, `probe-backup-and-leave.js`, `probe-leave-rows.js`, `harness-signin-render.js` | live / none        | W2–Z1  |
+
+Also from W0: `probe-workweek-audit.js` (no account; W0, then W2b, where its measured check that a goal of 0 survives a reload turns green) and `run-followups-regression.sh` (the list below, one suite at a time, power and md5 at both ends).
 
 **Regression list** (W0 records the baseline; every phase runs it):
 
@@ -545,6 +549,58 @@ It runs over a matrix of weekly goals (40, 37.5, 20, 15), log patterns (none, be
 - Record the regression baseline; confirm ports 8881–8889 / 9481–9489 are free.
 
 **Exit:** fixture saved; server round trip and old-client answer recorded here; baseline numbers written here. Docs commit only: `docs(week): record phase W0 results`.
+
+#### Phase W0 results (2026-09-15)
+
+`index.html` untouched throughout (md5 `1ad7e159` before and after every run). All runs on AC power at 2419 MHz.
+
+**Ports.** No harness file uses 8881–8889 or 9481–9489, but **127.0.0.1:8884 is a URL registered with Windows HTTP.sys** (PID 4) on this machine. The follow-up suites use 8881–8883 and 8885–8889; 8884 stays free.
+
+**Regression baseline** (`nodrift-harness/run-followups-regression.sh`, the §8 list one suite at a time, 18:01–18:08): **19 of 19 green.**
+
+| Suite                     | Checks | Suite                    | Checks |
+| ------------------------- | ------ | ------------------------ | ------ |
+| harness.js                | 80     | harness-handoff.js       | 24     |
+| harness-progress.js       | 25     | harness-tz-core.js       | 86     |
+| harness-motion.js         | 43     | harness-tz-model.js      | 28     |
+| harness-cloud-panel.js    | 27     | harness-tz-display.js    | 129    |
+| harness-security.js       | 17     | probe-tz-picker.js       | 176    |
+| probe-leave-rows.js       | 12     | probe-tz-ui.js           | 149    |
+| probe-csv-shape.js        | 15     | harness-phase8.js        | 14     |
+| probe-backup-and-leave.js | 26     | harness-signin-render.js | 16     |
+| probe-shift-rewind.js     | 13     | harness-wipe.js          | 18     |
+| probe-lease-endshift.js   | 30     |                          |        |
+
+**Golden master** (`nodrift-harness/probe-workweek-golden.js`, fixture `nodrift-harness/fixtures/workweek-golden-0ba1bd6.json.gz`, md5 `af6175bd`, 987 KB gzipped from 36.7 MB of JSON, with a per-scenario digest beside it):
+
+- **Matrix:** 5 log patterns × 3 leave patterns × weekly goals 40 / 37.5 / 20 / 15 × automatic goal on / off × no shift / a running shift = **240 scenarios**, plus **60 logbook sets** (log × leave × goal). Five pinned weeks: Mondays 03/02/26 (US DST start), 06/29/26 (across a month end), 09/07/26, 10/26/26 (US DST end), 12/28/26 (across the year end). Device and work zone Los Angeles.
+- **Recorded:** the automatic goal for all 35 dates (and the frozen shift goal); at six moments per week (Mon, Wed, Fri, Sat, Sun, next Mon) the weekly card after `updateProgress` (label, total, percent, status and trend, break, every breakdown row, every bar segment with its data), the progress line, ETA and goal badge, and the streak; on Wed and next Mon also the heatmap cells of the pinned dates, the YTD line, and the monthly and yearly cards; on next Mon the finished week; every logbook row.
+- **How:** a fresh browser profile per log × leave page, seeded through the real import and the analytics worker; each scenario is one synchronous evaluate with `Date.now` pinned and the state restored before it returns, so the app's own tick never sees it. Each page runs in its own process: a single process died silently with exit 127 (the Windows libuv assertion) in two of three full runs; a page whose process dies before writing a result is run once more and the run says so.
+- **Record:** 31 checks, 0 failures. **Determinism:** a second full run compared 300 sets, **0 differ**. **Control:** the same comparison with a work day one minute longer reports 240 of 300 sets different, on the single-process runner and again on the per-page one (every scenario; the logbook sets do not use the standard day, see below).
+- **Hand-checked** (40 h, "behind" logs, Thursday leave, week of 09/07): goals Mon 06:00 (the day's anchor 8 h − 2 h logged), Tue 06:30, Wed 06:30, Thu 07:30 (a log with no `dayGoal`: nothing is written and the field keeps its value), Fri 05:00, Sat and Sun 06:00. A running shift's frozen goal is rewritten only on a date with no saved log. Wednesday's card reads "28h 45m / 32h (90%)", "Pace Required: 1h 37m 30s / Day ↑ 4.8h ahead": the worked leave day's 8 h 15 m counts in the Monday–Friday total while its goal is taken off the target.
+- **For W1's comparison:** the "behind" pattern's `_nogoal` logs show the logbook's hardcoded 8 h delta at every weekly goal. §4.7 row 40 changes that on purpose, so at 37.5 / 20 / 15 h those rows are the expected difference.
+
+**Server and old client** (`nodrift-harness/probe-workweek-server.js`, live test account, **19 checks, all pass**, account empty afterwards):
+
+- A nested schedule (history array, `null`, `0`, `4.5`, booleans) goes through `sync_session` and comes back, and is stored, identical.
+- Three browsers: A a copy of this build whose `PREF_KEYS` also syncs `workWeek`, B this build unmodified, C a fresh copy of A.
+  - A's edit uploads the schedule.
+  - **B wins a settings race (a theme change) and the server's settings no longer contain `workWeek`.** The blob is replaced whole, and B's omits a key it does not know.
+  - A adopts B's blob and keeps its own schedule (`applyPrefs` never deletes).
+  - **A does not put the schedule back by itself** (four more beats).
+  - **A fresh device C that signs in now receives no schedule**, so it would run the default one.
+  - A's next edit of any preference restores the schedule on the server, and C receives it.
+
+**Audit:**
+
+- **A goal of 0 is filed but not kept** (`nodrift-harness/probe-workweek-audit.js`, measured). A shift whose frozen goal is 0 is stored with `dayGoal: 0`. It renders as overtime: "100.0% (Overtime: 3s)", "Daily Goal Reached", the weekly row "O 3s, G —", the heatmap cell `heatmap-exc`, and the streak counts it. The logbook's delta treats 0 as 8 h. **After a reload the same record says `dayGoal: 28800`, status UNDER**: `hydrateLogsInChunks` (44107) rewrites a goal that is not positive on any record without a `status`, `executeSubmit` writes no `status`, and the rewrite is saved. It used 8 h although the week had been set to 20 h. `rehydrate` (22948) does the same to records pulled from another device. Today this reaches any shift worked on a leave weekday, whose automatic goal is 0.
+- **How a frozen goal is taken:** `switchMode` (27941) freezes `domWriteCache._goalSecCached || the goal field`, and that cache is refreshed only by `updateProgress`.
+- **Weekday names in email and copy text** (29171, 35533, 35624, 37327, 40366) build `new Date(y, m − 1, d)` and read `getDay()`. Across every date of 2026–2027 under Asia/Dhaka, America/Los_Angeles, Pacific/Kiritimati, Pacific/Pago_Pago and America/Santiago that is the business weekday on all 730 days in all five zones. The control (`getDay()` of UTC noon) is wrong on 730 of 730 in Kiritimati, so the check can see the mistake. **These sites are correct and need no change.** 29225 and 32071 use `getUTCDay()` of UTC noon, also correct.
+- **Manual goal edits** (typed goal 40789–40843, presets 41696–41717, the ± buttons 41761–41796) all switch the automatic goal off, write the goal keys as a user edit, and ask "Update Session Goal?" during a shift only when the frozen goal is truthy. A typed goal or a preset may be 0; the ± buttons stop at 15 minutes.
+- **Callers of `autoPopulateDailyGoal`:** 23020 (leave pulled from another device), 27043 (after `saveLogs`), 27361 (the worker's reply), 29727 (after a submit), 35919 (a weekly-goal edit with no shift running), 36155 / 36171 / 36183 / 36432 (the active date set or rolled over), 38061 (the automatic goal switched on), 41600 / 41627 (leave added or removed), 44060 (boot). The plan's "22951" is `rehydrate`'s fallback, not a caller.
+- **`syncSettingsUI`** (39191–39240) writes the weekly-goal field and the automatic-goal switch; W3's card render belongs there.
+
+**What changed in the plan** (asked and confirmed, §10 W11 and W12): F10 and §4.7 row 36 now state the measured erasure and the guard; W2a gains the re-send-on-adoption guard; W2b keeps an explicit goal of 0; new §4.7 rows 85 and 86; W2 gains two mutations; W4's old-client test checks the guard live. The audit suite's one failing check is that measurement, expected to stay red until W2b.
 
 ### Phase W1 — `WorkWeek` core + behaviour-identical refactor
 
@@ -603,7 +659,7 @@ const WorkWeek = {
 - `scheduleFor` and `weekOf` honour history and transition weeks (R1–R3).
 - Archiving on change (R4), including `onWeeklyGoalChange`.
 - `onScheduleChanged()` (F8).
-- Any W0-required guard for old clients.
+- **The old-build guard (decision W11):** when adopting a settings blob that lacks `workWeek` while this device holds one, mark settings edited so the next beat re-uploads the whole blob. Declared as a `resendIfMissing` flag on the `PREF_KEYS` entry, so C1's and D1's preferences reuse it.
 - A JS-level API for tests (`WorkWeek.setSchedule(next)`), no UI yet.
 
 **W2b — the generalised rules:**
@@ -612,9 +668,10 @@ const WorkWeek = {
 - day-off goal (R5), counts (R6), `"spread"` (R7);
 - pace, expected and trend (R8);
 - streak and heatmap (R9);
-- the guards: work-day goal ≤ 24 h, at least one work day.
+- the guards: work-day goal ≤ 24 h, at least one work day;
+- **an explicit goal of 0 is kept (decision W12):** `hydrateLogsInChunks` and `rehydrate` fill in only a missing `dayGoal`, never a 0. Records already rewritten stay as they are. `probe-workweek-audit.js`'s measured check turns green.
 
-`harness-workweek-model.js` covers §4.7 rows 2–41 through the API, storage diffs for F2, hostile blobs through the stub, import and wipe.
+`harness-workweek-model.js` covers §4.7 rows 2–41, 85 and 86 through the API, storage diffs for F2, hostile blobs through the stub, import and wipe.
 
 **Regression:** §8's list; the golden master still byte-identical with no preference written.
 
@@ -626,9 +683,11 @@ const WorkWeek = {
 - `"spread"` divides by all remaining days including leave;
 - counts ignored in the trend;
 - the day-off goal ignores `dayOffGoalHours`;
-- a default written at boot.
+- a default written at boot;
+- the old-build guard re-sends nothing;
+- a goal of 0 filled in at load.
 
-**Exit:** all green; rows 2–41 asserted; anchors 0 misses.
+**Exit:** all green; rows 2–41, 85 and 86 asserted; anchors 0 misses.
 
 **Commits:** `feat(week): a work-week schedule that keeps past weeks` (W2a) and `feat(week): day-off goals, day-off work and catch-up modes` (W2b). **Deploy-safe:** without the UI nobody can write the preference, and an imported or synced one only moves numbers the model already proves.
 
@@ -663,7 +722,7 @@ const WorkWeek = {
 - Live suites with the test account:
   - two devices race a schedule change (row 37);
   - a fresh device uploads nothing (rows 3–4);
-  - an old `0ba1bd6` client beside a new one (row 36);
+  - an old `0ba1bd6` client beside a new one: the guard puts the schedule back and a fresh device receives it (rows 36, 86; extends `probe-workweek-server.js`);
   - a handoff mid-shift after a schedule change (F6).
 - **iPhone checklist for the user** (tap-by-tap, written at the time from the real labels):
   - change work days, then undo;
@@ -763,6 +822,11 @@ const WorkWeek = {
 | X1  | More clocks, per-client zones           | Dropped                                                                          |
 | P1  | Plan documents                          | One file for all features (this one)                                             |
 | P2  | Order                                   | Work week, 24-hour clock, date order, re-filing                                  |
+
+**Confirmed after Phase W0's measurements (2026-09-15):**
+
+- **W11 — An older build erases the schedule from the account** when it wins a settings race. A new build that adopts such a blob sends its own copy back on its next beat (W2a). Rejected: accepting the gap until old builds update; a server-side merge migration.
+- **W12 — A goal of 0 is kept.** The reload and sync fallbacks fill in only a missing goal (W2b). Rejected: leaving 0 to become 8 h after a reload.
 
 **Proposed by the plan and confirmed with it on 2026-09-15** (the user approved the plan as written; any of these can still be revisited before the phase named):
 
