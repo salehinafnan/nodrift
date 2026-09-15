@@ -29538,9 +29538,31 @@
 
       /**
        * Resolves pending locked idle times.
-       * @param {string} choice - 'work' or 'break' mapping target.
+       * @param {string} choice - 'work', 'break' or 'discard'.
        */
-      function resolveIdle(choice) {
+      async function resolveIdle(choice) {
+        /* Only a pause can be resolved. A second tap, or a prompt still on
+           screen after its pause was settled, must neither restart nor stop
+           the shift. */
+        if (!state.idleLock) {
+          if (DOM.idleModal) DOM.idleModal.style.display = "none";
+          return;
+        }
+
+        /* The answer belongs to the day it is given on. A pause that crossed
+           the work zone's midnight is rolled over first, still locked:
+           yesterday is filed up to its own midnight and the pause restarts
+           there, so the choice below covers only today's part. The page's
+           tick usually gets there within a second of the wake; an answer
+           that came first used to land on yesterday. Discard then filed
+           yesterday's hour from the answer to an hour after it and restarted
+           the shift from midnight, and Work or Break counted the time after
+           midnight twice. The same before time zones. */
+        if (state.activeDate !== getWorkDate()) {
+          await checkMidnightReset(new Date());
+          if (!state.idleLock) return;
+        }
+
         const nowWall = Date.now();
         const resolutionTime = state.idleWakeup || nowWall;
         state.idleWakeup = null;
@@ -29568,7 +29590,21 @@
               state.loginTimestamp,
               getWorkZone(),
             );
-            if (loginDateStr !== todayStr) {
+            /* A rollover during the pause moved the login and the pause's
+               start to this day's midnight and banked nothing. Discarding the
+               pause leaves nothing of the shift on this day, so it starts
+               again at the answer, not at a midnight nobody was there for
+               (the user's call, 2026-09-15). */
+            const day = TimeZones.parseKey(todayStr);
+            const dayStart = day
+              ? TimeZones.startOfDay(day.y, day.m, day.d, getWorkZone())
+              : null;
+            const carriedFromMidnight =
+              dayStart !== null &&
+              state.loginTimestamp === dayStart &&
+              state.idleStart === dayStart &&
+              (state.workAccumulated || 0) + (state.breakAccumulated || 0) < 1;
+            if (loginDateStr !== todayStr || carriedFromMidnight) {
               state.loginTimestamp = null;
               state.sessionIdWire = null;
               state.sessionTz = null;
@@ -36072,12 +36108,16 @@
       let _lastMidnightCheckZone = null;
       let _cachedCurrentDatePST = null;
       window.isRollingOver = false;
+      /* Settles when the rollover in progress has finished. A second caller
+         gets this instead of nothing, so one that must act on the settled day
+         (resolveIdle) can wait for it. */
+      let rolloverSettled = Promise.resolve();
 
       /**
        * Prevents overnight shift breakups.
        */
       async function checkMidnightReset(now = new Date()) {
-        if (window.isRollingOver) return;
+        if (window.isRollingOver) return rolloverSettled;
         // A reset is mid-reboot; a rollover here would write a shift back into
         // the logbook that was just emptied.
         if (isFactoryResetting) return;
@@ -36094,6 +36134,10 @@
            and puts it back on this path as the author. */
         if (state.sessionMirrored === true) return;
         window.isRollingOver = true;
+        let settle;
+        rolloverSettled = new Promise((resolve) => {
+          settle = resolve;
+        });
         try {
           /* getWorkDate() is the single answer to "what day is it", and it
              reads the server-corrected clock. Formatting the raw local clock
@@ -36395,6 +36439,7 @@
           }
         } finally {
           window.isRollingOver = false;
+          settle();
         }
       }
 
