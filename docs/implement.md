@@ -1,19 +1,19 @@
 # Time zones: implementation blueprint
 
-> **Status:** Phases 0–4 complete. Every zone-dependent calculation goes through `TimeZones`, and the zone model exists (an unset work zone is Los Angeles on a device with data from before zones and the device's own zone for a new user; an unset local zone follows the device). Every record is shown, edited, exported and searched in the zone it was filed in. A searchable picker over every time zone opens from the clocks and the settings card. Phase 5a is done: the status bar shows live work and local clocks. Phase 5b1 is done: zones are changed from the clock labels, a settings card and the phone sheet, with a confirmation for the work zone, a banner with Undo during a shift, and a toast for a zone synced from another device. Phase 5b2a is done: a new user's work zone starts as the device's own and is pinned at the first clock-in, and an unset local zone follows the device. Phase 5b2b is done: clock labels (a style, and a nickname per zone) from the Time zones card, a one-time notice on devices that used nodrift before zones, and a rewritten guide section. Phase 5 is complete. Phase 6a is done: the live suites found that a new device signing in could replace the account's settings with its own defaults when its day moved, fixed by never uploading a goal the app works out for itself; an old-client check runs the build from before zones beside this one. Phase 6b is done: rows 29, 30, 34 and 40 and the wipe of the zone preferences hold against the live database with no app change. Phase 6 is complete: the user ran the iPhone checklist on the live build, and a fresh sign-in on the phone uploaded nothing. A pause answered after midnight, found in 6b and older than zones, is fixed: the answer is applied to the new day, and after Discard today's shift starts at the answer. Next is Phase 7.
+> **Status:** Phases 0–4 complete. Every zone-dependent calculation goes through `TimeZones`, and the zone model exists (an unset work zone is Los Angeles on a device with data from before zones and the device's own zone for a new user; an unset local zone follows the device). Every record is shown, edited, exported and searched in the zone it was filed in. A searchable picker over every time zone opens from the clocks and the settings card. Phase 5a is done: the status bar shows live work and local clocks. Phase 5b1 is done: zones are changed from the clock labels, a settings card and the phone sheet, with a confirmation for the work zone, a banner with Undo during a shift, and a toast for a zone synced from another device. Phase 5b2a is done: a new user's work zone starts as the device's own and is pinned at the first clock-in, and an unset local zone follows the device. Phase 5b2b is done: clock labels (a style, and a nickname per zone) from the Time zones card, a one-time notice on devices that used nodrift before zones, and a rewritten guide section. Phase 5 is complete. Phase 6a is done: the live suites found that a new device signing in could replace the account's settings with its own defaults when its day moved, fixed by never uploading a goal the app works out for itself; an old-client check runs the build from before zones beside this one. Phase 6b is done: rows 29, 30, 34 and 40 and the wipe of the zone preferences hold against the live database with no app change. Phase 6 is complete: the user ran the iPhone checklist on the live build, and a fresh sign-in on the phone uploaded nothing. A pause answered after midnight, found in 6b and older than zones, is fixed: the answer is applied to the new day, and after Discard today's shift starts at the answer. Phase 7 is done: the PST names are gone from the app (the two aliases and seven local names), the README and `SYNC-BLUEPRINT.md` describe time zones, and the first full mutation run since zones began found five test gaps older than zones, now fixed. All phases are complete.
 > **Baseline commit:** `9181afa` (all line numbers below refer to it and WILL drift — re-grep before editing).
 > **Rule:** one phase at a time. A phase starts only when the previous phase's exit criteria are green and committed.
 
-| Phase | Title                                                | Touches data?    | Needs live account? | Size                 | State       |
-| ----- | ---------------------------------------------------- | ---------------- | ------------------- | -------------------- | ----------- |
-| 0     | Groundwork, probes, fixtures                         | no               | one read-only probe | S                    | **done**    |
-| 1     | `TimeZones` core + behaviour-identical refactor      | no               | regression only     | L (split 1a/1b)      | **done**    |
-| 2     | Data model: work / local / session / record zones    | **yes**          | regression only     | L (split 2a/2b)      | **done**    |
-| 3     | Rendering and editing records in their own zone      | yes (edit paths) | no                  | M–L (split 3a/3b)    | **done**    |
-| 4     | The zone picker component                            | no               | no                  | M–L (split 4a/4b)    | **done**    |
-| 5     | Status bar, settings card, phone sheet, change flows | prefs            | no                  | L (split 5a/5b1/5b2) | **done**    |
-| 6     | Sync hardening + multi-device + iPhone verification  | no               | **yes**             | M                    | **done**    |
-| 7     | Cleanup, aliases removed, docs, guide                | no               | full sweep          | S                    | not started |
+| Phase | Title                                                | Touches data?    | Needs live account? | Size                 | State    |
+| ----- | ---------------------------------------------------- | ---------------- | ------------------- | -------------------- | -------- |
+| 0     | Groundwork, probes, fixtures                         | no               | one read-only probe | S                    | **done** |
+| 1     | `TimeZones` core + behaviour-identical refactor      | no               | regression only     | L (split 1a/1b)      | **done** |
+| 2     | Data model: work / local / session / record zones    | **yes**          | regression only     | L (split 2a/2b)      | **done** |
+| 3     | Rendering and editing records in their own zone      | yes (edit paths) | no                  | M–L (split 3a/3b)    | **done** |
+| 4     | The zone picker component                            | no               | no                  | M–L (split 4a/4b)    | **done** |
+| 5     | Status bar, settings card, phone sheet, change flows | prefs            | no                  | L (split 5a/5b1/5b2) | **done** |
+| 6     | Sync hardening + multi-device + iPhone verification  | no               | **yes**             | M                    | **done** |
+| 7     | Cleanup, aliases removed, docs, guide                | no               | full sweep          | S                    | **done** |
 
 ---
 
@@ -1649,6 +1649,55 @@ Anchors: 293, 0 misses. `index.html` was restored byte-identical.
 - Full no-account + live sweep and the full mutation run.
 
 **Commit:** `chore(time): retire the PST names` and `docs: time zones`.
+
+#### Phase 7 results (2026-09-15)
+
+**Committed as** `d93726f` `chore(time): retire the PST names` (`index.html` alone), then this docs commit.
+
+**Scope.**
+
+- The `getPSTDate` / `getPSTDateObj` aliases and their comment are gone.
+- Decided with the user: the seven local names that still said PST were renamed too, although they already read the work zone. They are `nowPST`→`nowWork`, `nowPSTObj`→`nowWorkObj`, `todayPST`→`todayWork`, `todayPSTDay`→`todayWorkDay`, `_cachedCurrentDatePST`→`_cachedCurrentWorkDate`, `currentDatePST`→`currentWorkDate` and `nextDatePST`→`nextWorkDate` (71 identifiers), plus one comment ("today's work date"). Comments about the PST abbreviation itself stay.
+- `index.html` +74/−78. Prettier reflowed two lines: the `while (` condition in `checkMidnightReset`, and a `targetDate = new Date(` in the second date parser. No behaviour change.
+- `README.md`: a "Work & Local Time Zones" feature bullet, and "Midnight Rollover" now says it is the work time zone's midnight.
+- `docs/SYNC-BLUEPRINT.md`: a new §15 "Time zones", with pointers at the two places that named `getPSTDate()`. It covers record `tz` and I3, `sessionTz` and I4, the zone preferences and their validation, why nothing the app works out is uploaded (I11), backup, import and wipe, and older clients.
+
+**Tests.**
+
+- Seven harness files call `getWorkDate()` now: `harness-handoff`, `harness-progress`, `harness-phase6`, `probe-backup-and-leave`, `probe-leave-rows`, `tests-auth` and `tests-phase5`. `probe-discard-midnight.js` keeps its one call, which only runs on the build from `9181afa`.
+- `harness-tz-core.js`, 86 checks. The static check that allowed the two aliases became two: "the old PST date names are gone from the app, aliases included" and "no name in the app has PST in it" (any identifier with PST joined into it). On the unmodified tree exactly those two failed.
+
+**Baseline on the unmodified tree** (`92acc31`, on AC): the 14 live suites green at their usual numbers; `harness-phase6` 21, `harness.js` 80, `harness-progress` 25, `harness-tz-core` 85, `probe-leave-rows` 12, `probe-backup-and-leave` 26.
+
+**Exit sweep**, one suite at a time, on AC (09:18–09:36): the 26-suite regression chain, the 14 live suites and `harness-phase6` (21). All were green at the baseline numbers except four misses inside the chain, each green alone right after:
+
+- `probe-tz-picker` "the first open at 4x paints within 100 ms" (258.8 ms and 146.6 ms under load): 176/176 alone.
+- `harness-phase8` exited one second after launching Chrome, before any check ran: 14/14 alone.
+- `harness-handoff` 2 and `harness-signin-render` 1 (the known view-prune timing check), in the two live suites that followed: 22/22 and 16/16 alone.
+
+**Mutations.** Two new (293–294), each caught on the check written for it: an alias put back, and a local named `nowPST` put back.
+
+**The full mutation run**, all 295 on AC (09:40–15:47, paused while the laptop was needed): 286 caught, 9 not. Each of the 9 was graded again alone, with the full output kept, on this tree and on `92acc31`. All 9 graded the same on both, so none comes from this phase.
+
+- **Four were caught alone.** The full run had graded them on a broken run:
+  - `harness-phase6` and `probe-live-gate` crashed mid-run.
+  - `harness-phase8`'s baseline was red on its known "a third device reproduces the first" check.
+  - `harness-signin-render`'s baseline was red because the suite before it had left rows on the test account.
+- **Five were real gaps in the tests**, fixed with the user in the harness only; the app is unchanged:
+  - **The details panel hidden** (`harness-phase7`). The check read the inline style, but since `26bd02b` the stylesheet lays out the grid, so a rule that hides it was invisible. It reads the computed style now.
+  - **`getWorkDate` cached on the second alone** (`harness-tz-core`). The check primed the cache in the device's own zone. Since Phase 5b2a that zone can share a date with the zone it switches to, and at 11:30 in Dhaka it did. It primes in Los Angeles now, so the dates always differ.
+  - **A forced takeover pushing on a stale belief in ownership** (`harness-handoff`). No existing check had a device that still believed it held the lease. New check: B holds the lease, A takes it back while B hears nothing, and B forces with its screen emptied. The forced claim must carry no session, and both devices keep the shift.
+  - **Adoption keeping the device's own idleness** (`harness-handoff`). `lastActivity` is not a session field, and the device had been driven moments before, so the check could not fail. New check: B's last activity is set three hours back before it picks the shift up, and it must not idle-lock.
+  - **Reconnecting after a refused subscription** (`harness-realtime`). Its checks only ran on a server without realtime, which no longer exists. New section 4b rewrites the subscription answer in the page into a refusal. The socket must be retired, and the network coming back must not reopen it.
+- **Each fixed suite passed without its mutation and failed with it**, on the check written for it:
+  - `harness-phase7` on "the details section is on screen".
+  - `harness-tz-core` on "getWorkDate follows a change of zone within the same second", in both device zones.
+  - `harness-handoff`, 24 checks now, on "a device that forces while it still believes it holds the lease takes over without wiping it" (the forced claim carried a session) and on "a device idle for hours picks up the shift and does not idle-lock on it" (B idle-locked).
+  - `harness-realtime`, 19 checks now, on "and the network coming back does not reconnect into a refusal".
+- **Placement.** The forced-takeover check first sat right after section 5's opening check. There it made the next check, "a follower refuses a corrupt anchor rather than showing days", fail in two of three runs. It runs last in the section now, just before the devices are reset, and that check passed in all five runs since.
+- **The 35 other mutations on these four suites** were graded again after the fixes (16:26–16:41, on AC). All 35 were caught, so no fix hid an existing catch.
+
+Anchors: 295, 0 misses. `index.html` was restored byte-identical after every run.
 
 ---
 

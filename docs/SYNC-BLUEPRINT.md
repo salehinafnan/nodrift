@@ -304,6 +304,9 @@ function trueNow() {
 // subtraction: this runs on every tick.
 ```
 
+> **Since the time zone work** this is `getWorkDate()`: the same corrected
+> clock, read in the work time zone rather than in Pacific. See §15.
+
 > **Guard the adoption**
 >
 > Never adopt a remote anchor when the offset has not been measured this
@@ -861,7 +864,7 @@ Settings sync rides along here, on its own LWW timestamp, independent of the
 lease.
 
 **Touches.** 16780 `getActiveSegmentSeconds` (read-only guard), 16501
-`getPSTDate` (`trueNow`), render paths.
+`getPSTDate` (`trueNow`; now `getWorkDate`, see §15), render paths.
 
 **Exit test.** Start a shift on A. Set B's OS clock four minutes fast. Hand off.
 Assert B's displayed elapsed matches A's within 2 seconds — not four minutes.
@@ -1114,6 +1117,77 @@ Shipped alongside it, all of them optional to the correctness above:
   watch, 60s when there is nothing to watch, instead of a flat 60.
 - **A devices list** on the sync panel, and **Sign out everywhere**, which
   is where §13's scope discovery came from.
+
+---
+
+## 15. Time zones _(2026-09-15)_
+
+The business day used to be Pacific, hardcoded. It is now the user's work time
+zone, with a second clock in their local zone. The whole design, its
+invariants and its edge cases are in `docs/implement.md`; this section is what
+a change to sync has to respect. The invariants named here (I3, I4, I6, I11)
+are that document's.
+
+**Each of §1's three domains carries a zone, under that domain's own rule.**
+
+- **Records** carry `tz`, the zone a log or task was filed in. It rides inside
+  the `jsonb` payload, so last-writer-wins and `lastModifiedOf` are untouched.
+  `mergeRows` validates no field, so `tz` is sanitised where it is read
+  (`recordZone`), never trusted. A record without `tz` was filed before zones,
+  in Los Angeles, and stays `LEGACY_TZ` forever (I3). Nothing backfills it:
+  writing `tz` onto old records would restamp and re-upload the whole logbook.
+- **The session** carries `sessionTz`, the zone the shift started in. It is a
+  token like `sessionIdWire`: in `SESSION_FIELDS`, deliberately not in
+  `SYNC_INSTANT_KEYS`, and not in `sessionFingerprint()`, so it costs no
+  realtime message. While a session is live `getWorkZone()` returns it, so
+  changing, syncing or adopting the preference never moves a running shift's
+  midnight (I4), and a follower rolls over at the owner's midnight whatever
+  its own preference says. A live session with no `sessionTz` was started by
+  an older build, so it is Los Angeles.
+- **Settings** carry `workTz`, `localTz` and `tzDisplay` (the clock labels) in
+  `PREF_KEYS`. They are whole-blob last-writer-wins like every preference,
+  and each has a `validate`, so a zone this engine cannot use is skipped, not
+  applied (I6). A key absent from a blob is never deleted, so an older client
+  that has no zone preferences cannot erase them. A work zone that arrives
+  while a shift is running is stored at once and takes effect when the shift
+  ends, with a banner saying so.
+
+**Nothing the app works out for itself is uploaded (I11).** This is the rule
+that failed in practice, so it is spelled out:
+
+- An unset work zone is derived, not written: Los Angeles when the logbook
+  holds records from before zones, otherwise the zone of the latest record,
+  otherwise the device's own. Devices holding the same logbook agree without
+  syncing anything.
+- The one exception is the clock-in pin (`pinWorkZoneAtClockIn`). When the
+  derived zone came from the device, the first clock-in writes it and stamps
+  it as an edit, because a real shift now depends on it and the device's zone
+  can move. It never pins on a signed-in device whose first sync has not
+  finished, since that sync may bring the account's own choice.
+- The automatic daily goal is written through `Sync.notePrefsDerived`, which
+  re-takes the preference baseline after the write. Before that, a fresh
+  device whose day moved when the account's logs arrived read its own goal
+  rewrite as an edit and uploaded its default settings over the account's.
+- The BST nickname seeded on a device that used nodrift before zones is
+  worked out too, so it is never uploaded. Typing a nickname is a choice, and
+  that syncs.
+
+**`getPSTDate()` is `getWorkDate()`.** §4's "one place that needs true time
+locally" still reads `Sync.trueNow()`; it now asks which day it is in the work
+zone (in the session's zone while a shift is live). The Pacific names were
+removed once no caller was left.
+
+**Backup, import and wipe.** A backup carries the three zone preferences;
+import applies each through its setter, and only when it is valid. The factory
+reset purges them along with the picker's recent zones, and the account wipe
+empties the server's settings blob, so the account's copies go with it.
+
+**Older clients.** A build from before zones ignores `tz` and `sessionTz`, and
+a record it edits keeps its `tz`. Two things no newer build can reach were
+measured: a non-Los Angeles record saved on the old build is read in Los
+Angeles and moves, and the old build's settings upload carries no zone
+preferences (which deletes nothing, per the rule above). The service worker
+updates an old client on its next launch.
 
 ---
 

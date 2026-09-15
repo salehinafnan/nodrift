@@ -29,7 +29,8 @@ It tracks active work hours, rest breaks, daily goals, and weekly workloads with
 
 - **Adaptive Daily Goals:** The app dynamically calculates your required daily velocity to hit your weekly target — 40 hours by default, configurable — automatically deducting scheduled leaves and holidays.
 - **Sleep & Idle Detection:** Steps away? The app detects system sleep and user inactivity, pausing your timer and prompting you to recover or discard the time when you return.
-- **Midnight Rollover:** If you work past midnight, nodrift safely slices the shift, saves yesterday's logs, and starts a fresh day.
+- **Midnight Rollover:** If you work past midnight in your work time zone, nodrift safely slices the shift, saves yesterday's logs, and starts a fresh day.
+- **Work & Local Time Zones:** Pick any time zone for work and another for where you are. The status bar shows both clocks, each log keeps the zone it was filed in so changing zones never moves a past shift, and a running shift keeps its zone until it ends.
 
 ### 🧠 The Command Center (HUD)
 
