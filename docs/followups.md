@@ -1,0 +1,891 @@
+# Follow-ups: work week, clock and date formats, re-filing records
+
+> **Status:** plan approved by the user on 2026-09-15, including every proposed default in §10. Nothing is built; Phase W0 is next.
+> **Baseline commit:** `0ba1bd6` (all line numbers below refer to it and WILL drift — re-grep before editing).
+> **Rule:** one phase at a time. A phase starts only when the previous phase's exit criteria are green and committed.
+> **Origin:** the candidate follow-ups in §9 of `docs/implement.md`. "More than two clocks; per-client zones" was dropped by the user (§11 here).
+
+| Phase | Title                                                             | Touches data?    | Needs live account? | Size              | State   |
+| ----- | ----------------------------------------------------------------- | ---------------- | ------------------- | ----------------- | ------- |
+| W0    | Work week groundwork: golden master, probes, audit                | no               | one probe           | S–M               | planned |
+| W1    | `WorkWeek` core + behaviour-identical refactor                    | no               | regression only     | L (split W1a/W1b) | planned |
+| W2    | The schedule: preference, history, the generalised rules          | prefs            | stub / fake server  | L (split W2a/W2b) | planned |
+| W3    | Work week UI: settings card, phone sheet, bar, labels, guide      | prefs            | no                  | M–L (split W3a/b) | planned |
+| W4    | Work week sync hardening, multi-device, iPhone                    | no               | **yes**             | M                 | planned |
+| C1    | 24-hour clock                                                     | prefs            | no                  | M                 | planned |
+| D1    | Date order: MM/DD, DD/MM, YYYY-MM-DD                              | prefs            | no                  | M–L (split D1a/b) | planned |
+| Z1    | Re-filing a record in another time zone                           | yes (edit paths) | no                  | M (split Z1a/b)   | planned |
+| R     | Release: full mutation run, README, guide sweep, iPhone checklist | no               | full sweep          | S                 | planned |
+
+---
+
+## 0. How to execute a phase (read this every session)
+
+1. Read §2 (vocabulary), §3 (invariants) and the phase's own section. Its feature section (§4, §5 or §6) is the design it implements.
+2. **Re-grep every call site the phase names.** Line numbers here are from `0ba1bd6`.
+3. Run the phase's regression list against the **unmodified** tree first and write the numbers down. A mutation graded against an already-red suite grades nothing.
+4. Separate concerns **before** editing (git reset is blocked here; commits cannot be split afterwards).
+5. Implement. `npx --no-install prettier --write index.html`, then `node nodrift-harness/mutation-anchors.js` (0 misses).
+6. Run the phase's new tests, then the regression list, **one suite at a time** (they share ports and the test account). Re-run an in-chain failure alone before believing it.
+7. Run the phase's mutations with a baseline, **on AC power with the laptop idle**. Every new mutation must be caught by a check that was newly red. Never `require('./mutation-test.js')` to check it; use `node --check` and `mutation-anchors.js`.
+8. Commit `index.html` **alone**, then the docs. Every commit must be deploy-safe (main deploys to Vercel). Update the status table. **Never push without the user's word.**
+9. Anything the user checks on the iPhone is written as exact tap-by-tap steps, with what they should see and how to undo it.
+10. **Save memory after every step** (compactions happen mid-phase).
+11. **Stop condition:** if an exit criterion cannot be met, stop and report. Do not start the next phase to "come back to it".
+
+---
+
+## 1. Goal
+
+Four features, each correct for anyone and invisible to a user who changes nothing:
+
+- **Work week** — a person chooses which days they work (any mix of the seven) and which day their week starts. The weekly goal is shared equally across the work days. Work on a day off has its own goal and, if they choose, counts toward the week. A shortfall is made up the next work day (today's way) or spread over the rest of the week. Changing any of this never rewrites a past week.
+- **24-hour clock** — a 12-hour / 24-hour switch for every time shown on screen. Typing accepts both forms. Exports stay 12-hour.
+- **Date order** — MM/DD/YY, DD/MM/YY or YYYY-MM-DD for every date shown, typed and exported. Stored data and backups stay `MM/DD/YY`.
+- **Re-filing a record** — the edit dialog can move a shift or task to another time zone, keeping either the real moments or the times as written, with a preview.
+
+**Defaults are today.** An existing user who touches no new setting sees every number, word and export exactly as at `0ba1bd6`, except the fixes this document names (the weekly-goal history, §4.4).
+
+---
+
+## 2. Vocabulary (use these words in code comments and commits)
+
+| Term                   | Meaning                                                                                                                                             | Where it lives                                  |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------- |
+| **Work day**           | A weekday (0 = Sunday … 6 = Saturday, the `getUTCDay` numbering) the schedule says the person works.                                                | `workWeek.workDays`                             |
+| **Day off**            | Any other weekday. Replaces "weekend" in code and, from W3, in the UI (proposed P-W11).                                                             | derived                                         |
+| **Schedule**           | The values that decide goals for a date: weekly goal hours, work days, week start, day-off goal, day-off counts, catch-up mode.                     | current: `state.weeklyGoalHours` + `workWeek`   |
+| **Archived schedule**  | A schedule that applied up to and including a business date (`until`), kept so past weeks keep their own targets.                                   | `workWeek.history[]`                            |
+| **Effective schedule** | For a date D: the first archived schedule with `until ≥ D`, otherwise the current one. **The only schedule goal logic may use.**                    | `WorkWeek.scheduleFor(dateKey)`                 |
+| **Week start**         | The weekday a week begins on: Monday (1), Sunday (0) or Saturday (6).                                                                               | `workWeek.weekStart`                            |
+| **Week**               | A run of consecutive business dates decided by `WorkWeek.weekOf`. Normally 7 days; a **transition week** (1–6 days) follows a week-start change.    | derived                                         |
+| **Work-day goal**      | `round(round(weeklyGoalHours × 3600) / workDays.length)` — today's `getStandardDayGoalSec` with 5 replaced by the count.                            | `WorkWeek.dayGoalSec`                           |
+| **Day-off goal**       | The goal of a day off: a fixed number of hours once the user types one, otherwise three quarters of the work-day goal (today's ratio). 0 = no goal. | `workWeek.dayOffGoalHours` (`null` = automatic) |
+| **Week target**        | The sum of the work-day goals of a week's work days that are not leave. Day-off goals never add to it.                                              | `WorkWeek.weekTargetSec`                        |
+| **Counted work**       | Work on work days, plus work on days off when `dayOffCounts` is on.                                                                                 | `WorkWeek.countsToward(dateKey)`                |
+| **Catch-up mode**      | `"next"`: the next work day absorbs the whole shortfall (today). `"spread"`: it is shared across the remaining work days.                           | `workWeek.catchUp`                              |
+| **Clock format**       | `"12h"` or `"24h"`. Display only.                                                                                                                   | pref `clockFormat`                              |
+| **Date order**         | `"mdy"`, `"dmy"` or `"ymd"`. Display, typing and exports; never storage.                                                                            | pref `dateOrder`                                |
+| **Stored form**        | What records, sync and backups hold: `MM/DD/YY` dates and `09:00:00 AM` time strings. **Never changes.**                                            | `log.date`, `log.login`, …                      |
+| **Re-file**            | An explicit edit that changes a record's zone (`record.tz`), in one of two modes: **keep moments** or **keep written times**.                       | the edit dialogs                                |
+
+---
+
+## 3. Invariants (every phase must preserve all of them)
+
+The time zone invariants **I1–I14 of `docs/implement.md` §3.2 still hold** and are not repeated. These are added:
+
+- **F1 — Stored forms never change.** `MM/DD/YY` business dates, `09:00:00 AM` stored time strings, instants, leave ids, `activeDate`, `dailyAnchorMap` keys, chunk keys, sync payloads and JSON backups keep their exact shape whatever the clock format or date order. A display string never reaches a stored field; a typed value is converted to the stored form before it is saved.
+- **F2 — Defaults are today, and a default is never uploaded.** An absent preference means today's behaviour, resolved in memory. Nothing is written to storage or the settings blob until the user changes something (I11). Diffing storage before and after boot, sign-in and a day's rollover shows no new key.
+- **F3 — One resolver per concept.** Goal and week logic asks `WorkWeek`; time display asks `clockStyle()`; date display asks `formatDateKey()`; typed dates go through `parseTypedDate()`. Nothing else reads the preference keys, loops `for (i < 5)`, tests `getUTCDay() === 0 || === 6`, snaps to Monday, or hardcodes an AM/PM or MM/DD shape.
+- **F4 — Every new preference is validated at every trust boundary** (storage, sync blob, import file) before use. An invalid value is skipped whole, the previous value kept, and nothing throws inside the tick.
+- **F5 — A schedule change never moves the past.** A week that ended before the change keeps the schedule it had: its target, its bar, its "achieved / incomplete". A record's locked `dayGoal` never changes because of a setting.
+- **F6 — A schedule change never retargets a running shift.** `shiftStartGoalSec` stays; the new schedule applies the next time the goal is populated.
+- **F7 — Week boundaries are decided in one place.** The analytics worker stops computing weeks; it groups by business date, and `WorkWeek.weekOf` assembles weeks.
+- **F8 — One invalidation funnel per preference family.** A schedule change goes through `onScheduleChanged()`; a clock or date format change through `onDisplayFormatChanged()`. Each bumps a version that every cache key and row key includes (the logbook row key, `insightsCacheKey`, the heatmap), then redraws.
+- **F9 — Exports are explicit.** CSV, email and copy code call export formatters (`exportTime`, `exportDate`) and never the screen formatters, so a screen setting reaches an export only where §5/§6 say it does.
+- **F10 — Older builds lose nothing and break nothing.** A build from `0ba1bd6` ignores the new preference keys; W0 measures whether it can erase them from the account and W4 proves the answer.
+
+---
+
+## 4. Work week
+
+### 4.1 What exists today (audit at `0ba1bd6`)
+
+**Constants and the one number.** `WEEKLY_GOAL_DEFAULT_HOURS = 40`, `WEEKLY_GOAL_WORKDAYS = 5` (16390–16391), `WEEKEND_GOAL_RATIO = 0.75` (16398). `getWeeklyGoalSec()` reads `state.weeklyGoalHours` (16400); `getStandardDayGoalSec()` = `round(weekly / 5)` (16417). `weeklyGoalHours` is a synced state setting (`SETTINGS_FIELDS`, 21311); the settings row is `#weekly-goal-hours` (14988–15003, min 1, max 168, step 0.5), handled by `onWeeklyGoalChange` (35884); import accepts 0 < h ≤ 168 (34986).
+
+**The daily goal** — `autoPopulateDailyGoal(dateStr)` (27459–27613), skipped when `goalAutopopulateEnabled === false`:
+
+- A date that already has a saved shift: the remaining part of its locked anchor (`dailyAnchorMap`).
+- Saturday or Sunday: `round(standardDay × 0.75)` — **leave is not checked**, so a Saturday booked as leave still asks 6 h.
+- Monday–Friday: `dayOfWeek × standardDay − (work logged Monday..yesterday + prior leave days × standardDay)`, floored at 0; a leave day is 0. The whole shortfall lands on today. Weekend work never enters it.
+- Written through `Sync.notePrefsDerived` (I11); sets `state.shiftStartGoalSec` while a shift runs.
+
+**The week is Monday–Sunday everywhere, and only Monday–Friday counts:**
+
+| Where                                            | Lines                                     | What it assumes                                                                     |
+| ------------------------------------------------ | ----------------------------------------- | ----------------------------------------------------------------------------------- |
+| `calculatePeriodGoalStats`                       | 16422                                     | a list of weekdays; target = standard day × non-leave days, **current** weekly goal |
+| `calculatePaceRequired`                          | 16445                                     | —                                                                                   |
+| `getMonthlyWeeks`                                | 16462                                     | Monday snap                                                                         |
+| `weeklyCache` (key: UTC Monday noon)             | 17379                                     | Monday                                                                              |
+| `resolveGoalSecForDate` fallback                 | 17384–17414                               | standard day for any past date                                                      |
+| analytics worker + main-thread fallback          | 27098–27165, 27177–27240                  | Monday week keys                                                                    |
+| `updateLiveWeeklySummary` (the live weekly card) | 28307–28515                               | `for (i < 5)`, `nowDay >= 1 && <= 5`, weekend ⇒ pace "—", trend                     |
+| `isViewingCurrentWeek`                           | 28548–28581                               | Monday                                                                              |
+| `updateProgress` today's segment                 | 28670–28717                               | `isoDay <= 5`, segment index `isoDay − 1`                                           |
+| logbook row tag and delta fallback               | 31723–31850 (tag 31843, `8 * 3600` 31818) | weekend = Sat/Sun; 8 h                                                              |
+| filter "This week"                               | 30926–30940                               | Monday..Sunday                                                                      |
+| heatmap columns, leave-day goal, streak          | 32335–32346, 32240, 32578–32602           | Monday columns; standard day; streak skips Sat/Sun                                  |
+| `renderInsights` (weekly)                        | 32665–33270                               | Monday; 7 rows; `totalW_MonFri`; bar rebuilt as 5 segments "M T W T F" (33043)      |
+| `renderMacroInsights` (monthly / yearly)         | 33275–33700                               | Monday weeks; weekend work excluded and badged "N Weekends" (33369–33411)           |
+| segmented bar markup / `DOM.progressSegments`    | 13778, 17619–17642                        | Monday–Friday                                                                       |
+| guide: daily goal, insights                      | 10528–10561, 10681–10685                  | "Monday to Friday", "Saturday and Sunday", "40-hour week"                           |
+| `.badge-weekend`                                 | CSS 6442                                  | —                                                                                   |
+
+**Two facts that shape the design:**
+
+- **Changing the weekly goal already rewrites every past week's target**, because `calculatePeriodGoalStats` reads the current value. Only a record's own `dayGoal` is locked. §4.4 fixes this as part of the schedule history (decision W7).
+- **Weekend work is excluded from every weekly, monthly and yearly total**, and is shown only as a tag. That is today's meaning of "day-off work does not count" (decision W4, default off).
+
+**Settings adoption does not validate.** `adoptSettings` (24207) copies every `SETTINGS_FIELDS` value straight into `state`. `PREF_KEYS` (21401) supports a `validate`. The schedule therefore lives in a validated JSON preference, not in `state` (§4.3).
+
+**Backups name each preference.** `buildBackupPayload` (34705) lists `workTz`, `localTz`, `tzDisplay` one by one; `finalizeImport` (35139) restores `state` fields one by one; `purgeFactoryKeys` (35743) lists every key. Each new key is added to all three.
+
+### 4.2 Decisions in force (confirmed by the user, 2026-09-15)
+
+W1 any mix of the seven days, no presets · W2 the weekly goal is split equally · W3 one day-off goal setting, typed by hand, today's value by default, 0 = no goal · W4 a switch "day-off work counts toward the week", default off · W5 week start is a setting (Mon / Sun / Sat), default Monday · W6 catch-up is a setting, default today's way · W7 past weeks keep their old schedule, a change applies from the current week · W8 holidays stay leave; leave on a day off changes no goal and the booking says so · W9 the weekly bar shows work days only · W10 rotations out of scope, but the stored shape leaves room · S1 (proposed) the schedule syncs like the weekly goal.
+
+### 4.3 Data model
+
+```js
+// localStorage "nodrift_work_week_v1" (WORK_WEEK_KEY); synced as PREF_KEYS.workWeek { json: true, validate: isWorkWeekPref }
+// ABSENT means today's schedule (F2). Written only by an explicit change.
+{
+  v: 1,
+  workDays: [1, 2, 3, 4, 5],   // getUTCDay numbers, unique, sorted, 1–7 entries
+  weekStart: 1,                // 1 Monday · 0 Sunday · 6 Saturday
+  dayOffGoalHours: null,       // null = 0.75 × work-day goal; else 0 ≤ h ≤ 24, step 0.25
+  dayOffCounts: false,
+  catchUp: "next",             // "next" | "spread"
+  history: [                   // archived schedules, strictly ascending `until`, at most 520
+    { until: "09/13/26", weeklyGoalHours: 40, workDays: [1,2,3,4,5], weekStart: 1,
+      dayOffGoalHours: null, dayOffCounts: false, catchUp: "next" }
+  ]
+}
+```
+
+- **The current weekly goal stays `state.weeklyGoalHours`**, so a build from `0ba1bd6` keeps reading and editing the number it knows. Archived entries carry their own `weeklyGoalHours`.
+- The whole schedule is **one value**. Two devices racing never produce a mix of one device's work days and the other's catch-up mode: the newest whole schedule wins (the settings rule, `SYNC-BLUEPRINT.md`).
+- `v` and unknown top-level keys: the validator accepts `v === 1` and ignores unknown keys, so a later rotation (W10) can be added as a new key without breaking this build. A `v` it does not know is skipped whole (F4).
+- **Validation** (`isWorkWeekPref`): the types and ranges above; `workDays` non-empty; `until` parses with `TimeZones.parseKey`; `history` strictly ascending; every entry's `weeklyGoalHours` in (0, 168]; and the day goal of every schedule (current and archived) ≤ 24 h (P-W13). Anything else is refused whole.
+
+### 4.4 Resolution rules
+
+**R1 — Effective schedule for a business date D.** Walk `history` in order; the first entry with `until ≥ D` governs D. If none, the current schedule (`state.weeklyGoalHours` + the pref's top-level values, or the defaults when the pref is absent) governs D.
+
+**R2 — Period of a schedule.** An archived entry k governs `[until(k−1) + 1 day, until(k)]` (the first from the beginning of time). The current schedule governs from `until(last) + 1 day` onward.
+
+**R3 — Weeks.** For D governed by schedule S with period start P and period end E:
+
+- `ws = max(the latest date ≤ D whose weekday is S.weekStart, P)`
+- `we = min(the day before the first S.weekStart weekday after ws, E)`
+
+Normally that is 7 days. It is shorter only for the first week after a week-start change (a **transition week**) and never crosses a schedule boundary. Property: every date belongs to exactly one week; weeks are contiguous; lengths are 1–7; only a week starting at a period start can be shorter than 7, and only if the week start changed.
+
+**R4 — Archiving on change.** When the user changes the weekly goal or anything in the work-week card on work date T:
+
+1. `ws` = the start of T's week under the schedule **before** the change (R3).
+2. `until` = `ws − 1 day`.
+3. If the last archived entry already has `until ≥` that date, an earlier change this week archived the pre-week values: overwrite only the current values.
+4. Otherwise push `{ until, ...values before the change }`, then write the new current values.
+
+So the current week follows the new schedule (W7), and a week that ended keeps its own. Several edits in one week make one archive entry. A week-start change starts a transition week at `ws` that runs until the new week start comes round (P-W12). The settings card says so: "This week runs Mon 14 – Sat 19; weeks start on Sunday from Sep 20".
+
+**R5 — Day goals.** For D under schedule S: a work day's goal is the work-day goal (§2); a day off's goal is `round(dayOffGoalHours × 3600)`, or `round(workDayGoal × 0.75)` when unset. A leave day that is a work day: 0. A leave day that is a day off: the day-off goal, unchanged (W8, today's weekend behaviour).
+
+**R6 — Week target and counted work.** Target = Σ work-day goals over the week's work days that are not leave. Counted work = work on the week's work days, plus work on its days off when `S.dayOffCounts`. For a week, the schedule is the one governing its days (R3 keeps a week inside one period).
+
+**R7 — The automatic goal for date D** (replacing `autoPopulateDailyGoal`'s arithmetic, same early returns: autopopulate off; a date with a saved shift uses its anchor):
+
+- D is a day off: R5.
+- D is a leave work day: 0.
+- Otherwise, over the week's days before D:
+  - `owed = Σ goals of prior work days (leave work days count as met) − Σ work logged on prior work days − (dayOffCounts ? Σ work logged on prior days off : 0)`
+  - `"next"`: `max(0, workDayGoal + owed)`.
+  - `"spread"`: `n` = the work days from D to the week's end that are not leave, D included; `max(0, round(workDayGoal + owed / n))`.
+
+With the defaults this is exactly today's formula: on Mon–Fri, `dayOfWeek × standardDay − (prior work + prior leave × standardDay)` equals `standardDay + (prior goals − prior leave credit − prior work)`. W1's golden master proves it.
+
+**R8 — The live and weekly figures:**
+
+- **Pace required:** remaining (target − counted work) ÷ work days from today to the week's end that are not leave, today included only if it is a work day; "— / Day" when none remain.
+- **Expected so far:** goals of the work days before today, not leave; a past week expects its whole target.
+- **Trend:** subtract today's work from counted work when today is a work day, or when it is a day off and `dayOffCounts` is on.
+
+**R9 — Streak:** a day off that missed its goal is skipped, as a weekend is today. **Heatmap:** columns start on the week start in effect on Jan 1 of the year shown; a leave-only day's goal is R5.
+
+### 4.5 UI / UX
+
+**Settings — a new "Work week" card** directly under the tracking card (which keeps Auto-populate and the weekly goal, the node the phone sheet borrows into its goal slot):
+
+```
+Work week
+  Work days          [Mo][Tu][We][Th][Fr] Sa  Su     ← chips in week-start order; filled = work day
+  Week starts on     ( Monday ▾ )
+  Per work day       8h                              ← read-out: weekly goal ÷ work days
+  Goal on a day off  [ 6 ] h   Auto                  ← placeholder shows the automatic value; "Auto" clears it
+  Day-off work counts toward the week   [ ○ ]
+  Catch-up           ( Next work day ▾ )             ← Next work day · Spread over the week
+```
+
+- Chips are two letters with a full-name `aria-label`; seven fit in 375 px (§4.7 row 42). The last work day cannot be switched off ("At least one work day").
+- With seven work days, the day-off rows are disabled with the note "No days off".
+- A combination whose work-day goal exceeds 24 h is refused with the reason (P-W13).
+- Every change raises a toast with **Undo** that restores the previous preference byte-for-byte, history included: "Work days: Mon–Thu, from this week (Sep 14)". The weekly-goal toast gains the same wording.
+- A running shift is untouched (F6); the toast adds "Today's shift keeps its goal".
+- **Phone:** the card is one node, borrowed into a new sheet section "Work week" under the goal (`RELOCATIONS`, 44750), exactly as the Time zones card is. No `display` inline under `.main-ui` (I13).
+
+**Weekly bar (W9):** one segment per work day of the week shown, in week order, labelled with the day's first letter (two letters when two work days share it). A past week shows its own schedule's segments. Today's segment is the index of today among the work days, or none on a day off.
+
+**Wording (P-W11):** from W3, "Weekend" becomes **"Day off"** in the logbook tag, the insights rows and the "N Days off" badge, and its tooltip reads "…worked on N days off — not counted toward the weekly target" (or "— counted toward the weekly target" when the switch is on). W1 and W2 keep "Weekend", because they must be behaviour-identical.
+
+**A day-off goal of 0 (P-W16):** the goal badge reads "No goal", the progress text reads "No goal · 2h 10m worked" with no Overtime figure, the bar stays empty, and no goal toast fires (the toast already requires ≥ 60 s, 28812).
+
+**Leave on a day off (W8):** the booking toast reads "Added leave on 09/19/26 — Saturday is already a day off, so no goal changes".
+
+**Guide:** "The Daily Goal" and "What Insights shows" are rewritten around work days, the day-off goal, the switch and both catch-up modes, with the 40-hour Monday–Friday week kept as the worked example.
+
+### 4.6 Things that deliberately do not change
+
+- Leave allowances, leave types and balances.
+- The locked anchor and split-shift logic (a day with a saved shift).
+- The daily goal presets and the "Update Session Goal?" prompt.
+- Midnight rollover and the time zone rules.
+- A catch-up goal can exceed 24 h in `"next"` mode, as it can today (a Friday with nothing logged asks 40 h); `"spread"` is the answer to that, not a cap.
+
+### 4.7 Edge-case catalogue — work week
+
+Each row becomes at least one assertion in the phase named.
+
+| #   | Scenario                                                                                        | Expected                                                                                                  | Phase  |
+| --- | ----------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- | ------ |
+| 1   | Existing user upgrades, no setting touched                                                      | Every figure identical to the `0ba1bd6` golden master                                                     | W1, W2 |
+| 2   | Upgrade lands mid-shift                                                                         | Shift goal unchanged; nothing re-dated                                                                    | W2     |
+| 3   | Fresh device signs into an account with a custom schedule                                       | Adopts it; uploads nothing                                                                                | W2, W4 |
+| 4   | Fresh device, account with no schedule                                                          | Defaults; no key written, nothing uploaded (F2)                                                           | W2, W4 |
+| 5   | Mon–Thu, 40 h                                                                                   | 10 h per work day; Fri–Sun days off at 7.5 h (automatic)                                                  | W2     |
+| 6   | Mon / Wed / Fri, 30 h, "next"                                                                   | Tuesday is a day off and never owes; Wednesday owes Monday's shortfall                                    | W2     |
+| 7   | Mon–Sat, 48 h                                                                                   | 8 h per work day; Sunday a day off                                                                        | W2     |
+| 8   | Seven work days                                                                                 | No days off; day-off rows disabled                                                                        | W2, W3 |
+| 9   | One work day at 40 h                                                                            | Refused: a 40 h day goal exceeds 24 h                                                                     | W2, W3 |
+| 10  | Sun–Thu with week start Sunday                                                                  | Fri / Sat days off; weekly rows Sun..Sat; bar S M T W T                                                   | W2, W3 |
+| 11  | Week start Mon → Sun on a Wednesday                                                             | Transition week Mon–Sat; Sunday-start weeks after; last week unchanged                                    | W2     |
+| 12  | Week start changed on the first day of a week                                                   | Transition week still starts at `ws`, runs to the new start (property of R3/R4)                           | W2     |
+| 13  | Work days changed mid-week                                                                      | Current week follows the new schedule; last week keeps its target and bar                                 | W2     |
+| 14  | Weekly goal changed                                                                             | Past weeks keep the old target (today they are rewritten — the one intended difference)                   | W2     |
+| 15  | Three changes in one week                                                                       | One archive entry, holding the values from before the week                                                | W2     |
+| 16  | Schedule changed during a shift                                                                 | Running shift's goal unchanged (F6); applied at the next populate                                         | W2, W3 |
+| 17  | Today becomes a day off during its shift                                                        | Goal kept; after EOD, today's work is day-off work in insights                                            | W2     |
+| 18  | Day-off goal 0                                                                                  | "No goal"; no Overtime; no toast; heatmap and streak handle a 0 goal                                      | W2, W3 |
+| 19  | Day-off work, switch off                                                                        | Excluded from totals, shown as "N Days off" — today's weekend behaviour                                   | W1, W2 |
+| 20  | Day-off work, switch on                                                                         | Counts in totals and reduces what the remaining work days owe; target unchanged                           | W2     |
+| 21  | "next": 6 h behind on Monday (Mon–Fri, 40 h)                                                    | Tuesday asks 14 h (identical)                                                                             | W1     |
+| 22  | "spread": 6 h behind on Monday                                                                  | Tuesday–Friday each ask 9 h 30 m; ahead lowers them; floored at 0                                         | W2     |
+| 23  | "spread" with leave on Thursday                                                                 | The shortfall is shared over Tue, Wed, Fri                                                                | W2     |
+| 24  | "spread" on the last work day                                                                   | Same as "next"                                                                                            | W2     |
+| 25  | Leave on a work day                                                                             | Goal 0; target drops one work-day goal (identical)                                                        | W1     |
+| 26  | Leave on a day off                                                                              | Day-off goal unchanged; booking toast says it is a day off                                                | W2, W3 |
+| 27  | Past week viewed after a schedule change                                                        | Its own segment count, target and result                                                                  | W3     |
+| 28  | Monthly view: a week straddling two months, and a transition week                               | Per-day schedule; month-clipped targets                                                                   | W2     |
+| 29  | Yearly view across a mid-month change                                                           | Per-day schedule                                                                                          | W2     |
+| 30  | Heatmap and streak with Sun–Thu                                                                 | Columns start Sunday; streak skips Fri / Sat                                                              | W2, W3 |
+| 31  | A week across 12/31 → 01/01 (two-digit year) under every week start                             | Correct dates, keys and totals                                                                            | W1, W2 |
+| 32  | Records of two zones on one business date                                                       | The weekday comes from the business date only (I2)                                                        | W1     |
+| 33  | Synced schedule invalid or hostile (empty days, weekStart 3, unsorted history, strings, `v: 2`) | Skipped whole; previous kept; no throw; anomaly logged                                                    | W2     |
+| 34  | Import a backup with a schedule / a legacy backup without                                       | Validated and applied / schedule untouched                                                                | W2     |
+| 35  | Factory reset                                                                                   | Key removed; defaults                                                                                     | W2     |
+| 36  | A `0ba1bd6` build edits the weekly goal beside a new build                                      | Schedule survives (measured W0, proven W4); no archive, so weeks since the last one follow the new number | W4     |
+| 37  | Two devices change the schedule at once                                                         | The newest whole schedule wins; never a mix                                                               | W4     |
+| 38  | Autopopulate off                                                                                | Nothing written; insights still follow the schedule                                                       | W2     |
+| 39  | A day with a saved shift                                                                        | Anchor locked; schedule does not move it                                                                  | W2     |
+| 40  | Logbook row with no `dayGoal`                                                                   | Delta against R5's goal, not 8 h                                                                          | W1     |
+| 41  | Filter "This week"                                                                              | The schedule's week                                                                                       | W2     |
+| 42  | 375 px phone                                                                                    | Seven chips without wrap; a seven-segment bar legible; card fits the sheet                                | W3     |
+| 43  | Week arrows across a transition week                                                            | Each week visited once, in order                                                                          | W3     |
+| 44  | Work zone change moves "today" across a week boundary                                           | Week follows the business date; no archive written                                                        | W2     |
+
+---
+
+## 5. 24-hour clock
+
+### 5.1 What exists today (audit at `0ba1bd6`)
+
+- **Formatter styles** (`TimeZones` STYLES, 18135–18190): `time` "09:05:03 AM" (logbook In/Out, both status bar clocks), `timeOnly` "9:05:03 AM" (idle dialog), `hm` "05:30 PM" (Est. EOD), `clock` (picker rows), all `hour12: true`; `parts` uses `hourCycle: "h23"` internally. `formatTime(ms, zone, style)` at 18452.
+- **Status bar clocks** split the AM/PM into their own element: `setClock` (26352) matches `/^(.*?)\s*(AM|PM)$/i`; `.clock-ampm` CSS (1738, 7465).
+- **Stored strings are 12-hour and parsed as such:** the parser at 16636–16658 (used by `typedTimeInZone` as `parseClockTimeToSeconds`), `parseTimeToMinutes` (16660), `secondsToAMPM` (16682), `minutesToAMPM` (16696). `recordEndpointText` (19235) returns the stored string when it agrees with the instant.
+- **Typing:** `parseClockTimePreview` (42380–42446) accepts `0900`, `900p`, `9:30p`, 24-hour input without a suffix, and always writes `09:00:00 AM`; bound on blur to manual and edit login/logout (42456). `typedGapMessage` builds a 12-hour sentence (42538).
+- **Exports:** CSV `csvRowForLog` (34620) and tasks CSV (40700) use `recordEndpointText`; the EOD email (29134) and the row copy (35546) carry durations and dates, no clock times (the other copy sites, 35670, 37359, 38753, 40637, 40672, are audited in C1).
+- **Guide:** "Typing times quickly" (10631–10661) quotes `09:00:00 AM`.
+
+### 5.2 Decisions in force
+
+C1 a 12-hour / 24-hour switch, default 12-hour; every time on screen follows; typing accepts both forms · C2 exports (CSV, tasks CSV, email, copy buttons) stay 12-hour · S1 (proposed) the preference syncs · P-F1 (proposed) the row lives in the Time zones card, renamed "Time and date".
+
+### 5.3 Design
+
+- Preference `clockFormat`: `"12h"` | `"24h"`, key `nodrift_clock_format_v1`, `PREF_KEYS` entry with `validate`, absent = `"12h"`. Backup, import, factory reset lists.
+- `TimeZones` gains `h23` twins of `time`, `timeOnly`, `hm` and `clock` (`hourCycle: "h23"`, never `hour12: false`, which some engines render as `24:05`). `clockStyle("time")` returns the twin for the preference; the tick reads the preference from a module variable, never from `localStorage`.
+- **Screens** call `clockStyle`. `recordEndpointView` formats from the instant when the preference is 24-hour (the stored string is 12-hour by F1). `setClock` leaves `.clock-ampm` empty and collapsed in 24-hour mode.
+- **Exports** call `exportTime(record, end)`, which is today's `recordEndpointText`, pinned to 12-hour (F9).
+- **Typing:** `parseClockTimePreview` accepts both forms in either mode and writes the preference's form into the field. Every save path converts the field to the stored 12-hour string before saving. The kept-instant comparison in the edit dialog (`keptTypedInstant`, 34375) compares **seconds**, not strings, so an unchanged field stays byte-identical in both modes.
+- `onDisplayFormatChanged()` bumps a version included in `zoneRenderKey()` (19127) and the logbook row key (31744), then redraws.
+
+### 5.4 Edge-case catalogue — clock
+
+| #   | Scenario                                                                       | Expected                                                              | Phase |
+| --- | ------------------------------------------------------------------------------ | --------------------------------------------------------------------- | ----- |
+| 45  | Default                                                                        | Every string identical to `0ba1bd6`                                   | C1    |
+| 46  | 24-hour status bar                                                             | "17:30:05"; no empty AM/PM gap; 375 px geometry unchanged or narrower | C1    |
+| 47  | Just after midnight                                                            | "00:00:05", never "24:00:05"                                          | C1    |
+| 48  | Edit and save unchanged in 24-hour mode                                        | Record byte-identical, stored strings still 12-hour                   | C1    |
+| 49  | Typing "5:30 pm", "1730", "17:30" in each mode                                 | Normalised to the preference's form; stored 12-hour                   | C1    |
+| 50  | Manual entry saved in 24-hour mode                                             | Stored login / logout are 12-hour strings                             | C1    |
+| 51  | CSV, tasks CSV, email, copy buttons in 24-hour mode                            | Byte-identical to 12-hour mode                                        | C1    |
+| 52  | DST gap message in 24-hour mode                                                | "02:30 doesn't exist on …"                                            | C1    |
+| 53  | Hostile or unknown synced value                                                | Ignored, previous kept                                                | C1    |
+| 54  | Zone picker rows, idle dialog, Est. EOD, banners, insights first-in / last-out | All follow the preference                                             | C1    |
+
+---
+
+## 6. Date order
+
+### 6.1 What exists today (audit at `0ba1bd6`)
+
+- **Stored form** `MM/DD/YY` everywhere (the vocabulary of `docs/implement.md`).
+- **Shown:**
+  - logbook `(09/15)` (31726–31769);
+  - weekly insights rows (32814);
+  - heatmap title and tooltip (32487–32540, `showHeatmapTooltip` 32023);
+  - `businessDayLabel` "Sat 09/13/26" (26430);
+  - leave list and toasts (41549, 41602, 41629);
+  - `toLocaleDateString` (29995);
+  - `displayDate` built at 31100 and 39750;
+  - the import conflict wizard.
+- **Typed:**
+  - `handleDateInputBlur` (two copies, around 41940 and 42250), bound to nine inputs (42365);
+  - an ambiguous `03/04` is read by the device's region (`_cachedLocaleDayFirst`, 18080);
+  - ISO and month names are accepted;
+  - `saveEditModal` re-checks `^\d{1,2}/\d{1,2}/` as MM/DD (34348–34360);
+  - `parseDateStringLocal` (42463);
+  - labels "Date (MM/DD/YY)" and placeholders "05/16/26" (11388, 11507–11514, 11632, 11781–11787, 12082);
+  - toasts "Use MM/DD/YY" (34572, 39820, 41536).
+- **Exported:**
+  - CSV `l.date` (34633);
+  - tasks CSV `task.date` (40708);
+  - EOD email subject and body `[09/15/26 - Tue]` (29189–29226);
+  - row copy (35546);
+  - JSON backup (stored form);
+  - file names year-first via `isoDate` (34682, 34791, 40720).
+
+### 6.2 Decisions in force
+
+D1 three choices — MM/DD/YY, DD/MM/YY, YYYY-MM-DD — default MM/DD/YY; everything shown, typed and exported follows ("the user must get what the user sees in the app exactly the same") · D2 the JSON backup keeps the stored form; export file names stay year-first · S1 (proposed) the preference syncs · P-F2 (proposed) in YYYY-MM-DD mode a typed slash date is read by the device's region, as today · P-F3 (proposed) search accepts dates typed in the chosen order.
+
+### 6.3 Design
+
+- Preference `dateOrder`: `"mdy"` | `"dmy"` | `"ymd"`, key `nodrift_date_order_v1`, `PREF_KEYS` with `validate`, absent = `"mdy"`.
+- `formatDateKey(key, form)`, the one display function (F3). It covers:
+
+  | Form      | MM/DD/YY       | DD/MM/YY       | YYYY-MM-DD       |
+  | --------- | -------------- | -------------- | ---------------- |
+  | `full`    | `09/15/26`     | `15/09/26`     | `2026-09-15`     |
+  | `short`   | `09/15`        | `15/09`        | `09-15`          |
+  | `weekday` | `Tue 09/15/26` | `Tue 15/09/26` | `Tue 2026-09-15` |
+
+- `parseTypedDate(value) → key | null`, the one parser. It replaces both `handleDateInputBlur` copies and the save-path regexes. Rules:
+  - an unambiguous value is read as today;
+  - ISO is always accepted;
+  - an ambiguous slash date follows the preference, and follows the device's region in YYYY-MM-DD mode (P-F2).
+
+  Fields display `formatDateKey(key, "full")`; save paths call `parseTypedDate` and store the key.
+
+- Labels, placeholders and toasts are built from the preference: "Date (DD/MM/YY)", "16/05/26", "Use DD/MM/YY".
+- `exportDate(key)` = `formatDateKey(key, "full")` for CSV, tasks CSV, email and copy buttons (D1). `buildBackupPayload` is untouched (D2). File names are untouched.
+- **Search:** a query that parses as a date in the chosen order also matches the stored key (records' `searchStr` is stored and cannot change, F1).
+- `onDisplayFormatChanged()` (§5.3) covers this preference too.
+
+### 6.4 Edge-case catalogue — dates
+
+| #   | Scenario                                                       | Expected                                                       | Phase |
+| --- | -------------------------------------------------------------- | -------------------------------------------------------------- | ----- |
+| 55  | Default                                                        | Every string and export identical to `0ba1bd6`                 | D1a   |
+| 56  | DD/MM: logbook, insights, heatmap, leave list, dialogs, toasts | `15/09`, `15/09/26`                                            | D1a   |
+| 57  | YYYY-MM-DD                                                     | `2026-09-15`, short `09-15`                                    | D1a   |
+| 58  | Typed `03/04/26` in DD/MM / in MM/DD                           | Stored `04/03/26` / `03/04/26`                                 | D1b   |
+| 59  | Typed `15/09` in MM/DD                                         | Still read as 15 September (unambiguous)                       | D1b   |
+| 60  | Typed `2026-09-15` in any mode                                 | Accepted                                                       | D1b   |
+| 61  | Typed slash date in YYYY-MM-DD mode                            | Device region rule (P-F2)                                      | D1b   |
+| 62  | Edit and save unchanged in DD/MM                               | Record byte-identical                                          | D1b   |
+| 63  | CSV, tasks CSV, email subject and body, copy buttons           | Follow the preference; the column order is unchanged           | D1a   |
+| 64  | JSON backup in DD/MM                                           | Stored `MM/DD/YY`; file name year-first; restores on `0ba1bd6` | D1a   |
+| 65  | Search `15/09` in DD/MM                                        | Finds 15 September's records                                   | D1b   |
+| 66  | Filters' date range in DD/MM                                   | Reads and shows the preference                                 | D1b   |
+| 67  | Import conflict wizard                                         | Shows the preference; stores the key                           | D1a   |
+| 68  | Hostile or unknown synced value                                | Ignored                                                        | D1a   |
+| 69  | Zone messages ("doesn't exist on …", pending-zone banner)      | Follow the preference                                          | D1a   |
+
+---
+
+## 7. Re-filing a record in another zone
+
+### 7.1 What exists today (audit at `0ba1bd6`)
+
+- `recordZone(record)` (18911) sanitises `record.tz` to `LEGACY_TZ`; I3 keeps a record in the zone it was filed in.
+- `saveEditModal` (34295):
+  - reads the typed times in `recordZone(log)` (34372);
+  - keeps the original instants when the text is unchanged (`keptTypedInstant`, 34375);
+  - places the rest with `resolveTypedWindow` (34387), which refuses a gap (D6) and takes the earlier repeated hour;
+  - saves with an explicit `tz`.
+- The task edit dialog (11388) has the same shape.
+- **Records carry no "manual entry" marker** (grep finds none), so the dialog cannot tell a timed shift from a typed one by a flag. Z1a audits whether anything reliable exists (placeholders, `loginEpochMs` provenance).
+
+### 7.2 Decisions in force
+
+Z1 the zone is chosen in the edit dialog, with a before/after preview and two modes — **keep the real moments** or **keep the times as written**; hours worked never change; the preview says when the day moves · P-Z2 (proposed) shifts and tasks both · P-Z3 (proposed) re-filing may move the business date — the one exception to I2, because it is an explicit re-filing · P-Z4 (proposed) the default mode is "keep the real moments" for every record unless Z1a finds a reliable manual marker.
+
+### 7.3 Design
+
+The zone is **which zone the form's times are read in**, so re-filing reuses the save path instead of adding one:
+
+1. A "Time zone" row in the dialog shows `zoneCityOffset(recordZone(log))` and a **Change** button that opens `ZonePicker`.
+2. After a choice, a preview block with two radio options:
+   - **Keep when it happened** — the form's date and times are re-filled with the same instants in the new zone. The date is the business date of the login instant there. The kept instants are carried explicitly, so a re-fill landing in a repeated hour still saves byte-identical instants.
+   - **Keep the times as written** — the form is unchanged. On save the times are read in the new zone: a gap is refused (D6), a repeated hour takes the earlier reading, `workSec` / `breakSec` are unchanged.
+
+   Each option shows its In → Out and, when it differs, "Date 09/14/26 → 09/15/26". A **Cancel zone change** link restores the form.
+
+3. Save is the normal Save: `tz` = the chosen zone; `lastModified` bumped; the old and new months' chunks marked dirty; anchors and insights recompute.
+4. A record with placeholder times offers only "Keep when it happened".
+5. A leave row has no zone row. The running shift is not a record and is not re-filed here (its zone change is D2's banner).
+
+### 7.4 Edge-case catalogue — re-filing
+
+| #   | Scenario                                             | Expected                                                               | Phase |
+| --- | ---------------------------------------------------- | ---------------------------------------------------------------------- | ----- |
+| 70  | Keep moments, LA → Dhaka                             | Instants byte-identical; times and date re-derived; preview matched it | Z1b   |
+| 71  | Keep written times, LA → Dhaka                       | Strings and date unchanged; instants move 13 h; work / break unchanged | Z1a   |
+| 72  | Keep written times into a DST gap                    | Refused with D6's sentence                                             | Z1a   |
+| 73  | Keep written times in a repeated hour                | Earlier occurrence                                                     | Z1a   |
+| 74  | Keep moments landing in the new zone's repeated hour | Instants byte-identical                                                | Z1a   |
+| 75  | Legacy record (no `tz`)                              | Read from Los Angeles; saved with the new `tz`                         | Z1a   |
+| 76  | The date moves into another month                    | Both chunks dirty; both months' insights updated                       | Z1a   |
+| 77  | The moved record overlaps another                    | The existing overlap warning                                           | Z1a   |
+| 78  | The moved record was its day's oldest                | Both days' anchors recompute; the record keeps its `dayGoal`           | Z1a   |
+| 79  | The shift crosses midnight in the new zone           | One record, dated by its login; no split                               | Z1a   |
+| 80  | A task re-filed                                      | Same rules                                                             | Z1b   |
+| 81  | Synced to a second device                            | One upload; the other device shows the new zone and times              | Z1b   |
+| 82  | Placeholder times                                    | Only "Keep when it happened" offered                                   | Z1b   |
+| 83  | Picker cancelled, or zone change cancelled           | Form and record untouched                                              | Z1b   |
+| 84  | Re-filed in 24-hour and DD/MM modes                  | Preview and form in the preferences; stored forms unchanged (F1)       | Z1b   |
+
+---
+
+## 8. Test strategy
+
+**Tools** (all existing, see the harness memory): the raw CDP harness in the git-ignored `nodrift-harness/`; `Emulation.setTimezoneOverride` for the device zone; the `Date.now` shim to pin instants (never depend on the day a test runs — arm a date by seeding `state.activeDate` and the shim); `preload-supabase-stub.js` and the in-process fake server for sync; `probe-tz-oldclient.js`'s pattern for an old build beside a new one.
+
+**The golden master (W0).** `probe-workweek-golden.js` loads the **unmodified** build and records, into `nodrift-harness/fixtures/workweek-golden-0ba1bd6.json`:
+
+- the automatic goal for every date of five pinned weeks, including a DST week and the 12/31 week;
+- the live weekly card's summary, percent, pace and trend;
+- the weekly, monthly and yearly insights breakdown text and bar segments;
+- heatmap classes and the streak;
+- the logbook tags and deltas.
+
+It runs over a matrix of weekly goals (40, 37.5, 20, 15), log patterns (none, behind, ahead, weekend work, split shifts), leave patterns (none, a weekday, a weekend day), autopopulate on / off, and a running shift. **W1 and W2 must reproduce it byte for byte.**
+
+**Property checks (W1, W2)** over random schedules and 3 years of dates:
+
+- R3's week properties;
+- R7 in `"next"` mode against a brute-force reference;
+- `"spread"` never negative and summing to the week target when every day is met exactly;
+- archiving never changes a date before `until + 1`.
+
+**Zone matrix for the formats (C1, D1, Z1):** device zones `Asia/Dhaka`, `America/Los_Angeles`, `Pacific/Kiritimati`, `Pacific/Pago_Pago`; records in LA, Dhaka, London (DST), Santiago (the day with no midnight).
+
+**New suites.** Ports: the follow-up suites own HTTP 8881–8889 and CDP 9481–9489 (W0 checks nothing else uses them).
+
+| Suite                                                                                                                                                                                                    | Account            | Phase  |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------ | ------ |
+| `probe-workweek-golden.js`                                                                                                                                                                               | none               | W0     |
+| `probe-workweek-server.js` (a nested `workWeek` round-trips byte-identical; an old client beside a new one)                                                                                              | test account       | W0, W4 |
+| `harness-workweek-core.js`                                                                                                                                                                               | none               | W1     |
+| `harness-workweek-model.js`                                                                                                                                                                              | stub / fake server | W2     |
+| `probe-workweek-ui.js`                                                                                                                                                                                   | none               | W3     |
+| `harness-formats.js` (clock and date, screens, typing, exports)                                                                                                                                          | none               | C1, D1 |
+| `probe-refile.js`                                                                                                                                                                                        | none               | Z1     |
+| extensions to `harness-progress.js`, `harness-phase8.js`, `harness-wipe.js`, `harness-security.js`, `probe-csv-shape.js`, `probe-backup-and-leave.js`, `probe-leave-rows.js`, `harness-signin-render.js` | live / none        | W2–Z1  |
+
+**Regression list** (W0 records the baseline; every phase runs it):
+
+- `harness.js`, `harness-progress.js`, `harness-motion.js`, `harness-cloud-panel.js`;
+- `harness-security.js`, `probe-leave-rows.js`, `probe-csv-shape.js`, `probe-backup-and-leave.js`;
+- `probe-shift-rewind.js`, `probe-lease-endshift.js`, `harness-handoff.js`;
+- `harness-tz-core.js`, `harness-tz-model.js`, `harness-tz-display.js`, `probe-tz-picker.js`, `probe-tz-ui.js`;
+- live phases add `harness-phase8.js`, `harness-signin-render.js` and `harness-wipe.js`.
+
+**House rules:**
+
+- Assert the precondition (seed, read back, carry the count).
+- Poll a window rather than sleep once.
+- Assert `getComputedStyle(...).display` for anything a media query can hide.
+- Open panels through their real trigger.
+- Pair every assertion with a negative control.
+- Diff storage for F1 / F2.
+- Never run two suites at once.
+
+---
+
+## 9. Phases
+
+### Phase W0 — Work week groundwork, golden master, probes, audit
+
+**Goal:** turn every assumption in §4 into a measurement before code changes. **No `index.html` change.**
+
+- `probe-workweek-golden.js` and its fixture (§8).
+- **Server and old client:** a nested `workWeek` object in the settings blob round-trips byte-identical through `sync_session`. Then a `0ba1bd6` build and a probe build that writes the key share the test account: does a settings race won by the old build remove `workWeek` from the server row (it sends only the preferences it knows)? The answer decides whether W2 needs a guard (for example re-sending on adoption), and §4.7 row 36 is rewritten with the measured result.
+- **Audit and record:**
+  - what `executeSubmit` (29280) stores as `dayGoal` when the goal field is 0;
+  - how a goal of 0 renders today;
+  - every `dayNames[dateObj.getDay()]` site (29171, 35533, 35624, 37327, 40366) under the four device zones;
+  - the other `autoPopulateDailyGoal` callers (22951, 23020, 27043, 27361, 29727, 36155–36432, 38061, 41600, 41627, 44060);
+  - `syncSettingsUI` (39193–39240);
+  - the manual goal edits (40834–40873, 41709–41829).
+- Record the regression baseline; confirm ports 8881–8889 / 9481–9489 are free.
+
+**Exit:** fixture saved; server round trip and old-client answer recorded here; baseline numbers written here. Docs commit only: `docs(week): record phase W0 results`.
+
+### Phase W1 — `WorkWeek` core + behaviour-identical refactor
+
+**Goal:** every week and goal calculation goes through one module, with only today's schedule in play. The app behaves **identically** to `0ba1bd6` (the golden master).
+
+**W1a — the module** (a new section beside the weekly-goal constants, 16381):
+
+```js
+const WorkWeek = {
+  version,                            // bumped by onScheduleChanged() (W2)
+  defaults(),                         // today's schedule
+  scheduleFor(dateKey),               // R1 (W1: always the current schedule)
+  isWorkDay(dateKey), workDaysOf(week),
+  weekOf(dateKey),                    // R3 → { startKey, endKey, days: [keys] }
+  weeksInMonth(y, m), weekStartForYear(y),
+  dayGoalSec(dateKey),                // R5, before leave
+  weekTargetSec(week, leaveSet),      // R6
+  countsToward(dateKey),
+  autoGoalSec(dateKey, logsByDate, leaveSet),  // R7
+  pace(...), expectedSoFar(...),      // R8
+};
+```
+
+`getStandardDayGoalSec` stays as a thin alias (mutations and harness use it). `harness-workweek-core.js` covers every function against the golden master's arithmetic, R3's properties on the default schedule, and the year-boundary and DST weeks.
+
+**W1b — the call-site migration** (mechanical, one concern). Every site in §4.1's table:
+
+- `autoPopulateDailyGoal` keeps its early returns and writes; its arithmetic becomes `autoGoalSec`.
+- The analytics worker and its fallback group by business date only (F7); `weeklyCache` is replaced by date lookups over `weekOf`.
+- The live weekly card, `renderInsights`, `renderMacroInsights`, the heatmap and streak, the logbook tag and fallback, "This week", `getMonthlyWeeks`, `isViewingCurrentWeek`, `updateProgress`'s segment index and `resolveGoalSecForDate`'s fallback all read `WorkWeek`.
+- The bar is built from `workDaysOf(week)` (five on the default).
+- The wording stays "Weekend".
+
+**Regression:** §8's list. **Golden master byte-identical.**
+
+**Mutations:**
+
+- R7 off by one day;
+- `weekOf` ignores `weekStart`;
+- the worker regains a Monday key;
+- a leave day on a weekend counted;
+- `dayGoalSec` divides by 5 regardless of work days;
+- the trend subtracts today on a day off;
+- the existing goal mutations (`mutation-test.js` 1448, 1461, 1474, 1488, 3530) re-anchored.
+
+**Exit:** all green; `grep` finds no `diffToMonday`, no `getUTCDay() === 0 || … === 6` and no `for (let i = 0; i < 5` outside `WorkWeek`; anchors 0 misses.
+
+**Commits:** `refactor(week): one module for every work-week calculation` (W1a) and `refactor(week): route every call site through WorkWeek` (W1b).
+
+### Phase W2 — The schedule: preference, history, the generalised rules
+
+**W2a — the preference and history:**
+
+- `WORK_WEEK_KEY`, `isWorkWeekPref` (§4.3), and `PREF_KEYS.workWeek`.
+- `buildBackupPayload`, `finalizeImport` and the import validator, and `purgeFactoryKeys`.
+- `scheduleFor` and `weekOf` honour history and transition weeks (R1–R3).
+- Archiving on change (R4), including `onWeeklyGoalChange`.
+- `onScheduleChanged()` (F8).
+- Any W0-required guard for old clients.
+- A JS-level API for tests (`WorkWeek.setSchedule(next)`), no UI yet.
+
+**W2b — the generalised rules:**
+
+- any work days;
+- day-off goal (R5), counts (R6), `"spread"` (R7);
+- pace, expected and trend (R8);
+- streak and heatmap (R9);
+- the guards: work-day goal ≤ 24 h, at least one work day.
+
+`harness-workweek-model.js` covers §4.7 rows 2–41 through the API, storage diffs for F2, hostile blobs through the stub, import and wipe.
+
+**Regression:** §8's list; the golden master still byte-identical with no preference written.
+
+**Mutations:**
+
+- archive written on every edit (not once per week);
+- `until` uses the new schedule's week;
+- the validator accepts empty `workDays`;
+- `"spread"` divides by all remaining days including leave;
+- counts ignored in the trend;
+- the day-off goal ignores `dayOffGoalHours`;
+- a default written at boot.
+
+**Exit:** all green; rows 2–41 asserted; anchors 0 misses.
+
+**Commits:** `feat(week): a work-week schedule that keeps past weeks` (W2a) and `feat(week): day-off goals, day-off work and catch-up modes` (W2b). **Deploy-safe:** without the UI nobody can write the preference, and an imported or synced one only moves numbers the model already proves.
+
+### Phase W3 — Work week UI
+
+**W3a** — the Work week card, its phone sheet section, chips, selects, the day-off input, the switch, toasts with Undo, the 24 h and one-day guards' messages, disabled rows at seven days.
+
+**W3b:**
+
+- the weekly bar with N segments;
+- "Day off" wording (P-W11) and the "No goal" state (P-W16);
+- the leave-on-a-day-off toast;
+- week arrows over transition weeks;
+- the guide rewrite.
+
+`probe-workweek-ui.js`:
+
+- real clicks and keys on desktop and at 375 px;
+- computed display (I13), and no inline `display` under `.main-ui`;
+- geometry for rows 42 and 10;
+- the undo round trip byte-identical;
+- `textContent` only (I14).
+
+**Regression:** §8's list plus `harness-motion.js` and `harness-cloud-panel.js` geometry.
+
+**Exit:** rows 8–10, 16, 18, 26, 27, 30, 42, 43 asserted; the golden master byte-identical apart from the wording rows it names; anchors 0 misses.
+
+**Commits:** `feat(week): the work week settings card` (W3a) and `feat(week): insights, the bar and the guide follow the schedule` (W3b).
+
+### Phase W4 — Work week sync hardening, multi-device, iPhone
+
+- Live suites with the test account:
+  - two devices race a schedule change (row 37);
+  - a fresh device uploads nothing (rows 3–4);
+  - an old `0ba1bd6` client beside a new one (row 36);
+  - a handoff mid-shift after a schedule change (F6).
+- **iPhone checklist for the user** (tap-by-tap, written at the time from the real labels):
+  - change work days, then undo;
+  - the day-off goal;
+  - week start;
+  - see last week unchanged;
+  - leave on a day off;
+  - revert everything.
+
+**Exit:** all green; the user's checklist recorded here. **Commit:** docs, plus `fix(week): …` only if a defect is found.
+
+### Phase C1 — 24-hour clock
+
+§5.3 in one phase:
+
+- the preference, styles and funnel;
+- screens, typing and exports pinned to 12-hour;
+- the row "Clock: 12-hour / 24-hour" in the renamed "Time and date" card (P-F1);
+- the guide's typing section.
+
+`harness-formats.js` covers rows 45–54, storage diffs, and CSV / email byte-identity across both modes. `harness-progress.js`'s `ETA_SHAPE` gains the 24-hour form.
+
+**Mutations:**
+
+- CSV uses the screen formatter;
+- `hour12: false` instead of `h23`;
+- a 24-hour string stored by manual entry;
+- the kept-instant check compares strings.
+
+**Exit:** all green; anchors 0 misses. **Commit:** `feat(time): a 24-hour clock`.
+
+### Phase D1 — Date order
+
+- **D1a** — the preference, `formatDateKey`, every shown date, exports, labels, placeholders and toasts; the backup untouched.
+- **D1b** — `parseTypedDate` replacing both blur handlers and the save-path regexes; filters; search; the guide.
+
+`harness-formats.js` covers rows 55–69, storage diffs, a DD/MM backup restored on the `0ba1bd6` build, and every typed input path in the three modes.
+
+**Mutations:**
+
+- the backup follows the preference;
+- the ambiguous parse ignores the preference;
+- the CSV date column stays MM/DD;
+- the logbook short form built by slicing.
+
+**Commits:** `feat(date): date order for everything shown and exported` (D1a) and `feat(date): typed dates and search follow the date order` (D1b).
+
+### Phase Z1 — Re-filing a record in another zone
+
+- **Z1a** — the audit of §7.1 (a manual marker), then the save path: the form's zone, kept instants carried across a re-fill, the date re-derived, chunks and anchors (rows 71–79).
+- **Z1b** — the dialog row, picker, preview, both modes, tasks, placeholders, cancel, sync (rows 70, 80–84).
+
+`probe-refile.js` covers the zone matrix × both modes × device zones, with byte-identity where promised.
+
+**Mutations:**
+
+- keep-moments recomputes instants;
+- keep-written reads in the old zone;
+- the date not re-derived;
+- only the new month's chunk marked dirty.
+
+**Commits:** `feat(time): re-file a record in another time zone` (Z1a) and `feat(time): choose a record's zone in the edit dialogs` (Z1b).
+
+### Phase R — Release
+
+- Full mutation run on AC power, with the 9-class triage of `docs/implement.md` Phase 7 (re-grade every BAD alone on the work tree and on the previous commit).
+- README and `SYNC-BLUEPRINT.md` (the new preferences and the schedule history).
+- Guide sweep.
+- An iPhone checklist for the clock, the date order and re-filing.
+- This document's status line and table.
+
+**Commit:** `docs: work week, clock and date formats`. Push only on the user's word, then verify production's `index.html` md5.
+
+---
+
+## 10. Decisions
+
+**Confirmed on 2026-09-15:**
+
+| #   | Question                                | Answer                                                                           |
+| --- | --------------------------------------- | -------------------------------------------------------------------------------- |
+| W1  | How work days are chosen                | Any mix of the seven; no presets (they take too much space)                      |
+| W2  | Hours per work day                      | The weekly goal split equally                                                    |
+| W3  | Goal on a day off                       | One setting, typed by hand; today's ¾ of a work day by default; 0 = no goal      |
+| W4  | Does day-off work count toward the week | A switch, default off (today)                                                    |
+| W5  | Week start                              | A setting: Monday, Sunday or Saturday; default Monday                            |
+| W6  | Catch-up                                | A setting: next work day (default, today) or spread over the remaining work days |
+| W7  | Past weeks after a change               | Keep their schedule; the change applies from the current week                    |
+| W8  | Holidays, leave on a day off            | Leave as today; leave on a day off changes no goal and the booking says so       |
+| W9  | The weekly bar                          | Work days only                                                                   |
+| W10 | Rotating schedules                      | Out of scope; the stored shape leaves room                                       |
+| C1  | 24-hour clock                           | A switch, default 12-hour; screens follow; typing accepts both                   |
+| C2  | 24-hour clock in exports                | Exports stay 12-hour                                                             |
+| D1  | Date order                              | MM/DD/YY, DD/MM/YY, YYYY-MM-DD; screens, typing and exports follow               |
+| D2  | JSON backup                             | Keeps the stored form; file names stay year-first                                |
+| Z1  | Re-filing                               | Chosen in the edit dialog with a preview; keep moments or keep written times     |
+| X1  | More clocks, per-client zones           | Dropped                                                                          |
+| P1  | Plan documents                          | One file for all features (this one)                                             |
+| P2  | Order                                   | Work week, 24-hour clock, date order, re-filing                                  |
+
+**Proposed by the plan and confirmed with it on 2026-09-15** (the user approved the plan as written; any of these can still be revisited before the phase named):
+
+| #     | Question                            | Proposed                                                                         | Alternative                                        | Needed by |
+| ----- | ----------------------------------- | -------------------------------------------------------------------------------- | -------------------------------------------------- | --------- |
+| S1    | Do the new settings sync?           | **Yes**, like the weekly goal and the time zones                                 | Per device                                         | W2, C1    |
+| P-W11 | "Weekend" wording                   | **"Day off"** from W3 on                                                         | Keep "Weekend" for Sat / Sun, "Day off" for others | W3        |
+| P-W12 | A week-start change mid-week        | **A short transition week** from this week's start to the new start day          | Apply week start from next week only               | W2        |
+| P-W13 | Weekly goal ÷ work days above 24 h  | **Refused** with the reason                                                      | Allowed                                            | W2        |
+| P-W14 | Day-off goal once typed             | **Fixed hours** until "Auto" is pressed; unset follows ¾ of the work-day goal    | Always a ratio                                     | W2        |
+| P-W15 | Schedule change during a shift      | **Never retargets the running shift** (F6)                                       | Ask, like "Update Session Goal?"                   | W2        |
+| P-W16 | A 0 h day-off goal                  | **"No goal"**, no Overtime, bar empty                                            | Show everything as overtime (today's 0 goal)       | W3        |
+| P-F1  | Where the clock and date rows live  | **In the Time zones card, renamed "Time and date"** (already on the phone sheet) | A new "Formats" card                               | C1        |
+| P-F2  | Typed slash date in YYYY-MM-DD mode | **Device region**, as today                                                      | Month first                                        | D1b       |
+| P-F3  | Search in DD/MM or YYYY-MM-DD       | **Accepts dates in the chosen order**                                            | Stored order only                                  | D1b       |
+| P-Z2  | Which records can be re-filed       | **Shifts and tasks**                                                             | Shifts only                                        | Z1        |
+| P-Z3  | Re-filing moves the business date   | **Yes, shown in the preview** (the one exception to I2)                          | Keep the date always                               | Z1        |
+| P-Z4  | Default mode                        | **Keep the real moments** for every record, unless Z1a finds a manual marker     | Keep written times                                 | Z1        |
+
+---
+
+## 11. Out of scope
+
+- More than two clocks; per-client zones (dropped, X1).
+- Rotating or alternating schedules (W10). The `v` field and ignored unknown keys leave room.
+- Different hours on different work days (the rejected W2 alternative).
+- Presets for work days (W1).
+- A holiday calendar separate from leave (W8).
+- The 24-hour clock in exports (C2); the date order in backups (D2).
+- Following the phone's own 12 / 24-hour setting automatically.
+- A cap on catch-up goals above 24 h in "next" mode (existing behaviour).
+- Recovering weekly-goal changes made before this feature (history starts at the first change after W2).
+
+---
+
+## 12. Risks and rollback
+
+| Risk                                                               | Mitigation                                                                                                                                                     |
+| ------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Regressing the one real deployment (Mon–Fri, 40 h, LA, iPhone PWA) | W1 is behaviour-identical, gated on a golden master recorded from `0ba1bd6`; defaults are today (F2); W4 ends on the iPhone checklist                          |
+| Week segmentation wrong across schedule changes                    | A pure core with property checks over random schedules; transition weeks asserted explicitly                                                                   |
+| A settings race drops a history entry                              | The schedule is one value; the newest wins whole. History is interpretation only: no record changes, so the worst case is a past week re-read, never data lost |
+| An old build erases the schedule from the account                  | Measured in W0; guarded in W2 if needed; proven in W4                                                                                                          |
+| A display format leaks into storage                                | F1; storage diffs in every format phase; a mutation per save path                                                                                              |
+| An ambiguous typed date misread                                    | One parser (F3), every input path tested in all three modes, edit-unchanged byte-identity                                                                      |
+| Re-filing moves instants unintentionally                           | Kept instants carried explicitly; byte-identity tests including the repeated hour; the preview                                                                 |
+| Tick cost from week lookups                                        | `weekOf` and the schedule cached per (business date, version); measured with the tick probe under 4× throttle                                                  |
+| Phone width (seven chips, seven segments)                          | 375 px geometry probes (row 42)                                                                                                                                |
+| Mutation anchors detach during the refactor                        | Aliases kept (`getStandardDayGoalSec`); anchors re-run after every format; affected mutations re-anchored in the same phase                                    |
+
+**Rollback:** every phase is its own commit(s) and reverts cleanly.
+
+- **After W2:** a revert leaves `workWeek` unread. Goals return to Mon–Fri, and past weeks follow the current weekly goal again (today's behaviour). No record is touched.
+- **After C1 or D1:** a revert ignores the preferences; screens return to 12-hour MM/DD. Stored data was never in another form (F1).
+- **After Z1:** records already re-filed stay valid records in their new zone.
+
+---
+
+## Appendix A — call-site inventory at `0ba1bd6`
+
+**Work week — constants and goals:**
+
+- 16381–16420 (`WEEKLY_GOAL_DEFAULT_HOURS`, `WEEKLY_GOAL_WORKDAYS`, `WEEKEND_GOAL_RATIO`, `getWeeklyGoalSec`, `getStandardDayGoalSec`);
+- `calculatePeriodGoalStats` 16422 · `calculatePaceRequired` 16445 · `getMonthlyWeeks` 16462;
+- state defaults 17315, 17322 · `weeklyCache` 17379 · `dailyAnchorMap` 17382 · `resolveGoalSecForDate` 17384;
+- `DOM.weeklyGoalHours` 17611 · `DOM.progressSegments` 17619–17642;
+- `getTodayLoggedWorkSeconds` 27441 · `autoPopulateDailyGoal` 27459–27613.
+
+**`autoPopulateDailyGoal` callers:** 23020, 27043, 27361, 29727, 35919, 36155, 36171, 36183, 36432, 38061, 41600, 41627, 44060.
+
+**`getStandardDayGoalSec` callers:** 16438, 17394, 17407, 22951, 27514, 28203, 28445, 28462, 28625, 31929, 32240, 33179, 33200, 33583, 33617, 35928, 44111.
+
+**Weeks and weekdays:**
+
+- worker 27098–27165, fallback 27177–27240;
+- `updateLiveWeeklySummary` 28307–28515 · `isViewingCurrentWeek` 28548 · `updateProgress` segments 28670–28717, goal toast 28809–28829;
+- filter WEEK 30926–30940;
+- logbook row 31723–31850 (tag 31841–31845, fallback 31818);
+- heatmap 32209–32602 (columns 32335–32346, leave goal 32240, streak 32578–32602);
+- `renderInsights` 32665–33270 (week label 32766, rows 32807–33032, bar 33041–33146, trend 33173–33263);
+- `renderMacroInsights` 33275–33700 (week start 33320, weekend 33369–33411, weekdays 33413–33437, remaining 33586–33622, trend 33637–33642).
+
+**Settings, sync, backup:**
+
+- markup 14958–15004;
+- `SETTINGS_FIELDS` 21311 · `PREF_KEYS` 21401 · `readPrefs` 21441 · `settingsToWire` 21517 · `adoptSettings` 24207;
+- `buildBackupPayload` 34705 · `backupPayloadIsEmpty` 34734 · import validation 34986 · `finalizeImport` 35139;
+- `purgeFactoryKeys` 35743 · `onWeeklyGoalChange` 35884;
+- `syncSettingsUI` 39193–39240 · `RELOCATIONS` 44750.
+
+**Leave:** `getLeaveDates` 16976 · `getLeaveDateSet` 16984 · `saveLeaveDates` 16999 · add 41540–41603 · remove 41606–41629.
+
+**Goal edits:** state reset 29661–29727 · manual goal paths 40834–40873, 41709–41749, 41788–41829.
+
+**UI and guide:** segmented bar 13778 · `.badge-weekend` 6442 · guide 10528–10561, 10681–10685.
+
+**Clock:**
+
+- STYLES 18135–18190 · `formatTime` 18452;
+- `recordEndpointText` 19235 · `recordEndpointView` 19249 · `formatTimeRange` 19274;
+- `setClock` 26352 · clock markup 12752–12778 · `.clock-ampm` 1738, 7465 · ETA 28793;
+- stored-string parsers 16636–16680 · `secondsToAMPM` 16682 · `minutesToAMPM` 16696;
+- `parseClockTimePreview` 42380–42446 · login / logout blur 42448–42461 · `typedTimeInZone` 42486 · `typedGapMessage` 42533;
+- `saveEditModal` 34295 (`keptTypedInstant` 34375);
+- guide 10631–10661.
+
+**Dates:**
+
+- `_cachedLocaleDayFirst` 18080 · date blur handlers ~41940, ~42250, bindings 42365 · `parseDateStringLocal` 42463;
+- labels and placeholders 11388, 11507–11514, 11632, 11781–11787, 12082 · toasts 34572, 39820, 41536, 41549, 41602, 41629;
+- logbook 31726–31769 · insights 32814–32999 · heatmap 32487–32540, 32023;
+- `businessDayLabel` 26430 · `toLocaleDateString` 29995 · `displayDate` 31100, 39750;
+- EOD email 29163–29226 · row copy 35525–35547 · CSV 34633 · tasks CSV 40708;
+- file names 34682, 34791, 40720.
+
+**Re-filing:** `recordZone` 18911 · `getDisplayZone` 18916 · `ZonePicker` 19910 · `openZonePickerFor` 26437 · `zoneCityOffset` 26423 · `saveEditModal` 34295–34424 · task edit markup 11388.
+
+**Invalidation:** `onZoneContextChanged` 18939 · `zoneRenderKey` 19127 · logbook row key 31744 · `insightsCacheKey` 32687.
+
+**Harness references to what changes:**
+
+- `harness-progress.js` 39 (`ETA_SHAPE`), 48–97;
+- `harness-phase8.js` 175, 388–415;
+- `harness-wipe.js` 92–100;
+- `probe-leave-rows.js`; `tests-phase5.js` 202;
+- `mutation-test.js` 1448, 1461, 1474, 1488, 3530.
