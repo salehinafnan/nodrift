@@ -1,6 +1,6 @@
 # Time zones: implementation blueprint
 
-> **Status:** Phases 0–4 complete. Every zone-dependent calculation goes through `TimeZones`, and the zone model exists (an unset work zone is Los Angeles on a device with data from before zones and the device's own zone for a new user; an unset local zone follows the device). Every record is shown, edited, exported and searched in the zone it was filed in. A searchable picker over every time zone opens from the clocks and the settings card. Phase 5a is done: the status bar shows live work and local clocks. Phase 5b1 is done: zones are changed from the clock labels, a settings card and the phone sheet, with a confirmation for the work zone, a banner with Undo during a shift, and a toast for a zone synced from another device. Phase 5b2a is done: a new user's work zone starts as the device's own and is pinned at the first clock-in, and an unset local zone follows the device. Phase 5b2b is done: clock labels (a style, and a nickname per zone) from the Time zones card, a one-time notice on devices that used nodrift before zones, and a rewritten guide section. Phase 5 is complete. Phase 6a is done: the live suites found that a new device signing in could replace the account's settings with its own defaults when its day moved, fixed by never uploading a goal the app works out for itself; an old-client check runs the build from before zones beside this one. Phase 6b is done: rows 29, 30, 34 and 40 and the wipe of the zone preferences hold against the live database with no app change. Phase 6 is complete: the user ran the iPhone checklist on the live build, and a fresh sign-in on the phone uploaded nothing. Next is a fix for Discard after a suspend across midnight (found in 6b, older than zones), then Phase 7.
+> **Status:** Phases 0–4 complete. Every zone-dependent calculation goes through `TimeZones`, and the zone model exists (an unset work zone is Los Angeles on a device with data from before zones and the device's own zone for a new user; an unset local zone follows the device). Every record is shown, edited, exported and searched in the zone it was filed in. A searchable picker over every time zone opens from the clocks and the settings card. Phase 5a is done: the status bar shows live work and local clocks. Phase 5b1 is done: zones are changed from the clock labels, a settings card and the phone sheet, with a confirmation for the work zone, a banner with Undo during a shift, and a toast for a zone synced from another device. Phase 5b2a is done: a new user's work zone starts as the device's own and is pinned at the first clock-in, and an unset local zone follows the device. Phase 5b2b is done: clock labels (a style, and a nickname per zone) from the Time zones card, a one-time notice on devices that used nodrift before zones, and a rewritten guide section. Phase 5 is complete. Phase 6a is done: the live suites found that a new device signing in could replace the account's settings with its own defaults when its day moved, fixed by never uploading a goal the app works out for itself; an old-client check runs the build from before zones beside this one. Phase 6b is done: rows 29, 30, 34 and 40 and the wipe of the zone preferences hold against the live database with no app change. Phase 6 is complete: the user ran the iPhone checklist on the live build, and a fresh sign-in on the phone uploaded nothing. A pause answered after midnight, found in 6b and older than zones, is fixed: the answer is applied to the new day, and after Discard today's shift starts at the answer. Next is Phase 7.
 > **Baseline commit:** `9181afa` (all line numbers below refer to it and WILL drift — re-grep before editing).
 > **Rule:** one phase at a time. A phase starts only when the previous phase's exit criteria are green and committed.
 
@@ -1590,7 +1590,56 @@ Anchors: 286, 0 misses. `index.html` was restored byte-identical.
    - Work zone America/Los_Angeles, from the user's preference, with no shift running. Local zone Asia/Dhaka, automatic, following the phone.
 9. **Overnight lock** (optional): skipped. Row 40 is graded without a device in `harness-tz-core.js` (6b).
 
-**Exit.** All live suites are green (6a, 6b) and the user has confirmed the checklist, so Phase 6 is done. The Discard record found in 6b is fixed next, on its own.
+**Exit.** All live suites are green (6a, 6b) and the user has confirmed the checklist, so Phase 6 is done. The Discard record found in 6b is fixed below, on its own.
+
+#### Follow-up: a pause answered after midnight (2026-09-15)
+
+**Committed as** `fix(idle): a pause answered after midnight is applied to the new day`. Found in 6b; not zone work.
+
+**The story.** A shift is clocked in at 21:00 work time, the phone locks at 22:00, and the user opens nodrift the next day. The wake raises the system pause prompt at once, and the page's next tick, about a second later, rolls the day over.
+
+**Measured on both builds** with `probe-discard-midnight.js` (new, no account), which runs the build from `9181afa` beside this one. All six answers were identical on the two builds.
+
+- **Answered after the tick,** which is what a user who reads the prompt gets and what a cold boot always gets: yesterday is filed from 21:00 to 00:00 with the one hour of work. The answer covers only the time after midnight. After Discard, today's shift showed In 00:00.
+- **Answered before the tick:**
+  - Discard filed yesterday's hour stamped from the answer to an hour after it, and today's timer counted from midnight, so the whole night showed as work.
+  - Work filed yesterday with the time after midnight in it, then counted that time again on today's timer. Break did the same with break.
+- **Answered while a rollover was still saving,** today's shift was left with no clock-in time.
+
+**Cause.** `resolveIdle` applied the answer on the active day even when that day had ended. The rollover then treated the resumed shift as if it had run up to midnight.
+
+**Fix (decided with the user).**
+
+- The answer belongs to the day it is given on. `resolveIdle` first rolls a day that has ended over, still locked, and only then applies the answer. Every order now gives the "after the tick" result.
+- A rollover already in flight is waited for. `checkMidnightReset` hands a second caller a promise that settles when the running rollover finishes, where it used to return at once.
+- **Discard:** when the rollover moved the login and the pause's start to today's midnight and nothing was tracked, today's shift starts at the answer, not at 00:00. A same-day Discard is unchanged.
+- **Work and Break** still cover only today's part (the user's choice). The part of the pause before midnight is still not offered to yesterday.
+- Only a pause can be resolved. A second tap, or a prompt still on screen with no pause behind it, puts the prompt away and changes nothing. Before, it stopped the shift.
+
+**Tests.**
+
+- **`harness-idle-midnight.js`**, new, 24 checks, no account.
+  - Discard, Work and Break, each answered at once, after the tick and during a rollover; Discard answered twice at once; three same-day controls.
+  - The work zone is chosen at run time: Los Angeles or Dhaka, whichever day is at least 90 minutes old.
+  - On the unmodified tree 10 checks failed, each for the reason written for it, and the same-day controls passed.
+- **`harness-tz-core.js`**, 85 checks. Row 40's "once resolved, yesterday's work is filed" now requires exactly one record, from three hours before midnight to midnight. It failed on the unmodified tree in both zones.
+- **`probe-tz-ui.js`**, 149 checks. The idle clock-in check now awaits `resolveIdle`, which can finish after an await.
+
+**Regression**, one suite at a time, on AC throughout (08:38–08:48). `run-tz-regression.sh` now also runs `harness-tz-sync.js` and `harness-idle-midnight.js`, 26 suites in all.
+
+- 24 are green inside the chain, at the numbers from before this fix, plus `harness-idle-midnight` 24.
+- `harness-signin-render` failed 2 of 16 inside the chain and `harness-phase8` 1 of 14 ("a third device reproduces the first"). Both passed alone, at 16 and 14. The signin-render pair most likely came from rows a stopped harness run had left on the test account, since that suite runs before `probe-shift-rewind` clears them.
+
+**Mutations:** 7 new (286–292), each caught on the check written for it, on AC:
+
+- the answer applied before the rollover (`harness-idle-midnight`, and row 40 in `harness-tz-core`);
+- a rollover in flight not waited for;
+- today's shift keeping the midnight login after Discard;
+- the Discard rule widened to any pause with nothing banked, caught by the same-day control;
+- a second answer still acting after the wait;
+- an answer with no pause up still switching the shift.
+
+Anchors: 293, 0 misses. `index.html` was restored byte-identical.
 
 ### Phase 7 — Cleanup, docs, release
 
