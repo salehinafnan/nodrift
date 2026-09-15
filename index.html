@@ -16388,7 +16388,6 @@
          Monday and Tuesday's daily goal rises to compensate, but the WEEK
          still owes what the week owes. */
       const WEEKLY_GOAL_DEFAULT_HOURS = 40;
-      const WEEKLY_GOAL_WORKDAYS = 5;
 
       /* A weekend day is worth three quarters of an ordinary one: the six
          hours this app has always asked for, against the default eight. Held
@@ -16415,9 +16414,270 @@
        * different numbers.
        */
       function getStandardDayGoalSec() {
-        return Math.round(getWeeklyGoalSec() / WEEKLY_GOAL_WORKDAYS);
+        return WorkWeek.workDayGoalSec();
       }
       window.getStandardDayGoalSec = getStandardDayGoalSec;
+
+      /* The work week. Every question about weeks and goals is answered here
+         and nowhere else (docs/followups.md §3 F3, §4.4): which days are work
+         days, where a week starts and ends, what a day asks, what a week or a
+         span asks, and how far behind the automatic goal thinks today is.
+
+         Dates come in as business-date keys ("MM/DD/YY") and the arithmetic
+         is on day numbers -- whole days since 1970-01-01 -- so no zone and no
+         DST change can move a week boundary (I2).
+
+         One schedule for now, today's: Monday to Friday, weeks starting on
+         Monday, a day off asking three quarters of a work day, and the whole
+         of a shortfall landing on the next work day. */
+      const WorkWeek = (() => {
+        const DAY_MS = 86400000;
+
+        function defaults() {
+          return {
+            v: 1,
+            workDays: [1, 2, 3, 4, 5],
+            weekStart: 1,
+            dayOffGoalHours: null,
+            dayOffCounts: false,
+            catchUp: "next",
+          };
+        }
+
+        /* Rebuilt only when the weekly goal moves. The goal is read through
+           getWeeklyGoalSec on every call rather than captured, so whatever
+           answers that name is what the schedule sees. */
+        let current = null;
+        function scheduleFor(dateKey) {
+          const weeklyGoalSec = getWeeklyGoalSec();
+          if (!current || current.weeklyGoalSec !== weeklyGoalSec) {
+            const s = defaults();
+            s.weeklyGoalSec = weeklyGoalSec;
+            s.workDaySet = new Set(s.workDays);
+            current = s;
+          }
+          return current;
+        }
+
+        /* Whole days since 1970-01-01. A legacy "YYYY-MM-DD" key is read the
+           way autoPopulateDailyGoal always read one. */
+        function dayNum(dateKey) {
+          if (typeof dateKey !== "string") return NaN;
+          let y, m, d;
+          if (dateKey.includes("-")) {
+            const p = dateKey.split("-").map(Number);
+            y = p[0] % 100;
+            m = p[1];
+            d = p[2];
+          } else {
+            const p = dateKey.split("/").map(Number);
+            m = p[0];
+            d = p[1];
+            y = p[2];
+          }
+          const fullYear = y < 100 ? 2000 + y : y;
+          return Math.floor(Date.UTC(fullYear, m - 1, d, 12, 0, 0) / DAY_MS);
+        }
+        const keyOfDay = (n) =>
+          formatUTCDayStr(new Date(n * DAY_MS + DAY_MS / 2));
+        const dayOfMs = (ms) => Math.floor(ms / DAY_MS);
+        const weekdayOf = (n) => (((n + 4) % 7) + 7) % 7;
+
+        function isWorkDayNum(n) {
+          return scheduleFor().workDaySet.has(weekdayOf(n));
+        }
+        function isWorkDay(dateKey) {
+          return isWorkDayNum(dayNum(dateKey));
+        }
+
+        /* Whether a day's work adds to its week's total. */
+        function countsTowardNum(n) {
+          return isWorkDayNum(n) || scheduleFor().dayOffCounts;
+        }
+        function countsToward(dateKey) {
+          return countsTowardNum(dayNum(dateKey));
+        }
+
+        /* R3: seven days from the latest week-start day on or before the
+           date. startMs is noon UTC on the first day, the instant every week
+           was keyed by before this module existed. */
+        function weekOfDay(n) {
+          const startDay =
+            n - ((weekdayOf(n) - scheduleFor().weekStart + 7) % 7);
+          const days = [];
+          const keys = [];
+          for (let i = 0; i < 7; i++) {
+            days.push(startDay + i);
+            keys.push(keyOfDay(startDay + i));
+          }
+          return {
+            startDay,
+            endDay: startDay + 6,
+            startKey: keys[0],
+            endKey: keys[6],
+            startMs: startDay * DAY_MS + DAY_MS / 2,
+            days,
+            keys,
+          };
+        }
+        function weekOf(dateKey) {
+          return weekOfDay(dayNum(dateKey));
+        }
+
+        function workDaysOf(week) {
+          const out = [];
+          for (let i = 0; i < week.days.length; i++) {
+            if (isWorkDayNum(week.days[i])) out.push(week.keys[i]);
+          }
+          return out;
+        }
+
+        /* A month's calendar: the week holding its first day, then every week
+           that starts inside it. */
+        function weeksInMonth(year, month) {
+          const first = dayOfMs(Date.UTC(year, month, 1));
+          const last = dayOfMs(Date.UTC(year, month + 1, 0));
+          const weeks = [];
+          for (
+            let w = weekOfDay(first);
+            w.startDay <= last;
+            w = weekOfDay(w.startDay + 7)
+          ) {
+            weeks.push(w);
+          }
+          return weeks;
+        }
+
+        /* The heatmap's grid: the week holding Jan 1 to the week holding Dec 31. */
+        function yearGrid(year) {
+          return {
+            startDay: weekOfDay(dayOfMs(Date.UTC(year, 0, 1))).startDay,
+            endDay: weekOfDay(dayOfMs(Date.UTC(year, 11, 31))).endDay,
+          };
+        }
+
+        /* R5: the weekly goal shared equally over the work days. */
+        function workDayGoalSec(dateKey) {
+          const s = scheduleFor(dateKey);
+          return Math.round(s.weeklyGoalSec / s.workDays.length);
+        }
+
+        /* R5 before leave. A day off asks three quarters of a work day, held as
+           a ratio so a lower weekly goal cannot leave Saturday asking more than
+           Tuesday. */
+        function dayGoalSecNum(n) {
+          const goal = workDayGoalSec();
+          return isWorkDayNum(n) ? goal : Math.round(goal * WEEKEND_GOAL_RATIO);
+        }
+        function dayGoalSec(dateKey) {
+          return dayGoalSecNum(dayNum(dateKey));
+        }
+
+        /* R6 over any list of dates: the goals of its work days that are not
+           leave, and how many of its work days are. */
+        function targetOf(dateKeys, leaveSet) {
+          let targetSec = 0;
+          let leaveDays = 0;
+          for (let i = 0; i < dateKeys.length; i++) {
+            const key = dateKeys[i];
+            if (!isWorkDay(key)) continue;
+            if (leaveSet.has(key)) leaveDays++;
+            else targetSec += workDayGoalSec(key);
+          }
+          return { targetSec, leaveDays };
+        }
+
+        function workDaysInRange(fromKey, toKey) {
+          const out = [];
+          const end = dayNum(toKey);
+          for (let n = dayNum(fromKey); n <= end; n++) {
+            if (isWorkDayNum(n)) out.push(keyOfDay(n));
+          }
+          return out;
+        }
+
+        /* R7, the automatic goal. Worked out in the order the goal field
+           always was -- the week so far owed, minus what was logged and the
+           leave taken -- so fractional seconds round exactly as before. Work
+           logged on a leave day earns nothing: the leave already did. A day
+           off asks its own goal whatever else happened that week. */
+        function autoGoalSec(dateKey, logs, leaveSet) {
+          const n = dayNum(dateKey);
+          const goal = workDayGoalSec(dateKey);
+          if (!isWorkDayNum(n)) return Math.round(goal * WEEKEND_GOAL_RATIO);
+          let priorWorkDays = 0;
+          let priorLeaveDays = 0;
+          let priorWorkSec = 0;
+          for (let day = weekOfDay(n).startDay; day < n; day++) {
+            if (!isWorkDayNum(day)) continue;
+            priorWorkDays++;
+            const key = keyOfDay(day);
+            if (leaveSet.has(key)) {
+              priorLeaveDays++;
+              continue;
+            }
+            for (let i = 0; i < logs.length; i++) {
+              if (logs[i].date === key) priorWorkSec += logs[i].workSec;
+            }
+          }
+          if (leaveSet.has(dateKey)) return 0;
+          const cumulativeSec = (priorWorkDays + 1) * goal;
+          return Math.max(
+            0,
+            cumulativeSec - (priorWorkSec + priorLeaveDays * goal),
+          );
+        }
+
+        /* R8: what a week's work days before today ask, leave aside. A week
+           that has ended expects its whole target, one not yet begun nothing. */
+        function expectedSoFarSec(week, todayKey, leaveSet) {
+          const today = dayNum(todayKey);
+          let sec = 0;
+          for (let i = 0; i < week.days.length; i++) {
+            if (week.days[i] >= today || !isWorkDayNum(week.days[i])) continue;
+            if (!leaveSet.has(week.keys[i]))
+              sec += workDayGoalSec(week.keys[i]);
+          }
+          return sec;
+        }
+
+        /* R8: the work days from today to the week's end that are not leave. */
+        function remainingWorkDays(week, todayKey, leaveSet) {
+          const today = dayNum(todayKey);
+          let count = 0;
+          for (let i = 0; i < week.days.length; i++) {
+            if (week.days[i] < today || !isWorkDayNum(week.days[i])) continue;
+            if (!leaveSet.has(week.keys[i])) count++;
+          }
+          return count;
+        }
+
+        return {
+          defaults,
+          scheduleFor,
+          dayNum,
+          keyOfDay,
+          dayOfMs,
+          isWorkDay,
+          isWorkDayNum,
+          countsToward,
+          countsTowardNum,
+          weekOf,
+          weekOfDay,
+          workDaysOf,
+          weeksInMonth,
+          yearGrid,
+          workDayGoalSec,
+          dayGoalSec,
+          dayGoalSecNum,
+          targetOf,
+          workDaysInRange,
+          autoGoalSec,
+          expectedSoFarSec,
+          remainingWorkDays,
+        };
+      })();
+      window.WorkWeek = WorkWeek;
 
       function calculatePeriodGoalStats(weekdayDateStrs) {
         const leaveDates =
