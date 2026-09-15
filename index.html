@@ -16734,15 +16734,20 @@
           return goalOf(scheduleFor(dateKey));
         }
 
-        /* R5 before leave. A day off asks three quarters of a work day, held as
-           a ratio so a lower weekly goal cannot leave Saturday asking more than
-           Tuesday. */
+        /* R5 for a day off: the hours the user typed for one, or else three
+           quarters of a work day, held as a ratio so a lower weekly goal
+           cannot leave Saturday asking more than Tuesday. 0 is a goal of its
+           own: none. */
+        function dayOffGoalOf(s) {
+          return s.dayOffGoalHours === null
+            ? Math.round(goalOf(s) * DAY_OFF_GOAL_RATIO)
+            : Math.round(s.dayOffGoalHours * 3600);
+        }
+
+        /* R5 before leave. */
         function dayGoalSecNum(n) {
           const s = scheduleForDay(n);
-          const goal = goalOf(s);
-          return s.workDaySet.has(weekdayOf(n))
-            ? goal
-            : Math.round(goal * DAY_OFF_GOAL_RATIO);
+          return s.workDaySet.has(weekdayOf(n)) ? goalOf(s) : dayOffGoalOf(s);
         }
         function dayGoalSec(dateKey) {
           return dayGoalSecNum(dayNum(dateKey));
@@ -16771,22 +16776,35 @@
           return out;
         }
 
-        /* R7, the automatic goal. Worked out in the order the goal field
-           always was -- the week so far owed, minus what was logged and the
-           leave taken -- so fractional seconds round exactly as before. Work
-           logged on a leave day earns nothing: the leave already did. A day
-           off asks its own goal whatever else happened that week. */
+        /* R7, the automatic goal. In "next" mode it is worked out in the order
+           the goal field always was -- the week so far owed, minus what was
+           logged and the leave taken -- so fractional seconds round exactly as
+           before. Work logged on a leave day earns nothing: the leave already
+           did. Work on a day off earns only when the schedule counts it. A day
+           off asks its own goal whatever else happened that week. "spread"
+           shares what is owed over the work days left that are not leave,
+           today included, and on the last of them is "next". */
         function autoGoalSec(dateKey, logs, leaveSet) {
           const n = dayNum(dateKey);
           const goal = workDayGoalSec(dateKey);
-          if (!isWorkDayNum(n)) return Math.round(goal * DAY_OFF_GOAL_RATIO);
+          if (!isWorkDayNum(n)) return dayOffGoalOf(scheduleForDay(n));
+          const s = scheduleForDay(n);
+          const week = weekOfDay(n);
           let priorWorkDays = 0;
           let priorLeaveDays = 0;
           let priorWorkSec = 0;
-          for (let day = weekOfDay(n).startDay; day < n; day++) {
-            if (!isWorkDayNum(day)) continue;
-            priorWorkDays++;
+          let priorDayOffSec = 0;
+          for (let day = week.startDay; day < n; day++) {
             const key = keyOfDay(day);
+            if (!isWorkDayNum(day)) {
+              if (s.dayOffCounts) {
+                for (let i = 0; i < logs.length; i++) {
+                  if (logs[i].date === key) priorDayOffSec += logs[i].workSec;
+                }
+              }
+              continue;
+            }
+            priorWorkDays++;
             if (leaveSet.has(key)) {
               priorLeaveDays++;
               continue;
@@ -16796,10 +16814,26 @@
             }
           }
           if (leaveSet.has(dateKey)) return 0;
+          if (s.catchUp === "spread") {
+            let daysLeft = 0;
+            for (let day = n; day <= week.endDay; day++) {
+              if (isWorkDayNum(day) && !leaveSet.has(keyOfDay(day))) daysLeft++;
+            }
+            if (daysLeft > 1) {
+              const owedSec =
+                priorWorkDays * goal -
+                priorLeaveDays * goal -
+                priorWorkSec -
+                priorDayOffSec;
+              return Math.max(0, Math.round(goal + owedSec / daysLeft));
+            }
+          }
           const cumulativeSec = (priorWorkDays + 1) * goal;
           return Math.max(
             0,
-            cumulativeSec - (priorWorkSec + priorLeaveDays * goal),
+            cumulativeSec -
+              (priorWorkSec + priorLeaveDays * goal) -
+              priorDayOffSec,
           );
         }
 
@@ -17978,9 +18012,11 @@
               ? state.shiftStartGoalSec
               : liveGoalSec;
         } else {
+          /* The work day of that date's own schedule, so a past week keeps
+             the goal it had (F5). */
           fallbackGoal =
             state.goalAutopopulateEnabled !== false
-              ? getStandardDayGoalSec()
+              ? WorkWeek.workDayGoalSec(dateStr)
               : liveGoalSec;
         }
 
@@ -23572,8 +23608,11 @@
             return r;
           }
           if (kind !== "log") return r;
+          /* Only a missing goal is filled in. A goal of 0 was chosen -- a
+             worked leave day, a day off with no goal -- and is kept
+             (decision W12). */
           const goal =
-            r.dayGoal != null && r.dayGoal > 0
+            r.dayGoal != null && r.dayGoal >= 0
               ? r.dayGoal
               : getStandardDayGoalSec();
           r.dayGoal = goal;
@@ -32655,7 +32694,11 @@
             heatmapMap[l.date] = {
               w: 0,
               b: 0,
-              goal: getStandardDayGoalSec(),
+              /* R5: leave on a work day asks nothing; leave on a day off
+                 leaves that day's goal as it was (R9, W8). */
+              goal: WorkWeek.isWorkDay(l.date)
+                ? 0
+                : WorkWeek.dayGoalSec(l.date),
               isLeave: true,
               type: l.type,
               notes: "",
@@ -33427,12 +33470,16 @@
 
         const barContainer = document.querySelector(".segmented-progress-bar");
         if (barContainer) {
-          /* One segment per work day, labelled with its day's initial. */
+          /* One segment per work day, labelled with its day's initial, and
+             rebuilt when the work days change, not only their count. */
+          const barDays = workDayKeys.map((k) => WorkWeek.weekday(k)).join("");
           if (
             barContainer.children.length !== workDayKeys.length ||
-            barContainer.dataset.viewType !== "weekly"
+            barContainer.dataset.viewType !== "weekly" ||
+            barContainer.dataset.days !== barDays
           ) {
             barContainer.dataset.viewType = "weekly";
+            barContainer.dataset.days = barDays;
             let barHTML = "";
             for (let i = 0; i < workDayKeys.length; i++) {
               const label = "SMTWTFS".charAt(WorkWeek.weekday(workDayKeys[i]));
@@ -44497,8 +44544,10 @@
                 `${l.displayDate || ""} ${l.date || ""} ${l.login || ""} ${l.logout || ""} ${l.notes || ""}${zoneSearchTerms(l)}`.toLowerCase();
             }
             if (!l.status) {
+              /* Only a missing goal is filled in; a goal of 0 is kept
+                 (decision W12). */
               const goal =
-                l.dayGoal != null && l.dayGoal > 0
+                l.dayGoal != null && l.dayGoal >= 0
                   ? l.dayGoal
                   : getStandardDayGoalSec();
               l.dayGoal = goal;
