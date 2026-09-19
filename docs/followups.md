@@ -1,6 +1,6 @@
 # Follow-ups: work week, clock and date formats, re-filing records
 
-> **Status:** plan approved by the user on 2026-09-15, including every proposed default in §10. Phases W0 (measurements), W1 (the `WorkWeek` module, behaviour-identical apart from two differences the user chose), W2 (the schedule, its history and the generalised rules) and W3 (the settings card, the wording, the bar and the guide) are done; Phase W4 is next.
+> **Status:** plan approved by the user on 2026-09-15, including every proposed default in §10. Phases W0 (measurements), W1 (the `WorkWeek` module, behaviour-identical apart from two differences the user chose), W2 (the schedule, its history and the generalised rules), W3 (the settings card, the wording, the bar and the guide) and W4 (live multi-device, the iPhone pass, and decision W16) are done, and W0–W4 are **deployed** (`676976f`, 2026-09-19); Phase C1 is next.
 > **Baseline commit:** `0ba1bd6` (all line numbers below refer to it and WILL drift — re-grep before editing).
 > **Rule:** one phase at a time. A phase starts only when the previous phase's exit criteria are green and committed.
 > **Origin:** the candidate follow-ups in §9 of `docs/implement.md`. "More than two clocks; per-client zones" was dropped by the user (§11 here).
@@ -11,7 +11,7 @@
 | W1    | `WorkWeek` core + behaviour-identical refactor                    | no               | regression only     | L (split W1a/W1b) | done    |
 | W2    | The schedule: preference, history, the generalised rules          | prefs            | stub / fake server  | L (split W2a/W2b) | done    |
 | W3    | Work week UI: settings card, phone sheet, bar, labels, guide      | prefs            | no                  | M–L (split W3a/b) | done    |
-| W4    | Work week sync hardening, multi-device, iPhone                    | no               | **yes**             | M                 | planned |
+| W4    | Work week sync hardening, multi-device, iPhone                    | no               | **yes**             | M                 | done    |
 | C1    | 24-hour clock                                                     | prefs            | no                  | M                 | planned |
 | D1    | Date order: MM/DD, DD/MM, YYYY-MM-DD                              | prefs            | no                  | M–L (split D1a/b) | planned |
 | Z1    | Re-filing a record in another time zone                           | yes (edit paths) | no                  | M (split Z1a/b)   | planned |
@@ -230,7 +230,7 @@ Work week
 
 **Wording (P-W11):** from W3, "Weekend" becomes **"Day off"** in the logbook tag and the insights rows, and the "N Weekends" badge becomes **"N Days off worked"** — worked, because the badge beside it already counts leave as "N Days Off" (decided with the user during W3). Its tooltip reads "…worked on N days off — not counted toward the weekly target", or "— counted toward the weekly target" when the switch is on; the badge appears either way. W1 and W2 keep "Weekend", because they must be behaviour-identical.
 
-**A goal of 0 (P-W16):** the goal badge reads "No goal", the progress text reads "No goal · 2h 10m worked" with no Overtime figure, the bar stays empty, no finishing time is estimated, the heatmap colours the square for having been worked rather than for being exceeded, and no goal toast fires (the toast already requires ≥ 60 s, 28812). This is about the goal, not about why it is 0: it reaches a day off set to zero, a worked leave day, and a work day whose automatic goal comes out 0 because the week is already met (W3 measured the last of these in the golden master's "ahead" pattern, where the line used to read "0.0% (Overtime: 0m)").
+**A goal of 0 on a day off (P-W16, narrowed by decision W16):** the goal badge reads "No goal", the progress text reads "No goal · 2h 10m worked" with no Overtime figure, the bar stays empty, no finishing time is estimated, the heatmap colours the square for having been worked rather than for being exceeded, and no goal toast fires (the toast already requires ≥ 60 s, 28812). It is the **day** that asks nothing, not the arithmetic: this reaches a day off whose goal is 0 and nothing else. A **work** day whose goal comes out 0 — the week is already met, or the day is on leave — keeps the percentage line every build before W3 showed ("0.0% (Overtime: 0m)"), its full bar and its heatmap ladder. W3 shipped the wider reading; W4 narrowed it to this after measuring what the wider one cost against the golden master.
 
 **Leave on a day off (W8):** the booking toast reads "Added leave on 09/19/26 — Saturday is already a day off, so no goal changes".
 
@@ -520,7 +520,8 @@ Also from W0: `probe-workweek-audit.js` (no account; W0, then W2b, where its mea
 - live phases add `harness-phase8.js`, `harness-signin-render.js` and `harness-wipe.js`;
 - from W1: `harness-workweek-core.js`, `probe-workweek-golden.js compare` (with the `--expect` of the phase) and `probe-workweek-eviction.js`;
 - from W2: `harness-workweek-model.js` and `probe-workweek-audit.js`;
-- from W3: `probe-workweek-ui.js`, and the golden master's `--expect=w3`.
+- from W3: `probe-workweek-ui.js`, and the golden master's `--expect=w3`;
+- from W4: `probe-workweek-server.js` (live; last in the list, so a shared-account failure is easy to re-run alone).
 
 **House rules:**
 
@@ -832,7 +833,7 @@ All runs on AC power at 2419 MHz, one suite at a time.
 
 - `Weekend` becomes `Day off` in the logbook tag and the insights row, with `.badge-weekend` becoming `.badge-day-off`;
 - `N Weekends` becomes `N Days off worked`, and its tooltip `worked on N weekend days` becomes `worked on N days off`;
-- a day whose goal is 0 reads `No goal · 0m worked` where it read `0.0% (Overtime: 0m)`. The golden master's `ahead` pattern contains such days — work days whose automatic goal lands on 0 because the week is already met — so P-W16 reaches further than the day-off goal it was written for. That is the rule as stated: it is about the goal, not about why it is 0.
+- a day whose goal is 0 reads `No goal · 0m worked` where it read `0.0% (Overtime: 0m)`. The golden master's `ahead` pattern contains such days — work days whose automatic goal lands on 0 because the week is already met — so P-W16 reaches further than the day-off goal it was written for. That is the rule as stated: it is about the goal, not about why it is 0. **Superseded in W4 by decision W16**, which restricted it to days off; with that, the third difference below disappears and the golden master matches byte for byte again.
 
 **Decisions taken during the phase:** W15 (one letter per bar segment) and the `N Days off worked` wording; both in §10, both asked before the code was written and after the golden master measured what the alternative would cost.
 
@@ -861,6 +862,40 @@ All runs on AC power at 2419 MHz, one suite at a time.
   - revert everything.
 
 **Exit:** all green; the user's checklist recorded here. **Commit:** docs, plus `fix(week): …` only if a defect is found.
+
+#### Phase W4 results (2026-09-19 / 20)
+
+All runs on AC power at 2419 MHz, one suite at a time.
+
+**Baseline on the unmodified tree** (`index.html` md5 `9eb082b4`): the regression list, 25 of 25 green, with no in-chain failure at all.
+
+**The live suites.** `probe-workweek-server.js` was W0's measurement of whether an account could hold a schedule at all, and it could no longer run: its second part patched a `workWeek` entry into the `0ba1bd6` build to stand in for a build that syncs one, and refused to start unless `index.html` was that build. That build is this one now, so the roles were reversed — this checkout serves as the new build and `ww-old/`, rebuilt from `git show 0ba1bd6:index.html` on every run, as the old one. Part 1, the REST round trip of a nested schedule, is unchanged. **38 checks, all pass**, on the live test account:
+
+- **Row 4.** A device signed into an account that holds no schedule writes no key and uploads none: the account's settings keys are the nine it always had, with no `workWeek` among them (F2). A schedule chosen here then reaches the account whole, history included.
+- **Rows 36 and 86, live.** The `0ba1bd6` build uploads a theme change and the account's copy loses the schedule — the W0 measurement reproduced, and now the premise rather than the finding. This build adopts that blob, keeps its own schedule and sends the whole blob back on its next beat: 282 ms later the account holds both the schedule and the old build's theme (decision W11). Four more rounds of beats from both builds change nothing, so the two settle rather than argue. A weekly-goal edit on the old build then writes no archive: this build takes the new number, keeps its history entry, and puts the schedule back again.
+- **Row 3.** A fresh device signing in afterwards receives the schedule, reads it identically to the first device, and the account's stamp does not move.
+- **Row 37**, twice. Two devices change the schedule without seeing each other, and every field of one differs from the other's, so "the winner's schedule, whole" is distinguishable from any mix of the two field by field. The later edit wins on the account and the loser adopts it entire. Then an edit stamped **before** the winner's is uploaded **after** it, and is refused whole: the account keeps the winner's stamp and takes no field from the refused device, which adopts the winner's schedule instead. Four more rounds of beats change nothing.
+- **F6 and row 16, live.** A shift starts on one device with today's goal frozen at 4 h 30 m; the schedule changes on the other device, mid-shift; the running shift keeps the frozen number while the new schedule would ask 1 h (the control). The other device then takes the shift over and reads the same frozen goal and the same elapsed time to within a second — the goal travels with the shift, not with the schedule. Once the shift ends, the next populate asks the new schedule's 1 h.
+
+Two faults of the harness's own on the way, both worth keeping: the row stores `settings_modified` as a timestamptz string while a device stamps wire milliseconds, so comparing the two forms directly is always false; and the two racing edits were five milliseconds apart, close enough for two devices' clock offsets to invert them, so they are spaced deliberately now and the premise asserts the order either way.
+
+The suite is the last entry of `run-followups-regression.sh` (26): a live suite's shared-account failure is then easy to re-run alone. In the chain it passed 38 of 38 in 21 s.
+
+**The one app change: decision W16.** P-W16 as W3 shipped it reached every goal of 0, and W3's results recorded that this was wider than the wording suggested. Asked, the user restricted it to days off. The badge's "No goal", the empty bar, the zero percentages, the missing estimate and the heatmap's "worked" shade now belong to a day off whose goal is 0; a **work** day whose goal comes out 0 — the week already met, or the day on leave — keeps the percentage line, the full bar and the heatmap ladder every build before W3 showed. One flag carries it in `updateProgress` (`dayAsksNothing = !WorkWeek.isWorkDay(todayStr)`), the three percentages get their old three-way arithmetic back, and the heatmap enters its ladder for a work day whatever the goal is. Committed alone as `676976f fix(week): a goal of zero reads as no goal only on a day off`.
+
+**What that measured.** With the rewrite rule for the 0-goal line removed from the golden master, `compare --expect=w3` reports **300 sets, 0 differ**: the build is byte-identical to `0ba1bd6` again, and the only difference W3 still makes on purpose is the "Day off" wording. The rule is gone from `--expect=w3`, which is now that wording and nothing else.
+
+**Tests after the fix** (md5 `bde9f557`): `probe-workweek-ui.js` **110 / 0** — a new section 13b puts today's one work day at 8 h (40 would break the 24-hour rule), takes the goal over by hand at zero, and asserts the old reading end to end: badge "Goal", `100.0% (Overtime: 2s)`, a full bar, `heatmap-exc`. Mutations: the two W3b entries whose code moved were re-anchored and re-graded GOOD, the other seven W3b entries re-graded GOOD unchanged, and two new `W4:` mutations — "a goal of zero reads as no goal on a work day too" and "a work day with no goal is coloured as worked rather than exceeded" — are both caught by that section. **339 mutations, 0 anchor misses.** The 26-suite regression list: 25 green, with `probe-tz-picker.js`'s known flaky "the first open at 4x paints within 100 ms" (145.1 ms in the chain) passing **176 of 176 alone**; `harness-signin-render.js`, red in the chain at the baseline, was green in this one.
+
+**Deployed.** On the user's word, `0ba1bd6..676976f` was pushed — twelve commits, W0 to W3 plus this fix — because the iPhone checklist could not run otherwise: production was still `0ba1bd6`, which has no work week at all. Production served md5 `bde9f557`, identical to the tested file, ten seconds after the push. This is the first deploy since 2026-09-15, and the work week is live.
+
+**The iPhone checklist** (the user, on the installed PWA, 2026-09-19/20). The card as first opened: chips `Mo Tu We Th Fr`, week starts on Monday, per work day `8h`, an empty day-off box showing `6h` as its placeholder, the switch off, catch-up "Next work day" — the defaults, drawn from nothing stored. Reported working exactly as written: a chip with its toast and **Undo**; the day-off goal typed, then `Auto` returning it to the placeholder; the week start with its transition-week note; and booking leave on a day off, which said so and changed no goal.
+
+Step 5 — "last week does not move" — was reported as doubtful and was then measured rather than argued. A diagnostic, `diag-w4-lastweek.js` (8890 / 9490, no account), files eight hours on every work day of this week and last week and drives the card's own chip and the real week arrows, on the desktop layout and at 375 px: last week reads `Week of Sep 7 · M T W T F · 40h / 40h (100%) · 5 rows` before the change, with Saturday added, and after it is taken away again — identical all three times, on both layouts — while this week goes `M T W T F` → `M T W T F S` → `M T W T F`, keeps its 40 h target and moves its status line from "0.0h ahead" to "6.7h ahead", which is what six work days expect by a Saturday. The stored schedule ends with one archive entry, `until: 09/13/26`, holding the old Monday-to-Friday week. Two phone-only controls explain what a reading can look like without anything having moved: **a horizontal swipe on the day list changes the week** (60 px across, under 40 px down), and **a double tap on the date label jumps back to the current week**. Told to read the date label at each step and to use only the arrows, the user confirmed the behaviour. Step 7, the optional mid-shift check, was not run; the live suite covers F6 end to end.
+
+Worth recording: running the checklist leaves the device holding a `nodrift_work_week_v1` preference whose current half is the default and whose history holds one entry. That is the design (R4, W13) — F2 promises only that nothing is written until the user changes something, and they did.
+
+**§4.7 rows asserted in W4:** 3, 4, 16, 36, 37 and 86, plus F6 end to end and F5 on the phone. Row 37 was W4's alone.
 
 ### Phase C1 — 24-hour clock
 
@@ -969,6 +1004,10 @@ All runs on AC power at 2419 MHz, one suite at a time.
 - **W15 — The weekly bar keeps one letter per day.** §4.5 proposed a second letter wherever two of the week's work days share an initial. Measured before it shipped: Tuesday and Thursday share one in the default Monday–Friday week, so every existing user's bar would have gone from `M T W T F` to `M Tu W Th F`, and §1 promises it does not. The segments are in week order and each carries a tooltip with its own date, which is what has told Tuesday from Thursday since the bar was first drawn. Rejected: the rule as written; a rule exempting only Monday–Friday, which would have left two nearly identical schedules labelled differently.
 - **The day-off-work badge reads "N Days off worked".** P-W11 named it "N Days off", but the badge on the line above already counts leave days as "N Days Off", and two badges a line apart differing only in capitalisation is not a distinction anyone reads. The leave badge is unchanged. Rejected: the plan's wording; renaming the leave badge to "N Leave days", which the plan never named.
 
+**Confirmed during Phase W4 (2026-09-19):**
+
+- **W16 — "No goal" belongs to the day, not to the arithmetic.** P-W16 as W3 shipped it reached every goal of 0, including a work day whose automatic goal lands there because the week is already met, or because the day is on leave. Restricted to days off: a work day with a 0 goal keeps the percentage line, the full bar and the heatmap ladder it has always had. Measured before and after — with the rewrite rule for it removed, the golden master compares 300 sets, 0 differ, so the app is byte-identical to `0ba1bd6` again and W3's only intended difference is the "Day off" wording. Rejected: the wider reading as shipped; extending it to leave days, which would have changed what every existing user sees on a leave day.
+
 **Proposed by the plan and confirmed with it on 2026-09-15** (the user approved the plan as written; any of these can still be revisited before the phase named):
 
 | #     | Question                            | Proposed                                                                         | Alternative                                        | Needed by |
@@ -979,7 +1018,7 @@ All runs on AC power at 2419 MHz, one suite at a time.
 | P-W13 | Weekly goal ÷ work days above 24 h  | **Refused** with the reason when the work days are chosen (narrowed by W14)      | Allowed                                            | W2        |
 | P-W14 | Day-off goal once typed             | **Fixed hours** until "Auto" is pressed; unset follows ¾ of the work-day goal    | Always a ratio                                     | W2        |
 | P-W15 | Schedule change during a shift      | **Never retargets the running shift** (F6)                                       | Ask, like "Update Session Goal?"                   | W2        |
-| P-W16 | A 0 h day-off goal                  | **"No goal"**, no Overtime, bar empty                                            | Show everything as overtime (today's 0 goal)       | W3        |
+| P-W16 | A 0 h day-off goal                  | **"No goal"**, no Overtime, bar empty (narrowed by W16 to days off)              | Show everything as overtime (today's 0 goal)       | W3        |
 | P-F1  | Where the clock and date rows live  | **In the Time zones card, renamed "Time and date"** (already on the phone sheet) | A new "Formats" card                               | C1        |
 | P-F2  | Typed slash date in YYYY-MM-DD mode | **Device region**, as today                                                      | Month first                                        | D1b       |
 | P-F3  | Search in DD/MM or YYYY-MM-DD       | **Accepts dates in the chosen order**                                            | Stored order only                                  | D1b       |
