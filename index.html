@@ -4695,6 +4695,93 @@
         box-shadow: var(--elev-2);
       }
 
+      /* The Work week card (docs/followups.md §4.5), directly under the
+         tracking card whose weekly goal it divides. Shaped like the Time
+         zones card above so the panel reads as one set of cards, and one
+         node for both layouts: the phone sheet borrows it (RELOCATIONS). */
+      .ww-settings-card {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+
+      /* The seven chips take the row's whole width and share it equally, so
+         seven of them fit 375 px without wrapping (§4.7 row 42) and grow to
+         a 44 px touch target on the phone by themselves. The label sits on
+         its own line above them (.settings-row.flex-col) for the same
+         reason: a label beside seven chips leaves each one 26 px. */
+      .ww-day-chips {
+        display: flex;
+        gap: 4px;
+        width: 100%;
+      }
+
+      .ww-day-chip {
+        flex: 1 1 0;
+        min-width: 0;
+        height: 26px;
+        padding: 0;
+        border: var(--hairline);
+        border-radius: 6px;
+        background: var(--surface-2);
+        color: var(--text-muted);
+        font-size: 0.7rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition:
+          background-color 0.15s,
+          color 0.15s;
+      }
+
+      .ww-day-chip:hover:not(:disabled) {
+        background: var(--element-hover);
+      }
+
+      .ww-day-chip[aria-pressed="true"] {
+        background: var(--accent-soft);
+        border-color: color-mix(in srgb, var(--accent-blue) 45%, transparent);
+        color: var(--accent-blue);
+      }
+
+      .ww-setting-value {
+        font-size: 0.72rem;
+        font-weight: 500;
+        color: var(--text-muted);
+      }
+
+      /* Field, unit and Auto read as one control at the end of the row. */
+      .ww-day-off-goal-group {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .ww-day-off-goal-group input.input-standard {
+        width: 4.5rem;
+        text-align: right;
+      }
+
+      .ww-day-off-goal-group .unit {
+        font-size: 0.72rem;
+        color: var(--text-muted);
+      }
+
+      /* A whole row that has nothing to say at this schedule: seven work days
+         leave no day off to set a goal for. Dimmed rather than removed, so
+         the card does not change height as the chips are pressed. */
+      .ww-settings-card .settings-row.is-disabled {
+        opacity: 0.45;
+        pointer-events: none;
+      }
+
+      /* The note under the card: "No days off", or the week a week-start
+         change made short (R4). Its own line, quiet, and it wraps. */
+      .ww-note {
+        font-size: 0.66rem;
+        line-height: 1.35;
+        color: var(--text-muted);
+      }
+
       /* The clock labels dialog. [hidden] has to be said here: a class that
          sets its own display outranks the attribute's user-agent rule. */
       .zone-labels-field[hidden],
@@ -6217,8 +6304,10 @@
 
       /* Chrome keeps its size: shrinking an icon or a 28px touch target to buy
          room for text is never the right trade. */
+      /* By class, not by id: there are two undo buttons now and a rule that
+         lists them one at a time is a rule that forgets the third. */
       #undo-btn,
-      #adjust-undo-btn,
+      .toast-undo-btn,
       .toast-close-btn {
         flex-shrink: 0;
         white-space: nowrap;
@@ -7911,6 +8000,59 @@
         }
 
         #m-sheet .tz-log-times-row .custom-select-trigger {
+          min-height: 44px;
+        }
+
+        /* The work week card, borrowed into its own sheet section. Same
+           treatment as the time zones card above: the section label names
+           it, so its heading steps aside, and its rows take the Cloud row's
+           shape and height. */
+        #m-sheet .ww-settings-card {
+          padding: 0;
+          background: none;
+          border: 0;
+          gap: 0.5rem;
+        }
+
+        #m-sheet .ww-settings-heading {
+          display: none;
+        }
+
+        #m-sheet .ww-settings-card > .settings-row {
+          gap: 0.6rem;
+          min-height: 48px;
+          padding: 0.5rem 0.85rem;
+          background: var(--surface-1);
+          border: var(--hairline);
+          border-radius: var(--radius-md);
+        }
+
+        #m-sheet .ww-settings-card .settings-label {
+          font-size: var(--field-text-touch);
+          font-weight: 600;
+          letter-spacing: normal;
+          color: var(--text-main);
+        }
+
+        /* The touch target the seven chips are here for: they already share
+           the row's width, so only the height has to be said. */
+        #m-sheet .ww-day-chip {
+          height: 44px;
+          font-size: 0.8rem;
+        }
+
+        #m-sheet .ww-setting-value,
+        #m-sheet .ww-note {
+          font-size: 0.8rem;
+          color: var(--text-muted);
+        }
+
+        #m-sheet .ww-week-start-select,
+        #m-sheet .ww-catch-up-select {
+          width: 10.5rem;
+        }
+
+        #m-sheet .ww-settings-card .custom-select-trigger {
           min-height: 44px;
         }
 
@@ -15003,6 +15145,189 @@
                   </div>
                 </div>
 
+                <!-- Card 1b: Work week (docs/followups.md §4.5). Directly
+                     under the tracking card, because every row here divides
+                     or paces the weekly goal in it.
+
+                     One node for both layouts, like the Time zones card: the
+                     phone sheet borrows it into its Work week section (see
+                     MobileShell's RELOCATIONS). Nothing in here is shown or
+                     hidden with an inline display for that reason (I13); a
+                     row with nothing to say takes .is-disabled instead.
+
+                     The chips, the read-out, the note and every control's
+                     value are written by renderWorkWeekSettings(). -->
+                <div class="settings-card ww-settings-card">
+                  <span class="settings-label ww-settings-heading"
+                    >Work week</span
+                  >
+                  <div class="settings-row flex-col ww-days-row">
+                    <span class="settings-label">Work days</span>
+                    <div
+                      class="ww-day-chips"
+                      id="ww-day-chips"
+                      role="group"
+                      aria-label="Work days"
+                    ></div>
+                  </div>
+                  <div class="settings-row">
+                    <span class="settings-label">Week starts on</span>
+                    <div class="custom-select ww-week-start-select">
+                      <select
+                        id="ww-week-start"
+                        style="display: none"
+                        onchange="onWeekStartChange(this.value)"
+                      >
+                        <option value="1">Monday</option>
+                        <option value="0">Sunday</option>
+                        <option value="6">Saturday</option>
+                      </select>
+                      <button
+                        type="button"
+                        class="custom-select-trigger cs-sm"
+                        data-for="ww-week-start"
+                        aria-haspopup="listbox"
+                      >
+                        <span class="cs-trigger-val">Monday</span>
+                        <svg
+                          class="cs-chevron"
+                          viewBox="0 0 24 24"
+                          width="14"
+                          height="14"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="1.8"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                        >
+                          <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                      </button>
+                      <div
+                        class="custom-select-panel cs-compact"
+                        role="listbox"
+                      >
+                        <button
+                          type="button"
+                          class="custom-select-option cs-selected"
+                          data-value="1"
+                        >
+                          Monday
+                        </button>
+                        <button
+                          type="button"
+                          class="custom-select-option"
+                          data-value="0"
+                        >
+                          Sunday
+                        </button>
+                        <button
+                          type="button"
+                          class="custom-select-option"
+                          data-value="6"
+                        >
+                          Saturday
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="settings-row">
+                    <span class="settings-label">Per work day</span>
+                    <span id="ww-per-day-value" class="ww-setting-value"></span>
+                  </div>
+                  <div class="settings-row" id="ww-day-off-goal-row">
+                    <span class="settings-label">Goal on a day off</span>
+                    <span class="ww-day-off-goal-group">
+                      <input
+                        type="number"
+                        id="ww-day-off-goal"
+                        class="input-standard"
+                        min="0"
+                        max="24"
+                        step="0.25"
+                        onchange="onDayOffGoalChange()"
+                        onfocus="this.select()"
+                      />
+                      <span class="unit">h</span>
+                      <button
+                        type="button"
+                        id="ww-day-off-auto"
+                        class="btn-secondary"
+                        onclick="onDayOffGoalAuto()"
+                      >
+                        Auto
+                      </button>
+                    </span>
+                  </div>
+                  <div class="settings-row" id="ww-day-off-counts-row">
+                    <span class="settings-label"
+                      >Day-off work counts toward the week</span
+                    >
+                    <label class="switch">
+                      <input
+                        type="checkbox"
+                        id="ww-day-off-counts"
+                        onchange="onDayOffCountsChange()"
+                      />
+                      <span class="slider-toggle"></span>
+                    </label>
+                  </div>
+                  <div class="settings-row">
+                    <span class="settings-label">Catch-up</span>
+                    <div class="custom-select ww-catch-up-select">
+                      <select
+                        id="ww-catch-up"
+                        style="display: none"
+                        onchange="onCatchUpChange(this.value)"
+                      >
+                        <option value="next">Next work day</option>
+                        <option value="spread">Spread over the week</option>
+                      </select>
+                      <button
+                        type="button"
+                        class="custom-select-trigger cs-sm"
+                        data-for="ww-catch-up"
+                        aria-haspopup="listbox"
+                      >
+                        <span class="cs-trigger-val">Next work day</span>
+                        <svg
+                          class="cs-chevron"
+                          viewBox="0 0 24 24"
+                          width="14"
+                          height="14"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="1.8"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                        >
+                          <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                      </button>
+                      <div
+                        class="custom-select-panel cs-compact"
+                        role="listbox"
+                      >
+                        <button
+                          type="button"
+                          class="custom-select-option cs-selected"
+                          data-value="next"
+                        >
+                          Next work day
+                        </button>
+                        <button
+                          type="button"
+                          class="custom-select-option"
+                          data-value="spread"
+                        >
+                          Spread over the week
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                  <span class="ww-note" id="ww-note" hidden></span>
+                </div>
+
                 <!-- Card 2: Automatic Tracking & Data Options -->
                 <div
                   class="settings-card"
@@ -16036,6 +16361,7 @@
           data-slot="goal"
           data-label="Goals"
         ></div>
+        <div class="m-sheet-slot" data-slot="week" data-label="Work week"></div>
         <div class="m-sheet-slot" data-slot="tz" data-label="Time Zone"></div>
         <div
           class="m-sheet-slot"
@@ -16246,7 +16572,11 @@
         tooltip.style.top = `${top}px`;
       }
 
-      function showAdjustmentToast(msg, showUndo, type = "success") {
+      /* An app toast with an Undo beside the message. There are two of these
+         now -- a time adjustment and a work-week change -- so the way back is
+         the caller's to name rather than this function's to know. Pass no
+         callback for a toast with no button. */
+      function showUndoableToast(msg, onUndo, type = "success", btnId = "") {
         dismissOtherToasts("app-toast");
         const toast = DOM.appToast;
         const contentEl = DOM.appToastContent;
@@ -16277,9 +16607,12 @@
            interpolation. */
         contentEl.innerHTML = `<span>${escapeHTML(msg)}</span>`;
 
-        if (showUndo) {
+        if (onUndo) {
           const undoBtn = document.createElement("button");
-          undoBtn.id = "adjust-undo-btn";
+          /* The class is what the chrome rule reaches; the id is only for the
+             one caller that had it before there were two. */
+          undoBtn.className = "toast-undo-btn";
+          if (btnId) undoBtn.id = btnId;
           undoBtn.textContent = "Undo";
           undoBtn.style.cssText = `
           background: var(--accent-soft);
@@ -16296,7 +16629,7 @@
         `;
           undoBtn.addEventListener("click", (e) => {
             e.stopPropagation();
-            undoTimeAdjustment();
+            onUndo();
           });
           contentEl.appendChild(undoBtn);
         }
@@ -16991,6 +17324,34 @@
           return { ok: true, changed: true };
         }
 
+        /* The preference exactly as it sits in storage, and the way back to
+           it. Undo in the settings card writes these bytes back rather than
+           re-serialising what it read, so a history this build did not write
+           -- a longer one from another device, keys a later version added --
+           comes back the way it was found, and the absence of the key is
+           itself something to come back to (F2). */
+        function snapshot() {
+          try {
+            return localStorage.getItem(WORK_WEEK_KEY);
+          } catch (e) {
+            return null;
+          }
+        }
+
+        function restoreSnapshot(raw) {
+          try {
+            if (raw === null || raw === undefined) {
+              localStorage.removeItem(WORK_WEEK_KEY);
+            } else {
+              localStorage.setItem(WORK_WEEK_KEY, raw);
+            }
+          } catch (e) {
+            return false;
+          }
+          invalidate();
+          return true;
+        }
+
         /* A backup's schedule replaces this device's whole, history and all:
            a restore is not an edit of this week, so nothing is archived. */
         function restore(value) {
@@ -17004,8 +17365,10 @@
           return true;
         }
 
-        /* The one door that changes the schedule until the settings card
-           exists (W3); the headless tests go through it. */
+        /* Change, save and redraw in one call. The settings card does those
+           three steps itself, because it also has an Undo to arm between
+           them; this is the door everything else goes through, the headless
+           tests included. */
         function setSchedule(changes) {
           const result = change(changes);
           if (result.ok && result.changed) {
@@ -17025,6 +17388,8 @@
           renderKey,
           change,
           restore,
+          snapshot,
+          restoreSnapshot,
           setSchedule,
           scheduleFor,
           workDayIndex,
@@ -17042,6 +17407,11 @@
           weeksInMonth,
           yearGrid,
           workDayGoalSec,
+          /* What a day off asks under the schedule governing a date, whether
+             or not that date is one. The settings card shows it as the
+             placeholder behind an empty "Goal on a day off"; every other
+             caller wants dayGoalSec, which asks the day itself. */
+          dayOffGoalSec: (dateKey) => dayOffGoalOf(scheduleFor(dateKey)),
           dayGoalSec,
           dayGoalSecNum,
           targetOf,
@@ -18221,6 +18591,16 @@
         goalMins: document.getElementById("goal-mins"),
         goalSecs: document.getElementById("goal-secs"),
         weeklyGoalHours: document.getElementById("weekly-goal-hours"),
+        wwDayChips: document.getElementById("ww-day-chips"),
+        wwWeekStart: document.getElementById("ww-week-start"),
+        wwPerDayValue: document.getElementById("ww-per-day-value"),
+        wwDayOffGoal: document.getElementById("ww-day-off-goal"),
+        wwDayOffGoalRow: document.getElementById("ww-day-off-goal-row"),
+        wwDayOffAuto: document.getElementById("ww-day-off-auto"),
+        wwDayOffCounts: document.getElementById("ww-day-off-counts"),
+        wwDayOffCountsRow: document.getElementById("ww-day-off-counts-row"),
+        wwCatchUp: document.getElementById("ww-catch-up"),
+        wwNote: document.getElementById("ww-note"),
         submitModal: document.getElementById("submit-modal"),
         modalShiftNotes: document.getElementById("modal-shift-notes"),
         noteModal: document.getElementById("note-modal"),
@@ -36294,6 +36674,9 @@
         }
 
         const hours = Math.round(raw * 2) / 2;
+        /* Taken before the change, like every edit in the work week card
+           below: this is one of them, and it offers the same way back. */
+        const before = workWeekUndoPoint();
         /* R4: the weeks before this one keep the goal they had. */
         if (!WorkWeek.change({ weeklyGoalHours: hours }).ok) {
           state.weeklyGoalHours = hours;
@@ -36325,10 +36708,13 @@
         if (typeof renderInsights === "function") renderInsights();
         if (typeof renderLogbook === "function") renderLogbook();
         if (typeof updateProgress === "function") updateProgress();
+        if (typeof renderWorkWeekSettings === "function") {
+          renderWorkWeekSettings();
+        }
 
-        showAppToast(
+        announceScheduleChange(
           `Weekly goal set to ${state.weeklyGoalHours}h (${formatFriendlyDuration(getStandardDayGoalSec())}/day)`,
-          "success",
+          before,
         );
       }
       window.onWeeklyGoalChange = onWeeklyGoalChange;
@@ -36364,11 +36750,326 @@
           if (typeof renderLogbook === "function") renderLogbook();
           if (typeof renderInsights === "function") renderInsights();
           if (typeof updateProgress === "function") updateProgress();
+          /* The card is a view of the schedule like any other, so a change
+             arriving by sync, from a backup or from another tab redraws it
+             too -- not only the edits made in it. */
+          if (typeof renderWorkWeekSettings === "function") {
+            renderWorkWeekSettings();
+          }
         } catch (e) {
           console.warn("Could not redraw after a work week change", e);
         }
       }
       window.onScheduleChanged = onScheduleChanged;
+
+      /* ---- The Work week card (docs/followups.md §4.5) -------------------
+
+         The schedule the rules above resolve, made editable. Every control
+         goes through applyScheduleChange, so there is one place that asks
+         WorkWeek.change to archive the week that is ending (R4), runs the
+         funnel (F8), redraws the card and arms the way back.
+
+         Undo puts back the bytes that were in storage before the edit, not a
+         schedule rebuilt from what the card was showing: a history written
+         by another device, or by a version that knows keys this one does
+         not, has to come back exactly as it was found -- including the case
+         where there was no preference at all (F2). */
+
+      /* Two letters on the chip, the whole name for anyone reading it out. */
+      const WW_DAY_CHIP_LABELS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
+      const WW_DAY_FULL_NAMES = [
+        "Sunday",
+        "Monday",
+        "Tuesday",
+        "Wednesday",
+        "Thursday",
+        "Friday",
+        "Saturday",
+      ];
+      const WW_WEEK_START_NAMES = {
+        0: "Sunday",
+        1: "Monday",
+        6: "Saturday",
+      };
+
+      /* The seven weekdays in the order this schedule draws a week. */
+      function workWeekDayOrder(weekStart) {
+        const order = [];
+        for (let i = 0; i < 7; i++) order.push((weekStart + i) % 7);
+        return order;
+      }
+
+      /* "Mon-Thu", "Mon, Wed, Fri", "every day" -- runs of three or more
+         collapsed, in the order the chips are in, so the toast names the days
+         the way the card just drew them. */
+      function describeWorkDays(workDays, weekStart) {
+        const order = workWeekDayOrder(weekStart).filter(
+          (d) => workDays.indexOf(d) !== -1,
+        );
+        if (order.length === 7) return "every day";
+        const parts = [];
+        for (let i = 0; i < order.length; i++) {
+          const start = i;
+          while (i + 1 < order.length && (order[i] + 1) % 7 === order[i + 1]) {
+            i++;
+          }
+          if (i - start >= 2) {
+            parts.push(
+              `${_DAY_NAMES_SHORT[order[start]]}–${_DAY_NAMES_SHORT[order[i]]}`,
+            );
+          } else {
+            for (let k = start; k <= i; k++) {
+              parts.push(_DAY_NAMES_SHORT[order[k]]);
+            }
+          }
+        }
+        return parts.join(", ");
+      }
+
+      /* "Sep 14" -- a business-date key as a month and a day, for the clause
+         that says which week a change starts from. */
+      function workWeekDayLabel(dateKey) {
+        const p = String(dateKey || "").split("/");
+        const m = Number(p[0]);
+        const d = Number(p[1]);
+        return m >= 1 && m <= 12 && d >= 1
+          ? `${_SHORT_MONTHS[m - 1]} ${d}`
+          : String(dateKey || "");
+      }
+
+      /* The card, from the schedule in force. Reads only: drawing it must
+         never write the preference a user has not set (F2). */
+      function renderWorkWeekSettings() {
+        const chips = DOM.wwDayChips;
+        if (!chips) return;
+        const s = WorkWeek.scheduleFor();
+        const order = workWeekDayOrder(s.weekStart);
+        const everyDay = s.workDays.length === 7;
+
+        /* Rebuilt only when the days or their order actually change: the
+           chips are what a click lands on, and replacing the node under a
+           pointer loses the press. */
+        const shape = order.join("") + "|" + s.workDays.join("");
+        if (chips.dataset.shape !== shape) {
+          chips.dataset.shape = shape;
+          chips.textContent = "";
+          order.forEach((day) => {
+            const chip = document.createElement("button");
+            chip.type = "button";
+            chip.className = "ww-day-chip";
+            chip.dataset.day = String(day);
+            chip.textContent = WW_DAY_CHIP_LABELS[day];
+            chip.setAttribute("aria-label", WW_DAY_FULL_NAMES[day]);
+            chip.setAttribute(
+              "aria-pressed",
+              s.workDays.indexOf(day) !== -1 ? "true" : "false",
+            );
+            chip.addEventListener("click", () => onWorkDayChipClick(day));
+            chips.appendChild(chip);
+          });
+        }
+
+        if (DOM.wwWeekStart && DOM.wwWeekStart.value !== String(s.weekStart)) {
+          DOM.wwWeekStart.value = String(s.weekStart);
+        }
+        setText(
+          DOM.wwPerDayValue,
+          formatFriendlyDuration(WorkWeek.workDayGoalSec(), "0m"),
+        );
+
+        if (DOM.wwDayOffGoal) {
+          const typed =
+            s.dayOffGoalHours === null ? "" : String(s.dayOffGoalHours);
+          if (DOM.wwDayOffGoal.value !== typed) DOM.wwDayOffGoal.value = typed;
+          /* What an empty field would ask for, so "Auto" is a number the
+             user can see rather than a promise. */
+          DOM.wwDayOffGoal.placeholder = formatFriendlyDuration(
+            WorkWeek.dayOffGoalSec(),
+            "0m",
+          );
+          DOM.wwDayOffGoal.disabled = everyDay;
+        }
+        if (DOM.wwDayOffAuto) {
+          DOM.wwDayOffAuto.disabled = everyDay || s.dayOffGoalHours === null;
+        }
+        if (DOM.wwDayOffCounts) {
+          DOM.wwDayOffCounts.checked = !!s.dayOffCounts;
+          DOM.wwDayOffCounts.disabled = everyDay;
+        }
+        /* A row with nothing to answer is dimmed by class, never hidden by an
+           inline display: this card lives in the phone sheet too (I13). */
+        if (DOM.wwDayOffGoalRow) {
+          DOM.wwDayOffGoalRow.classList.toggle("is-disabled", everyDay);
+        }
+        if (DOM.wwDayOffCountsRow) {
+          DOM.wwDayOffCountsRow.classList.toggle("is-disabled", everyDay);
+        }
+        if (DOM.wwCatchUp && DOM.wwCatchUp.value !== s.catchUp) {
+          DOM.wwCatchUp.value = s.catchUp;
+        }
+
+        /* The note says the one thing the rows above cannot: that there are
+           no days off to set, or that this week is the short one a week-start
+           change leaves behind (R4, P-W12). */
+        const note = DOM.wwNote;
+        if (note) {
+          const week = WorkWeek.weekOf(getWorkDate());
+          let text = "";
+          if (everyDay) {
+            text = "No days off";
+          } else if (week.days.length < 7) {
+            text =
+              `This week runs ${_DAY_NAMES_SHORT[WorkWeek.weekday(week.startKey)]} ` +
+              `${workWeekDayLabel(week.startKey)} – ` +
+              `${_DAY_NAMES_SHORT[WorkWeek.weekday(week.endKey)]} ` +
+              `${workWeekDayLabel(week.endKey)}; weeks start on ` +
+              `${WW_WEEK_START_NAMES[s.weekStart]} from ` +
+              `${workWeekDayLabel(WorkWeek.keyOfDay(week.endDay + 1))}`;
+          }
+          setText(note, text);
+          note.hidden = !text;
+        }
+      }
+      window.renderWorkWeekSettings = renderWorkWeekSettings;
+
+      /* What Undo needs, taken before the change: the stored bytes, the
+         weekly goal that went with them, and the week the change applies
+         from, which is this week as the OLD schedule drew it (R4). */
+      function workWeekUndoPoint() {
+        return {
+          raw: WorkWeek.snapshot(),
+          hours: state.weeklyGoalHours,
+          from: workWeekDayLabel(WorkWeek.weekOf(getWorkDate()).startKey),
+        };
+      }
+
+      let wwUndoPoint = null;
+
+      function applyScheduleChange(changes, describe) {
+        const before = workWeekUndoPoint();
+        const result = WorkWeek.change(changes);
+        /* Refused, or nothing to do: put the controls back on the schedule
+           that is still in force, so a chip that did not take does not stay
+           pressed. */
+        if (!result.ok) {
+          renderWorkWeekSettings();
+          showAppToast(result.reason, "warning");
+          return result;
+        }
+        if (!result.changed) {
+          renderWorkWeekSettings();
+          return result;
+        }
+        onScheduleChanged();
+        renderWorkWeekSettings();
+        announceScheduleChange(describe, before);
+        return result;
+      }
+
+      /* "Work days: Mon-Thu, from this week (Sep 14)". A running shift keeps
+         the goal it started with (F6), which is worth saying at the moment
+         the schedule changes rather than leaving the top bar to contradict
+         the card. */
+      function announceScheduleChange(describe, before) {
+        wwUndoPoint = before;
+        showUndoableToast(
+          `${describe}, from this week (${before.from})` +
+            (sessionIsLive(state) ? " — today's shift keeps its goal" : ""),
+          undoScheduleChange,
+          "success",
+        );
+      }
+
+      window.undoScheduleChange = function () {
+        const back = wwUndoPoint;
+        wwUndoPoint = null;
+        if (!back) return;
+        WorkWeek.restoreSnapshot(back.raw);
+        if (state.weeklyGoalHours !== back.hours) {
+          state.weeklyGoalHours = back.hours;
+          if (DOM.weeklyGoalHours) {
+            DOM.weeklyGoalHours.value = String(back.hours);
+          }
+          if (window.Sync) window.Sync.markDirty("settings");
+          saveState(true);
+        }
+        onScheduleChanged();
+        renderWorkWeekSettings();
+        showAppToast("Work week restored", "success");
+      };
+
+      /* One chip. The last work day cannot be switched off -- WorkWeek.change
+         refuses an empty week and says so -- and a choice that would make a
+         work day longer than 24 hours is refused with its own reason (W14). */
+      window.onWorkDayChipClick = function (day) {
+        const s = WorkWeek.scheduleFor();
+        const next = s.workDays.filter((d) => d !== day);
+        if (next.length === s.workDays.length) next.push(day);
+        next.sort((a, b) => a - b);
+        applyScheduleChange(
+          { workDays: next },
+          `Work days: ${describeWorkDays(next, s.weekStart)}`,
+        );
+      };
+
+      window.onWeekStartChange = function (value) {
+        const weekStart = Number(value);
+        applyScheduleChange(
+          { weekStart },
+          `Week starts on ${WW_WEEK_START_NAMES[weekStart] || value}`,
+        );
+      };
+
+      /* Typed hours stay exactly those hours until "Auto" is pressed
+         (P-W14); an empty field means automatic, which is the same thing as
+         pressing it. */
+      window.onDayOffGoalChange = function () {
+        const el = DOM.wwDayOffGoal;
+        if (!el) return;
+        const raw = el.value.trim();
+        if (raw === "") {
+          window.onDayOffGoalAuto();
+          return;
+        }
+        const hours = Math.round(parseFloat(raw) * 4) / 4;
+        if (!Number.isFinite(hours) || hours < 0 || hours > 24) {
+          renderWorkWeekSettings();
+          showAppToast("A day off can ask between 0 and 24 hours", "warning");
+          return;
+        }
+        applyScheduleChange(
+          { dayOffGoalHours: hours },
+          hours === 0
+            ? "Goal on a day off: none"
+            : `Goal on a day off: ${formatFriendlyDuration(Math.round(hours * 3600), "0m")}`,
+        );
+      };
+
+      window.onDayOffGoalAuto = function () {
+        applyScheduleChange(
+          { dayOffGoalHours: null },
+          "Goal on a day off: automatic",
+        );
+      };
+
+      window.onDayOffCountsChange = function () {
+        const on = !!(DOM.wwDayOffCounts && DOM.wwDayOffCounts.checked);
+        applyScheduleChange(
+          { dayOffCounts: on },
+          on
+            ? "Day-off work counts toward the week"
+            : "Day-off work is not counted toward the week",
+        );
+      };
+
+      window.onCatchUpChange = function (value) {
+        applyScheduleChange(
+          { catchUp: value },
+          value === "spread"
+            ? "Catch-up: spread over the week"
+            : "Catch-up: next work day",
+        );
+      };
 
       /**
        * Erases everything this browser holds and reboots into a clean install.
@@ -38253,7 +38954,12 @@
             toastMsg = `${timeFormattedStr} ${verb} ${timerLabel} timer.`;
           }
 
-          showAdjustmentToast(toastMsg, true, "success");
+          showUndoableToast(
+            toastMsg,
+            undoTimeAdjustment,
+            "success",
+            "adjust-undo-btn",
+          );
 
           return true;
         } finally {
@@ -39629,6 +40335,7 @@
 
       function syncSettingsUI() {
         renderZoneSettings();
+        renderWorkWeekSettings();
         if (DOM.weeklyGoalHours) {
           DOM.weeklyGoalHours.value = String(
             Number.isFinite(state.weeklyGoalHours) && state.weeklyGoalHours > 0
@@ -45191,6 +45898,7 @@
         const RELOCATIONS = [
           { slot: "goal", selector: ".goal-container" },
           { slot: "goal", selector: ".weekly-goal-container" },
+          { slot: "week", selector: ".ww-settings-card" },
           { slot: "tz", selector: ".tz-settings-card" },
 
           { slot: "theme", selector: ".theme-container" },
@@ -45243,10 +45951,14 @@
 
         function openSheet() {
           if (!state.active) return;
-          /* The Time Zone section reads the preferences. The funnel keeps it
-             current while the sheet is open; this, while it was not. */
+          /* The Time Zone and Work week sections read the preferences. The
+             funnels keep them current while the sheet is open; this, while
+             it was not. */
           if (typeof window.renderZoneSettings === "function") {
             window.renderZoneSettings();
+          }
+          if (typeof window.renderWorkWeekSettings === "function") {
+            window.renderWorkWeekSettings();
           }
           document.body.classList.add("m-sheet-open");
           const btn = el("m-more-btn");
