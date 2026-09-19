@@ -29554,22 +29554,34 @@
         const loggedSec = getTodayLoggedWorkSeconds();
         const totalWorkToday = loggedSec + workSeconds;
 
-        /* P-W16. A goal of zero is a day that asks nothing -- a day off the
-           user set to no goal, or a worked leave day. Everything that reads
-           "done", "over" or "full" has nothing to measure against, so it
-           steps aside rather than reporting a bar filled by the first second
-           of the day (work / 0 was Infinity, which rounded to 100%). */
-        const noSessionGoal = uiGoalSec === 0;
-        const noDayGoal = anchorGoalSec === 0;
+        /* P-W16, as narrowed by decision W16. A goal of zero reads as a day
+           that asks nothing only where the DAY asks nothing: a day off whose
+           goal the user set to zero. Everything that reads "done", "over" or
+           "full" then has nothing to measure against, so it steps aside
+           rather than reporting a bar filled by the first second of the day
+           (work / 0 was Infinity, which rounded to 100%).
+
+           A work day whose goal happens to land on zero -- the week is
+           already met, or the day is on leave -- keeps the percentage line
+           every build before this one showed. */
+        const dayAsksNothing = !WorkWeek.isWorkDay(todayStr);
+        const noSessionGoal = uiGoalSec === 0 && dayAsksNothing;
+        const noDayGoal = anchorGoalSec === 0 && dayAsksNothing;
         const sessionPercent =
-          uiGoalSec > 0 ? Math.min((workSeconds / uiGoalSec) * 100, 100) : 0;
+          uiGoalSec > 0
+            ? Math.min((workSeconds / uiGoalSec) * 100, 100)
+            : !noSessionGoal && workSeconds > 0
+              ? 100
+              : 0;
         const sessionDiff = workSeconds - uiGoalSec;
         const sessionScale = sessionPercent / 100;
 
         const dailyPercent =
           anchorGoalSec > 0
             ? Math.min((totalWorkToday / anchorGoalSec) * 100, 100)
-            : 0;
+            : !noDayGoal && totalWorkToday > 0
+              ? 100
+              : 0;
         const dailyDiff = totalWorkToday - anchorGoalSec;
         const dailyScale = dailyPercent / 100;
         const isGoalReached =
@@ -29607,10 +29619,13 @@
             todaySegment && todaySegment.classList.contains("is-leave");
 
           const segmentGoalSec = anchorGoalSec;
-          const segmentPercent =
-            isLeaveToday || segmentGoalSec <= 0
-              ? 0
-              : Math.min((totalWorkToday / segmentGoalSec) * 100, 100);
+          const segmentPercent = isLeaveToday
+            ? 0
+            : segmentGoalSec > 0
+              ? Math.min((totalWorkToday / segmentGoalSec) * 100, 100)
+              : !noDayGoal && totalWorkToday > 0
+                ? 100
+                : 0;
           const segmentScale = segmentPercent / 100;
 
           if (
@@ -33431,11 +33446,12 @@
                   notes: `${data.type} Leave Day`,
                 };
               } else {
-                /* P-W16: a day that asks nothing cannot be exceeded. Work
-                   done on one still colours its square -- at the shade that
-                   means "worked", not the one that means "well past the
-                   goal", which is what w / 0 used to reach. */
-                if (data.goal > 0) {
+                /* P-W16, narrowed by W16: a DAY OFF that asks nothing cannot
+                   be exceeded. Work done on one still colours its square --
+                   at the shade that means "worked", not the one that means
+                   "well past the goal", which is what w / 0 used to reach. A
+                   work day whose goal is zero keeps the old ladder. */
+                if (data.goal > 0 || WorkWeek.isWorkDay(dateKey)) {
                   const ratio = data.w / data.goal;
                   if (ratio >= 1.2) {
                     hClass = "heatmap-exc";
