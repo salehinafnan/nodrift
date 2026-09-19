@@ -1745,6 +1745,13 @@
         font-variant-caps: all-small-caps;
       }
 
+      /* A 24-hour clock has no AM/PM, and an empty span must not leave its
+         gap behind (row 46). The element stays in place rather than being
+         removed: setClock only ever writes text into it. */
+      .clock-ampm:empty {
+        margin-left: 0;
+      }
+
       .clock-divider {
         width: 1px;
         height: 14px;
@@ -4675,14 +4682,16 @@
 
       /* Two classes: .custom-select's own width: 100% comes later in the
          sheet and would otherwise take the row from the label. */
-      .tz-log-times-row .tz-log-times-select {
+      .tz-log-times-row .tz-log-times-select,
+      .tz-clock-row .tz-clock-select {
         width: 8.5rem;
         flex: 0 0 auto;
       }
 
       /* Anchored to the row's end, so a menu wider than its trigger grows
          over the label rather than out of the card. */
-      .tz-log-times-select .custom-select-panel {
+      .tz-log-times-select .custom-select-panel,
+      .tz-clock-select .custom-select-panel {
         left: auto;
         right: 0;
       }
@@ -7968,7 +7977,8 @@
         }
 
         #m-sheet .tz-setting-row,
-        #m-sheet .tz-log-times-row {
+        #m-sheet .tz-log-times-row,
+        #m-sheet .tz-clock-row {
           gap: 0.6rem;
           min-height: 48px;
           padding: 0 0.85rem;
@@ -7998,11 +8008,13 @@
           height: 16px;
         }
 
-        #m-sheet .tz-log-times-select {
+        #m-sheet .tz-log-times-select,
+        #m-sheet .tz-clock-select {
           width: 9rem;
         }
 
-        #m-sheet .tz-log-times-row .custom-select-trigger {
+        #m-sheet .tz-log-times-row .custom-select-trigger,
+        #m-sheet .tz-clock-row .custom-select-trigger {
           min-height: 44px;
         }
 
@@ -10860,9 +10872,26 @@
             </li>
             <li>
               If you leave out AM/PM, anything from 12 upwards is read as PM and
-              anything below 12 as AM.
+              anything below 12 as AM — so <code>1730</code> is half past five
+              in the afternoon.
             </li>
           </ul>
+          <h4>12-hour or 24-hour</h4>
+          <p>
+            <strong>Settings &amp; Tools → Time and date → Clock</strong>
+            switches every time on screen between
+            <strong>05:30:00 PM</strong> and <strong>17:30:00</strong>: both
+            clocks in the top bar, the logbook, the tasks, the finish estimate
+            and the idle dialog. It changes nothing that is stored, and typing
+            goes on accepting both forms, so <code>1730</code> and
+            <code>530p</code> mean the same thing whichever you choose.
+          </p>
+          <p>
+            Exported files stay 12-hour on purpose. The CSVs, the copy buttons
+            and the JSON backup read exactly as they always have, so a
+            spreadsheet — or a colleague — never has to know which way you read
+            a clock.
+          </p>
           <hr />
           <h4>The "RAM Only" warning</h4>
           <p>
@@ -15043,15 +15072,17 @@
                     </svg>
                   </button>
                 </div>
-                <!-- Card 0: Time zones. First, because the work zone decides
-                     what "today" is for every card below it
-                     (docs/implement.md §4.3). One node for both layouts: the
-                     phone sheet borrows it into its Time Zone section (see
-                     MobileShell's RELOCATIONS). The read-outs are filled in
-                     by renderZoneSettings(). -->
+                <!-- Card 0: Time and date. First, because the work zone
+                     decides what "today" is for every card below it
+                     (docs/implement.md §4.3). The clock format sits here too
+                     rather than in a card of its own (decision P-F1): it is
+                     the other half of how a time is read. One node for both
+                     layouts: the phone sheet borrows it into its Time and
+                     date section (see MobileShell's RELOCATIONS). The
+                     read-outs are filled in by renderZoneSettings(). -->
                 <div class="settings-card tz-settings-card">
                   <span class="settings-label tz-settings-heading"
-                    >Time zones</span
+                    >Time and date</span
                   >
                   <button
                     type="button"
@@ -15173,6 +15204,62 @@
                           data-value="local"
                         >
                           Local zone
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                  <!-- The clock format (docs/followups.md §5, decision C1).
+                       Display only: what a record stores, what syncs and
+                       what every export carries stay 12-hour (F1, C2). -->
+                  <div class="settings-row tz-clock-row">
+                    <span class="settings-label">Clock</span>
+                    <div class="custom-select tz-clock-select">
+                      <select
+                        id="clock-format-select"
+                        style="display: none"
+                        onchange="chooseClockFormat(this.value)"
+                      >
+                        <option value="12h">12-hour</option>
+                        <option value="24h">24-hour</option>
+                      </select>
+                      <button
+                        type="button"
+                        class="custom-select-trigger cs-sm"
+                        data-for="clock-format-select"
+                        aria-haspopup="listbox"
+                      >
+                        <span class="cs-trigger-val">12-hour</span>
+                        <svg
+                          class="cs-chevron"
+                          viewBox="0 0 24 24"
+                          width="14"
+                          height="14"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="1.8"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                        >
+                          <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                      </button>
+                      <div
+                        class="custom-select-panel cs-compact"
+                        role="listbox"
+                      >
+                        <button
+                          type="button"
+                          class="custom-select-option cs-selected"
+                          data-value="12h"
+                        >
+                          12-hour
+                        </button>
+                        <button
+                          type="button"
+                          class="custom-select-option"
+                          data-value="24h"
+                        >
+                          24-hour
                         </button>
                       </div>
                     </div>
@@ -16444,7 +16531,11 @@
           data-label="Goals"
         ></div>
         <div class="m-sheet-slot" data-slot="week" data-label="Work week"></div>
-        <div class="m-sheet-slot" data-slot="tz" data-label="Time Zone"></div>
+        <div
+          class="m-sheet-slot"
+          data-slot="tz"
+          data-label="Time and date"
+        ></div>
         <div
           class="m-sheet-slot"
           data-slot="theme"
@@ -17679,6 +17770,11 @@
         return total;
       }
 
+      /* A clock time as seconds past midnight. The AM/PM suffix is optional:
+         a dialog field in 24-hour mode holds "17:30:00", and both forms are
+         read in either mode (decision C1). Without a suffix the hour stands
+         as written, so 24 and above is not a time. A stored string always
+         carries a suffix (F1), so reading a record is unchanged. */
       function parseClockTimeToSeconds(timeStr) {
         if (
           !timeStr ||
@@ -17690,14 +17786,18 @@
           return null;
         const match = String(timeStr)
           .trim()
-          .match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(AM|PM)$/i);
+          .match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(AM|PM)?$/i);
         if (!match) return null;
         let hours = parseInt(match[1], 10);
         const minutes = parseInt(match[2], 10);
         const seconds = match[3] ? parseInt(match[3], 10) : 0;
-        const ampm = match[4].toUpperCase();
-        if (ampm === "PM" && hours < 12) hours += 12;
-        if (ampm === "AM" && hours === 12) hours = 0;
+        const ampm = match[4] ? match[4].toUpperCase() : null;
+        if (ampm === null) {
+          if (hours > 23) return null;
+        } else {
+          if (ampm === "PM" && hours < 12) hours += 12;
+          if (ampm === "AM" && hours === 12) hours = 0;
+        }
         return hours * 3600 + minutes * 60 + seconds;
       }
 
@@ -17710,16 +17810,23 @@
           timeStr === "-"
         )
           return null;
-        // Accepts single or double digit hours, optional seconds, and optional spaces before AM/PM
+        // Accepts single or double digit hours, optional seconds, and optional
+        // spaces before AM/PM. The suffix itself is optional too: a field in
+        // 24-hour mode holds "17:30:00" (decision C1). Anchored, and it stays
+        // anchored -- the logbook tooltip leans on it rejecting markup.
         const match = String(timeStr)
           .trim()
-          .match(/^(\d{1,2}):(\d{2})(?::\d{2})?\s*(AM|PM)$/i);
+          .match(/^(\d{1,2}):(\d{2})(?::\d{2})?\s*(AM|PM)?$/i);
         if (!match) return null;
         let hours = parseInt(match[1], 10);
         const minutes = parseInt(match[2], 10);
-        const ampm = match[3].toUpperCase();
-        if (ampm === "PM" && hours < 12) hours += 12;
-        if (ampm === "AM" && hours === 12) hours = 0;
+        const ampm = match[3] ? match[3].toUpperCase() : null;
+        if (ampm === null) {
+          if (hours > 23) return null;
+        } else {
+          if (ampm === "PM" && hours < 12) hours += 12;
+          if (ampm === "AM" && hours === 12) hours = 0;
+        }
         return hours * 60 + minutes;
       }
 
@@ -17744,6 +17851,19 @@
         const ampm = h >= 12 ? "PM" : "AM";
         const h12 = h % 12 || 12;
         return `${String(h12).padStart(2, "0")}:${String(m).padStart(2, "0")} ${ampm}`;
+      }
+
+      /* Seconds past midnight written the way the screen writes a clock
+         time: "17:30:05", or secondsToAMPM's "05:30:05 PM". Only a dialog
+         field and a preview ever hold this -- what a record stores is
+         secondsToAMPM's, always (F1). */
+      function secondsToClockText(totalSeconds) {
+        if (!isClock24()) return secondsToAMPM(totalSeconds);
+        const t = ((Math.round(totalSeconds) % 86400) + 86400) % 86400;
+        const h = Math.floor(t / 3600);
+        const m = Math.floor((t % 3600) / 60);
+        const s = t % 60;
+        return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
       }
 
       function debounce(func, wait) {
@@ -17906,6 +18026,11 @@
       /* The work week and its history (docs/followups.md §4.3). Absent means
          today's schedule, and nothing writes it but a change (F2). */
       const WORK_WEEK_KEY = "nodrift_work_week_v1";
+      /* "12h" or "24h" -- how every clock time on screen is written
+         (docs/followups.md §5, decision C1). Display only: stored strings,
+         sync payloads, backups and exports stay 12-hour (F1, decision C2).
+         Absent means "12h", and nothing writes it but a change (F2). */
+      const CLOCK_FORMAT_KEY = "nodrift_clock_format_v1";
       /* The zone picker's last five choices. Device-local on purpose: never
          synced and never backed up, but wiped by a factory reset. */
       const TZ_RECENT_KEY = "nodrift_tz_recent_v1";
@@ -18618,6 +18743,7 @@
         tzWorkValue: document.getElementById("tz-work-value"),
         tzLocalValue: document.getElementById("tz-local-value"),
         tzLogTimesSelect: document.getElementById("tz-log-times-select"),
+        clockFormatSelect: document.getElementById("clock-format-select"),
         tzLabelsValue: document.getElementById("tz-labels-value"),
         zoneLabelsModal: document.getElementById("zone-labels-modal"),
         zoneLabelsStyle: document.getElementById("zone-labels-style"),
@@ -19255,6 +19381,37 @@
             minute: "2-digit",
             timeZoneName: "shortOffset",
           },
+
+          /* The 24-hour twins of the four styles that show a clock time
+             (docs/followups.md §5.3). `hourCycle: "h23"` and never
+             the hour12 flag turned off, which some engines render as "24:05" at
+             midnight rather than "00:05". Which twin a screen uses is
+             clockStyle()'s to say, not this module's: the styles are the
+             vocabulary, the preference is the sentence. */
+          /* "17:05:03" -- the logbook's In/Out and both status bar clocks. */
+          time24: {
+            hourCycle: "h23",
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+          },
+          /* "17:05:03" -- the idle dialog. Two digits here too: an hour
+             written "7:05" in a list of "17:05"s is read as a mistake. */
+          timeOnly24: {
+            hourCycle: "h23",
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+          },
+          /* "17:30" -- the finish estimate. */
+          hm24: { hourCycle: "h23", hour: "2-digit", minute: "2-digit" },
+          /* "21:44 GMT-7" -- a zone picker row. */
+          clock24: {
+            hourCycle: "h23",
+            hour: "2-digit",
+            minute: "2-digit",
+            timeZoneName: "shortOffset",
+          },
         };
 
         let supported = null;
@@ -19695,15 +19852,19 @@
         /* What a picker row shows beside a city: the time there, the offset,
            and the abbreviation when the engine has one in letters. Two
            cached formatters per zone ("clock" and "tzShort"), and only for
-           rows actually drawn. */
-        function clockFacts(zone, ms) {
+           rows actually drawn. `h23` asks for the 24-hour twins: the caller
+           holds the preference, this module only holds the styles. */
+        function clockFacts(zone, ms, h23) {
           const z = sanitize(zone, null);
           if (!z) return null;
           let time = "";
           let offset = null;
           if (!clockUnsupported) {
             try {
-              const list = formatter(z, "clock").formatToParts(ms);
+              const list = formatter(
+                z,
+                h23 ? "clock24" : "clock",
+              ).formatToParts(ms);
               for (let i = 0; i < list.length; i++) {
                 if (list[i].type === "timeZoneName") {
                   offset = parseGmtOffset(list[i].value);
@@ -19717,7 +19878,12 @@
               time = "";
             }
           }
-          if (!time) time = formatter(z, "hm").format(ms).replace(/^0/, "");
+          /* The leading zero goes only in 12-hour mode: "09:44" is how a
+             24-hour clock writes the morning, and "9:44" is not. */
+          if (!time) {
+            time = formatter(z, h23 ? "hm24" : "hm").format(ms);
+            if (!h23) time = time.replace(/^0/, "");
+          }
           if (offset === null) offset = offsetMinutes(ms, z);
           const abbr = zoneName(z, ms, "tzShort");
           return {
@@ -20196,11 +20362,114 @@
         return (display && display.logTimes) || "recorded";
       }
 
+      /* ── The clock format (docs/followups.md §5) ────────────────────────
+
+         One resolver (F3): every screen that shows a clock time asks
+         clockStyle() which formatter style to use, and nothing else reads
+         the preference key or hardcodes an AM/PM shape. One funnel (F8):
+         onDisplayFormatChanged() is the only way it ever changes.
+
+         Display only. A record's stored `login` / `logout`, the sync blob,
+         the JSON backup and every export stay 12-hour (F1, decision C2), so
+         turning this on and off never rewrites anything. */
+      let _clockFormat = null;
+      let _displayFormatVersion = 0;
+
+      function isClockFormatPref(v) {
+        return v === "12h" || v === "24h";
+      }
+
+      /* Held in a variable rather than read from storage: this is on the
+         tick's path, and a localStorage read every second is a localStorage
+         read every second. The funnel below drops it (§5.3). */
+      function clockFormat() {
+        if (_clockFormat === null) {
+          let raw = null;
+          try {
+            raw = localStorage.getItem(CLOCK_FORMAT_KEY);
+          } catch (e) {}
+          _clockFormat = isClockFormatPref(raw) ? raw : "12h";
+        }
+        return _clockFormat;
+      }
+
+      function isClock24() {
+        return clockFormat() === "24h";
+      }
+
+      const CLOCK_STYLE_H23 = {
+        time: "time24",
+        timeOnly: "timeOnly24",
+        hm: "hm24",
+        clock: "clock24",
+      };
+
+      /* The formatter style a screen should use for one of the four clock
+         styles. A style with no 24-hour twin comes back unchanged, so a
+         caller can route a date style through it harmlessly. */
+      function clockStyle(style) {
+        return isClock24() ? CLOCK_STYLE_H23[style] || style : style;
+      }
+
+      /* Everything a displayed clock time depends on besides its instant and
+         its zone, for the caches and row keys that hold one. */
+      function displayFormatKey() {
+        return `${_displayFormatVersion}|${clockFormat()}`;
+      }
+
+      /* The one funnel for the display formats (F8). Drops the preference
+         cache and every cache that holds a formatted time or a formatter,
+         moves the version so format-keyed renders redraw, then redraws.
+         Deliberately narrower than onZoneContextChanged(): no date realigns
+         and no shift changes zone, because nothing about the day has moved
+         -- only the way a time is written down. */
+      function onDisplayFormatChanged() {
+        _clockFormat = null;
+        _displayFormatVersion++;
+        try {
+          _recordTimeMemo.clear();
+        } catch (e) {}
+        /* The clocks cache one formatted minute and the estimate one target
+           minute; both would otherwise keep the old wording until the minute
+           turned over. */
+        window._lastClockMinCache = -1;
+        try {
+          _lastClockTickSec = -1;
+          domWriteCache.etaTargetMin = null;
+          cachedIdleTz = null;
+          cachedIdleFormatter = null;
+        } catch (e) {}
+        if (typeof invalidateDerivedCaches === "function") {
+          invalidateDerivedCaches();
+        }
+        try {
+          if (typeof renderStaticUI === "function") renderStaticUI();
+          if (typeof renderTimersOnly === "function") renderTimersOnly();
+          if (typeof renderLogbook === "function") renderLogbook();
+          if (typeof renderTaskLogbook === "function") renderTaskLogbook();
+          if (typeof renderInsights === "function") renderInsights();
+          if (typeof renderZoneSettings === "function") renderZoneSettings();
+        } catch (e) {
+          console.warn("Could not redraw after a clock format change", e);
+        }
+      }
+
+      function setClockFormatPref(value) {
+        if (!isClockFormatPref(value)) return false;
+        try {
+          localStorage.setItem(CLOCK_FORMAT_KEY, value);
+        } catch (e) {
+          return false;
+        }
+        onDisplayFormatChanged();
+        return true;
+      }
+
       /* Everything a rendered time depends on besides the record. The work
          zone is spelled out rather than left to the version, because a shift
          that ends hands over to a pending work zone without the funnel. */
       function zoneRenderKey() {
-        return `${TimeZones.version}|${zoneDisplayMode()}|${getWorkZone()}`;
+        return `${TimeZones.version}|${zoneDisplayMode()}|${getWorkZone()}|${displayFormatKey()}`;
       }
 
       /* The label style every zone label uses (docs/implement.md §4.5). */
@@ -20305,41 +20574,63 @@
 
       /* One end's time in the record's own zone: what the edit dialogs fill
          in. The stored string when it still agrees with its instant (same
-         minute of the day), else the instant formatted; a placeholder, or an
-         end with no time at all, as stored. */
-      function recordEndpointText(record, end) {
+         minute of the day) AND is written in the format on screen, else the
+         instant formatted; a placeholder, or an end with no time at all, as
+         stored.
+
+         `style` names the formatter style, so an export can ask for the
+         12-hour one whatever the screen is set to (F9). Left out, it is the
+         preference's. The memo is keyed on the style for the same reason. */
+      function recordEndpointText(record, end, style) {
         const e = recordEndpoint(record, end);
         if (e.placeholder || e.ms === null) return e.str;
         const home = recordZone(record);
-        return memoRecordTime(`h|${home}|${e.ms}|${e.str}`, () => {
-          if (e.minutes !== null) {
+        const s = style || clockStyle("time");
+        return memoRecordTime(`h|${s}|${home}|${e.ms}|${e.str}`, () => {
+          /* A stored string is 12-hour (F1), so it can only stand in for a
+             12-hour reading. */
+          if (s === "time" && e.minutes !== null) {
             const p = TimeZones.parts(e.ms, home);
             if (p.h * 60 + p.mi === e.minutes) return e.str;
           }
-          return TimeZones.formatTime(e.ms, home);
+          return TimeZones.formatTime(e.ms, home, s);
         });
       }
 
       /* { text, tag } for one end of a record. */
-      function recordEndpointView(record, end) {
+      function recordEndpointView(record, end, style) {
         const e = recordEndpoint(record, end);
         if (e.placeholder) return { text: e.str, tag: "" };
         if (e.ms === null) return e.str ? { text: e.str, tag: "" } : NO_TIME;
         const zone = getDisplayZone(record);
         const home = recordZone(record);
         const date = record.date;
+        const s = style || clockStyle("time");
         const text = memoRecordTime(
-          `t|${zone}|${home}|${date}|${e.ms}|${e.str}`,
+          `t|${s}|${zone}|${home}|${date}|${e.ms}|${e.str}`,
           () => {
             if (TimeZones.same(zone, home)) {
-              return recordEndpointText(record, end);
+              return recordEndpointText(record, end, s);
             }
             return (
-              TimeZones.formatTime(e.ms, zone) + dayMarker(e.ms, zone, date)
+              TimeZones.formatTime(e.ms, zone, s) + dayMarker(e.ms, zone, date)
             );
           },
         );
         return { text, tag: zoneTag(zone, e.ms) };
+      }
+
+      /* Exports are explicit (F9). The CSV, the tasks CSV and the copy
+         buttons are 12-hour whatever the screen shows (decision C2), so a
+         file exported today reads exactly like one exported before the
+         setting existed, and two people sharing one account send each other
+         the same rows. */
+      function exportTime(record, end) {
+        return recordEndpointText(record, end, "time");
+      }
+
+      function exportTimeView(record, end) {
+        return recordEndpointView(record, end, "time");
       }
 
       /* "09:00:00 AM - 05:00:00 PM", with the zone tag once at the end when
@@ -20448,7 +20739,7 @@
           `i|${TimeZones.version}|${work}|${style}|${Math.floor(nowMs / 60000)}`,
           () => TimeZones.label(work, nowMs, style, zoneNickname(work)),
         );
-        const f = TimeZones.formatter(work, "timeOnly");
+        const f = TimeZones.formatter(work, clockStyle("timeOnly"));
         setText(
           document.getElementById("idle-work-label"),
           `Work time (${label}):`,
@@ -20955,7 +21246,11 @@
           search,
           buildIndex,
           describe: (id, ms) =>
-            TimeZones.clockFacts(id, Number.isFinite(ms) ? ms : Date.now()),
+            TimeZones.clockFacts(
+              id,
+              Number.isFinite(ms) ? ms : Date.now(),
+              isClock24(),
+            ),
           recents,
           remember,
           stats,
@@ -21133,7 +21428,7 @@
               ? TimeZones.deviceZone()
               : row.dataset.zone;
           const now = Date.now();
-          const stamp = `${zone}|${Math.floor(now / 60000)}`;
+          const stamp = `${zone}|${Math.floor(now / 60000)}|${clockFormat()}`;
           if (row.zpStamp === stamp) return;
           const facts = ZoneCatalog.describe(zone, now);
           if (!facts) return;
@@ -22517,6 +22812,19 @@
               return false;
             },
           },
+
+          /* The clock format (decision S1: it syncs, like the weekly goal
+             and the zones). resendIfMissing for the same reason as the work
+             week: a build that predates it drops it from the account when it
+             wins a settings race, and this device puts its own back on the
+             next beat (F10, decision W11). */
+          clockFormat: {
+            key: CLOCK_FORMAT_KEY,
+            json: false,
+            display: true,
+            resendIfMissing: true,
+            validate: isClockFormatPref,
+          },
         };
 
         /* A preference this device does not hold is OMITTED, never sent as
@@ -22566,6 +22874,7 @@
           let changed = false;
           let zoneChanged = false;
           let scheduleChanged = false;
+          let displayChanged = false;
           /* For the toast below: the work zone before this blob. */
           const workWas =
             typeof getPreferredWorkZone === "function"
@@ -22594,6 +22903,7 @@
               changed = true;
               if (spec.zone) zoneChanged = true;
               if (spec.schedule) scheduleChanged = true;
+              if (spec.display) displayChanged = true;
             } catch (e) {
               console.warn("Could not apply synced preference " + name, e);
             }
@@ -22606,6 +22916,9 @@
           }
           if (scheduleChanged && typeof onScheduleChanged === "function") {
             onScheduleChanged();
+          }
+          if (displayChanged && typeof onDisplayFormatChanged === "function") {
+            onDisplayFormatChanged();
           }
           return changed;
         }
@@ -27683,6 +27996,17 @@
         );
       }
 
+      /* The Clock row. Nothing is written unless the value actually changes,
+         so opening the dropdown and picking what is already chosen leaves
+         storage untouched and uploads nothing (F2). The beat notices the
+         write on its own, as it does for every other preference. */
+      function chooseClockFormat(value) {
+        if (!isClockFormatPref(value)) return false;
+        if (value === clockFormat()) return false;
+        return setClockFormatPref(value);
+      }
+      window.chooseClockFormat = chooseClockFormat;
+
       /* A pending change is only the preference differing from the zone the
          shift holds, so undoing it is putting the preference back. */
       function undoPendingWorkZone() {
@@ -27737,6 +28061,11 @@
         const select = DOM.tzLogTimesSelect;
         const mode = zoneDisplayMode();
         if (select && select.value !== mode) select.value = mode;
+        /* The clock format lives in this card too (decision P-F1), so the
+           same function draws it -- including after a sync adopts one. */
+        const clock = DOM.clockFormatSelect;
+        const format = clockFormat();
+        if (clock && clock.value !== format) clock.value = format;
       }
 
       /* A work zone adopted from another device (§3.5). It was confirmed where
@@ -29292,11 +29621,11 @@
               const localZone = getLocalZone();
               window._cachedWorkClockBase = TimeZones.formatter(
                 workZone,
-                "time",
+                clockStyle("time"),
               ).format(nowDate);
               window._cachedLocalClockBase = TimeZones.formatter(
                 localZone,
-                "time",
+                clockStyle("time"),
               ).format(nowDate);
               renderClockLabels(workZone, localZone, nowMs);
             }
@@ -29725,9 +30054,10 @@
                      the finish instant: a shift that runs past a DST change
                      finishes on the other side of it. */
                   const etaZone = getLocalZone();
-                  const etaTime = TimeZones.formatter(etaZone, "hm").format(
-                    _sharedFinishDate,
-                  );
+                  const etaTime = TimeZones.formatter(
+                    etaZone,
+                    clockStyle("hm"),
+                  ).format(_sharedFinishDate);
                   const etaLabel = TimeZones.label(
                     etaZone,
                     targetMs,
@@ -29976,6 +30306,8 @@
         }
         const diff = shiftWindow.workSec - goal;
 
+        /* The stored form, so "time" and never clockStyle("time"): what a
+           record holds is 12-hour whatever the screen shows (F1). */
         const loginTime = loginInstant
           ? TimeZones.formatter(getWorkZone(), "time").format(
               new Date(loginInstant),
@@ -30289,6 +30621,7 @@
           );
         }
 
+        /* Stored, not shown: 12-hour whatever the screen shows (F1). */
         const loginTime = loginTimestamp
           ? TimeZones.formatter(getWorkZone(), "time").format(
               new Date(loginTimestamp),
@@ -30467,7 +30800,7 @@
         if (state.idleStart) {
           lastActiveEl.textContent = TimeZones.formatter(
             getLocalZone(),
-            "timeOnly",
+            clockStyle("timeOnly"),
           ).format(new Date(state.idleStart));
         }
         updateIdleWorkRow(Date.now());
@@ -35221,8 +35554,10 @@
 
         handleDateInputBlur({ target: DOM.editDate });
         let newDate = DOM.editDate.value.trim();
-        const newLogin = DOM.editLogin.value.trim() || "Manual";
-        const newLogout = DOM.editLogout.value.trim() || "Entry";
+        /* Converted to the stored 12-hour form here, at the one place a
+           typed value becomes a record (F1). */
+        const newLogin = storedTypedTime(DOM.editLogin.value, "Manual");
+        const newLogout = storedTypedTime(DOM.editLogout.value, "Entry");
         const newWork = DOM.editWork.value.trim();
         const newBreak = DOM.editBreak.value.trim();
         const newNotes = DOM.editNotes.value.trim();
@@ -35536,8 +35871,8 @@
            the last column (decision D4): existing columns keep their places. */
         return csvRow([
           l.date,
-          recordEndpointText(l, "in"),
-          recordEndpointText(l, "out"),
+          exportTime(l, "in"),
+          exportTime(l, "out"),
           formatDuration(l.workSec),
           workDec,
           formatDuration(l.breakSec),
@@ -35624,6 +35959,13 @@
           localTz: safeGetLocalStorage(LOCAL_TZ_KEY) || null,
           tzDisplay: readJSONKey(TZ_DISPLAY_KEY),
           workWeek: readJSONKey(WORK_WEEK_KEY),
+          clockFormat: (() => {
+            try {
+              return localStorage.getItem(CLOCK_FORMAT_KEY);
+            } catch (e) {
+              return null;
+            }
+          })(),
         };
       }
 
@@ -36159,6 +36501,8 @@
           if (data.workWeek && WorkWeek.restore(data.workWeek)) {
             onScheduleChanged();
           }
+          /* ...and for the clock format, which the setter validates. */
+          if (data.clockFormat) setClockFormatPref(data.clockFormat);
           /* The restored logbook may carry leave types the restored ledger does
              not list. Clearing the latch re-runs the reconciliation on the next
              read so those types are folded in rather than orphaned. Cleared
@@ -36663,6 +37007,7 @@
           LOCAL_TZ_KEY,
           TZ_DISPLAY_KEY,
           WORK_WEEK_KEY, // The work week and its history
+          CLOCK_FORMAT_KEY, // 12-hour or 24-hour
           TZ_RECENT_KEY, // The zone picker's recent choices
           TZ_INSTALL_KEY, // Whether this device predates zones
           TZ_NOTICE_KEY, // Whether it has dismissed the time zones notice
@@ -37793,9 +38138,13 @@
               }
 
               const idleZone = getLocalZone();
-              if (cachedIdleTz !== idleZone || !cachedIdleFormatter) {
-                cachedIdleTz = idleZone;
-                cachedIdleFormatter = TimeZones.formatter(idleZone, "timeOnly");
+              const idleStyle = clockStyle("timeOnly");
+              if (
+                cachedIdleTz !== idleZone + "|" + idleStyle ||
+                !cachedIdleFormatter
+              ) {
+                cachedIdleTz = idleZone + "|" + idleStyle;
+                cachedIdleFormatter = TimeZones.formatter(idleZone, idleStyle);
               }
               setText(currentTimeEl, cachedIdleFormatter.format(targetDate));
               updateIdleWorkRow(targetTimeMs);
@@ -40536,7 +40885,7 @@
                  the browser happens to report. */
               const formattedTime = TimeZones.formatter(
                 getLocalZone(),
-                "hm",
+                clockStyle("hm"),
               ).format(s.timestamp);
               opt.textContent = `${s.date} (${formattedTime}) - ${s.count} logs`;
               snapshotSelect.appendChild(opt);
@@ -40871,8 +41220,9 @@
         const breakStr = DOM.manualBreak.value.trim();
         const notes = DOM.manualNotes.value.trim();
 
-        const loginStr = DOM.manualLogin.value.trim() || "Manual";
-        const logoutStr = DOM.manualLogout.value.trim() || "Entry";
+        /* The stored 12-hour form, whatever the screen is set to (F1). */
+        const loginStr = storedTypedTime(DOM.manualLogin.value, "Manual");
+        const logoutStr = storedTypedTime(DOM.manualLogout.value, "Entry");
 
         const rawGoal = DOM.manualGoal.value.trim();
         const parsedGoal = parseGoalTimeStr(rawGoal);
@@ -41905,10 +42255,11 @@
         const task = cachedTaskLogs.find((t) => t.id === taskId);
         if (!task) return;
 
-        /* As the task row shows it: tagged when not in the work zone. */
+        /* On the task's own clock, tagged when that is not the work zone --
+           and 12-hour, like every other export (decision C2). */
         const whenText = formatTimeRange(
-          recordEndpointView(task, "in"),
-          recordEndpointView(task, "out"),
+          exportTimeView(task, "in"),
+          exportTimeView(task, "out"),
         );
         const durStr = formatDuration(task.durationSec || 0);
 
@@ -41940,9 +42291,10 @@
         }
         const txt = tasksToCopy
           .map((task) => {
+            /* 12-hour, like every other export (decision C2). */
             const whenText = formatTimeRange(
-              recordEndpointView(task, "in"),
-              recordEndpointView(task, "out"),
+              exportTimeView(task, "in"),
+              exportTimeView(task, "out"),
             );
             const durStr = formatDuration(task.durationSec || 0);
             return `[${task.date}] ${whenText} | Duration: ${durStr} | Note: ${task.note || ""}`;
@@ -41979,8 +42331,8 @@
            column (decision D4) -- never the viewer's display mode. */
         let csv = "Date,Start,End,Duration,Paused,Notes,Time_Zone\n";
         tasksToExport.forEach((task) => {
-          const startStr = recordEndpointText(task, "in") || "—";
-          const endStr = recordEndpointText(task, "out") || "—";
+          const startStr = exportTime(task, "in") || "—";
+          const endStr = exportTime(task, "out") || "—";
           const durStr = formatDuration(task.durationSec);
           const pausedStr = formatDuration(Number(task.pausedSec) || 0);
           csv +=
@@ -43664,9 +44016,14 @@
         if (el) el.addEventListener("blur", handleDateInputBlur);
       });
 
-      function parseClockTimePreview(val) {
+      /* A typed clock time as seconds past midnight, or null when it is not
+         one. Accepts "0900", "900p", "9:30p", "17:30" and "09:00:00 AM" in
+         either clock format (decision C1): a suffix decides AM or PM, and
+         without one an hour of 12 or more stands as written, which is the
+         24-hour reading. */
+      function parseTypedClockSeconds(val) {
         let clean = String(val).trim().toLowerCase().replace(/\s+/g, "");
-        if (!clean) return "";
+        if (!clean) return null;
 
         let h = 12,
           m = 0,
@@ -43727,9 +44084,32 @@
             if (h > 12) h = h % 12 || 12;
             if (h === 0) h = 12;
           }
-          return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")} ${ampm}`;
+          return ((h % 12) + (ampm === "PM" ? 12 : 0)) * 3600 + m * 60 + s;
         }
-        return "";
+        return null;
+      }
+
+      /* The same value written the way the screen writes times, which is
+         what a field is tidied up to. "" when it is not a time at all. */
+      function parseClockTimePreview(val) {
+        const sec = parseTypedClockSeconds(val);
+        return sec === null ? "" : secondsToClockText(sec);
+      }
+
+      /* ...and the way a record stores it: 12-hour, always (F1). */
+      function typedTimeToStored(val) {
+        const sec = parseTypedClockSeconds(val);
+        return sec === null ? "" : secondsToAMPM(sec);
+      }
+
+      /* What a dialog saves for one end: the stored form of what was typed,
+         the placeholder when nothing was, and the text itself when it is
+         neither -- "Manual", or anything no parse recognises, which the
+         logbook has always shown as it stands. */
+      function storedTypedTime(value, placeholder) {
+        const text = String(value == null ? "" : value).trim();
+        if (!text) return placeholder;
+        return typedTimeToStored(text) || text;
       }
 
       function handleLoginLogoutBlur(e) {
@@ -43822,7 +44202,11 @@
         const m = Math.floor((typed.timeSec % 3600) / 60);
         const s = typed.timeSec % 60;
         const two = (n) => String(n).padStart(2, "0");
-        const clock = `${h % 12 || 12}:${two(m)}${s ? `:${two(s)}` : ""} ${h % 24 < 12 ? "AM" : "PM"}`;
+        /* On the clock the person is typing on (row 52): a sentence about a
+           time that does not exist has to quote it the way they wrote it. */
+        const clock = isClock24()
+          ? `${two(h % 24)}:${two(m)}${s ? `:${two(s)}` : ""}`
+          : `${h % 12 || 12}:${two(m)}${s ? `:${two(s)}` : ""} ${h % 24 < 12 ? "AM" : "PM"}`;
         return `${clock} doesn't exist on ${typed.dateKey} in ${TimeZones.longName(zone, typed.ms)} — clocks jumped forward.`;
       }
 
@@ -43905,12 +44289,17 @@
         return parseClockTimePreview(text) || text;
       }
 
-      /* A record's times as its dialog opened with them. */
+      /* A record's times as its dialog opened with them, as text and as
+         seconds past midnight. */
       function typedOriginal(record, dateStr) {
-        const end = (which) => ({
-          text: normalizeTypedTime(recordEndpointText(record, which)),
-          ms: recordEndpoint(record, which).ms,
-        });
+        const end = (which) => {
+          const text = normalizeTypedTime(recordEndpointText(record, which));
+          return {
+            text,
+            sec: parseTypedClockSeconds(text),
+            ms: recordEndpoint(record, which).ms,
+          };
+        };
         return { id: record.id, date: dateStr, in: end("in"), out: end("out") };
       }
 
@@ -43922,8 +44311,12 @@
         if (!original || original.date !== dateStr) return null;
         const o = original[end];
         if (!o || !Number.isFinite(o.ms)) return null;
-        if (parseTimeToMinutes(typedValue) === null) return null;
-        return normalizeTypedTime(typedValue) === o.text ? o.ms : null;
+        /* Compared as seconds, not as text: the same moment is written two
+           ways, and a field opened in one clock format and saved in the
+           other is still untouched. */
+        const sec = parseTypedClockSeconds(typedValue);
+        if (sec === null || o.sec === null) return null;
+        return sec === o.sec ? o.ms : null;
       }
 
       /* "Times are in UTC+6, the zone this was recorded in." Only when that
@@ -44097,14 +44490,17 @@
           wSec !== null &&
           (bSec !== null || isTask)
         ) {
-          setCalculated("logout", secondsToAMPM(lSec + wSec + (bSec || 0)));
+          setCalculated(
+            "logout",
+            secondsToClockText(lSec + wSec + (bSec || 0)),
+          );
         } else if (
           missing === "login" &&
           oSec !== null &&
           wSec !== null &&
           (bSec !== null || isTask)
         ) {
-          setCalculated("login", secondsToAMPM(oSec - wSec - (bSec || 0)));
+          setCalculated("login", secondsToClockText(oSec - wSec - (bSec || 0)));
         }
       }
 
@@ -45112,6 +45508,8 @@
             "Clock Labels: How the clocks name their zones: an abbreviation such as PDT, a generic name such as PT, or the UTC offset. A nickname of up to six characters, such as BST, replaces the label for that zone.",
           "tz-log-times-select":
             "Log Times: Show each record's In and Out times in the zone it was recorded in, or all of them in your work or local zone.",
+          "clock-format-select":
+            "Clock: Write every time on screen as 12-hour or 24-hour. Typing accepts both. Exported files and backups stay 12-hour.",
           "goal-autopopulate-toggle":
             "Auto-Populate: Adjusts your daily target dynamically to pace you toward a 40-hour work week.",
           "weekly-goal-hours":
@@ -45213,6 +45611,7 @@
           "tz-local-row",
           "tz-labels-row",
           "tz-log-times-select",
+          "clock-format-select",
           "goal-autopopulate-toggle",
           "weekly-goal-hours",
           "idle-toggle",
