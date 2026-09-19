@@ -6528,7 +6528,10 @@
         margin-left: 8px;
       }
 
-      .badge-weekend {
+      /* A day the schedule does not work. Called a weekend until phase W3 of
+         docs/followups.md, when the days became the user's to choose and
+         Saturday stopped being the only answer (P-W11). */
+      .badge-day-off {
         font-size: var(--text-3xs);
         color: color-mix(in srgb, var(--text-main) 30%, var(--accent-blue));
         background: color-mix(in srgb, var(--accent-blue) 10%, transparent);
@@ -10670,24 +10673,25 @@
           <h4>The Daily Goal</h4>
           <p>
             The goal in the top bar is how many hours you are aiming for today.
-            Left alone, it fills itself in to keep you on pace for a 40-hour
-            week.
+            Left alone, it fills itself in to keep you on pace for your weekly
+            goal — 40 hours over Monday to Friday until you change either.
           </p>
           <ul>
             <li>
-              <strong>Monday to Friday:</strong> the goal is whatever today
-              needs to be for the week to still reach your weekly goal. On the
-              default 40 hours: log 10 on Monday and Tuesday asks for 6; log 7
-              on Monday and Tuesday asks for 9.
+              <strong>On a work day:</strong> the goal is whatever today needs
+              to be for the week to still reach your weekly goal. On the default
+              40 hours over Monday to Friday, a work day is 8: log 10 on Monday
+              and Tuesday asks for 6; log 7 on Monday and Tuesday asks for 9.
             </li>
             <li>
-              <strong>Saturday and Sunday:</strong> three quarters of an
-              ordinary day — 6 hours on a 40-hour week.
+              <strong>On a day off:</strong> three quarters of a work day — 6
+              hours on a 40-hour, five-day week — unless you set your own
+              figure. Work on a day off is yours; it is not asked for.
             </li>
             <li>
-              <strong>Booked leave</strong> earlier in the week takes one
-              ordinary day off the weekly total, so the remaining days are not
-              asked to make it up.
+              <strong>Booked leave</strong> earlier in the week takes one work
+              day off the weekly total, so the remaining days are not asked to
+              make it up.
             </li>
             <li>
               <strong>You can always override it.</strong> Click the goal to
@@ -10700,6 +10704,64 @@
             If you would rather set the goal yourself every day, turn
             <strong>Auto-populate daily goal</strong> off in Settings. It cannot
             be switched while a shift is running.
+          </p>
+          <hr />
+          <h4>Your work week</h4>
+          <p>
+            Which days you work is yours to choose. Open
+            <strong>Settings</strong> and find the <strong>Work week</strong>
+            card under the weekly goal — on a phone it is a section of the
+            <strong>Settings &amp; Tools</strong> sheet.
+          </p>
+          <ul>
+            <li>
+              <strong>Work days.</strong> Tap the day chips to choose any mix of
+              the seven. Your weekly goal is shared equally between them, so 40
+              hours over four days asks 10 a day; the card shows the figure as
+              <strong>Per work day</strong>. Every day you do not choose is a
+              <strong>day off</strong>.
+            </li>
+            <li>
+              <strong>Week starts on.</strong> Monday, Sunday or Saturday. This
+              decides where every week in Insights begins and ends. Changing it
+              mid-week leaves one short week behind, and the card tells you
+              which days that week now runs over.
+            </li>
+            <li>
+              <strong>Goal on a day off.</strong> Three quarters of a work day
+              until you type your own number of hours; press
+              <strong>Auto</strong> to go back. Set it to <strong>0</strong> and
+              a day off asks nothing at all: the bar stays empty and the goal
+              reads <em>No goal</em> rather than counting everything you do as
+              overtime.
+            </li>
+            <li>
+              <strong>Day-off work counts toward the week.</strong> Off to start
+              with, which is how nodrift has always treated a Saturday shift:
+              shown everywhere, counted toward nothing. Turn it on and that work
+              goes toward your weekly total and reduces what the remaining work
+              days are asked for — the weekly target itself does not move.
+            </li>
+            <li>
+              <strong>Catch-up.</strong> <em>Next work day</em> is how nodrift
+              has always worked: fall 6 hours behind on Monday and Tuesday asks
+              for 14. Choose <em>Spread over the week</em> and those 6 hours are
+              shared across the work days you have left instead — Tuesday to
+              Friday each ask 9½.
+            </li>
+          </ul>
+          <p>
+            Every change applies from the <strong>current week</strong> and
+            never rewrites a week that has already ended: last week keeps the
+            days, the target and the result it had. Each change also raises a
+            message with an <strong>Undo</strong>, which puts the whole setting
+            back exactly as it was. A shift that is already running keeps the
+            goal it started with.
+          </p>
+          <p>
+            Two things are refused, with the reason said: leaving yourself no
+            work days at all, and choosing so few that one of them would be
+            asked for more than 24 hours.
           </p>
           <hr />
           <h4>Locked goals and split shifts</h4>
@@ -10822,8 +10884,10 @@
           </p>
           <ul>
             <li>
-              <strong>Weekly</strong> — one bar per weekday, Monday to Friday,
-              measured against the 40-hour week.
+              <strong>Weekly</strong> — one bar per work day, measured against
+              your weekly goal. Choose four work days and there are four bars,
+              in week order, each under its day's initial; hover one to see
+              which date it is.
             </li>
             <li>
               <strong>Monthly</strong> — one row per week of the chosen month.
@@ -10847,15 +10911,21 @@
           <ul>
             <li>
               <strong>Weekly Work</strong> — hours worked so far against the
-              40-hour target, with the percentage beside it.
+              weekly target, with the percentage beside it.
             </li>
             <li>
               <strong>Total Break</strong> — break time over the same span.
             </li>
             <li>
               <strong>Pace Required</strong> — the average per day you now need
-              across the working days you have left in order to reach 40 hours.
-              It recalculates as you log time.
+              across the work days you have left in order to reach the weekly
+              goal. It recalculates as you log time.
+            </li>
+            <li>
+              <strong>N Days off worked</strong> — hours you logged on days you
+              do not work. Shown for completeness, and counted toward the week
+              only if you turned that on in the Work week card; the tooltip says
+              which.
             </li>
             <li>
               <strong>Status line</strong> — a short plain-English verdict, such
@@ -10873,6 +10943,10 @@
             <li>
               A bar with diagonal stripes is a booked leave day. Leave days are
               left out of pace and goal maths.
+            </li>
+            <li>
+              A day whose goal is 0 asks nothing, so its bar stays empty and the
+              goal reads <em>No goal</em> however long you work.
             </li>
             <li>
               Hovering a bar opens a summary of that day: date, work, break, how
@@ -10907,9 +10981,14 @@
           <hr />
           <h4>How leave affects the maths</h4>
           <p>
-            Booking a leave day takes one ordinary day off the weekly target — 8
-            hours on the default 40-hour week — and marks that date with
-            stripes, so the days around it are not asked to cover for it.
+            Booking a leave day takes one work day off the weekly target — 8
+            hours on the default 40-hour, five-day week — and marks that date
+            with stripes, so the days around it are not asked to cover for it.
+          </p>
+          <p>
+            Booking leave on a day you do not work changes no goal at all: the
+            day already asks what a day off asks. nodrift says so when you book
+            it.
           </p>
           <p>
             If you end up working on a day you had booked as leave, the hours
@@ -12958,7 +13037,10 @@
           >
             <div class="goal-container">
               <div class="status-badge goal-inputs" style="padding: 0 1rem">
-                <span class="label">Goal</span>
+                <!-- Reads "No goal" on a day that asks nothing (P-W16); the
+                     field stays where it is, because a day with no goal is
+                     still a day the user can give one to. -->
+                <span class="label" id="goal-badge-label">Goal</span>
                 <input
                   type="text"
                   id="goal-time"
@@ -18587,6 +18669,7 @@
         todayWorkVal: document.getElementById("today-work-val"),
         todayBreakVal: document.getElementById("today-break-val"),
         weeklyBreak: document.getElementById("total-weekly-break"),
+        goalBadgeLabel: document.getElementById("goal-badge-label"),
         goalHours: document.getElementById("goal-hours"),
         goalMins: document.getElementById("goal-mins"),
         goalSecs: document.getElementById("goal-secs"),
@@ -28486,7 +28569,7 @@
         return total;
       }
 
-      /* Automatically calculates and populates the daily goal input fields. On weekends, this defaults to 6 hours. */
+      /* Automatically calculates and populates the daily goal input fields. A day's goal comes from the schedule (R5, R7): a work day's share of the weekly goal, or what a day off asks. */
       function autoPopulateDailyGoal(targetDateStr) {
         if (!targetDateStr) return;
         if (state.goalAutopopulateEnabled === false) return;
@@ -29471,25 +29554,26 @@
         const loggedSec = getTodayLoggedWorkSeconds();
         const totalWorkToday = loggedSec + workSeconds;
 
+        /* P-W16. A goal of zero is a day that asks nothing -- a day off the
+           user set to no goal, or a worked leave day. Everything that reads
+           "done", "over" or "full" has nothing to measure against, so it
+           steps aside rather than reporting a bar filled by the first second
+           of the day (work / 0 was Infinity, which rounded to 100%). */
+        const noSessionGoal = uiGoalSec === 0;
+        const noDayGoal = anchorGoalSec === 0;
         const sessionPercent =
-          uiGoalSec > 0
-            ? Math.min((workSeconds / uiGoalSec) * 100, 100)
-            : workSeconds > 0
-              ? 100
-              : 0;
+          uiGoalSec > 0 ? Math.min((workSeconds / uiGoalSec) * 100, 100) : 0;
         const sessionDiff = workSeconds - uiGoalSec;
         const sessionScale = sessionPercent / 100;
 
         const dailyPercent =
           anchorGoalSec > 0
             ? Math.min((totalWorkToday / anchorGoalSec) * 100, 100)
-            : totalWorkToday > 0
-              ? 100
-              : 0;
+            : 0;
         const dailyDiff = totalWorkToday - anchorGoalSec;
         const dailyScale = dailyPercent / 100;
         const isGoalReached =
-          totalWorkToday >= anchorGoalSec && totalWorkToday > 0;
+          !noDayGoal && totalWorkToday >= anchorGoalSec && totalWorkToday > 0;
 
         // Scale Write Guard
         if (!document.hidden) {
@@ -29505,8 +29589,9 @@
             DOM.progressFill.className = fillClass;
           }
 
-          const progStr =
-            sessionDiff >= 0
+          const progStr = noSessionGoal
+            ? `No goal · ${formatFriendlyDuration(workSeconds, "0m")} worked`
+            : sessionDiff >= 0
               ? `${sessionPercent.toFixed(1)}% (Overtime: ${formatFriendlyDuration(sessionDiff, "0m")})`
               : `${sessionPercent.toFixed(1)}% (Left: ${formatFriendlyDuration(Math.abs(sessionDiff), "0m")})`;
           setText(DOM.progressText, progStr);
@@ -29522,13 +29607,10 @@
             todaySegment && todaySegment.classList.contains("is-leave");
 
           const segmentGoalSec = anchorGoalSec;
-          const segmentPercent = isLeaveToday
-            ? 0
-            : segmentGoalSec > 0
-              ? Math.min((totalWorkToday / segmentGoalSec) * 100, 100)
-              : totalWorkToday > 0
-                ? 100
-                : 0;
+          const segmentPercent =
+            isLeaveToday || segmentGoalSec <= 0
+              ? 0
+              : Math.min((totalWorkToday / segmentGoalSec) * 100, 100);
           const segmentScale = segmentPercent / 100;
 
           if (
@@ -29570,6 +29652,8 @@
             }
           }
 
+          setText(DOM.goalBadgeLabel, noDayGoal ? "No goal" : "Goal");
+
           const currentGoalMode = isGoalReached
             ? "completed"
             : state.currentMode === "work"
@@ -29601,6 +29685,10 @@
             if (isGoalReached) {
               etaText = "Daily Goal Reached";
               etaColorClass = "text-work";
+            } else if (noDayGoal) {
+              /* There is no hour to finish at when nothing is asked (P-W16):
+                 the estimate stays empty rather than naming a moment already
+                 past. */
             } else {
               const remainingMs = Math.abs(dailyDiff) * 1000;
               const targetMs = nowMs + remainingMs;
@@ -32557,7 +32645,7 @@
 
             // Arithmetic rather than `new Date(...).getUTCDay()`:
             const dayNum = getUTCDayFromEpochMs(log.epochMs);
-            const isWeekend = !WorkWeek.isWorkDayNum(
+            const isDayOff = !WorkWeek.isWorkDayNum(
               WorkWeek.dayOfMs(log.epochMs),
             );
             const dateParts = log.date.split("/");
@@ -32677,8 +32765,8 @@
                    had a badge of its own stuck inline in the left group. */
                 const contextTag = isWorkedLeave
                   ? { text: "Worked Leave", variant: "badge-leave" }
-                  : isWeekend
-                    ? { text: "Weekend", variant: "badge-weekend" }
+                  : isDayOff
+                    ? { text: "Day off", variant: "badge-day-off" }
                     : null;
                 const tagSlot = hasTotalText
                   ? dom.contextBadgeLeft
@@ -33343,14 +33431,22 @@
                   notes: `${data.type} Leave Day`,
                 };
               } else {
-                const ratio = data.w / data.goal;
-                if (ratio >= 1.2) {
-                  hClass = "heatmap-exc";
-                } else if (ratio >= 1) {
-                  hClass = "heatmap-high";
-                } else if (ratio >= 0.5) {
-                  hClass = "heatmap-med";
-                } else if (ratio > 0) {
+                /* P-W16: a day that asks nothing cannot be exceeded. Work
+                   done on one still colours its square -- at the shade that
+                   means "worked", not the one that means "well past the
+                   goal", which is what w / 0 used to reach. */
+                if (data.goal > 0) {
+                  const ratio = data.w / data.goal;
+                  if (ratio >= 1.2) {
+                    hClass = "heatmap-exc";
+                  } else if (ratio >= 1) {
+                    hClass = "heatmap-high";
+                  } else if (ratio >= 0.5) {
+                    hClass = "heatmap-med";
+                  } else if (ratio > 0) {
+                    hClass = "heatmap-low";
+                  }
+                } else if (data.w > 0) {
                   hClass = "heatmap-low";
                 }
                 title = `${dateKey}: ${typeof formatDuration === "function" ? formatDuration(data.w) : data.w}`;
@@ -33415,7 +33511,7 @@
         for (let i = 0; i <= 364; i++) {
           const dateKey = formatUTCDayStr(streakDate);
           const data = heatmapMap[dateKey];
-          const isWeekend = !WorkWeek.isWorkDayNum(
+          const isDayOff = !WorkWeek.isWorkDayNum(
             WorkWeek.dayOfMs(streakDate.getTime()),
           );
 
@@ -33426,8 +33522,8 @@
             currentStreak++;
           } else if (i === 0 && (!data || data.w === 0)) {
             // Skip today if empty
-          } else if (isWeekend) {
-            // Skip weekends if goal not met, keeping streak alive
+          } else if (isDayOff) {
+            // A day off that missed its goal does not break the streak (R9)
           } else {
             break;
           }
@@ -33625,7 +33721,7 @@
 
           const displayDateNoYear = dateStr.slice(0, 5);
           const isToday = dateStr === todayStr;
-          const isWeekend = !WorkWeek.isWorkDay(dateStr);
+          const isDayOff = !WorkWeek.isWorkDay(dateStr);
 
           let dayW = logsByDate[dateStr] ? logsByDate[dateStr].w : 0;
           let dayB = logsByDate[dateStr] ? logsByDate[dateStr].b : 0;
@@ -33644,8 +33740,8 @@
 
           const rowClass = `breakdown-row${isToday ? " is-today-row" : ""}`;
 
-          const weekendBadge = isWeekend
-            ? `<span class="badge badge-weekend">Weekend</span>`
+          const dayOffBadge = isDayOff
+            ? `<span class="badge badge-day-off">Day off</span>`
             : "";
 
           if (isVacation) {
@@ -33667,7 +33763,7 @@
             /* On the second line, not beside the date. The header gives
                its right half to a 12.5rem stats cluster and the day's name
                whatever is left, which on a phone is about 150px -- enough for
-               "Weekend", not for "Public Holiday Leave", so the header grew a
+               "Day off", not for "Public Holiday Leave", so the header grew a
                second line and the row stood half again as tall as the six
                around it. The second line has the same two halves and nothing
                in its right one on a day like this, so the tags go there. */
@@ -33680,7 +33776,7 @@
                                 <div class="breakdown-row is-empty${isToday ? " is-today-row" : ""}">
                                   <div class="breakdown-row-header">
                                     <span class="breakdown-row-day" style="font-weight: ${isToday ? "600" : "400"}; font-size: var(--font-size-entry-title);">
-                                      ${_DAY_NAMES_SHORT[dayOfWeekIndex]} <span style="opacity: 0.5;">(${displayDateNoYear})</span>${weekendBadge}
+                                      ${_DAY_NAMES_SHORT[dayOfWeekIndex]} <span style="opacity: 0.5;">(${displayDateNoYear})</span>${dayOffBadge}
                                     </span>
                                     <div class="font-mono stats-alignment-wrapper" style="font-size: var(--font-size-entry-stats); color: var(--text-main); display: flex; gap: 12px;">
                                        <div class="stat-column work-col flex-center"><span class="badge badge-w">W</span>—</div>
@@ -33711,7 +33807,7 @@
                                 <div class="${rowClass}">
                                   <div class="breakdown-row-header">
                                     <span class="breakdown-row-day" style="font-weight: ${isToday ? "600" : "400"}; font-size: var(--font-size-entry-title);">
-                                      ${_DAY_NAMES_SHORT[dayOfWeekIndex]} <span style="opacity: 0.5;">(${displayDateNoYear})</span>${weekendBadge}
+                                      ${_DAY_NAMES_SHORT[dayOfWeekIndex]} <span style="opacity: 0.5;">(${displayDateNoYear})</span>${dayOffBadge}
                                     </span>
                                     <div class="font-mono stats-alignment-wrapper" style="font-size: var(--font-size-entry-stats); color: var(--text-main); display: flex; gap: 12px;">
                                       <div class="stat-column work-col flex-center">
@@ -33742,7 +33838,7 @@
               dayW === 0 && dayB === 0 && (!isToday || !state.loginTimestamp);
 
             if (isEmptyDay) {
-              if (!isWeekend) {
+              if (!isDayOff) {
                 breakdownHTML += `
                       <div class="breakdown-row is-empty${isToday ? " is-today-row" : ""}">
                         <div class="breakdown-row-header">
@@ -33751,7 +33847,7 @@
                           }; font-size: var(--font-size-entry-title);">
                             ${
                               _DAY_NAMES_SHORT[dayOfWeekIndex]
-                            } <span style="opacity: 0.5;">(${displayDateNoYear})</span>${weekendBadge}
+                            } <span style="opacity: 0.5;">(${displayDateNoYear})</span>${dayOffBadge}
                           </span>
                           <div class="font-mono stats-alignment-wrapper" style="font-size: var(--font-size-entry-stats); color: var(--text-main); display: flex; gap: 12px;">
                              <div class="stat-column work-col flex-center"><span class="badge badge-w">W</span><span ${
@@ -33808,7 +33904,7 @@
                         }; font-size: var(--font-size-entry-title);">
                           ${
                             _DAY_NAMES_SHORT[dayOfWeekIndex]
-                          } <span style="opacity: 0.5;">(${displayDateNoYear})</span>${weekendBadge}
+                          } <span style="opacity: 0.5;">(${displayDateNoYear})</span>${dayOffBadge}
                         </span>
                         <div class="font-mono stats-alignment-wrapper" style="font-size: var(--font-size-entry-stats); color: var(--text-main); display: flex; gap: 12px;">
                           <div class="stat-column work-col flex-center">
@@ -33851,8 +33947,19 @@
         const barContainer = document.querySelector(".segmented-progress-bar");
         if (barContainer) {
           /* One segment per work day, labelled with its day's initial, and
-             rebuilt when the work days change, not only their count. */
-          const barDays = workDayKeys.map((k) => WorkWeek.weekday(k)).join("");
+             rebuilt when the work days change, not only their count.
+
+             One letter, whichever days are chosen (decision W15). §4.5
+             proposed a second letter wherever two of the week's work days
+             share an initial -- but Tuesday and Thursday share one in the
+             default week, so every existing user's bar would have changed
+             from M T W T F, which §1 promises it will not. The segments are
+             in week order and each carries a tooltip with its own date,
+             which is what has told Tuesday from Thursday since this bar was
+             first drawn. */
+          const barDayNums = workDayKeys.map((k) => WorkWeek.weekday(k));
+          const barDays = barDayNums.join("");
+          const barLabels = barDayNums.map((n) => "SMTWTFS".charAt(n));
           if (
             barContainer.children.length !== workDayKeys.length ||
             barContainer.dataset.viewType !== "weekly" ||
@@ -33862,7 +33969,7 @@
             barContainer.dataset.days = barDays;
             let barHTML = "";
             for (let i = 0; i < workDayKeys.length; i++) {
-              const label = "SMTWTFS".charAt(WorkWeek.weekday(workDayKeys[i]));
+              const label = barLabels[i];
               barHTML += `
                   <div class="progress-segment" data-day="${i + 1}">
                     <div class="progress-segment-fill"></div>
@@ -34146,16 +34253,19 @@
         macroBuckets.forEach((bData, key) => {
           let bucketW = 0;
           let bucketB = 0;
-          /* Weekend work is excluded from every target and every total by
-             design - the contracted week is Monday to Friday. It is still
-             tracked here so it can be SHOWN. Counting it nowhere and showing it
-             nowhere is what made a Saturday shift appear in the logbook, colour
-             a square in the heatmap, and then render as a blank "—" row in the
-             breakdown as though the day had never happened. */
-          let weekendW = 0;
-          let weekendB = 0;
+          /* Work on a day off is tracked apart from the bucket so it can be
+             SHOWN whether or not it counts. Counting it nowhere and showing
+             it nowhere is what made a Saturday shift appear in the logbook,
+             colour a square in the heatmap, and then render as a blank "—"
+             row in the breakdown as though the day had never happened.
+
+             Whether it reaches the target is the schedule's answer, not this
+             loop's (R6): the two questions were the same one while a day off
+             never counted, and the badge below says which it is. */
+          let dayOffW = 0;
+          let dayOffB = 0;
           let countedShifts = 0;
-          const weekendDays = new Set();
+          const dayOffDays = new Set();
           let notesList = [];
           bData.logs.forEach((l) => {
             if (
@@ -34164,14 +34274,16 @@
             ) {
               return;
             }
-            if (WorkWeek.countsTowardNum(WorkWeek.dayOfMs(l.epochMs))) {
+            const dayNumOfLog = WorkWeek.dayOfMs(l.epochMs);
+            if (WorkWeek.countsTowardNum(dayNumOfLog)) {
               bucketW += l.workSec || 0;
               bucketB += l.breakSec || 0;
               countedShifts++;
-            } else {
-              weekendW += l.workSec || 0;
-              weekendB += l.breakSec || 0;
-              weekendDays.add(l.date);
+            }
+            if (!WorkWeek.isWorkDayNum(dayNumOfLog)) {
+              dayOffW += l.workSec || 0;
+              dayOffB += l.breakSec || 0;
+              dayOffDays.add(l.date);
             }
             if (l.notes && l.notes.trim()) {
               if (!notesList.includes(l.notes.trim())) {
@@ -34179,14 +34291,20 @@
               }
             }
           });
-          const hasWeekendWork = weekendW > 0 || weekendB > 0;
+          const hasDayOffWork = dayOffW > 0 || dayOffB > 0;
           /* A count, matching the "1 Day Off" badge beside it. The full figure
              lives in the tooltip: spelling it out inline produced a string long
              enough to wrap the meta row and push the O/G stats out of
              alignment on every phone width. */
-          const weekendCount = weekendDays.size;
-          const weekendNote = hasWeekendWork
-            ? `<span class="badge badge-leave" title="${formatFriendlyDuration(weekendW)} worked on ${weekendCount} weekend day${weekendCount === 1 ? "" : "s"} — shown for completeness, not counted toward the weekly target">${weekendCount} Weekend${weekendCount === 1 ? "" : "s"}</span>`
+          const dayOffCount = dayOffDays.size;
+          const dayOffCounted =
+            hasDayOffWork && WorkWeek.scheduleFor().dayOffCounts;
+          /* "Day off worked", not "Day off": the badge beside the row's label
+             already counts leave as "N Days Off", and two badges a line apart
+             that differ only in capitalisation is not a distinction anyone
+             reads (decided with the user, 2026-09-19). */
+          const dayOffNote = hasDayOffWork
+            ? `<span class="badge badge-leave" title="${formatFriendlyDuration(dayOffW)} worked on ${dayOffCount} day${dayOffCount === 1 ? "" : "s"} off — ${dayOffCounted ? "counted toward the weekly target" : "shown for completeness, not counted toward the weekly target"}">${dayOffCount} Day${dayOffCount === 1 ? "" : "s"} off worked</span>`
             : "";
 
           /* The work days this row's target covers: a week's that fall in
@@ -34254,7 +34372,7 @@
           const isEmptyBucket =
             bucketW === 0 &&
             bucketB === 0 &&
-            !hasWeekendWork &&
+            !hasDayOffWork &&
             (!isCurrentRow || !state.loginTimestamp);
 
           if (isEmptyBucket) {
@@ -34304,7 +34422,7 @@
                     </div>
                   </div>
                   <div class="breakdown-row-meta">
-                    <span style="color: var(--text-muted);">${shiftText}${weekendNote}</span>
+                    <span style="color: var(--text-muted);">${shiftText}${dayOffNote}</span>
                     <div class="font-mono stats-alignment-wrapper" style="font-size: var(--font-size-entry-stats); color: var(--text-muted); display: flex; gap: 12px;">
                       <div class="stat-column work-col flex-center">
                         <span ${isCurrentRow ? 'id="today-variance-badge"' : ""} class="badge ${badgeClass}">${ouLetter}</span><span ${isCurrentRow ? 'id="today-variance-val"' : ""}>${formatFriendlyDuration(Math.abs(diffSec), "0m")}</span>
@@ -34404,10 +34522,10 @@
         } else {
           // Compare strictly past days: Subtract future days AND today from the total expected goal
           expectedSecSoFar = Math.max(0, grandGoal - futureAndTodayGoalSec);
-          const isTodayWeekend = !WorkWeek.countsToward(
+          const todayIsUncounted = !WorkWeek.countsToward(
             formatUTCDayStr(todayWork),
           );
-          const todayLogged = isTodayWeekend
+          const todayLogged = todayIsUncounted
             ? 0
             : getTodayLoggedWorkSeconds() + getCurrentWorkSeconds();
           comparisonWorkSec = Math.max(0, grandTotalW - todayLogged);
@@ -42745,7 +42863,14 @@
         renderLogbook();
         autoPopulateDailyGoal(state.activeDate);
 
-        showAppToast(`Added leave on ${formattedDate}`);
+        /* W8: leave on a day off changes no goal -- the day already asks what
+           a day off asks -- and saying so where it is booked is the whole
+           point of the decision. */
+        showAppToast(
+          WorkWeek.isWorkDay(formattedDate)
+            ? `Added leave on ${formattedDate}`
+            : `Added leave on ${formattedDate} — ${WW_DAY_FULL_NAMES[WorkWeek.weekday(formattedDate)]} is already a day off, so no goal changes`,
+        );
         input.value = "";
       };
 
@@ -44512,9 +44637,20 @@
           const d = displayBaseDate.getUTCDate();
           displayBaseDate = new Date(Date.UTC(y + delta, m, d, 12, 0, 0));
         } else {
-          displayBaseDate = new Date(
-            displayBaseDate.getTime() + delta * 7 * 86400000,
-          );
+          /* A week is not always seven days: the first one after a week-start
+             change is shorter (R3). Stepping by a fixed 7 days across one of
+             those lands inside a week already visited, or skips past a week
+             entirely, so each arrow asks the schedule where the neighbouring
+             week begins instead -- the day after this week's last, or the
+             week holding the day before its first (§4.7 row 43). */
+          let day = WorkWeek.weekOf(formatUTCDayStr(displayBaseDate)).startDay;
+          for (let i = 0; i < Math.abs(delta); i++) {
+            day =
+              delta > 0
+                ? WorkWeek.weekOfDay(day).endDay + 1
+                : WorkWeek.weekOfDay(day - 1).startDay;
+          }
+          displayBaseDate = new Date(day * 86400000 + 43200000);
         }
         // Reset segment caches to force absolute redraw on week navigation
         domWriteCache.todaySegmentScale = -1;
