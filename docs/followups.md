@@ -1,6 +1,6 @@
 # Follow-ups: work week, clock and date formats, re-filing records
 
-> **Status:** plan approved by the user on 2026-09-15, including every proposed default in §10. Phases W0 (measurements), W1 (the `WorkWeek` module, behaviour-identical apart from two differences the user chose), W2 (the schedule, its history and the generalised rules), W3 (the settings card, the wording, the bar and the guide) and W4 (live multi-device, the iPhone pass, and decision W16) are done, and W0–W4 are **deployed** (`676976f`, 2026-09-19); Phase C1 is next.
+> **Status:** plan approved by the user on 2026-09-15, including every proposed default in §10. Phases W0 (measurements), W1 (the `WorkWeek` module, behaviour-identical apart from two differences the user chose), W2 (the schedule, its history and the generalised rules), W3 (the settings card, the wording, the bar and the guide) and W4 (live multi-device, the iPhone pass, and decision W16) are done, and W0–W4 are **deployed** (`676976f`, 2026-09-19); Phase C1 (the 24-hour clock) is done and not yet deployed; Phase D1 is next.
 > **Baseline commit:** `0ba1bd6` (all line numbers below refer to it and WILL drift — re-grep before editing).
 > **Rule:** one phase at a time. A phase starts only when the previous phase's exit criteria are green and committed.
 > **Origin:** the candidate follow-ups in §9 of `docs/implement.md`. "More than two clocks; per-client zones" was dropped by the user (§11 here).
@@ -12,7 +12,7 @@
 | W2    | The schedule: preference, history, the generalised rules          | prefs            | stub / fake server  | L (split W2a/W2b) | done    |
 | W3    | Work week UI: settings card, phone sheet, bar, labels, guide      | prefs            | no                  | M–L (split W3a/b) | done    |
 | W4    | Work week sync hardening, multi-device, iPhone                    | no               | **yes**             | M                 | done    |
-| C1    | 24-hour clock                                                     | prefs            | no                  | M                 | planned |
+| C1    | 24-hour clock                                                     | prefs            | no                  | M                 | done    |
 | D1    | Date order: MM/DD, DD/MM, YYYY-MM-DD                              | prefs            | no                  | M–L (split D1a/b) | planned |
 | Z1    | Re-filing a record in another time zone                           | yes (edit paths) | no                  | M (split Z1a/b)   | planned |
 | R     | Release: full mutation run, README, guide sweep, iPhone checklist | no               | full sweep          | S                 | planned |
@@ -317,7 +317,7 @@ C1 a 12-hour / 24-hour switch, default 12-hour; every time on screen follows; ty
 ### 5.3 Design
 
 - Preference `clockFormat`: `"12h"` | `"24h"`, key `nodrift_clock_format_v1`, `PREF_KEYS` entry with `validate`, absent = `"12h"`. Backup, import, factory reset lists.
-- `TimeZones` gains `h23` twins of `time`, `timeOnly`, `hm` and `clock` (`hourCycle: "h23"`, never `hour12: false`, which some engines render as `24:05`). `clockStyle("time")` returns the twin for the preference; the tick reads the preference from a module variable, never from `localStorage`.
+- `TimeZones` gains `h23` twins of `time`, `timeOnly`, `hm` and `clock` (`hourCycle: "h23"`, never `hour12: false`, which some engines render as `24:05`). `clockStyle("time")` returns the twin for the preference; the tick reads the preference from a module variable, never from `localStorage`. **Measured in C1:** on the Chrome the suites grade against, `en-US` with `hour12: false` already resolves to `h23`, so midnight reads `00:00:05` either way there. The rule stays, because it is the engines that do not that it is for — but it is not gradeable by a mutation on this machine, and C1's mutation list says so.
 - **Screens** call `clockStyle`. `recordEndpointView` formats from the instant when the preference is 24-hour (the stored string is 12-hour by F1). `setClock` leaves `.clock-ampm` empty and collapsed in 24-hour mode.
 - **Exports** call `exportTime(record, end)`, which is today's `recordEndpointText`, pinned to 12-hour (F9).
 - **Typing:** `parseClockTimePreview` accepts both forms in either mode and writes the preference's form into the field. Every save path converts the field to the stored 12-hour string before saving. The kept-instant comparison in the edit dialog (`keptTypedInstant`, 34375) compares **seconds**, not strings, so an unchanged field stays byte-identical in both modes.
@@ -521,7 +521,8 @@ Also from W0: `probe-workweek-audit.js` (no account; W0, then W2b, where its mea
 - from W1: `harness-workweek-core.js`, `probe-workweek-golden.js compare` (with the `--expect` of the phase) and `probe-workweek-eviction.js`;
 - from W2: `harness-workweek-model.js` and `probe-workweek-audit.js`;
 - from W3: `probe-workweek-ui.js`, and the golden master's `--expect=w3`;
-- from W4: `probe-workweek-server.js` (live; last in the list, so a shared-account failure is easy to re-run alone).
+- from W4: `probe-workweek-server.js` (live; last in the list, so a shared-account failure is easy to re-run alone);
+- from C1: `harness-formats.js`, before the live suite.
 
 **House rules:**
 
@@ -916,6 +917,36 @@ Worth recording: running the checklist leaves the device holding a `nodrift_work
 - the kept-instant check compares strings.
 
 **Exit:** all green; anchors 0 misses. **Commit:** `feat(time): a 24-hour clock`.
+
+#### Phase C1 results (2026-09-20)
+
+**Power, and what it cost.** The laptop came off AC during the baseline run and stayed off it: the CPU dropped from 2419 MHz to 1007 MHz partway through the phase. Every functional suite was unaffected. The one suite that was is `probe-tz-picker.js`, whose six 4×-CPU-throttle budgets failed **on the unmodified tree, before a line of C1 was written** — the full index took 4525 ms against a 1.5 s budget, and the first open 694 ms against 100 ms — where the same suite was 176 of 176 on AC in W4. So the C1 baseline is **25 of 26**, with the 26th a power reading rather than a code one; it is the one measurement this phase leaves open, and it belongs to the machine, not to the build. Asked with that in hand, the user chose to grade C1's mutations on battery: all twelve are graded by `harness-formats.js`, which contains no timing check, so nothing about a verdict depends on the clock speed. `harness-phase8.js`'s in-chain exit 127 was the usual launch death — 14 of 14 alone.
+
+**The shape of it.** One resolver and one funnel, as §5.3 asks.
+
+- **`clockStyle(style)`** maps the four styles that show a clock time — `time`, `timeOnly`, `hm`, `clock` — to their `h23` twins when the preference says so, and hands back anything else unchanged. Nothing else in the build reads the preference key, and nothing else decides. `clockFormat()` holds the value in a module variable rather than reading `localStorage`, because the status bar clock asks it every second.
+- **`onDisplayFormatChanged()`** is the only way it changes: it drops the cached preference, bumps a version that `zoneRenderKey()` now carries — so the logbook rows, the task rows, the insights key and the today-row cache all redraw — clears the formatted-time memo and the three formatter caches the clocks, the estimate and the idle dialog hold, then redraws. Deliberately narrower than `onZoneContextChanged()`: no date realigns and no shift changes zone, because nothing about the day has moved, only the way a time is written down.
+- **The preference** is `nodrift_clock_format_v1`, `"12h"` or `"24h"`, absent meaning 12-hour. It syncs (decision S1) with `resendIfMissing`, for the same reason the work week has it: a build that predates it drops the key from the account when it wins a settings race, and this one puts its own back on the next beat (F10). It is in the backup, the import and the factory reset list.
+- **What stays 12-hour (F1, F9, decision C2).** The two places a filed shift's `login` / `logout` strings are written ask for `"time"` literally, with a comment saying why. A typed value becomes a stored one through `storedTypedTime()`, at the two save paths and nowhere else. `exportTime()` and `exportTimeView()` are the export formatters, and the logbook CSV, the tasks CSV and both task copy buttons call them. The other copy buttons and the end-of-day email were audited and carry no clock time at all — only durations and dates.
+- **Typing accepts both forms in either mode** (decision C1). One parse, `parseTypedClockSeconds()`, reads `0900`, `900p`, `9:30p`, `17:30` and `09:00:00 AM` alike; `parseClockTimePreview()` writes it back in the form on screen and `typedTimeToStored()` in the form a record keeps. `parseClockTimeToSeconds` and `parseTimeToMinutes` now take the AM/PM suffix as optional — a bare hour above 23 is not a time — so a field holding `17:30:00` reads everywhere a field holding `05:30:00 PM` did. **`keptTypedInstant` compares seconds rather than text**, so a dialog opened on one clock and saved on the other still counts as untouched and keeps its instant to the millisecond.
+- **The card** is renamed **"Time and date"** (decision P-F1), on the desktop and as the phone sheet's section label, and the Clock row sits last in it, under "Show log times in". The empty `.clock-ampm` element loses its margin so the 24-hour status bar leaves no gap where AM/PM was.
+
+**`harness-formats.js`** (ports 8891 / 9491, no account) is new and green at **43 of 43**, in nine sections: the default and its storage diff, choosing 24-hour through the real dropdown, midnight, the exports, typing and both dialogs, the DST gap sentence, eight hostile synced values, the resolver on every screen, and the phone at 375 px. It is the last entry but one of `run-followups-regression.sh`, before the live suite.
+
+**§5.4 rows asserted:** 45 (the default, plus the golden master below), 46, 47, 48, 49, 50, 51, 52, 53 and 54, with F1, F2, F3, F4, F8 and F9 each carrying a check of its own.
+
+**Tests.** `probe-workweek-golden.js compare --expect=w3`: **300 sets, 0 differ** — C1 changes nothing for a user who touches nothing, which is row 45 and §1's promise. `harness-formats.js` **43 of 43**. The rest of the list green: `harness.js` 80, `harness-progress.js` 26, `harness-security.js` 17, `probe-csv-shape.js` 15, `probe-backup-and-leave.js` 26, `probe-leave-rows.js` 12, `harness-tz-core.js` 86, `harness-tz-model.js` 28, `harness-tz-display.js` 129, `harness-wipe.js` 18, `probe-workweek-ui.js` 110, `harness-workweek-model.js` 114, and `probe-tz-ui.js` **149 of 149 alone** after two intended differences were written into it — the sheet section is "Time and date" now, and the card has five touch targets rather than four. `harness-progress.js`'s `ETA_SHAPE` accepts both clocks.
+
+**Mutations: 351 in the file, 0 anchor misses, and every one of C1's caught.** Four entries whose code this phase moved — `keptTypedInstant`, `csvRowForLog`, the tasks CSV and the hover-help row list — were re-anchored and re-graded GOOD. Twelve new `C1:` entries were added and all twelve are GOOD. Three of them were BAD first, and each said something:
+
+- **One mutation could not be caught by anything, because it broke nothing.** `_recordTimeMemo` is keyed on the formatter style, so a memo entry made in one clock format can never be returned in the other; the funnel's `_recordTimeMemo.clear()` frees memory and nothing more. It was replaced by a mutation on the line that _is_ load-bearing — dropping `window._lastClockMinCache = -1`, without which the status bar goes on reading the old format until the minute turns over.
+- **Two were real gaps in the new suite**, closed with two checks: a dialog **opened on one clock and saved on the other** (the seeded login carries 437 ms, which only a kept instant preserves — a re-derived one lands on the second), and the manual dialog **working the missing finish time out from a bare 24-hour login**, which is the one live path that still hands `parseClockTimeToSeconds` a field without an AM/PM suffix, now that both save paths convert to the stored form first.
+- **Both stayed BAD on the first re-grade for a reason worth writing down:** their `mustFail` patterns still named the checks they were written against. The runner grades a mutation by finding a _failing check whose name matches_ `mustFail`, so a new check that fails under the mutation proves nothing until `mustFail` points at it.
+
+**Two measurements worth keeping.**
+
+- **`hour12: false` is no longer distinguishable here.** §5.3 asks for `hourCycle: "h23"` because some engines render `hour12: false` as `24:05` at midnight. On the Chrome these suites grade against, `en-US` with `hour12: false` already resolves to `h23`: midnight reads `00:00:05` either way. The rule stays — it is the other engines it is for — but §9's fourth listed mutation cannot fail a check on this machine, so it is not in the list and two mutations covering the same code are. Recorded in §5.3.
+- **A save-unchanged always moves three fields.** `lastModified`, `searchStr` and `_idx` are rewritten by every save at every build; row 48 is therefore asserted as "nothing but the save stamp moved", with a separate check that the rebuilt search index carries the **12-hour** times and not the 24-hour ones — which is the F1 claim the row was really making.
 
 ### Phase D1 — Date order
 
