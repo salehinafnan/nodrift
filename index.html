@@ -1255,6 +1255,99 @@
         color: var(--text-muted);
       }
 
+      /* Re-filing a record in another zone (docs/followups.md §7). A row of
+         its own above the form rather than a field inside it: the zone is
+         not one more value to edit, it is what every time below it means. */
+      .refile-row {
+        display: flex;
+        align-items: center;
+        gap: var(--space-2);
+        margin: calc(-1 * var(--space-1)) 0 var(--space-3);
+        flex-wrap: wrap;
+      }
+
+      /* Classes, not inline display: an inline display would beat the hidden
+         attribute and neither block could ever hide again. */
+      .refile-row[hidden],
+      .refile-preview[hidden],
+      .refile-option[hidden] {
+        display: none;
+      }
+
+      .refile-zone {
+        font-size: var(--font-size-entry-meta);
+        color: var(--text-main);
+        margin-right: auto;
+      }
+
+      .refile-preview {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-2);
+        margin: 0 0 var(--space-3);
+      }
+
+      .refile-option {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 2px;
+        width: 100%;
+        text-align: left;
+        background: var(--surface-1);
+        border: var(--hairline);
+        border-radius: 8px;
+        padding: 8px 12px;
+        cursor: pointer;
+        color: var(--text-muted);
+      }
+
+      .refile-option:hover {
+        background: var(--element-hover);
+        border-color: var(--accent-line);
+      }
+
+      /* One source of truth for which reading is chosen: the same attribute
+         a screen reader is told it by. */
+      .refile-option[aria-pressed="true"] {
+        background: var(--accent-strong);
+        border-color: var(--accent-blue);
+        border-width: 1.5px;
+        color: var(--accent-blue);
+      }
+
+      .refile-option-title {
+        font-size: 0.75rem;
+        font-weight: 600;
+      }
+
+      .refile-option-times,
+      .refile-option-date {
+        font-size: var(--font-size-entry-meta);
+        color: var(--text-muted);
+      }
+
+      /* The date line exists only when the date moves, so an empty one takes
+         no room rather than a blank line's worth. */
+      .refile-option-date:empty {
+        display: none;
+      }
+
+      .refile-cancel {
+        align-self: flex-start;
+        background: none;
+        border: 0;
+        padding: 0;
+        font-size: var(--font-size-entry-meta);
+        color: var(--text-muted);
+        text-decoration: underline;
+        cursor: pointer;
+      }
+
+      .refile-cancel:hover {
+        color: var(--accent-blue);
+      }
+
       .modal-header {
         margin-top: 0;
         margin-bottom: var(--space-4);
@@ -8813,6 +8906,14 @@
           padding: 0 var(--space-3);
         }
 
+        /* The two controls of the zone row are hit, not read, and they sit
+           among fields that are already 44px here. Kept off the list above
+           so the rule that governs a dialog's fields stays about fields. */
+        .refile-row .preset-pill,
+        .refile-cancel {
+          min-height: 44px;
+        }
+
         /* The panel pins its own title and footer, so the sheet must not
            also be the scroller: two nested scrollers means the sheet starts
            travelling the moment the account list reaches its end. */
@@ -11476,6 +11577,43 @@
             </li>
           </ul>
           <hr />
+          <h4>Moving a record to another zone</h4>
+          <p>
+            A shift or a task is filed in the zone you were in when it was
+            recorded, and that never changes on its own. If it was filed in the
+            wrong one — you travelled, or the work zone was not what you thought
+            — open it with the <strong>pencil</strong> icon and use
+            <strong>Change</strong> on the <strong>Time zone</strong> row.
+          </p>
+          <p>
+            Picking a zone offers two readings, and shows you both before you
+            save:
+          </p>
+          <ul>
+            <li>
+              <strong>Keep when it happened</strong> — the moment stands and the
+              clock changes. A shift that ran 9:00 PM to 11:30 PM in Los Angeles
+              becomes 10:00 AM to 12:30 PM in Dhaka, the same two and a half
+              hours. Because a moment can fall on a different day elsewhere,
+              this is the one thing in nodrift that can move a record's date,
+              and the preview says so when it does.
+            </li>
+            <li>
+              <strong>Keep the times as written</strong> — the clock stands and
+              the moment changes. 9:00 AM stays 9:00 AM, now read in the new
+              zone. Use this when the times were typed in from a note and it was
+              the zone that was wrong, not the times.
+            </li>
+          </ul>
+          <p>
+            Hours worked and break never change either way, and nothing is saved
+            until you press Save.
+            <strong>Cancel zone change</strong> puts the form back, and a record
+            with no times of its own — one added by hand without an In and Out —
+            is offered only the first reading, since there is nothing written to
+            keep.
+          </p>
+          <hr />
           <h4>Running two tabs at once</h4>
           <p>
             Only one nodrift tab is allowed to track at a time, so two copies
@@ -11679,6 +11817,49 @@
         </button>
         <h3 class="modal-header">Edit Task</h3>
         <p id="edit-task-zone-hint" class="modal-zone-hint" hidden></p>
+        <div class="refile-row" id="edit-task-refile-row" hidden>
+          <span class="settings-label">Time zone</span>
+          <span class="refile-zone" id="edit-task-refile-zone"></span>
+          <button
+            type="button"
+            class="preset-pill"
+            id="edit-task-refile-change"
+            onclick="openRefilePicker('edit-task')"
+          >
+            Change
+          </button>
+        </div>
+        <div class="refile-preview" id="edit-task-refile-preview" hidden>
+          <button
+            type="button"
+            class="refile-option"
+            id="edit-task-refile-moments"
+            aria-pressed="false"
+            onclick="chooseRefileMode('edit-task', 'moments')"
+          >
+            <span class="refile-option-title">Keep when it happened</span>
+            <span class="refile-option-times"></span>
+            <span class="refile-option-date"></span>
+          </button>
+          <button
+            type="button"
+            class="refile-option"
+            id="edit-task-refile-written"
+            aria-pressed="false"
+            onclick="chooseRefileMode('edit-task', 'written')"
+          >
+            <span class="refile-option-title">Keep the times as written</span>
+            <span class="refile-option-times"></span>
+            <span class="refile-option-date"></span>
+          </button>
+          <button
+            type="button"
+            class="refile-cancel"
+            onclick="cancelRefile('edit-task')"
+          >
+            Cancel zone change
+          </button>
+        </div>
         <div class="form-group">
           <label class="form-label" for="edit-task-date" data-date-label
             >Date (MM/DD/YY)</label
@@ -11924,6 +12105,49 @@
         </button>
         <h3 class="modal-header">Edit Shift</h3>
         <p id="edit-zone-hint" class="modal-zone-hint" hidden></p>
+        <div class="refile-row" id="edit-refile-row" hidden>
+          <span class="settings-label">Time zone</span>
+          <span class="refile-zone" id="edit-refile-zone"></span>
+          <button
+            type="button"
+            class="preset-pill"
+            id="edit-refile-change"
+            onclick="openRefilePicker('edit')"
+          >
+            Change
+          </button>
+        </div>
+        <div class="refile-preview" id="edit-refile-preview" hidden>
+          <button
+            type="button"
+            class="refile-option"
+            id="edit-refile-moments"
+            aria-pressed="false"
+            onclick="chooseRefileMode('edit', 'moments')"
+          >
+            <span class="refile-option-title">Keep when it happened</span>
+            <span class="refile-option-times"></span>
+            <span class="refile-option-date"></span>
+          </button>
+          <button
+            type="button"
+            class="refile-option"
+            id="edit-refile-written"
+            aria-pressed="false"
+            onclick="chooseRefileMode('edit', 'written')"
+          >
+            <span class="refile-option-title">Keep the times as written</span>
+            <span class="refile-option-times"></span>
+            <span class="refile-option-date"></span>
+          </button>
+          <button
+            type="button"
+            class="refile-cancel"
+            onclick="cancelRefile('edit')"
+          >
+            Cancel zone change
+          </button>
+        </div>
         <div class="form-row">
           <div class="form-group">
             <label class="form-label" for="edit-date" data-date-label
@@ -21858,8 +22082,14 @@
             onPick: typeof o.onPick === "function" ? o.onPick : null,
           };
           opener = document.activeElement;
+          /* A caller with its own heading gets it: the picker is the work
+             zone's, the local zone's, and now a single record's, and
+             "Work time zone" over a list that will re-file one shift is a
+             lie about what the choice does. Ours, never a zone's own name
+             (I14). */
           byId("zone-picker-title").textContent =
-            role === "local" ? "Local time zone" : "Work time zone";
+            o.title ||
+            (role === "local" ? "Local time zone" : "Work time zone");
           byId("zone-picker-search").value = "";
           lastQuery = null;
           render();
@@ -35446,6 +35676,8 @@
         DOM.editLogout.value = recordEndpointText(log, "out");
         editOriginal = typedOriginal(log, log.date);
         showTypedZoneHint("edit-zone-hint", log);
+        renderRefileRow("edit");
+        renderRefilePreview("edit");
         DOM.editWork.value = formatDuration(log.workSec);
         DOM.editBreak.value = formatDuration(log.breakSec);
 
@@ -35524,6 +35756,8 @@
         }
         editTaskOriginal = typedOriginal(task, task.date || "");
         showTypedZoneHint("edit-task-zone-hint", task);
+        renderRefileRow("edit-task");
+        renderRefilePreview("edit-task");
         if (durEl) durEl.value = formatDuration(task.durationSec || 0);
         if (noteEl) noteEl.value = task.note || "";
 
@@ -44721,6 +44955,159 @@
         if (inEl) inEl.value = plan.inText;
         const outEl = document.getElementById(ids.out);
         if (outEl) outEl.value = plan.outText;
+      }
+
+      /* ---- Re-filing, in the dialogs ----
+
+         The row that says which zone a record's times are in, the picker
+         behind its Change button, and the two readings a zone change can be
+         given, each previewed before it is saved. */
+
+      /* "Keep the times as written" needs times that were written. An end
+         holding a placeholder never had any, so such a record is offered
+         only the other reading (§7.3). */
+      function refileCanKeepWritten(record) {
+        const e = recordEndpoint(record, "in");
+        return !e.placeholder && e.minutes !== null;
+      }
+
+      function refileIds(prefix) {
+        return {
+          row: `${prefix}-refile-row`,
+          zone: `${prefix}-refile-zone`,
+          preview: `${prefix}-refile-preview`,
+          moments: `${prefix}-refile-moments`,
+          written: `${prefix}-refile-written`,
+        };
+      }
+
+      /* The row, drawn from whatever zone the form is on now -- so it reads
+         the record's zone before a change and the chosen one after. */
+      function renderRefileRow(prefix) {
+        const ids = refileIds(prefix);
+        const row = document.getElementById(ids.row);
+        if (!row) return;
+        const record = refileRecord(prefix);
+        if (!record) {
+          row.hidden = true;
+          return;
+        }
+        const at = recordEndpoint(record, "in").ms;
+        setText(
+          document.getElementById(ids.zone),
+          zoneCityOffset(
+            typedFormZone(prefix),
+            Number.isFinite(at) ? at : Date.now(),
+          ),
+        );
+        row.hidden = false;
+      }
+
+      function openRefilePicker(prefix) {
+        if (!refileRecord(prefix)) return;
+        ZonePicker.open({
+          role: "work",
+          title: "File this record in",
+          current: typedFormZone(prefix),
+          onPick: (zone) => startRefile(prefix, zone),
+        });
+      }
+
+      /* A zone chosen in the picker. Picking the record's own zone is how a
+         change is undone from inside the picker, so it cancels rather than
+         pending a move to where the record already is. The reading it opens
+         on is always "keep when it happened" (P-Z4): nothing on a record
+         says whether its times were measured or typed, so there is nothing
+         to choose the other default by. */
+      function startRefile(prefix, zone) {
+        const record = refileRecord(prefix);
+        if (!record) return;
+        if (TimeZones.same(zone, recordZone(record))) {
+          cancelRefile(prefix);
+          return;
+        }
+        chooseRefileMode(prefix, "moments", zone);
+      }
+
+      /* One of the two readings, chosen or re-chosen. The form is written
+         from the plan either way: "keep when it happened" re-fills it, and
+         "keep the times as written" puts back what the record says, which
+         is what that reading means. */
+      function chooseRefileMode(prefix, mode, zone) {
+        const pending = refileOf(prefix);
+        const next = zone || (pending && pending.zone);
+        if (!next) return;
+        const plan = applyRefile(prefix, next, mode);
+        if (!plan) return;
+        fillRefiledForm(prefix, plan);
+        renderRefileRow(prefix);
+        renderRefilePreview(prefix);
+      }
+
+      /* Back to the record's own zone with the form as the record has it.
+         planRefile answers that too: "keep the times as written" in the
+         record's own zone is the record (row 83). */
+      function cancelRefile(prefix) {
+        const record = refileRecord(prefix);
+        clearRefile(prefix);
+        if (record) {
+          fillRefiledForm(
+            prefix,
+            planRefile(record, recordZone(record), "written"),
+          );
+        }
+        const preview = document.getElementById(refileIds(prefix).preview);
+        if (preview) preview.hidden = true;
+        renderRefileRow(prefix);
+      }
+
+      /* Both readings side by side with the chosen one pressed. Each shows
+         the In and Out it would file, and a second line only when the
+         business date moves with them (P-Z3). Times and dates are in the
+         formats on screen, like every other reading in the dialog. */
+      function renderRefilePreview(prefix) {
+        const ids = refileIds(prefix);
+        const box = document.getElementById(ids.preview);
+        if (!box) return;
+        const pending = refileOf(prefix);
+        const record = refileRecord(prefix);
+        if (!pending || !record) {
+          box.hidden = true;
+          return;
+        }
+        const draw = (id, plan, on) => {
+          const el = document.getElementById(id);
+          if (!el || !plan) return;
+          setText(
+            el.querySelector(".refile-option-times"),
+            plan.error
+              ? plan.error
+              : `${plan.inText || "—"} – ${plan.outText || "—"}`,
+          );
+          setText(
+            el.querySelector(".refile-option-date"),
+            plan.dateMoved
+              ? `Date ${formatDateKey(record.date, "full")} → ${formatDateKey(plan.date, "full")}`
+              : "",
+          );
+          el.setAttribute("aria-pressed", on ? "true" : "false");
+        };
+        draw(
+          ids.moments,
+          planRefile(record, pending.zone, "moments"),
+          pending.mode === "moments",
+        );
+        const written = document.getElementById(ids.written);
+        const canWritten = refileCanKeepWritten(record);
+        if (written) written.hidden = !canWritten;
+        if (canWritten) {
+          draw(
+            ids.written,
+            planRefile(record, pending.zone, "written"),
+            pending.mode === "written",
+          );
+        }
+        box.hidden = false;
       }
 
       /* Put a chosen re-file into a dialog: remember it, and re-fill the
