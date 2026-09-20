@@ -4719,18 +4719,16 @@
          Which is also why the markup carries no inline font-weight any more:
          an inline style outranks this and each of the four headings would
          have had to be corrected by hand. */
-      .sync-details-heading .settings-label,
-      .tz-settings-heading {
+      .sync-details-heading .settings-label {
         font-size: 0.68rem;
         font-weight: 700;
         letter-spacing: 0.07em;
         color: var(--text-muted);
       }
 
-      /* The time zones card (docs/implement.md §4.3), first in the settings
-         panel. Its two zone rows are buttons shaped like settings rows --
-         label, the zone, a chevron -- and the heading takes the same
-         treatment as the cloud panel's. */
+      /* The time zones card (docs/implement.md §4.3). It fills the Time and
+         date panel, whose title names it, and its two zone rows are buttons
+         shaped like settings rows: label, the zone, a chevron. */
       .tz-settings-card {
         display: flex;
         flex-direction: column;
@@ -4782,27 +4780,128 @@
         flex: 0 0 auto;
       }
 
+      .ww-settings-card
+        .settings-row:has(.ww-week-start-select)
+        .settings-label,
+      .ww-settings-card .settings-row:has(.ww-catch-up-select) .settings-label {
+        flex: 0 0 auto;
+        white-space: nowrap;
+      }
+
       /* Anchored to the row's end, so a menu wider than its trigger grows
          over the label rather than out of the card. */
       .tz-log-times-select .custom-select-panel,
       .tz-clock-select .custom-select-panel,
-      .tz-date-select .custom-select-panel {
+      .tz-date-select .custom-select-panel,
+      .ww-week-start-select .custom-select-panel,
+      .ww-catch-up-select .custom-select-panel {
         left: auto;
         right: 0;
       }
 
-      /* Every other dropdown in this panel sits low and opens upwards; this
-         one is at the top, where upwards is off the panel. */
-      #settings-config-popup .tz-settings-card .custom-select-panel {
+      /* Both panels are short, so a dropdown near the bottom opens upwards
+         to stay inside the box that clips it. The week start is the one row
+         with more space below it than above. */
+      #work-week-popup .custom-select-panel,
+      #time-date-popup .custom-select-panel {
+        top: auto;
+        bottom: calc(100% + 4px);
+        box-shadow: var(--elev-3);
+      }
+
+      #work-week-popup .ww-week-start-select .custom-select-panel {
         top: calc(100% + 4px);
         bottom: auto;
         box-shadow: var(--elev-2);
       }
 
-      /* The Work week card (docs/followups.md §4.5), directly under the
-         tracking card whose weekly goal it divides. Shaped like the Time
-         zones card above so the panel reads as one set of cards, and one
-         node for both layouts: the phone sheet borrows it (RELOCATIONS). */
+      /* The rows that lead into the two panels above. Shaped like the zone
+         rows they replaced -- icon, label, read-out, chevron -- but they
+         navigate, so they answer to a pointer. */
+      .settings-nav-card {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+
+      .settings-nav-row {
+        gap: 8px;
+        min-height: 32px;
+        padding: 0 6px;
+        background: none;
+        border: 0;
+        border-radius: 6px;
+        color: var(--text-main);
+        font-size: inherit;
+        text-align: left;
+        cursor: pointer;
+        box-sizing: border-box;
+        transition: background-color 0.15s ease;
+      }
+
+      .settings-nav-row:hover {
+        background: var(--element-hover);
+      }
+
+      .settings-nav-row .settings-label {
+        flex: 0 0 auto;
+      }
+
+      .settings-nav-icon {
+        width: 15px;
+        height: 15px;
+        flex: 0 0 auto;
+        color: var(--text-muted);
+      }
+
+      /* A sub-panel takes the settings panel's own anchor, so the way back is
+         part of its title. */
+      .idle-popup-lead {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        min-width: 0;
+      }
+
+      .popup-back-btn {
+        width: 26px;
+        height: 26px;
+        flex: 0 0 auto;
+        background: var(--surface-1);
+        border: var(--hairline);
+        border-radius: var(--radius-md);
+        color: var(--text-muted);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+        cursor: pointer;
+        box-sizing: border-box;
+        transition:
+          color 0.15s ease,
+          background-color 0.15s ease,
+          border-color 0.15s ease,
+          transform 0.1s ease;
+      }
+
+      .popup-back-btn:hover {
+        color: var(--text-main);
+        background: var(--element-hover);
+        border-color: var(--border-light);
+      }
+
+      .popup-back-btn:active {
+        transform: scale(0.92);
+      }
+
+      .popup-back-btn svg {
+        width: 14px;
+        height: 14px;
+      }
+
+      /* The Work week card (docs/followups.md §4.5). It fills the Work week
+         panel, and is shaped like the Time zones card above so the two read
+         as one set. One node for both layouts. */
       .ww-settings-card {
         display: flex;
         flex-direction: column;
@@ -8014,7 +8113,7 @@
           display: none;
         }
 
-        /* The sheet's one navigational row: a section that leads somewhere
+        /* The sheet's navigational rows: a section that leads somewhere
            rather than a control that does something. Same level-1 surface,
            hairline and radius as the pills and tool squares it sits between,
            at the same 48px the tool squares use, laid out label / value /
@@ -8068,19 +8167,44 @@
           color: var(--text-muted);
         }
 
-        /* The time zones card, borrowed from the settings panel
-           (RELOCATIONS). The section label above it names it, so its own
-           heading steps aside, and its rows take the Cloud row's shape and
-           48px height. */
+        #m-sheet .m-sheet-row-icon {
+          width: 18px;
+          height: 18px;
+          flex: 0 0 auto;
+          color: var(--text-muted);
+        }
+
+        #m-sheet .m-sheet-nav .m-sheet-row + .m-sheet-row {
+          margin-top: 0.5rem;
+        }
+
+        /* The sheet's own rows already lead here, so the copy inside the
+           settings panel would be a second door to the same place. */
+        #m-sheet #settings-config-popup .settings-nav-card {
+          display: none;
+        }
+
+        /* The sheet is still behind these panels here, so back is a tap on
+           the scrim rather than a button in the title. */
+        #m-sheet .popup-back-btn {
+          display: none;
+        }
+
+        /* And nothing hovers a phone, so the strip would only ever show its
+           own placeholder -- the reason the cloud panel gave up its own. */
+        #m-sheet #work-week-popup .settings-help-strip,
+        #m-sheet #time-date-popup .settings-help-strip {
+          display: none;
+        }
+
+        /* The time zones card, filling the Time and date panel, which at
+           this width is a sheet the Preferences row opens. Its rows take the
+           Cloud row's shape and 48px height. */
         #m-sheet .tz-settings-card {
           padding: 0;
           background: none;
           border: 0;
           gap: 0.5rem;
-        }
-
-        #m-sheet .tz-settings-heading {
-          display: none;
         }
 
         #m-sheet .tz-setting-row,
@@ -8128,19 +8252,14 @@
           min-height: 44px;
         }
 
-        /* The work week card, borrowed into its own sheet section. Same
-           treatment as the time zones card above: the section label names
-           it, so its heading steps aside, and its rows take the Cloud row's
-           shape and height. */
+        /* The work week card, filling its own panel. Same treatment as the
+           time zones card above: its rows take the Cloud row's shape and
+           height. */
         #m-sheet .ww-settings-card {
           padding: 0;
           background: none;
           border: 0;
           gap: 0.5rem;
-        }
-
-        #m-sheet .ww-settings-heading {
-          display: none;
         }
 
         #m-sheet .ww-settings-card > .settings-row {
@@ -10691,10 +10810,11 @@
               panel up from the bottom, in labelled sections:
               <strong>Goals</strong> — the Daily Goal and the Weekly goal
               together, which is where the weekly one lives on a phone;
-              <strong>Work week</strong> for the days you work and when your
-              week starts; <strong>Time and date</strong> for your work and
-              local time zones, the clock labels, the zone log times are shown
-              in, and the clock and date formats;
+              <strong>Preferences</strong>, two rows that each open a sheet of
+              their own — <strong>Work week</strong> for the days you work and
+              when your week starts, and <strong>Time and date</strong> for your
+              work and local time zones, the clock labels, the zone log times
+              are shown in, and the clock and date formats;
               <strong>Appearance</strong> for the theme; a
               <strong>Cloud sync</strong> row showing the signed-in account,
               which opens the sync sheet on top; and <strong>Tools</strong>, the
@@ -10841,9 +10961,9 @@
           <h4>Your work week</h4>
           <p>
             Which days you work is yours to choose. Open
-            <strong>Settings</strong> and find the <strong>Work week</strong>
-            card under the weekly goal — on a phone it is a section of the
-            <strong>Settings &amp; Tools</strong> sheet.
+            <strong>Settings</strong> and click <strong>Work week</strong> — on
+            a phone, open <strong>Settings &amp; Tools</strong> and tap
+            <strong>Work week</strong> under <strong>Preferences</strong>.
           </p>
           <ul>
             <li>
@@ -11552,8 +11672,8 @@
             <li>
               <strong>Where to change them</strong> — click a clock's label, or
               open <strong>Settings &rarr; Time and date</strong>. On a phone,
-              open <strong>Settings &amp; Tools</strong> and use its
-              <strong>Time and date</strong> section.
+              open <strong>Settings &amp; Tools</strong> and tap
+              <strong>Time and date</strong> under <strong>Preferences</strong>.
             </li>
             <li>
               <strong>Changing the work time zone</strong> asks first, and names
@@ -15354,26 +15474,30 @@
                     </svg>
                   </button>
                 </div>
-                <!-- Card 0: Time and date. First, because the work zone
-                     decides what "today" is for every card below it
-                     (docs/implement.md §4.3). The clock format sits here too
-                     rather than in a card of its own (decision P-F1): it is
-                     the other half of how a time is read. One node for both
-                     layouts: the phone sheet borrows it into its Time and
-                     date section (see MobileShell's RELOCATIONS). The
-                     read-outs are filled in by renderZoneSettings(). -->
-                <div class="settings-card tz-settings-card">
-                  <span class="settings-label tz-settings-heading"
-                    >Time and date</span
-                  >
+                <div class="settings-card settings-nav-card">
                   <button
                     type="button"
-                    id="tz-work-row"
-                    class="settings-row tz-setting-row"
-                    onclick="openZonePickerFor('work')"
+                    id="settings-nav-week"
+                    class="settings-row settings-nav-row"
+                    onclick="toggleWorkWeekPopup(event)"
                   >
-                    <span class="settings-label">Work time zone</span>
-                    <span id="tz-work-value" class="tz-setting-value"></span>
+                    <svg
+                      class="settings-nav-icon"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.8"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      aria-hidden="true"
+                    >
+                      <g data-sprite="sprite-034"></g>
+                    </svg>
+                    <span class="settings-label">Work week</span>
+                    <span
+                      id="settings-nav-week-value"
+                      class="tz-setting-value"
+                    ></span>
                     <svg
                       class="tz-setting-chevron"
                       viewBox="0 0 24 24"
@@ -15389,12 +15513,27 @@
                   </button>
                   <button
                     type="button"
-                    id="tz-local-row"
-                    class="settings-row tz-setting-row"
-                    onclick="openZonePickerFor('local')"
+                    id="settings-nav-tz"
+                    class="settings-row settings-nav-row"
+                    onclick="toggleTimeDatePopup(event)"
                   >
-                    <span class="settings-label">Local time zone</span>
-                    <span id="tz-local-value" class="tz-setting-value"></span>
+                    <svg
+                      class="settings-nav-icon"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.8"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      aria-hidden="true"
+                    >
+                      <g data-sprite="sprite-110"></g>
+                    </svg>
+                    <span class="settings-label">Time and date</span>
+                    <span
+                      id="settings-nav-tz-value"
+                      class="tz-setting-value"
+                    ></span>
                     <svg
                       class="tz-setting-chevron"
                       viewBox="0 0 24 24"
@@ -15408,210 +15547,6 @@
                       <g data-sprite="sprite-029"></g>
                     </svg>
                   </button>
-                  <button
-                    type="button"
-                    id="tz-labels-row"
-                    class="settings-row tz-setting-row"
-                    onclick="openZoneLabels()"
-                  >
-                    <span class="settings-label">Clock labels</span>
-                    <span id="tz-labels-value" class="tz-setting-value"></span>
-                    <svg
-                      class="tz-setting-chevron"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="1.8"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      aria-hidden="true"
-                    >
-                      <g data-sprite="sprite-029"></g>
-                    </svg>
-                  </button>
-                  <div class="settings-row tz-log-times-row">
-                    <span class="settings-label">Show log times in</span>
-                    <div class="custom-select tz-log-times-select">
-                      <select
-                        id="tz-log-times-select"
-                        style="display: none"
-                        onchange="chooseLogTimes(this.value)"
-                      >
-                        <option value="recorded">Recorded zone</option>
-                        <option value="work">Work zone</option>
-                        <option value="local">Local zone</option>
-                      </select>
-                      <button
-                        type="button"
-                        class="custom-select-trigger cs-sm"
-                        data-for="tz-log-times-select"
-                        aria-haspopup="listbox"
-                      >
-                        <span class="cs-trigger-val">Recorded zone</span>
-                        <svg
-                          class="cs-chevron"
-                          viewBox="0 0 24 24"
-                          width="14"
-                          height="14"
-                          fill="none"
-                          stroke="currentColor"
-                          stroke-width="1.8"
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                        >
-                          <polyline points="6 9 12 15 18 9"></polyline>
-                        </svg>
-                      </button>
-                      <div
-                        class="custom-select-panel cs-compact"
-                        role="listbox"
-                      >
-                        <button
-                          type="button"
-                          class="custom-select-option cs-selected"
-                          data-value="recorded"
-                        >
-                          Recorded zone
-                        </button>
-                        <button
-                          type="button"
-                          class="custom-select-option"
-                          data-value="work"
-                        >
-                          Work zone
-                        </button>
-                        <button
-                          type="button"
-                          class="custom-select-option"
-                          data-value="local"
-                        >
-                          Local zone
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                  <!-- The clock format (docs/followups.md §5, decision C1).
-                       Display only: what a record stores, what syncs and
-                       what every export carries stay 12-hour (F1, C2). -->
-                  <div class="settings-row tz-clock-row">
-                    <span class="settings-label">Clock</span>
-                    <div class="custom-select tz-clock-select">
-                      <select
-                        id="clock-format-select"
-                        style="display: none"
-                        onchange="chooseClockFormat(this.value)"
-                      >
-                        <option value="12h">12-hour</option>
-                        <option value="24h">24-hour</option>
-                      </select>
-                      <button
-                        type="button"
-                        class="custom-select-trigger cs-sm"
-                        data-for="clock-format-select"
-                        aria-haspopup="listbox"
-                      >
-                        <span class="cs-trigger-val">12-hour</span>
-                        <svg
-                          class="cs-chevron"
-                          viewBox="0 0 24 24"
-                          width="14"
-                          height="14"
-                          fill="none"
-                          stroke="currentColor"
-                          stroke-width="1.8"
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                        >
-                          <polyline points="6 9 12 15 18 9"></polyline>
-                        </svg>
-                      </button>
-                      <div
-                        class="custom-select-panel cs-compact"
-                        role="listbox"
-                      >
-                        <button
-                          type="button"
-                          class="custom-select-option cs-selected"
-                          data-value="12h"
-                        >
-                          12-hour
-                        </button>
-                        <button
-                          type="button"
-                          class="custom-select-option"
-                          data-value="24h"
-                        >
-                          24-hour
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                  <!-- The date order (docs/followups.md §6, decision D1).
-                       It sits under the clock because the card is "Time and
-                       date" and this is the date half (decision P-F1).
-                       Display, typing and exports follow it; the stored key
-                       and the JSON backup stay MM/DD/YY (F1, D2). -->
-                  <div class="settings-row tz-date-row">
-                    <span class="settings-label">Date</span>
-                    <div class="custom-select tz-date-select">
-                      <select
-                        id="date-order-select"
-                        style="display: none"
-                        onchange="chooseDateOrder(this.value)"
-                      >
-                        <option value="mdy">MM/DD/YY</option>
-                        <option value="dmy">DD/MM/YY</option>
-                        <option value="ymd">YYYY-MM-DD</option>
-                      </select>
-                      <button
-                        type="button"
-                        class="custom-select-trigger cs-sm"
-                        data-for="date-order-select"
-                        aria-haspopup="listbox"
-                      >
-                        <span class="cs-trigger-val">MM/DD/YY</span>
-                        <svg
-                          class="cs-chevron"
-                          viewBox="0 0 24 24"
-                          width="14"
-                          height="14"
-                          fill="none"
-                          stroke="currentColor"
-                          stroke-width="1.8"
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                        >
-                          <polyline points="6 9 12 15 18 9"></polyline>
-                        </svg>
-                      </button>
-                      <div
-                        class="custom-select-panel cs-compact"
-                        role="listbox"
-                      >
-                        <button
-                          type="button"
-                          class="custom-select-option cs-selected"
-                          data-value="mdy"
-                        >
-                          MM/DD/YY
-                        </button>
-                        <button
-                          type="button"
-                          class="custom-select-option"
-                          data-value="dmy"
-                        >
-                          DD/MM/YY
-                        </button>
-                        <button
-                          type="button"
-                          class="custom-select-option"
-                          data-value="ymd"
-                        >
-                          YYYY-MM-DD
-                        </button>
-                      </div>
-                    </div>
-                  </div>
                 </div>
 
                 <!-- Card 1: Tracking Behavior -->
@@ -15660,189 +15595,6 @@
                       <span class="unit">h</span>
                     </div>
                   </div>
-                </div>
-
-                <!-- Card 1b: Work week (docs/followups.md §4.5). Directly
-                     under the tracking card, because every row here divides
-                     or paces the weekly goal in it.
-
-                     One node for both layouts, like the Time zones card: the
-                     phone sheet borrows it into its Work week section (see
-                     MobileShell's RELOCATIONS). Nothing in here is shown or
-                     hidden with an inline display for that reason (I13); a
-                     row with nothing to say takes .is-disabled instead.
-
-                     The chips, the read-out, the note and every control's
-                     value are written by renderWorkWeekSettings(). -->
-                <div class="settings-card ww-settings-card">
-                  <span class="settings-label ww-settings-heading"
-                    >Work week</span
-                  >
-                  <div class="settings-row flex-col ww-days-row">
-                    <span class="settings-label">Work days</span>
-                    <div
-                      class="ww-day-chips"
-                      id="ww-day-chips"
-                      role="group"
-                      aria-label="Work days"
-                    ></div>
-                  </div>
-                  <div class="settings-row">
-                    <span class="settings-label">Week starts on</span>
-                    <div class="custom-select ww-week-start-select">
-                      <select
-                        id="ww-week-start"
-                        style="display: none"
-                        onchange="onWeekStartChange(this.value)"
-                      >
-                        <option value="1">Monday</option>
-                        <option value="0">Sunday</option>
-                        <option value="6">Saturday</option>
-                      </select>
-                      <button
-                        type="button"
-                        class="custom-select-trigger cs-sm"
-                        data-for="ww-week-start"
-                        aria-haspopup="listbox"
-                      >
-                        <span class="cs-trigger-val">Monday</span>
-                        <svg
-                          class="cs-chevron"
-                          viewBox="0 0 24 24"
-                          width="14"
-                          height="14"
-                          fill="none"
-                          stroke="currentColor"
-                          stroke-width="1.8"
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                        >
-                          <polyline points="6 9 12 15 18 9"></polyline>
-                        </svg>
-                      </button>
-                      <div
-                        class="custom-select-panel cs-compact"
-                        role="listbox"
-                      >
-                        <button
-                          type="button"
-                          class="custom-select-option cs-selected"
-                          data-value="1"
-                        >
-                          Monday
-                        </button>
-                        <button
-                          type="button"
-                          class="custom-select-option"
-                          data-value="0"
-                        >
-                          Sunday
-                        </button>
-                        <button
-                          type="button"
-                          class="custom-select-option"
-                          data-value="6"
-                        >
-                          Saturday
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                  <div class="settings-row">
-                    <span class="settings-label">Per work day</span>
-                    <span id="ww-per-day-value" class="ww-setting-value"></span>
-                  </div>
-                  <div class="settings-row" id="ww-day-off-goal-row">
-                    <span class="settings-label">Goal on a day off</span>
-                    <span class="ww-day-off-goal-group">
-                      <input
-                        type="number"
-                        id="ww-day-off-goal"
-                        class="input-standard"
-                        min="0"
-                        max="24"
-                        step="0.25"
-                        onchange="onDayOffGoalChange()"
-                        onfocus="this.select()"
-                      />
-                      <span class="unit">h</span>
-                      <button
-                        type="button"
-                        id="ww-day-off-auto"
-                        class="btn-secondary"
-                        onclick="onDayOffGoalAuto()"
-                      >
-                        Auto
-                      </button>
-                    </span>
-                  </div>
-                  <div class="settings-row" id="ww-day-off-counts-row">
-                    <span class="settings-label"
-                      >Day-off work counts toward the week</span
-                    >
-                    <label class="switch">
-                      <input
-                        type="checkbox"
-                        id="ww-day-off-counts"
-                        onchange="onDayOffCountsChange()"
-                      />
-                      <span class="slider-toggle"></span>
-                    </label>
-                  </div>
-                  <div class="settings-row">
-                    <span class="settings-label">Catch-up</span>
-                    <div class="custom-select ww-catch-up-select">
-                      <select
-                        id="ww-catch-up"
-                        style="display: none"
-                        onchange="onCatchUpChange(this.value)"
-                      >
-                        <option value="next">Next work day</option>
-                        <option value="spread">Spread over the week</option>
-                      </select>
-                      <button
-                        type="button"
-                        class="custom-select-trigger cs-sm"
-                        data-for="ww-catch-up"
-                        aria-haspopup="listbox"
-                      >
-                        <span class="cs-trigger-val">Next work day</span>
-                        <svg
-                          class="cs-chevron"
-                          viewBox="0 0 24 24"
-                          width="14"
-                          height="14"
-                          fill="none"
-                          stroke="currentColor"
-                          stroke-width="1.8"
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                        >
-                          <polyline points="6 9 12 15 18 9"></polyline>
-                        </svg>
-                      </button>
-                      <div
-                        class="custom-select-panel cs-compact"
-                        role="listbox"
-                      >
-                        <button
-                          type="button"
-                          class="custom-select-option cs-selected"
-                          data-value="next"
-                        >
-                          Next work day
-                        </button>
-                        <button
-                          type="button"
-                          class="custom-select-option"
-                          data-value="spread"
-                        >
-                          Spread over the week
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                  <span class="ww-note" id="ww-note" hidden></span>
                 </div>
 
                 <!-- Card 2: Automatic Tracking & Data Options -->
@@ -16753,6 +16505,510 @@
                    of its life showing "Hover over any setting to view its
                    description." with nothing on screen to hover. -->
             </div>
+
+            <div id="work-week-popup" class="idle-popup" style="gap: 0.35rem">
+              <div class="idle-popup-header">
+                <span class="idle-popup-lead">
+                  <button
+                    type="button"
+                    class="popup-back-btn"
+                    onclick="backToSettingsPopup(event)"
+                    aria-label="Back to Settings"
+                  >
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.8"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <g data-sprite="sprite-028"></g>
+                    </svg>
+                  </button>
+                  <span class="idle-popup-title">Work week</span>
+                </span>
+                <button
+                  type="button"
+                  class="modal-close-btn"
+                  onclick="closeWorkWeekPopup()"
+                  aria-label="Close"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                  </svg>
+                </button>
+              </div>
+              <div class="settings-card ww-settings-card">
+                <div class="settings-row flex-col ww-days-row">
+                  <span class="settings-label">Work days</span>
+                  <div
+                    class="ww-day-chips"
+                    id="ww-day-chips"
+                    role="group"
+                    aria-label="Work days"
+                  ></div>
+                </div>
+                <div class="settings-row">
+                  <span class="settings-label">Week starts on</span>
+                  <div class="custom-select ww-week-start-select">
+                    <select
+                      id="ww-week-start"
+                      style="display: none"
+                      onchange="onWeekStartChange(this.value)"
+                    >
+                      <option value="1">Monday</option>
+                      <option value="0">Sunday</option>
+                      <option value="6">Saturday</option>
+                    </select>
+                    <button
+                      type="button"
+                      class="custom-select-trigger cs-sm"
+                      data-for="ww-week-start"
+                      aria-haspopup="listbox"
+                    >
+                      <span class="cs-trigger-val">Monday</span>
+                      <svg
+                        class="cs-chevron"
+                        viewBox="0 0 24 24"
+                        width="14"
+                        height="14"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.8"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      >
+                        <polyline points="6 9 12 15 18 9"></polyline>
+                      </svg>
+                    </button>
+                    <div class="custom-select-panel cs-compact" role="listbox">
+                      <button
+                        type="button"
+                        class="custom-select-option cs-selected"
+                        data-value="1"
+                      >
+                        Monday
+                      </button>
+                      <button
+                        type="button"
+                        class="custom-select-option"
+                        data-value="0"
+                      >
+                        Sunday
+                      </button>
+                      <button
+                        type="button"
+                        class="custom-select-option"
+                        data-value="6"
+                      >
+                        Saturday
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                <div class="settings-row">
+                  <span class="settings-label">Per work day</span>
+                  <span id="ww-per-day-value" class="ww-setting-value"></span>
+                </div>
+                <div class="settings-row" id="ww-day-off-goal-row">
+                  <span class="settings-label">Goal on a day off</span>
+                  <span class="ww-day-off-goal-group">
+                    <input
+                      type="number"
+                      id="ww-day-off-goal"
+                      class="input-standard"
+                      min="0"
+                      max="24"
+                      step="0.25"
+                      onchange="onDayOffGoalChange()"
+                      onfocus="this.select()"
+                    />
+                    <span class="unit">h</span>
+                    <button
+                      type="button"
+                      id="ww-day-off-auto"
+                      class="btn-secondary"
+                      onclick="onDayOffGoalAuto()"
+                    >
+                      Auto
+                    </button>
+                  </span>
+                </div>
+                <div class="settings-row" id="ww-day-off-counts-row">
+                  <span class="settings-label"
+                    >Day-off work counts toward the week</span
+                  >
+                  <label class="switch">
+                    <input
+                      type="checkbox"
+                      id="ww-day-off-counts"
+                      onchange="onDayOffCountsChange()"
+                    />
+                    <span class="slider-toggle"></span>
+                  </label>
+                </div>
+                <div class="settings-row">
+                  <span class="settings-label">Catch-up</span>
+                  <div class="custom-select ww-catch-up-select">
+                    <select
+                      id="ww-catch-up"
+                      style="display: none"
+                      onchange="onCatchUpChange(this.value)"
+                    >
+                      <option value="next">Next work day</option>
+                      <option value="spread">Spread over the week</option>
+                    </select>
+                    <button
+                      type="button"
+                      class="custom-select-trigger cs-sm"
+                      data-for="ww-catch-up"
+                      aria-haspopup="listbox"
+                    >
+                      <span class="cs-trigger-val">Next work day</span>
+                      <svg
+                        class="cs-chevron"
+                        viewBox="0 0 24 24"
+                        width="14"
+                        height="14"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.8"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      >
+                        <polyline points="6 9 12 15 18 9"></polyline>
+                      </svg>
+                    </button>
+                    <div class="custom-select-panel cs-compact" role="listbox">
+                      <button
+                        type="button"
+                        class="custom-select-option cs-selected"
+                        data-value="next"
+                      >
+                        Next work day
+                      </button>
+                      <button
+                        type="button"
+                        class="custom-select-option"
+                        data-value="spread"
+                      >
+                        Spread over the week
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                <span class="ww-note" id="ww-note" hidden></span>
+              </div>
+              <div class="settings-card settings-help-strip">
+                <svg
+                  class="settings-help-icon"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <g data-sprite="sprite-037"></g>
+                </svg>
+                <span class="settings-help-text settings-help-out"
+                  >Hover over any setting to view its description.</span
+                >
+              </div>
+            </div>
+
+            <div id="time-date-popup" class="idle-popup" style="gap: 0.35rem">
+              <div class="idle-popup-header">
+                <span class="idle-popup-lead">
+                  <button
+                    type="button"
+                    class="popup-back-btn"
+                    onclick="backToSettingsPopup(event)"
+                    aria-label="Back to Settings"
+                  >
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.8"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <g data-sprite="sprite-028"></g>
+                    </svg>
+                  </button>
+                  <span class="idle-popup-title">Time and date</span>
+                </span>
+                <button
+                  type="button"
+                  class="modal-close-btn"
+                  onclick="closeTimeDatePopup()"
+                  aria-label="Close"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                  </svg>
+                </button>
+              </div>
+              <div class="settings-card tz-settings-card">
+                <button
+                  type="button"
+                  id="tz-work-row"
+                  class="settings-row tz-setting-row"
+                  onclick="openZonePickerFor('work')"
+                >
+                  <span class="settings-label">Work time zone</span>
+                  <span id="tz-work-value" class="tz-setting-value"></span>
+                  <svg
+                    class="tz-setting-chevron"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.8"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                  >
+                    <g data-sprite="sprite-029"></g>
+                  </svg>
+                </button>
+                <button
+                  type="button"
+                  id="tz-local-row"
+                  class="settings-row tz-setting-row"
+                  onclick="openZonePickerFor('local')"
+                >
+                  <span class="settings-label">Local time zone</span>
+                  <span id="tz-local-value" class="tz-setting-value"></span>
+                  <svg
+                    class="tz-setting-chevron"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.8"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                  >
+                    <g data-sprite="sprite-029"></g>
+                  </svg>
+                </button>
+                <button
+                  type="button"
+                  id="tz-labels-row"
+                  class="settings-row tz-setting-row"
+                  onclick="openZoneLabels()"
+                >
+                  <span class="settings-label">Clock labels</span>
+                  <span id="tz-labels-value" class="tz-setting-value"></span>
+                  <svg
+                    class="tz-setting-chevron"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.8"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                  >
+                    <g data-sprite="sprite-029"></g>
+                  </svg>
+                </button>
+                <div class="settings-row tz-log-times-row">
+                  <span class="settings-label">Show log times in</span>
+                  <div class="custom-select tz-log-times-select">
+                    <select
+                      id="tz-log-times-select"
+                      style="display: none"
+                      onchange="chooseLogTimes(this.value)"
+                    >
+                      <option value="recorded">Recorded zone</option>
+                      <option value="work">Work zone</option>
+                      <option value="local">Local zone</option>
+                    </select>
+                    <button
+                      type="button"
+                      class="custom-select-trigger cs-sm"
+                      data-for="tz-log-times-select"
+                      aria-haspopup="listbox"
+                    >
+                      <span class="cs-trigger-val">Recorded zone</span>
+                      <svg
+                        class="cs-chevron"
+                        viewBox="0 0 24 24"
+                        width="14"
+                        height="14"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.8"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      >
+                        <polyline points="6 9 12 15 18 9"></polyline>
+                      </svg>
+                    </button>
+                    <div class="custom-select-panel cs-compact" role="listbox">
+                      <button
+                        type="button"
+                        class="custom-select-option cs-selected"
+                        data-value="recorded"
+                      >
+                        Recorded zone
+                      </button>
+                      <button
+                        type="button"
+                        class="custom-select-option"
+                        data-value="work"
+                      >
+                        Work zone
+                      </button>
+                      <button
+                        type="button"
+                        class="custom-select-option"
+                        data-value="local"
+                      >
+                        Local zone
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                <!-- The clock format (docs/followups.md §5, decision C1).
+                     Display only: what a record stores, what syncs and
+                     what every export carries stay 12-hour (F1, C2). -->
+                <div class="settings-row tz-clock-row">
+                  <span class="settings-label">Clock</span>
+                  <div class="custom-select tz-clock-select">
+                    <select
+                      id="clock-format-select"
+                      style="display: none"
+                      onchange="chooseClockFormat(this.value)"
+                    >
+                      <option value="12h">12-hour</option>
+                      <option value="24h">24-hour</option>
+                    </select>
+                    <button
+                      type="button"
+                      class="custom-select-trigger cs-sm"
+                      data-for="clock-format-select"
+                      aria-haspopup="listbox"
+                    >
+                      <span class="cs-trigger-val">12-hour</span>
+                      <svg
+                        class="cs-chevron"
+                        viewBox="0 0 24 24"
+                        width="14"
+                        height="14"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.8"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      >
+                        <polyline points="6 9 12 15 18 9"></polyline>
+                      </svg>
+                    </button>
+                    <div class="custom-select-panel cs-compact" role="listbox">
+                      <button
+                        type="button"
+                        class="custom-select-option cs-selected"
+                        data-value="12h"
+                      >
+                        12-hour
+                      </button>
+                      <button
+                        type="button"
+                        class="custom-select-option"
+                        data-value="24h"
+                      >
+                        24-hour
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                <!-- The date order (docs/followups.md §6, decision D1).
+                     It sits under the clock because the card is "Time and
+                     date" and this is the date half (decision P-F1).
+                     Display, typing and exports follow it; the stored key
+                     and the JSON backup stay MM/DD/YY (F1, D2). -->
+                <div class="settings-row tz-date-row">
+                  <span class="settings-label">Date</span>
+                  <div class="custom-select tz-date-select">
+                    <select
+                      id="date-order-select"
+                      style="display: none"
+                      onchange="chooseDateOrder(this.value)"
+                    >
+                      <option value="mdy">MM/DD/YY</option>
+                      <option value="dmy">DD/MM/YY</option>
+                      <option value="ymd">YYYY-MM-DD</option>
+                    </select>
+                    <button
+                      type="button"
+                      class="custom-select-trigger cs-sm"
+                      data-for="date-order-select"
+                      aria-haspopup="listbox"
+                    >
+                      <span class="cs-trigger-val">MM/DD/YY</span>
+                      <svg
+                        class="cs-chevron"
+                        viewBox="0 0 24 24"
+                        width="14"
+                        height="14"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.8"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      >
+                        <polyline points="6 9 12 15 18 9"></polyline>
+                      </svg>
+                    </button>
+                    <div class="custom-select-panel cs-compact" role="listbox">
+                      <button
+                        type="button"
+                        class="custom-select-option cs-selected"
+                        data-value="mdy"
+                      >
+                        MM/DD/YY
+                      </button>
+                      <button
+                        type="button"
+                        class="custom-select-option"
+                        data-value="dmy"
+                      >
+                        DD/MM/YY
+                      </button>
+                      <button
+                        type="button"
+                        class="custom-select-option"
+                        data-value="ymd"
+                      >
+                        YYYY-MM-DD
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="settings-card settings-help-strip">
+                <svg
+                  class="settings-help-icon"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <g data-sprite="sprite-037"></g>
+                </svg>
+                <span class="settings-help-text settings-help-out"
+                  >Hover over any setting to view its description.</span
+                >
+              </div>
+            </div>
           </div>
           <input
             type="file"
@@ -16878,12 +17134,74 @@
           data-slot="goal"
           data-label="Goals"
         ></div>
-        <div class="m-sheet-slot" data-slot="week" data-label="Work week"></div>
-        <div
-          class="m-sheet-slot"
-          data-slot="tz"
-          data-label="Time and date"
-        ></div>
+        <div class="m-sheet-slot m-sheet-nav" data-label="Preferences">
+          <button
+            type="button"
+            id="m-week-row"
+            class="m-sheet-row"
+            onclick="toggleWorkWeekPopup(event)"
+          >
+            <svg
+              class="m-sheet-row-icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <g data-sprite="sprite-034"></g>
+            </svg>
+            <span class="m-sheet-row-label">Work week</span>
+            <span class="m-sheet-row-value" id="m-week-row-value"></span>
+            <svg
+              class="m-sheet-row-chevron"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <g data-sprite="sprite-029"></g>
+            </svg>
+          </button>
+          <button
+            type="button"
+            id="m-tz-row"
+            class="m-sheet-row"
+            onclick="toggleTimeDatePopup(event)"
+          >
+            <svg
+              class="m-sheet-row-icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <g data-sprite="sprite-110"></g>
+            </svg>
+            <span class="m-sheet-row-label">Time and date</span>
+            <span class="m-sheet-row-value" id="m-tz-row-value"></span>
+            <svg
+              class="m-sheet-row-chevron"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <g data-sprite="sprite-029"></g>
+            </svg>
+          </button>
+        </div>
         <div
           class="m-sheet-slot"
           data-slot="theme"
@@ -16895,13 +17213,25 @@
              somewhere instead of a square in the tool grid; the panel it opens
              is the same one the desktop's footer button opens, which is why
              that button is hidden at this width. -->
-        <div class="m-sheet-slot" data-label="Cloud">
+        <div class="m-sheet-slot m-sheet-nav" data-label="Cloud">
           <button
             type="button"
             id="m-sync-row"
             class="m-sheet-row"
             onclick="toggleSyncPopup(event)"
           >
+            <svg
+              class="m-sheet-row-icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <g data-sprite="sprite-109"></g>
+            </svg>
             <span class="m-sheet-row-label">Cloud sync</span>
             <span class="m-sheet-row-value" id="m-sync-row-status"
               >Signed out</span
@@ -18752,6 +19082,8 @@
            of the gear beside it, not as a status light. */
         "sprite-109":
           '<path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"></path>',
+        "sprite-110":
+          '<circle cx="12" cy="12" r="9"></circle><polyline points="12 7 12 12 15.5 13.5"></polyline>',
       };
 
       function getSprite(id) {
@@ -19165,6 +19497,14 @@
         wwDayOffCountsRow: document.getElementById("ww-day-off-counts-row"),
         wwCatchUp: document.getElementById("ww-catch-up"),
         wwNote: document.getElementById("ww-note"),
+        navWeekValues: Array.prototype.slice.call(
+          document.querySelectorAll(
+            "#settings-nav-week-value, #m-week-row-value",
+          ),
+        ),
+        navTzValues: Array.prototype.slice.call(
+          document.querySelectorAll("#settings-nav-tz-value, #m-tz-row-value"),
+        ),
         submitModal: document.getElementById("submit-modal"),
         modalShiftNotes: document.getElementById("modal-shift-notes"),
         noteModal: document.getElementById("note-modal"),
@@ -19295,6 +19635,8 @@
         editModal: document.getElementById("edit-modal"),
         settingsConfigPopup: document.getElementById("settings-config-popup"),
         syncConfigPopup: document.getElementById("sync-config-popup"),
+        workWeekPopup: document.getElementById("work-week-popup"),
+        timeDatePopup: document.getElementById("time-date-popup"),
         idleInputBox: document.getElementById("idle-input-box"),
         goalAutopopulateToggle: document.getElementById(
           "goal-autopopulate-toggle",
@@ -28564,6 +28906,10 @@
         const order = DOM.dateOrderSelect;
         const chosen = dateOrder();
         if (order && order.value !== chosen) order.value = chosen;
+        const summary = `${TimeZones.city(getPreferredWorkZone())} · ${
+          format === "24h" ? "24-hour" : "12-hour"
+        }`;
+        DOM.navTzValues.forEach((el) => setText(el, summary));
       }
 
       /* A work zone adopted from another device (§3.5). It was confirmed where
@@ -28773,23 +29119,13 @@
         if (DOM.zoneNoticeModal) DOM.zoneNoticeModal.style.display = "none";
       }
 
-      /* Review: the Time zones card, wherever this layout keeps it. */
+      /* Review: the Time and date panel, wherever this layout opens it. */
       function reviewZoneNotice() {
         dismissZoneNotice();
         const shell = window.MobileShell;
-        if (shell && shell.active) {
-          shell.openSheet();
-          const slot = document.querySelector('.m-sheet-slot[data-slot="tz"]');
-          if (slot) {
-            slot.scrollIntoView({
-              block: "start",
-              behavior: scrollResetBehavior(),
-            });
-          }
-          return;
-        }
-        if (!DOM.settingsConfigPopup.classList.contains("show")) {
-          toggleSettingsPopup();
+        if (shell && shell.active) shell.openSheet();
+        if (!DOM.timeDatePopup.classList.contains("show")) {
+          toggleTimeDatePopup();
         }
       }
 
@@ -37922,6 +38258,10 @@
           setText(note, text);
           note.hidden = !text;
         }
+
+        DOM.navWeekValues.forEach((el) =>
+          setText(el, describeWorkDays(s.workDays, s.weekStart)),
+        );
       }
       window.renderWorkWeekSettings = renderWorkWeekSettings;
 
@@ -40183,6 +40523,32 @@
 
       window.closeSyncPopup = function () {
         closeFooterPopup(DOM.syncConfigPopup);
+      };
+
+      window.closeWorkWeekPopup = function () {
+        closeFooterPopup(DOM.workWeekPopup);
+      };
+
+      window.toggleWorkWeekPopup = function (e) {
+        if (e) e.stopPropagation();
+        toggleFooterPopup(DOM.workWeekPopup, renderWorkWeekSettings);
+      };
+
+      window.closeTimeDatePopup = function () {
+        closeFooterPopup(DOM.timeDatePopup);
+      };
+
+      window.toggleTimeDatePopup = function (e) {
+        if (e) e.stopPropagation();
+        toggleFooterPopup(DOM.timeDatePopup, renderZoneSettings);
+      };
+
+      /* Desktop only: both panels take the settings panel's anchor, so the
+         one that opened this has gone. On the phone the sheet is still behind
+         it and the button is hidden. */
+      window.backToSettingsPopup = function (e) {
+        if (e) e.stopPropagation();
+        toggleFooterPopup(DOM.settingsConfigPopup, syncSettingsUI);
       };
 
       /* Opened from two places that never coexist: the footer button on the
@@ -46344,6 +46710,10 @@
             "Clock: Write every time on screen as 12-hour or 24-hour. Typing accepts both. Exported files and backups stay 12-hour.",
           "date-order-select":
             "Date: The order every date is written in, on screen, when you type one and in exported files. The JSON backup keeps MM/DD/YY so it restores anywhere.",
+          "settings-nav-week":
+            "Work Week: The days you work, when your week starts, the goal on a day off and how a missed day is made up.",
+          "settings-nav-tz":
+            "Time and Date: Your work and local zones, what the clocks are called, and how every time and date is written.",
           "goal-autopopulate-toggle":
             "Auto-Populate: Adjusts your daily target dynamically to pace you toward a 40-hour work week.",
           "weekly-goal-hours":
@@ -46441,6 +46811,8 @@
         };
 
         const rowIds = [
+          "settings-nav-week",
+          "settings-nav-tz",
           "tz-work-row",
           "tz-local-row",
           "tz-labels-row",
@@ -47299,8 +47671,6 @@
         const RELOCATIONS = [
           { slot: "goal", selector: ".goal-container" },
           { slot: "goal", selector: ".weekly-goal-container" },
-          { slot: "week", selector: ".ww-settings-card" },
-          { slot: "tz", selector: ".tz-settings-card" },
 
           { slot: "theme", selector: ".theme-container" },
           { slot: "tools", selector: ".footer-icons" },
@@ -47352,7 +47722,7 @@
 
         function openSheet() {
           if (!state.active) return;
-          /* The Time Zone and Work week sections read the preferences. The
+          /* The two preference rows read the schedule and the formats. The
              funnels keep them current while the sheet is open; this, while
              it was not. */
           if (typeof window.renderZoneSettings === "function") {
@@ -47699,7 +48069,9 @@
               if (
                 btn.id === "adjust-time-btn" ||
                 btn.id === "settings-config-btn" ||
-                btn.id === "m-sync-row"
+                btn.id === "m-sync-row" ||
+                btn.id === "m-week-row" ||
+                btn.id === "m-tz-row"
               )
                 return;
               // Preset pills in the goal / appearance sections are adjustments rather than
