@@ -10898,6 +10898,34 @@
             a clock.
           </p>
           <hr />
+          <h4>The order of a date</h4>
+          <p>
+            <strong>Settings &amp; Tools → Time and date → Date</strong> writes
+            every date as <strong>09/15/26</strong>,
+            <strong>15/09/26</strong> or <strong>2026-09-15</strong> — the
+            logbook, the insights, the heatmap, the leave list, every dialog and
+            every field. Unlike the clock, exported files follow it too: the
+            CSVs, the copy buttons and the end-of-day email all read the way the
+            app does.
+          </p>
+          <p>
+            Typing follows it as well. A date that can only be read one way is
+            read that way whatever you have chosen, so <code>15/09</code> is the
+            15th of September even on a screen set to MM/DD; an
+            <code>ISO</code> date such as <code>2026-09-15</code> is always
+            accepted; and a date that could be either — <code>03/04/26</code> —
+            is read in the order you chose. <code>t</code>, <code>y</code>,
+            <code>-3</code> and <code>sep 15</code> go on working as they always
+            have.
+          </p>
+          <p>
+            The JSON backup keeps MM/DD/YY inside, and export file names stay
+            year-first. That is deliberate: a backup has to restore on any copy
+            of nodrift, including one set to a different order and one older
+            than this feature, and a file name that sorts by date is worth more
+            than one that matches the screen.
+          </p>
+          <hr />
           <h4>The "RAM Only" warning</h4>
           <p>
             nodrift keeps checking that it can actually save to your browser. If
@@ -11640,7 +11668,9 @@
         <h3 class="modal-header">Edit Task</h3>
         <p id="edit-task-zone-hint" class="modal-zone-hint" hidden></p>
         <div class="form-group">
-          <label class="form-label" for="edit-task-date">Date (MM/DD/YY)</label>
+          <label class="form-label" for="edit-task-date" data-date-label
+            >Date (MM/DD/YY)</label
+          >
           <div class="date-picker-group">
             <input
               type="text"
@@ -11758,7 +11788,7 @@
         </button>
         <h3 class="modal-header">Add Manual Task</h3>
         <div class="form-group">
-          <label class="form-label" for="manual-task-date"
+          <label class="form-label" for="manual-task-date" data-date-label
             >Date (MM/DD/YY)</label
           >
           <div class="date-picker-group">
@@ -11884,7 +11914,9 @@
         <p id="edit-zone-hint" class="modal-zone-hint" hidden></p>
         <div class="form-row">
           <div class="form-group">
-            <label class="form-label" for="edit-date">Date (MM/DD/YY)</label>
+            <label class="form-label" for="edit-date" data-date-label
+              >Date (MM/DD/YY)</label
+            >
             <div class="date-picker-group">
               <input
                 type="text"
@@ -12033,7 +12065,9 @@
         <h3 class="modal-header">Add Manual Shift</h3>
         <div class="form-row">
           <div class="form-group">
-            <label class="form-label" for="manual-date">Date (MM/DD/YY)</label>
+            <label class="form-label" for="manual-date" data-date-label
+              >Date (MM/DD/YY)</label
+            >
             <div class="date-picker-group">
               <input
                 type="text"
@@ -20619,6 +20653,17 @@
           if (typeof renderTaskLogbook === "function") renderTaskLogbook();
           if (typeof renderInsights === "function") renderInsights();
           if (typeof renderZoneSettings === "function") renderZoneSettings();
+          /* The leave list writes dates of its own and no other render owns
+             it, so a change would otherwise leave it reading the old order
+             until the dialog was closed and opened again (F8). */
+          if (typeof renderLeaveDatesList === "function") {
+            renderLeaveDatesList();
+          }
+          /* The labels, the placeholders and any field still holding a date
+             are chrome the renders above do not own. */
+          if (typeof renderDateFormatChrome === "function") {
+            renderDateFormatChrome();
+          }
         } catch (e) {
           console.warn("Could not redraw after a display format change", e);
         }
@@ -32446,29 +32491,13 @@
         }
 
         // Improvement 2: Fix Ambiguous Date Parsing (Timezone Drift)
+        /* The filter's fields are typed in, so they read like every other
+           typed date (F3): the parser decides, not a second copy of the
+           month-first rule that used to live here. */
         const parseFilterDate = (val) => {
-          if (!val) return null;
-          let y, m, d;
-          if (val.includes("-")) {
-            [y, m, d] = val.split("-");
-          } else if (val.includes("/")) {
-            const parts = val.split("/");
-            m = parts[0];
-            d = parts[1];
-            y = parts[2] || "";
-            if (y && y.length === 2) y = "20" + y;
-          }
-          if (y && m && d) {
-            return Date.UTC(
-              parseInt(y, 10),
-              parseInt(m, 10) - 1,
-              parseInt(d, 10),
-              12,
-              0,
-              0,
-            );
-          }
-          return null;
+          const key = parseTypedDate(val);
+          const p = key ? TimeZones.parseKey(key) : null;
+          return p ? Date.UTC(p.y, p.m - 1, p.d, 12, 0, 0) : null;
         };
 
         if (criteria.dateStartVal) {
@@ -32485,13 +32514,7 @@
         }
 
         const searchTerms = criteria.searchVal
-          ? criteria.searchVal.split(/\s+/).map((term) => {
-              if (/^[0-9]{1,2}\/[0-9]{1,2}\/[0-9]{4}$/.test(term)) {
-                const parts = term.split("/");
-                return `${parts[0]}/${parts[1]}/${parts[2].slice(-2)}`;
-              }
-              return term;
-            })
+          ? criteria.searchVal.split(/\s+/).map(searchTermForDate)
           : [];
         const termLen = searchTerms.length;
 
@@ -32635,29 +32658,13 @@
         let absoluteStartMs = 0;
         let absoluteEndMs = Infinity;
 
+        /* The filter's fields are typed in, so they read like every other
+           typed date (F3): the parser decides, not a second copy of the
+           month-first rule that used to live here. */
         const parseFilterDate = (val) => {
-          if (!val) return null;
-          let y, m, d;
-          if (val.includes("-")) {
-            [y, m, d] = val.split("-");
-          } else if (val.includes("/")) {
-            const parts = val.split("/");
-            m = parts[0];
-            d = parts[1];
-            y = parts[2] || "";
-            if (y && y.length === 2) y = "20" + y;
-          }
-          if (y && m && d) {
-            return Date.UTC(
-              parseInt(y, 10),
-              parseInt(m, 10) - 1,
-              parseInt(d, 10),
-              12,
-              0,
-              0,
-            );
-          }
-          return null;
+          const key = parseTypedDate(val);
+          const p = key ? TimeZones.parseKey(key) : null;
+          return p ? Date.UTC(p.y, p.m - 1, p.d, 12, 0, 0) : null;
         };
 
         if (criteria.dateStartVal) {
@@ -32671,7 +32678,7 @@
         }
 
         const searchTerms = criteria.searchVal
-          ? criteria.searchVal.split(/\s+/)
+          ? criteria.searchVal.split(/\s+/).map(searchTermForDate)
           : [];
         const termLen = searchTerms.length;
 
@@ -33216,9 +33223,12 @@
               WorkWeek.dayOfMs(log.epochMs),
             );
             const dateParts = log.date.split("/");
+            /* Through the resolver: in DD/MM the first two parts of a stored
+               key are the right numbers in the wrong order (F3). The fallback
+               is kept for a key too broken to split. */
             const displayMonthDay =
               dateParts.length >= 2
-                ? `${dateParts[0]}/${dateParts[1]}`
+                ? formatDateKey(log.date, "short")
                 : log.displayDate;
 
             const logDKey = log.displayDate || log.date;
@@ -35413,7 +35423,10 @@
         const log = logs.find((l) => l.id === logId);
         if (!log) return;
         editingLogId = log.id;
-        DOM.editDate.value = log.date;
+        /* Shown in the chosen order, with the stored key kept on the field
+           so that saving it back needs no second reading of the text. */
+        DOM.editDate.value = formatDateKey(log.date, "full");
+        DOM.editDate.dataset.dateKey = log.date;
         /* In the record's own zone (§3.7), remembered so that saving without
            touching a time keeps the instant it already has. */
         DOM.editLogin.value = recordEndpointText(log, "in");
@@ -35480,7 +35493,11 @@
         const durEl = document.getElementById("edit-task-dur");
         const noteEl = document.getElementById("edit-task-notes");
 
-        if (dateEl) dateEl.value = task.date || "";
+        if (dateEl) {
+          dateEl.value = task.date ? formatDateKey(task.date, "full") : "";
+          if (task.date) dateEl.dataset.dateKey = task.date;
+          else delete dateEl.dataset.dateKey;
+        }
         /* In the task's own zone, as editSingleShift does for shifts. */
         if (startEl) {
           startEl.value = task.startMs ? recordEndpointText(task, "in") : "";
@@ -35543,7 +35560,7 @@
         if (durInput) handleTimeInputBlur({ target: durInput });
         if (dateInput) handleDateInputBlur({ target: dateInput });
 
-        let dateStr = dateInput ? dateInput.value.trim() : task.date;
+        let dateStr = storedTypedDate(dateInput, task.date);
         const startStr = startInput ? startInput.value.trim() : "";
         const endStr = endInput ? endInput.value.trim() : "";
         const durStr = durInput ? durInput.value.trim() : "";
@@ -35552,12 +35569,9 @@
         let durSec = parseTime(durStr);
         if (durSec !== null) durSec = Math.min(durSec, 86400);
 
-        if (dateStr.match(/^\d{1,2}\/\d{1,2}\/(\d{2}|\d{4})$/)) {
-          const parts = dateStr.split("/");
-          const y = parts[2].length === 4 ? parts[2].slice(-2) : parts[2];
-          dateStr = `${parts[0].padStart(2, "0")}/${parts[1].padStart(2, "0")}/${y}`;
-          if (dateInput) dateInput.value = dateStr;
-        }
+        /* Nothing to re-pad: storedTypedDate() hands back a key that is
+           already MM/DD/YY, and writing it into the field would put the
+           stored form on a screen showing another order. */
 
         const kept = keepTyped(dateStr, startStr, endStr);
         const typedWindow = resolveTypedWindow(
@@ -35634,7 +35648,11 @@
         const durEl = document.getElementById("manual-task-dur");
         const noteEl = document.getElementById("manual-task-notes");
 
-        if (dateEl) dateEl.value = getWorkDate();
+        if (dateEl) {
+          const today = getWorkDate();
+          dateEl.value = formatDateKey(today, "full");
+          dateEl.dataset.dateKey = today;
+        }
         if (startEl) startEl.value = "";
         if (endEl) endEl.value = "";
         if (durEl) durEl.value = "00:00:00";
@@ -35666,7 +35684,7 @@
         if (durInput) handleTimeInputBlur({ target: durInput });
         if (dateInput) handleDateInputBlur({ target: dateInput });
 
-        let dateStr = dateInput ? dateInput.value.trim() : getWorkDate();
+        let dateStr = storedTypedDate(dateInput, getWorkDate());
         const startStr = startInput ? startInput.value.trim() : "";
         const endStr = endInput ? endInput.value.trim() : "";
         const durStr = durInput ? durInput.value.trim() : "";
@@ -35675,12 +35693,9 @@
         let durSec = parseTime(durStr);
         if (durSec !== null) durSec = Math.min(durSec, 86400);
 
-        if (dateStr.match(/^\d{1,2}\/\d{1,2}\/(\d{2}|\d{4})$/)) {
-          const parts = dateStr.split("/");
-          const y = parts[2].length === 4 ? parts[2].slice(-2) : parts[2];
-          dateStr = `${parts[0].padStart(2, "0")}/${parts[1].padStart(2, "0")}/${y}`;
-          if (dateInput) dateInput.value = dateStr;
-        }
+        /* Nothing to re-pad: storedTypedDate() hands back a key that is
+           already MM/DD/YY, and writing it into the field would put the
+           stored form on a screen showing another order. */
 
         const kept = keepTyped(dateStr, startStr, endStr);
         const typedWindow = resolveTypedWindow(
@@ -35775,7 +35790,9 @@
         if (DOM.editBreak) handleTimeInputBlur({ target: DOM.editBreak });
 
         handleDateInputBlur({ target: DOM.editDate });
-        let newDate = DOM.editDate.value.trim();
+        /* Back to the stored key here, at the one place a typed date becomes
+           a record (F1) -- the twin of storedTypedTime() below it. */
+        let newDate = storedTypedDate(DOM.editDate, "");
         /* Converted to the stored 12-hour form here, at the one place a
            typed value becomes a record (F1). */
         const newLogin = storedTypedTime(DOM.editLogin.value, "Manual");
@@ -35806,13 +35823,9 @@
           return;
         }
 
-        const editDateInput = DOM.editDate;
-        if (newDate.match(/^\d{1,2}\/\d{1,2}\/(\d{2}|\d{4})$/)) {
-          const parts = newDate.split("/");
-          const y = parts[2].length === 4 ? parts[2].slice(-2) : parts[2];
-          newDate = `${parts[0].padStart(2, "0")}/${parts[1].padStart(2, "0")}/${y}`;
-          if (editDateInput) editDateInput.value = newDate;
-        }
+        /* Nothing to re-pad, and nothing written back into the field:
+           storedTypedDate() already handed back a stored key, and the field
+           is showing another order. */
 
         if (
           wSec !== null &&
@@ -36031,7 +36044,10 @@
             proceedWithSave();
           }
         } else {
-          showAppToast("Invalid format. Use MM/DD/YY and HH:MM", "warning");
+          showAppToast(
+            `Invalid format. Use ${dateOrderForm().label} and HH:MM`,
+            "warning",
+          );
         }
       }
 
@@ -36317,7 +36333,7 @@
             };
             return `
                         <div style="border-bottom: 1px solid var(--border-main); padding: var(--space-2) 0; display: flex; flex-direction: column; gap: 2px;">
-                          <span style="font-weight: 700; color: var(--accent-blue);">${escapeHTML(backupLog.date)}</span>
+                          <span style="font-weight: 700; color: var(--accent-blue);">${escapeHTML(formatDateKey(backupLog.date, "full"))}</span>
                           <div style="display: flex; justify-content: space-between; gap: 8px;">
                             <span>Local: ${localLog ? `${formatFriendlyDuration(localLog.workSec)} (${times(localLog)})` : "None"}</span>
                             <span style="color: var(--accent-warning);">Backup: ${formatFriendlyDuration(backupLog.workSec)} (${times(backupLog)})</span>
@@ -41408,7 +41424,8 @@
        * Executes openManualModal logic.
        */
       function openManualModal() {
-        DOM.manualDate.value = getWorkDate();
+        DOM.manualDate.dataset.dateKey = getWorkDate();
+        DOM.manualDate.value = formatDateKey(getWorkDate(), "full");
         DOM.manualLogin.value = "";
         DOM.manualLogout.value = "";
         DOM.manualWork.value = "00:00";
@@ -41449,7 +41466,8 @@
         if (DOM.manualWork) handleTimeInputBlur({ target: DOM.manualWork });
         if (DOM.manualBreak) handleTimeInputBlur({ target: DOM.manualBreak });
 
-        let dateStr = manualDateInput.value.trim();
+        /* The stored key, whatever order the field is showing (F1). */
+        let dateStr = storedTypedDate(manualDateInput, "");
         const workStr = DOM.manualWork.value.trim();
         const breakStr = DOM.manualBreak.value.trim();
         const notes = DOM.manualNotes.value.trim();
@@ -41481,12 +41499,8 @@
           return;
         }
 
-        if (dateStr.match(/^\d{1,2}\/\d{1,2}\/(\d{2}|\d{4})$/)) {
-          const parts = dateStr.split("/");
-          const y = parts[2].length === 4 ? parts[2].slice(-2) : parts[2];
-          dateStr = `${parts[0].padStart(2, "0")}/${parts[1].padStart(2, "0")}/${y}`;
-          manualDateInput.value = dateStr;
-        }
+        /* Nothing to re-pad, and nothing written back into the field: the
+           key is already stored-shaped and the field shows another order. */
 
         if (
           wSec !== null &&
@@ -41681,7 +41695,10 @@
             proceedWithSave();
           }
         } else {
-          showAppToast("Invalid format. Use MM/DD/YY and HH:MM", "warning");
+          showAppToast(
+            `Invalid format. Use ${dateOrderForm().label} and HH:MM`,
+            "warning",
+          );
         }
       }
 
@@ -43375,7 +43392,7 @@
         const input = DOM.leaveDateInput;
         // Force blur formatting first in case user hit Enter without blurring
         handleDateInputBlur({ target: input });
-        let val = input.value.trim();
+        let val = storedTypedDate(input, "");
         const typeSelect = DOM.leaveTypeSelect;
         const leaveType = typeSelect ? typeSelect.value : "Casual";
 
@@ -43389,17 +43406,12 @@
           return;
         }
 
-        // Force padding and 2-digit year conversion if user hit Enter without blurring
-        if (val.match(/^\d{1,2}\/\d{1,2}\/(\d{2}|\d{4})$/)) {
-          const parts = val.split("/");
-          const y = parts[2].length === 4 ? parts[2].slice(-2) : parts[2];
-          val = `${parts[0].padStart(2, "0")}/${parts[1].padStart(2, "0")}/${y}`;
-          input.value = val;
-        }
-
         // Validates manual formats using the core date regex
         if (!val.match(/^\d{2}\/\d{2}\/\d{2}$/)) {
-          showAppToast("Invalid format. Use MM/DD/YY", "warning");
+          showAppToast(
+            `Invalid format. Use ${dateOrderForm().label}`,
+            "warning",
+          );
           return;
         }
 
@@ -43761,158 +43773,13 @@
             return `${String(parsed.hh).padStart(2, "0")}:${String(parsed.mm).padStart(2, "0")}:${String(parsed.ss || 0).padStart(2, "0")}`;
           };
 
+          /* The second copy of the date rules is gone: the live preview
+             and the blur handler now read a typed date the same way,
+             through the one parser, and write it back in the order that is
+             on screen (F3). They used to disagree about an ISO date. */
           const parseDatePreview = (val) => {
-            val = val.trim().toLowerCase();
-            if (!val) return "";
-            const nowWork = getWorkDateObj();
-            const currentYearFull = nowWork.getUTCFullYear();
-            const currentYearShort = String(currentYearFull).slice(-2);
-            const currentMonth = String(nowWork.getUTCMonth() + 1).padStart(
-              2,
-              "0",
-            );
-            let finalDateStr = "";
-
-            if (val === "t" || val === "today" || val === "0") {
-              const m = String(nowWork.getUTCMonth() + 1).padStart(2, "0");
-              const d = String(nowWork.getUTCDate()).padStart(2, "0");
-              finalDateStr = `${m}/${d}/${currentYearShort}`;
-            } else if (val === "y" || val === "yesterday" || val === "-1") {
-              const yesterday = new Date(nowWork.getTime() - 86400000);
-              const m = String(yesterday.getUTCMonth() + 1).padStart(2, "0");
-              const d = String(yesterday.getUTCDate()).padStart(2, "0");
-              const y = String(yesterday.getUTCFullYear()).slice(-2);
-              finalDateStr = `${m}/${d}/${y}`;
-            } else if (val.match(/^-\d+$/)) {
-              const daysOffset = parseInt(val, 10);
-              const targetDate = new Date(
-                nowWork.getTime() + daysOffset * 86400000,
-              );
-              const m = String(targetDate.getUTCMonth() + 1).padStart(2, "0");
-              const d = String(targetDate.getUTCDate()).padStart(2, "0");
-              const y = String(targetDate.getUTCFullYear()).slice(-2);
-              finalDateStr = `${m}/${d}/${y}`;
-            } else if (
-              val.match(
-                /^(?:(\d{1,2})(?:st|nd|rd|th)?[\s,-]+)?(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*(?:[\s,-]+(\d{1,2})(?:st|nd|rd|th)?)?(?:[\s,-]+(\d{2,4}))?$/,
-              )
-            ) {
-              const nlMatch = val.match(
-                /^(?:(\d{1,2})(?:st|nd|rd|th)?[\s,-]+)?(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*(?:[\s,-]+(\d{1,2})(?:st|nd|rd|th)?)?(?:[\s,-]+(\d{2,4}))?$/,
-              );
-              const d = nlMatch[1] || nlMatch[3];
-              if (d) {
-                const m = {
-                  jan: 1,
-                  feb: 2,
-                  mar: 3,
-                  apr: 4,
-                  may: 5,
-                  jun: 6,
-                  jul: 7,
-                  aug: 8,
-                  sep: 9,
-                  oct: 10,
-                  nov: 11,
-                  dec: 12,
-                }[nlMatch[2]];
-                let y = currentYearShort;
-                if (nlMatch[4]) {
-                  y =
-                    nlMatch[4].length === 4
-                      ? nlMatch[4].slice(-2)
-                      : nlMatch[4].padStart(2, "0");
-                }
-                finalDateStr = `${String(m).padStart(2, "0")}/${String(d).padStart(2, "0")}/${y}`;
-              }
-            } else if (val.includes("-")) {
-              const parts = val.split("-");
-              if (parts.length === 3 && parts[0].length === 4) {
-                const y = parts[0].slice(-2);
-                const m = parts[1].padStart(2, "0");
-                const d = parts[2].padStart(2, "0");
-                finalDateStr = `${m}/${d}/${y}`;
-              }
-            } else if (val.includes("/")) {
-              const parts = val.split("/");
-              if (parts.length >= 2) {
-                const isDayFirst = _cachedLocaleDayFirst;
-                const firstVal = parseInt(parts[0], 10) || 1;
-                const secondVal = parseInt(parts[1], 10) || 1;
-                let m, d;
-                if (firstVal > 12 && secondVal <= 12) {
-                  d = String(firstVal).padStart(2, "0");
-                  m = String(secondVal).padStart(2, "0");
-                } else if (secondVal > 12 && firstVal <= 12) {
-                  m = String(firstVal).padStart(2, "0");
-                  d = String(secondVal).padStart(2, "0");
-                } else {
-                  if (isDayFirst) {
-                    d = String(firstVal).padStart(2, "0");
-                    m = String(secondVal).padStart(2, "0");
-                  } else {
-                    m = String(firstVal).padStart(2, "0");
-                    d = String(secondVal).padStart(2, "0");
-                  }
-                }
-                let y = currentYearShort;
-                if (parts.length >= 3 && parts[2].trim()) {
-                  const rawY = parts[2].trim();
-                  y =
-                    rawY.length === 4 ? rawY.slice(-2) : rawY.padStart(2, "0");
-                }
-                finalDateStr = `${m}/${d}/${y}`;
-              }
-            } else {
-              const digits = val.replace(/\D/g, "");
-              if (digits) {
-                if (digits.length === 8) {
-                  const m = digits.slice(0, 2);
-                  const d = digits.slice(2, 4);
-                  const y = digits.slice(6, 8);
-                  finalDateStr = `${m}/${d}/${y}`;
-                } else if (digits.length === 6) {
-                  const m = digits.slice(0, 2);
-                  const d = digits.slice(2, 4);
-                  const y = digits.slice(4, 6);
-                  finalDateStr = `${m}/${d}/${y}`;
-                } else if (digits.length === 4) {
-                  const m = digits.slice(0, 2);
-                  const d = digits.slice(2, 4);
-                  finalDateStr = `${m}/${d}/${currentYearShort}`;
-                } else if (digits.length === 1 || digits.length === 2) {
-                  const m = currentMonth;
-                  const d = digits.padStart(2, "0");
-                  finalDateStr = `${m}/${d}/${currentYearShort}`;
-                }
-              }
-            }
-
-            if (finalDateStr) {
-              const parts = finalDateStr.split("/");
-              let mm = Math.min(12, Math.max(1, parseInt(parts[0], 10)));
-              let dd = Math.min(31, Math.max(1, parseInt(parts[1], 10)));
-              let yy = parts[2];
-              if ([4, 6, 9, 11].includes(mm) && dd > 30) dd = 30;
-              if (mm === 2) {
-                let fullYear = parseInt(yy, 10);
-                if (yy.length === 2) {
-                  const currentCent = Math.floor(currentYearFull / 100) * 100;
-                  fullYear = currentCent + parseInt(yy, 10);
-                  if (fullYear - currentYearFull > 50) {
-                    fullYear -= 100;
-                  } else if (currentYearFull - fullYear > 50) {
-                    fullYear += 100;
-                  }
-                }
-                const isLeap =
-                  (fullYear % 4 === 0 && fullYear % 100 !== 0) ||
-                  fullYear % 400 === 0;
-                if (dd > (isLeap ? 29 : 28)) dd = isLeap ? 29 : 28;
-              }
-              return `${String(mm).padStart(2, "0")}/${String(dd).padStart(2, "0")}/${yy}`;
-            }
-            return "";
+            const key = parseTypedDate(val);
+            return key ? formatDateKey(key, "full") : "";
           };
 
           const bindInput = (id, parser) => {
@@ -44065,181 +43932,18 @@
         if (el) el.addEventListener("blur", handleTimeInputBlur);
       });
 
-      /**
-       * Executes handleDateInputBlur logic.
-       */
-      function handleDateInputBlur(e) {
-        const input = e.target;
-        let val = input.value.trim().toLowerCase();
-        if (!val) return;
+      /* -- Typing a date (docs/followups.md §6.3) ------------------------
 
-        if (
-          val.includes("-") &&
-          !val.startsWith("-") &&
-          val.split("-").length === 3
-        ) {
-          val = val.replace(/-/g, "/");
-        }
-        if (val.endsWith("/")) return;
+         One parser (F3). This build used to carry two copies of these rules
+         -- the blur handler and the typing preview -- and they disagreed.
+         The preview read "2026-09-15" correctly; the blur handler turned it
+         into 09/30/15, because it swapped the dashes for slashes and then
+         read 2026 as a day number, which the clamp pinned to the 30th.
+         Measured on the unmodified tree before this was written. */
 
-        const nowWork = getWorkDateObj();
-        const currentYearFull = nowWork.getUTCFullYear();
-        const currentYearShort = String(currentYearFull).slice(-2);
-        const currentMonth = String(nowWork.getUTCMonth() + 1).padStart(2, "0");
-
-        let finalDateStr = "";
-
-        if (val === "t" || val === "today" || val === "0") {
-          const m = String(nowWork.getUTCMonth() + 1).padStart(2, "0");
-          const d = String(nowWork.getUTCDate()).padStart(2, "0");
-          finalDateStr = `${m}/${d}/${currentYearShort}`;
-        } else if (val === "y" || val === "yesterday" || val === "-1") {
-          const yesterday = new Date(nowWork.getTime() - 86400000);
-          const m = String(yesterday.getUTCMonth() + 1).padStart(2, "0");
-          const d = String(yesterday.getUTCDate()).padStart(2, "0");
-          const y = String(yesterday.getUTCFullYear()).slice(-2);
-          finalDateStr = `${m}/${d}/${y}`;
-        } else if (val.match(/^-\d+$/)) {
-          const daysOffset = parseInt(val, 10);
-          const targetDate = new Date(
-            nowWork.getTime() + daysOffset * 86400000,
-          );
-          const m = String(targetDate.getUTCMonth() + 1).padStart(2, "0");
-          const d = String(targetDate.getUTCDate()).padStart(2, "0");
-          const y = String(targetDate.getUTCFullYear()).slice(-2);
-          finalDateStr = `${m}/${d}/${y}`;
-        } else if (
-          val.match(
-            /^(?:(\d{1,2})(?:st|nd|rd|th)?[\s,-]+)?(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*(?:[\s,-]+(\d{1,2})(?:st|nd|rd|th)?)?(?:[\s,-]+(\d{2,4}))?$/,
-          )
-        ) {
-          const nlMatch = val.match(
-            /^(?:(\d{1,2})(?:st|nd|rd|th)?[\s,-]+)?(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*(?:[\s,-]+(\d{1,2})(?:st|nd|rd|th)?)?(?:[\s,-]+(\d{2,4}))?$/,
-          );
-          const d = nlMatch[1] || nlMatch[3];
-          if (d) {
-            const m = {
-              jan: 1,
-              feb: 2,
-              mar: 3,
-              apr: 4,
-              may: 5,
-              jun: 6,
-              jul: 7,
-              aug: 8,
-              sep: 9,
-              oct: 10,
-              nov: 11,
-              dec: 12,
-            }[nlMatch[2]];
-            let y = currentYearShort;
-            if (nlMatch[4]) {
-              y =
-                nlMatch[4].length === 4
-                  ? nlMatch[4].slice(-2)
-                  : nlMatch[4].padStart(2, "0");
-            }
-            finalDateStr = `${String(m).padStart(2, "0")}/${String(d).padStart(2, "0")}/${y}`;
-          }
-        } else if (val.includes("/")) {
-          const parts = val.split("/");
-          if (parts.length >= 2) {
-            const isDayFirst = _cachedLocaleDayFirst;
-            const firstVal = parseInt(parts[0], 10) || 1;
-            const secondVal = parseInt(parts[1], 10) || 1;
-            let m, d;
-            if (firstVal > 12 && secondVal <= 12) {
-              d = String(firstVal).padStart(2, "0");
-              m = String(secondVal).padStart(2, "0");
-            } else if (secondVal > 12 && firstVal <= 12) {
-              m = String(firstVal).padStart(2, "0");
-              d = String(secondVal).padStart(2, "0");
-            } else {
-              if (isDayFirst) {
-                d = String(firstVal).padStart(2, "0");
-                m = String(secondVal).padStart(2, "0");
-              } else {
-                m = String(firstVal).padStart(2, "0");
-                d = String(secondVal).padStart(2, "0");
-              }
-            }
-            let y = currentYearShort;
-            if (parts.length >= 3 && parts[2].trim()) {
-              const rawY = parts[2].trim();
-              y = rawY.length === 4 ? rawY.slice(-2) : rawY.padStart(2, "0");
-            }
-            finalDateStr = `${m}/${d}/${y}`;
-          }
-        } else {
-          const digits = val.replace(/\D/g, "");
-          if (digits) {
-            if (digits.length === 8) {
-              const m = digits.slice(0, 2);
-              const d = digits.slice(2, 4);
-              const y = digits.slice(6, 8);
-              finalDateStr = `${m}/${d}/${y}`;
-            } else if (digits.length === 6) {
-              const m = digits.slice(0, 2);
-              const d = digits.slice(2, 4);
-              const y = digits.slice(4, 6);
-              finalDateStr = `${m}/${d}/${y}`;
-            } else if (digits.length === 4) {
-              const m = digits.slice(0, 2);
-              const d = digits.slice(2, 4);
-              finalDateStr = `${m}/${d}/${currentYearShort}`;
-            } else if (digits.length === 1 || digits.length === 2) {
-              const m = currentMonth;
-              const d = digits.padStart(2, "0");
-              finalDateStr = `${m}/${d}/${currentYearShort}`;
-            }
-          }
-        }
-
-        if (finalDateStr) {
-          const parts = finalDateStr.split("/");
-          let mm = Math.min(12, Math.max(1, parseInt(parts[0], 10)));
-          let dd = Math.min(31, Math.max(1, parseInt(parts[1], 10)));
-          let yy = parts[2];
-
-          if ([4, 6, 9, 11].includes(mm) && dd > 30) dd = 30;
-          if (mm === 2) {
-            let fullYear = parseInt(yy, 10);
-            if (yy.length === 2) {
-              const currentCent = Math.floor(currentYearFull / 100) * 100;
-              fullYear = currentCent + parseInt(yy, 10);
-              if (fullYear - currentYearFull > 50) {
-                fullYear -= 100;
-              } else if (currentYearFull - fullYear > 50) {
-                fullYear += 100;
-              }
-            }
-            const isLeap =
-              (fullYear % 4 === 0 && fullYear % 100 !== 0) ||
-              fullYear % 400 === 0;
-            if (dd > (isLeap ? 29 : 28)) dd = isLeap ? 29 : 28;
-          }
-
-          let shortY = yy;
-          if (yy.length === 4) {
-            shortY = yy.slice(-2);
-          }
-          const formattedDate = `${String(mm).padStart(2, "0")}/${String(dd).padStart(2, "0")}/${shortY}`;
-          if (formattedDate.match(/^\d{2}\/\d{2}\/\d{2}$/)) {
-            input.value = formattedDate;
-            input.dispatchEvent(new Event("change", { bubbles: true }));
-            const pickerId = input.id + "-picker";
-            const pickerEl = document.getElementById(pickerId);
-            if (pickerEl) {
-              const isoYear = "20" + shortY;
-              const isoMonth = String(mm).padStart(2, "0");
-              const isoDay = String(dd).padStart(2, "0");
-              pickerEl.value = `${isoYear}-${isoMonth}-${isoDay}`;
-            }
-          }
-        }
-      }
-
-      [
+      /* Every text field that holds a business date. One list, so the blur
+         handler binds exactly what the funnel redraws. */
+      const DATE_INPUT_IDS = [
         "manual-date",
         "edit-date",
         "leave-date-input",
@@ -44249,10 +43953,250 @@
         "edit-task-date",
         "task-filter-date-start",
         "task-filter-date-end",
-      ].forEach((id) => {
+      ];
+
+      /* A month, day and year pinned to a real date: months 1-12, days 1-31,
+         the short months to 30, February to 28 or 29. A two-digit year is
+         read into the century that puts it within fifty years of today, as
+         it always has been. Returns the stored key, or null. */
+      function clampDateKey(m, d, y) {
+        let mm = parseInt(m, 10);
+        let dd = parseInt(d, 10);
+        if (!Number.isFinite(mm) || !Number.isFinite(dd)) return null;
+        mm = Math.min(12, Math.max(1, mm));
+        dd = Math.min(31, Math.max(1, dd));
+        let yy = String(y);
+        if (yy.length === 4) yy = yy.slice(-2);
+        yy = yy.padStart(2, "0");
+        if ([4, 6, 9, 11].includes(mm) && dd > 30) dd = 30;
+        if (mm === 2) {
+          const thisYear = getWorkDateObj().getUTCFullYear();
+          let full = Math.floor(thisYear / 100) * 100 + parseInt(yy, 10);
+          if (full - thisYear > 50) full -= 100;
+          else if (thisYear - full > 50) full += 100;
+          const leap = (full % 4 === 0 && full % 100 !== 0) || full % 400 === 0;
+          if (dd > (leap ? 29 : 28)) dd = leap ? 29 : 28;
+        }
+        const key = `${String(mm).padStart(2, "0")}/${String(dd).padStart(2, "0")}/${yy}`;
+        return /^\d{2}\/\d{2}\/\d{2}$/.test(key) ? key : null;
+      }
+
+      const TYPED_MONTHS = {
+        jan: 1,
+        feb: 2,
+        mar: 3,
+        apr: 4,
+        may: 5,
+        jun: 6,
+        jul: 7,
+        aug: 8,
+        sep: 9,
+        oct: 10,
+        nov: 11,
+        dec: 12,
+      };
+      const TYPED_MONTH_RE =
+        /^(?:(\d{1,2})(?:st|nd|rd|th)?[\s,-]+)?(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*(?:[\s,-]+(\d{1,2})(?:st|nd|rd|th)?)?(?:[\s,-]+(\d{2,4}))?$/;
+
+      /* A typed date as the stored MM/DD/YY key, or null when it is not one.
+         Shortcuts first, then a month name, then a year-first date (always
+         taken, whatever the order is set to), then a slash date, then a bare
+         run of digits grouped in the chosen order. */
+      function parseTypedDate(value) {
+        const val = String(value == null ? "" : value)
+          .trim()
+          .toLowerCase();
+        if (!val) return null;
+
+        const now = getWorkDateObj();
+        const thisYear = String(now.getUTCFullYear()).slice(-2);
+        const fromDay = (dt) =>
+          clampDateKey(
+            dt.getUTCMonth() + 1,
+            dt.getUTCDate(),
+            String(dt.getUTCFullYear()).slice(-2),
+          );
+
+        if (val === "t" || val === "today" || val === "0") return fromDay(now);
+        if (val === "y" || val === "yesterday" || val === "-1") {
+          return fromDay(new Date(now.getTime() - 86400000));
+        }
+        if (/^-\d+$/.test(val)) {
+          return fromDay(
+            new Date(now.getTime() + parseInt(val, 10) * 86400000),
+          );
+        }
+
+        const nl = val.match(TYPED_MONTH_RE);
+        if (nl) {
+          const day = nl[1] || nl[3];
+          if (!day) return null;
+          let y = thisYear;
+          if (nl[4]) {
+            y = nl[4].length === 4 ? nl[4].slice(-2) : nl[4].padStart(2, "0");
+          }
+          return clampDateKey(TYPED_MONTHS[nl[2]], day, y);
+        }
+
+        const sep = val.includes("/")
+          ? "/"
+          : val.includes("-") && !val.startsWith("-")
+            ? "-"
+            : null;
+        if (sep) {
+          const parts = val.split(sep).map((p) => p.trim());
+          if (parts.length < 2 || parts.some((p) => !/^\d{1,4}$/.test(p))) {
+            return null;
+          }
+          /* Year first is unambiguous in either separator, so it is taken
+             whatever the preference says. This is the ISO date §6.3 asks to
+             accept in every mode, and the shape the old handler got wrong. */
+          if (parts.length === 3 && parts[0].length === 4) {
+            return clampDateKey(parts[1], parts[2], parts[0].slice(-2));
+          }
+          const first = parseInt(parts[0], 10);
+          const second = parseInt(parts[1], 10);
+          let dayFirst;
+          if (first > 12 && second <= 12) dayFirst = true;
+          else if (second > 12 && first <= 12) dayFirst = false;
+          else {
+            /* Ambiguous, so the preference decides -- except in YYYY-MM-DD
+               mode, which states no day/month order, and where the device's
+               region goes on deciding as it always has (decision P-F2). */
+            const order = dateOrder();
+            dayFirst =
+              order === "dmy"
+                ? true
+                : order === "ymd"
+                  ? _cachedLocaleDayFirst
+                  : false;
+          }
+          let y = thisYear;
+          if (parts.length >= 3 && parts[2]) {
+            y =
+              parts[2].length === 4
+                ? parts[2].slice(-2)
+                : parts[2].padStart(2, "0");
+          }
+          return clampDateKey(
+            dayFirst ? second : first,
+            dayFirst ? first : second,
+            y,
+          );
+        }
+
+        const digits = val.replace(/\D/g, "");
+        if (!digits || digits.length > 8) return null;
+        const order = dateOrder();
+        const at = (a, b) => digits.slice(a, b);
+        if (digits.length === 8) {
+          if (order === "ymd")
+            return clampDateKey(at(4, 6), at(6, 8), at(2, 4));
+          if (order === "dmy")
+            return clampDateKey(at(2, 4), at(0, 2), at(6, 8));
+          return clampDateKey(at(0, 2), at(2, 4), at(6, 8));
+        }
+        if (digits.length === 6) {
+          if (order === "ymd")
+            return clampDateKey(at(2, 4), at(4, 6), at(0, 2));
+          if (order === "dmy")
+            return clampDateKey(at(2, 4), at(0, 2), at(4, 6));
+          return clampDateKey(at(0, 2), at(2, 4), at(4, 6));
+        }
+        if (digits.length === 4) {
+          if (order === "dmy")
+            return clampDateKey(at(2, 4), at(0, 2), thisYear);
+          return clampDateKey(at(0, 2), at(2, 4), thisYear);
+        }
+        if (digits.length <= 2) {
+          return clampDateKey(now.getUTCMonth() + 1, digits, thisYear);
+        }
+        return null;
+      }
+
+      /* A search term that reads as a date is matched against the STORED
+         key, because a record's searchStr holds the stored form and cannot
+         change (F1, decision P-F3). So "15/09" finds the 15th of September
+         on a screen set to DD/MM, and "2026-09-15" finds it in any order.
+
+         Guarded by a shape test first: parseTypedDate() is deliberately
+         generous -- it reads "9" as the 9th of this month -- and a search
+         for "9" must stay a search for "9". */
+      const DATE_SEARCH_RE = /^\d{1,4}[/-]\d{1,2}(?:[/-]\d{2,4})?$/;
+      function searchTermForDate(term) {
+        if (!DATE_SEARCH_RE.test(term)) return term;
+        const key = parseTypedDate(term);
+        return key ? key.toLowerCase() : term;
+      }
+
+      /* A typed date as the stored key, at the one place a typed value
+         becomes a record (F1). The field shows the chosen order; a record
+         never does. The key the blur handler left on the field is
+         authoritative -- it was parsed in the order that was on screen when
+         it was typed -- and it is cleared the moment the field stops
+         parsing, so a stale one cannot outlive what the user replaced. */
+      function storedTypedDate(input, fallback) {
+        if (!input) return fallback || "";
+        const held = input.dataset ? input.dataset.dateKey : "";
+        if (held) return held;
+        const text = String(input.value || "").trim();
+        if (!text) return fallback || "";
+        return parseTypedDate(text) || text;
+      }
+
+      /* The chrome no render owns: the "Date (MM/DD/YY)" labels, the sample
+         in a placeholder, and any field still holding a date when the order
+         changes. A field that has been through the blur handler carries its
+         stored key, so it is rewritten in the new order rather than read
+         back in the old one. */
+      function renderDateFormatChrome() {
+        const form = dateOrderForm();
+        document.querySelectorAll("[data-date-label]").forEach((el) => {
+          el.textContent = `Date (${form.label})`;
+        });
+        DATE_INPUT_IDS.forEach((id) => {
+          const el = document.getElementById(id);
+          if (!el) return;
+          if (el.placeholder) el.placeholder = form.sample;
+          const key = el.dataset ? el.dataset.dateKey : "";
+          if (key && String(el.value).trim()) {
+            el.value = formatDateKey(key, "full");
+          }
+        });
+      }
+
+      /**
+       * Normalises a typed date field to the chosen order and remembers the
+       * stored key it parsed to.
+       */
+      function handleDateInputBlur(e) {
+        const input = e.target;
+        /* Cleared before anything else: a field that no longer parses must
+           not keep the key it used to have, or a save path would file the
+           date the user has just replaced. */
+        if (input.dataset) delete input.dataset.dateKey;
+        const key = parseTypedDate(input.value);
+        if (!key) return;
+        if (input.dataset) input.dataset.dateKey = key;
+        input.value = formatDateKey(key, "full");
+        input.dispatchEvent(new Event("change", { bubbles: true }));
+        const pickerEl = document.getElementById(input.id + "-picker");
+        if (pickerEl) {
+          const p = TimeZones.parseKey(key);
+          if (p) {
+            pickerEl.value = `${p.y}-${String(p.m).padStart(2, "0")}-${String(p.d).padStart(2, "0")}`;
+          }
+        }
+      }
+
+      DATE_INPUT_IDS.forEach((id) => {
         const el = document.getElementById(id);
         if (el) el.addEventListener("blur", handleDateInputBlur);
       });
+
+      /* The labels and placeholders start out saying whatever the markup
+         says; this puts the chosen order on them before anything is shown. */
+      renderDateFormatChrome();
 
       /* A typed clock time as seconds past midnight, or null when it is not
          one. Accepts "0900", "900p", "9:30p", "17:30" and "09:00:00 AM" in
@@ -44793,10 +44737,17 @@
           const manualDateInput = DOM.manualDate;
           if (val) {
             const [y, m, d] = val.split("-");
-            const formattedDate = `${m}/${d}/${y.slice(-2)}`;
+            /* The picker hands over a real date, so the stored key goes
+               straight onto the field. Round-tripping it through the typed
+               rules would read "03/04/26" back as the 3rd of April on a
+               screen set to DD/MM. */
+            const key = `${m}/${d}/${y.slice(-2)}`;
             if (manualDateInput) {
-              manualDateInput.value = formattedDate;
-              manualDateInput.dispatchEvent(new Event("blur")); // Fires formatting preview
+              manualDateInput.dataset.dateKey = key;
+              manualDateInput.value = formatDateKey(key, "full");
+              manualDateInput.dispatchEvent(
+                new Event("change", { bubbles: true }),
+              );
             }
           } else {
             if (manualDateInput) {
@@ -44817,10 +44768,13 @@
           const editDateInput = DOM.editDate;
           if (val) {
             const [y, m, d] = val.split("-");
-            const formattedDate = `${m}/${d}/${y.slice(-2)}`;
+            const key = `${m}/${d}/${y.slice(-2)}`;
             if (editDateInput) {
-              editDateInput.value = formattedDate;
-              editDateInput.dispatchEvent(new Event("blur")); // Fires formatting preview
+              editDateInput.dataset.dateKey = key;
+              editDateInput.value = formatDateKey(key, "full");
+              editDateInput.dispatchEvent(
+                new Event("change", { bubbles: true }),
+              );
             }
           } else {
             if (editDateInput) {
@@ -44841,10 +44795,13 @@
           const leaveDateInput = DOM.leaveDateInput;
           if (val) {
             const [y, m, d] = val.split("-");
-            const formattedDate = `${m}/${d}/${y.slice(-2)}`;
+            const key = `${m}/${d}/${y.slice(-2)}`;
             if (leaveDateInput) {
-              leaveDateInput.value = formattedDate;
-              leaveDateInput.dispatchEvent(new Event("blur")); // Fires formatting preview
+              leaveDateInput.dataset.dateKey = key;
+              leaveDateInput.value = formatDateKey(key, "full");
+              leaveDateInput.dispatchEvent(
+                new Event("change", { bubbles: true }),
+              );
             }
           } else {
             if (leaveDateInput) {
@@ -44875,8 +44832,10 @@
             const val = e.target.value;
             if (val) {
               const [y, m, d] = val.split("-");
-              input.value = `${m}/${d}/${y.slice(-2)}`;
-              input.dispatchEvent(new Event("blur"));
+              const key = `${m}/${d}/${y.slice(-2)}`;
+              input.dataset.dateKey = key;
+              input.value = formatDateKey(key, "full");
+              input.dispatchEvent(new Event("change", { bubbles: true }));
             } else {
               input.value = "";
               input.dispatchEvent(new Event("change", { bubbles: true }));
@@ -46532,7 +46491,17 @@
         function selectDate(dateStr) {
           const input = document.getElementById(targetId);
           if (input) {
-            input.value = dateStr;
+            /* The grid speaks ISO and the field speaks the chosen order, so
+               the key is written on straight rather than read back out of
+               the text -- which is how this used to reach the blur handler
+               as "2026-09-15" and come back as 09/30/15. */
+            const pickedKey = parseTypedDate(dateStr);
+            if (pickedKey) {
+              input.dataset.dateKey = pickedKey;
+              input.value = formatDateKey(pickedKey, "full");
+            } else {
+              input.value = dateStr;
+            }
             input.dispatchEvent(new Event("change", { bubbles: true }));
 
             if (!targetId.startsWith("filter-date")) {
@@ -46541,8 +46510,13 @@
               if (valSpan) {
                 if (!dateStr) valSpan.textContent = "Select Date";
                 else {
+                  /* The label beside the picker is a date on screen, so it
+                     reads in the chosen order like every other one (F3). */
                   const parts = dateStr.split("-");
-                  valSpan.textContent = `${parts[1]}/${parts[2]}/${parts[0].slice(-2)}`;
+                  valSpan.textContent = formatDateKey(
+                    `${parts[1]}/${parts[2]}/${parts[0].slice(-2)}`,
+                    "full",
+                  );
                 }
               }
             }
