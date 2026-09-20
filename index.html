@@ -5754,6 +5754,18 @@
         padding: 20px;
       }
 
+      /* Dialogs stack, and which one is on top is decided by the order they
+         were opened in -- published here as a number by the open-order
+         registry. Without it every overlay shares one z-index and paint order
+         falls to DOM order, which is the order they happen to be authored in:
+         measured, the overlap prompt the edit dialog raises opened BEHIND
+         that dialog, because #confirm-modal is authored first. The rank is
+         1..N over the dialogs open right now, so it can never climb into
+         --z-toast however many times dialogs are opened and closed. */
+      .modal-overlay[data-modal-paint] {
+        z-index: calc(var(--z-overlay) + var(--modal-paint, 0));
+      }
+
       .modal-container {
         width: 100%;
         max-width: var(--modal-width-sm);
@@ -38676,6 +38688,47 @@
          intentional omissions, whereas every scrim-bearing overlay in the
          document is a .modal-overlay by construction, so an overlay added to
          the markup later is covered with nothing to remember. */
+      /* Which dialog paints on top. Open order is the ground truth for this
+         exactly as it is for the keyboard, and for the same reason: a dialog
+         nested under one authored earlier is otherwise unreachable -- there,
+         by the keyboard; here, by the eye.
+
+         Walked from the DOM rather than MODAL_IDS for syncModalRaisedFlag's
+         reason: MODAL_IDS is the keyboard layer's arbitration order and
+         carries intentional omissions, while every scrim-bearing overlay is a
+         .modal-overlay by construction. The rank is recomputed over the
+         dialogs open at this moment, so the numbers stay between 1 and the
+         number of overlays in the document. */
+      let _modalPaintSeq = 0;
+      function syncModalPaintOrder() {
+        const open = [];
+        document.querySelectorAll(".modal-overlay").forEach((el) => {
+          if (!isModalVisible(el)) {
+            if (el.dataset.modalPaint !== undefined) {
+              delete el.dataset.modalPaint;
+              el.style.removeProperty("--modal-paint");
+            }
+            return;
+          }
+          /* Re-showing an already-visible dialog must not renumber it. */
+          if (el.dataset.modalPaint === undefined) {
+            el.dataset.modalPaint = String(++_modalPaintSeq);
+          }
+          open.push(el);
+        });
+        open.sort(
+          (a, b) => Number(a.dataset.modalPaint) - Number(b.dataset.modalPaint),
+        );
+        open.forEach((el, i) => {
+          /* Writing an unchanged value would be one more style mutation for
+             the observer that called this. */
+          const rank = String(i + 1);
+          if (el.style.getPropertyValue("--modal-paint") !== rank) {
+            el.style.setProperty("--modal-paint", rank);
+          }
+        });
+      }
+
       function syncModalRaisedFlag() {
         const body = document.body;
         if (!body) return;
@@ -38737,6 +38790,7 @@
           for (const record of records) {
             if (ordered.has(record.target)) stamp(record.target);
           }
+          syncModalPaintOrder();
           syncModalRaisedFlag();
         });
 
@@ -38758,7 +38812,8 @@
           if (!ordered.has(el)) watch(el);
         });
 
-        syncModalRaisedFlag(); // Capture anything already open, as above.
+        syncModalPaintOrder(); // Capture anything already open, as above.
+        syncModalRaisedFlag();
       })();
 
       /* Returns the dialog currently on top: the most recently opened visible
