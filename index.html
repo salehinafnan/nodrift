@@ -4683,7 +4683,8 @@
       /* Two classes: .custom-select's own width: 100% comes later in the
          sheet and would otherwise take the row from the label. */
       .tz-log-times-row .tz-log-times-select,
-      .tz-clock-row .tz-clock-select {
+      .tz-clock-row .tz-clock-select,
+      .tz-date-row .tz-date-select {
         width: 8.5rem;
         flex: 0 0 auto;
       }
@@ -4691,7 +4692,8 @@
       /* Anchored to the row's end, so a menu wider than its trigger grows
          over the label rather than out of the card. */
       .tz-log-times-select .custom-select-panel,
-      .tz-clock-select .custom-select-panel {
+      .tz-clock-select .custom-select-panel,
+      .tz-date-select .custom-select-panel {
         left: auto;
         right: 0;
       }
@@ -7978,7 +7980,8 @@
 
         #m-sheet .tz-setting-row,
         #m-sheet .tz-log-times-row,
-        #m-sheet .tz-clock-row {
+        #m-sheet .tz-clock-row,
+        #m-sheet .tz-date-row {
           gap: 0.6rem;
           min-height: 48px;
           padding: 0 0.85rem;
@@ -8009,12 +8012,14 @@
         }
 
         #m-sheet .tz-log-times-select,
-        #m-sheet .tz-clock-select {
+        #m-sheet .tz-clock-select,
+        #m-sheet .tz-date-select {
           width: 9rem;
         }
 
         #m-sheet .tz-log-times-row .custom-select-trigger,
-        #m-sheet .tz-clock-row .custom-select-trigger {
+        #m-sheet .tz-clock-row .custom-select-trigger,
+        #m-sheet .tz-date-row .custom-select-trigger {
           min-height: 44px;
         }
 
@@ -15264,6 +15269,72 @@
                       </div>
                     </div>
                   </div>
+                  <!-- The date order (docs/followups.md §6, decision D1).
+                       It sits under the clock because the card is "Time and
+                       date" and this is the date half (decision P-F1).
+                       Display, typing and exports follow it; the stored key
+                       and the JSON backup stay MM/DD/YY (F1, D2). -->
+                  <div class="settings-row tz-date-row">
+                    <span class="settings-label">Date</span>
+                    <div class="custom-select tz-date-select">
+                      <select
+                        id="date-order-select"
+                        style="display: none"
+                        onchange="chooseDateOrder(this.value)"
+                      >
+                        <option value="mdy">MM/DD/YY</option>
+                        <option value="dmy">DD/MM/YY</option>
+                        <option value="ymd">YYYY-MM-DD</option>
+                      </select>
+                      <button
+                        type="button"
+                        class="custom-select-trigger cs-sm"
+                        data-for="date-order-select"
+                        aria-haspopup="listbox"
+                      >
+                        <span class="cs-trigger-val">MM/DD/YY</span>
+                        <svg
+                          class="cs-chevron"
+                          viewBox="0 0 24 24"
+                          width="14"
+                          height="14"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="1.8"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                        >
+                          <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                      </button>
+                      <div
+                        class="custom-select-panel cs-compact"
+                        role="listbox"
+                      >
+                        <button
+                          type="button"
+                          class="custom-select-option cs-selected"
+                          data-value="mdy"
+                        >
+                          MM/DD/YY
+                        </button>
+                        <button
+                          type="button"
+                          class="custom-select-option"
+                          data-value="dmy"
+                        >
+                          DD/MM/YY
+                        </button>
+                        <button
+                          type="button"
+                          class="custom-select-option"
+                          data-value="ymd"
+                        >
+                          YYYY-MM-DD
+                        </button>
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
                 <!-- Card 1: Tracking Behavior -->
@@ -18031,6 +18102,12 @@
          sync payloads, backups and exports stay 12-hour (F1, decision C2).
          Absent means "12h", and nothing writes it but a change (F2). */
       const CLOCK_FORMAT_KEY = "nodrift_clock_format_v1";
+      /* "mdy", "dmy" or "ymd" -- the order every date on screen and in an
+         export is written in (docs/followups.md §6, decision D1). Display
+         only: a record's stored date, the chunk keys, the sync blob and the
+         JSON backup stay MM/DD/YY (F1, decision D2). Absent means "mdy",
+         and nothing writes it but a change (F2). */
+      const DATE_ORDER_KEY = "nodrift_date_order_v1";
       /* The zone picker's last five choices. Device-local on purpose: never
          synced and never backed up, but wiped by a factory reset. */
       const TZ_RECENT_KEY = "nodrift_tz_recent_v1";
@@ -18744,6 +18821,7 @@
         tzLocalValue: document.getElementById("tz-local-value"),
         tzLogTimesSelect: document.getElementById("tz-log-times-select"),
         clockFormatSelect: document.getElementById("clock-format-select"),
+        dateOrderSelect: document.getElementById("date-order-select"),
         tzLabelsValue: document.getElementById("tz-labels-value"),
         zoneLabelsModal: document.getElementById("zone-labels-modal"),
         zoneLabelsStyle: document.getElementById("zone-labels-style"),
@@ -20411,10 +20489,101 @@
         return isClock24() ? CLOCK_STYLE_H23[style] || style : style;
       }
 
-      /* Everything a displayed clock time depends on besides its instant and
-         its zone, for the caches and row keys that hold one. */
+      /* ── The date order (docs/followups.md §6) ──────────────────────────
+
+         One resolver (F3): every screen that shows a business date asks
+         formatDateKey(), and nothing else takes a key apart to write one.
+         It shares the clock's funnel (F8), because to every cache holding a
+         rendered row the two are one preference family.
+
+         Display only. A record's stored `date`, its `displayDate` and
+         `searchStr`, the chunk keys, the sync blob and the JSON backup stay
+         MM/DD/YY (F1, decision D2), so changing this rewrites nothing. */
+      let _dateOrder = null;
+
+      function isDateOrderPref(v) {
+        return v === "mdy" || v === "dmy" || v === "ymd";
+      }
+
+      /* Held in a variable for the reason clockFormat() is: the logbook asks
+         it once per row. The funnel below drops it. */
+      function dateOrder() {
+        if (_dateOrder === null) {
+          let raw = null;
+          try {
+            raw = localStorage.getItem(DATE_ORDER_KEY);
+          } catch (e) {}
+          _dateOrder = isDateOrderPref(raw) ? raw : "mdy";
+        }
+        return _dateOrder;
+      }
+
+      /* The three orders, each with the name a label gives it and the sample
+         a placeholder shows. Written down once so that a label, a toast and
+         a placeholder can never disagree about what a field wants. */
+      const DATE_ORDER_FORMS = {
+        mdy: { label: "MM/DD/YY", sample: "05/16/26" },
+        dmy: { label: "DD/MM/YY", sample: "16/05/26" },
+        ymd: { label: "YYYY-MM-DD", sample: "2026-05-16" },
+      };
+
+      function dateOrderForm() {
+        return DATE_ORDER_FORMS[dateOrder()] || DATE_ORDER_FORMS.mdy;
+      }
+
+      /* A business-date key written for the screen. `form` is "full" (the
+         whole date), "short" (no year -- the logbook's row heading) or
+         "weekday" (the short weekday name in front). A key that will not
+         parse is handed back as it came rather than turned into a wrong
+         date: the callers below pass ids and labels through here too. */
+      function formatDateKey(key, form) {
+        const p = TimeZones.parseKey(key);
+        if (!p) return String(key == null ? "" : key);
+        const shape = form || "full";
+        const order = dateOrder();
+        let text;
+        if (order === "mdy") {
+          /* The default order is a PASS-THROUGH, not a rebuild: the stored
+             key goes out character for character, and the short form is the
+             same slice the logbook has always taken. A key this app wrote is
+             MM/DD/YY already, but one an old import left loose -- "1/2/26" --
+             must not start exporting as "01/02/26", because §1 promises a
+             user who changes nothing sees exactly what 0ba1bd6 gave them
+             (row 55). Measured: probe-csv-shape.js seeds that key. */
+          const raw = String(key);
+          text = shape === "short" ? raw.slice(0, 5) : raw;
+        } else {
+          /* The two new orders have no older string to honour, so they are
+             built from the parsed key and are always padded. */
+          const mm = String(p.m).padStart(2, "0");
+          const dd = String(p.d).padStart(2, "0");
+          if (order === "ymd") {
+            text =
+              shape === "short"
+                ? `${mm}-${dd}`
+                : `${String(p.y).padStart(4, "0")}-${mm}-${dd}`;
+          } else {
+            const yy = String(p.y % 100).padStart(2, "0");
+            text = shape === "short" ? `${dd}/${mm}` : `${dd}/${mm}/${yy}`;
+          }
+        }
+        if (shape !== "weekday") return text;
+        const day = new Date(Date.UTC(p.y, p.m - 1, p.d, 12)).getUTCDay();
+        return `${ZONE_WEEKDAYS[day]} ${text}`;
+      }
+
+      /* The export formatter for a date (F9). It follows the preference,
+         because decision D1 says an exported date is one the user reads --
+         unlike a clock time, which decision C2 pins to 12-hour. The JSON
+         backup is not an export in this sense and never calls it (D2). */
+      function exportDate(key) {
+        return formatDateKey(key, "full");
+      }
+
+      /* Everything a displayed clock time or date depends on besides its
+         instant and its zone, for the caches and row keys that hold one. */
       function displayFormatKey() {
-        return `${_displayFormatVersion}|${clockFormat()}`;
+        return `${_displayFormatVersion}|${clockFormat()}|${dateOrder()}`;
       }
 
       /* The one funnel for the display formats (F8). Drops the preference
@@ -20425,6 +20594,7 @@
          -- only the way a time is written down. */
       function onDisplayFormatChanged() {
         _clockFormat = null;
+        _dateOrder = null;
         _displayFormatVersion++;
         try {
           _recordTimeMemo.clear();
@@ -20450,7 +20620,7 @@
           if (typeof renderInsights === "function") renderInsights();
           if (typeof renderZoneSettings === "function") renderZoneSettings();
         } catch (e) {
-          console.warn("Could not redraw after a clock format change", e);
+          console.warn("Could not redraw after a display format change", e);
         }
       }
 
@@ -20458,6 +20628,17 @@
         if (!isClockFormatPref(value)) return false;
         try {
           localStorage.setItem(CLOCK_FORMAT_KEY, value);
+        } catch (e) {
+          return false;
+        }
+        onDisplayFormatChanged();
+        return true;
+      }
+
+      function setDateOrderPref(value) {
+        if (!isDateOrderPref(value)) return false;
+        try {
+          localStorage.setItem(DATE_ORDER_KEY, value);
         } catch (e) {
           return false;
         }
@@ -22824,6 +23005,17 @@
             display: true,
             resendIfMissing: true,
             validate: isClockFormatPref,
+          },
+
+          /* The date order, on exactly the terms of the clock format above:
+             it syncs (decision S1) and it is resent when an older build has
+             dropped it from the account (F10, decision W11). */
+          dateOrder: {
+            key: DATE_ORDER_KEY,
+            json: false,
+            display: true,
+            resendIfMissing: true,
+            validate: isDateOrderPref,
           },
         };
 
@@ -27871,11 +28063,10 @@
 
       /* "Sat 09/13/26". The weekday is read from the date itself, so no zone
          can move it. */
+      /* "Sat 09/13/26". The weekday and the date are both the resolver's
+         now (F3); this function is the name the zone dialogs call it by. */
       function businessDayLabel(key) {
-        const p = TimeZones.parseKey(key);
-        if (!p) return String(key);
-        const day = new Date(Date.UTC(p.y, p.m - 1, p.d, 12)).getUTCDay();
-        return `${ZONE_WEEKDAYS[day]} ${key}`;
+        return formatDateKey(key, "weekday");
       }
 
       function openZonePickerFor(role) {
@@ -28007,6 +28198,16 @@
       }
       window.chooseClockFormat = chooseClockFormat;
 
+      /* The Date row, on the same terms as the Clock row above: an unknown
+         value and a no-op are both refused, so storage is untouched and
+         nothing is uploaded unless the choice actually changed (F2). */
+      function chooseDateOrder(value) {
+        if (!isDateOrderPref(value)) return false;
+        if (value === dateOrder()) return false;
+        return setDateOrderPref(value);
+      }
+      window.chooseDateOrder = chooseDateOrder;
+
       /* A pending change is only the preference differing from the zone the
          shift holds, so undoing it is putting the preference back. */
       function undoPendingWorkZone() {
@@ -28066,6 +28267,9 @@
         const clock = DOM.clockFormatSelect;
         const format = clockFormat();
         if (clock && clock.value !== format) clock.value = format;
+        const order = DOM.dateOrderSelect;
+        const chosen = dateOrder();
+        if (order && order.value !== chosen) order.value = chosen;
       }
 
       /* A work zone adopted from another device (§3.5). It was confirmed where
@@ -30464,11 +30668,11 @@
 
         if (sortedDayLogs.length === 1) {
           const s = sortedDayLogs[0];
-          out = `[${targetDate} - ${dayNameShort}] W: ${formatDuration(s.workSec)} | B: ${formatDuration(s.breakSec)} | G: ${formatDuration(goalSec)} | ${plainDiff}\n`;
-          htmlOut += `<tr><td style="padding-right: 16px; white-space: nowrap; font-weight: 600;">[${escapeHTML(targetDate)} - ${dayNameShort}]</td><td style="padding-right: 16px; white-space: nowrap;">${bW}${formatDuration(s.workSec)}</td><td style="padding-right: 16px; white-space: nowrap;">${bB}${formatDuration(s.breakSec)}</td><td style="padding-right: 16px; white-space: nowrap;">${bG}${formatDuration(goalSec)}</td><td style="white-space: nowrap;">${htmlDiff}</td></tr>`;
+          out = `[${exportDate(targetDate)} - ${dayNameShort}] W: ${formatDuration(s.workSec)} | B: ${formatDuration(s.breakSec)} | G: ${formatDuration(goalSec)} | ${plainDiff}\n`;
+          htmlOut += `<tr><td style="padding-right: 16px; white-space: nowrap; font-weight: 600;">[${escapeHTML(exportDate(targetDate))} - ${dayNameShort}]</td><td style="padding-right: 16px; white-space: nowrap;">${bW}${formatDuration(s.workSec)}</td><td style="padding-right: 16px; white-space: nowrap;">${bB}${formatDuration(s.breakSec)}</td><td style="padding-right: 16px; white-space: nowrap;">${bG}${formatDuration(goalSec)}</td><td style="white-space: nowrap;">${htmlDiff}</td></tr>`;
         } else {
-          out = `[${targetDate} - ${dayNameShort}] ∑W: ${formatDuration(w)} | ∑B: ${formatDuration(b)} | G: ${formatDuration(goalSec)} | ${plainDiff}\n`;
-          htmlOut += `<tr><td style="padding-right: 16px; white-space: nowrap; font-weight: 600;">[${escapeHTML(targetDate)} - ${dayNameShort}]</td><td style="padding-right: 16px; white-space: nowrap;">∑ ${bW}${formatDuration(w)}</td><td style="padding-right: 16px; white-space: nowrap;">∑ ${bB}${formatDuration(b)}</td><td style="padding-right: 16px; white-space: nowrap;">${bG}${formatDuration(goalSec)}</td><td style="white-space: nowrap;">${htmlDiff}</td></tr>`;
+          out = `[${exportDate(targetDate)} - ${dayNameShort}] ∑W: ${formatDuration(w)} | ∑B: ${formatDuration(b)} | G: ${formatDuration(goalSec)} | ${plainDiff}\n`;
+          htmlOut += `<tr><td style="padding-right: 16px; white-space: nowrap; font-weight: 600;">[${escapeHTML(exportDate(targetDate))} - ${dayNameShort}]</td><td style="padding-right: 16px; white-space: nowrap;">∑ ${bW}${formatDuration(w)}</td><td style="padding-right: 16px; white-space: nowrap;">∑ ${bB}${formatDuration(b)}</td><td style="padding-right: 16px; white-space: nowrap;">${bG}${formatDuration(goalSec)}</td><td style="white-space: nowrap;">${htmlDiff}</td></tr>`;
           sortedDayLogs.forEach((s) => {
             out += `  ↳ W: ${formatDuration(s.workSec)} | B: ${formatDuration(s.breakSec)}\n`;
             htmlOut += `<tr><td style="padding-right: 16px; white-space: nowrap; color: #888;">&nbsp;&nbsp;↳</td><td style="padding-right: 16px; white-space: nowrap;">${bW}${formatDuration(s.workSec)}</td><td style="padding-right: 16px; white-space: nowrap;">${bB}${formatDuration(s.breakSec)}</td><td colspan="2"></td></tr>`;
@@ -30501,7 +30705,9 @@
             "Saturday",
           ];
           const dayName = dayNames[dateObj.getUTCDay()];
-          const emailSubject = `nodrift Summary - ${dayName} - ${targetDate}`;
+          /* The date a person reads, so it follows the preference like every
+             other export (decision D1). The file names do not (D2). */
+          const emailSubject = `nodrift Summary - ${dayName} - ${exportDate(targetDate)}`;
 
           const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&su=${encodeURIComponent(
             emailSubject,
@@ -31267,15 +31473,28 @@
         goalSec,
         notes,
       ) {
+        /* The one date in the app written with a month NAME rather than in
+           an order, so the preference reaches it differently: YYYY-MM-DD
+           asks for a numeric date and gets one, and the two slash orders
+           keep the month name, written day-first or month-first by the
+           locale that does that. "mdy" is byte-identical to what this always
+           produced. */
         let formattedDate = dateStr;
         if (dateStr.includes("/")) {
           const [m, d, y] = dateStr.split("/").map(Number);
           const dateObj = new Date(2000 + y, m - 1, d);
-          formattedDate = dateObj.toLocaleDateString("en-US", {
-            weekday: "short",
-            month: "short",
-            day: "numeric",
-          });
+          const order = dateOrder();
+          formattedDate =
+            order === "ymd"
+              ? formatDateKey(dateStr, "full")
+              : dateObj.toLocaleDateString(
+                  order === "dmy" ? "en-GB" : "en-US",
+                  {
+                    weekday: "short",
+                    month: "short",
+                    day: "numeric",
+                  },
+                );
         }
 
         const allLogs = typeof getLogs === "function" ? getLogs() : [];
@@ -34068,7 +34287,10 @@
 
           const dateStr = formatUTCDayStr(reusableDate);
 
-          const displayDateNoYear = dateStr.slice(0, 5);
+          /* Through the resolver, never by slicing the stored key: in DD/MM
+             the first five characters of "09/15/26" are the right two
+             numbers in the wrong order (F3). */
+          const displayDateNoYear = formatDateKey(dateStr, "short");
           const isToday = dateStr === todayStr;
           const isDayOff = !WorkWeek.isWorkDay(dateStr);
 
@@ -35870,7 +36092,7 @@
         /* In and Out on the clock the shift was filed on, with that zone in
            the last column (decision D4): existing columns keep their places. */
         return csvRow([
-          l.date,
+          exportDate(l.date),
           exportTime(l, "in"),
           exportTime(l, "out"),
           formatDuration(l.workSec),
@@ -35962,6 +36184,16 @@
           clockFormat: (() => {
             try {
               return localStorage.getItem(CLOCK_FORMAT_KEY);
+            } catch (e) {
+              return null;
+            }
+          })(),
+          /* The preference itself travels; the dates in this file do not.
+             Every `date` below stays MM/DD/YY so that a backup restores on
+             any build, this one included (decision D2, F1, F10). */
+          dateOrder: (() => {
+            try {
+              return localStorage.getItem(DATE_ORDER_KEY);
             } catch (e) {
               return null;
             }
@@ -36503,6 +36735,7 @@
           }
           /* ...and for the clock format, which the setter validates. */
           if (data.clockFormat) setClockFormatPref(data.clockFormat);
+          if (data.dateOrder) setDateOrderPref(data.dateOrder);
           /* The restored logbook may carry leave types the restored ledger does
              not list. Clearing the latch re-runs the reconciliation on the next
              read so those types are folded in rather than orphaned. Cleared
@@ -36798,8 +37031,8 @@
         const plainDiff = isOver ? `O: ${diffAbs}` : `U: ${diffAbs}`;
         const htmlDiff = isOver ? `${bO}${diffAbs}` : `${bU}${diffAbs}`;
 
-        let txt = `[${log.date} - ${dayNameShort}] W: ${formatDuration(log.workSec)} | B: ${formatDuration(log.breakSec)} | G: ${formatDuration(goal)} | ${plainDiff}`;
-        let htmlOut = `<table style="border-collapse: collapse; font-family: sans-serif; font-size: 14px;"><tr><td style="padding-right: 16px; white-space: nowrap; font-weight: 600;">[${escapeHTML(log.date)} - ${dayNameShort}]</td><td style="padding-right: 16px; white-space: nowrap;">${bW}${formatDuration(log.workSec)}</td><td style="padding-right: 16px; white-space: nowrap;">${bB}${formatDuration(log.breakSec)}</td><td style="padding-right: 16px; white-space: nowrap;">${bG}${formatDuration(goal)}</td><td style="white-space: nowrap;">${htmlDiff}</td></tr></table>`;
+        let txt = `[${exportDate(log.date)} - ${dayNameShort}] W: ${formatDuration(log.workSec)} | B: ${formatDuration(log.breakSec)} | G: ${formatDuration(goal)} | ${plainDiff}`;
+        let htmlOut = `<table style="border-collapse: collapse; font-family: sans-serif; font-size: 14px;"><tr><td style="padding-right: 16px; white-space: nowrap; font-weight: 600;">[${escapeHTML(exportDate(log.date))} - ${dayNameShort}]</td><td style="padding-right: 16px; white-space: nowrap;">${bW}${formatDuration(log.workSec)}</td><td style="padding-right: 16px; white-space: nowrap;">${bB}${formatDuration(log.breakSec)}</td><td style="padding-right: 16px; white-space: nowrap;">${bG}${formatDuration(goal)}</td><td style="white-space: nowrap;">${htmlDiff}</td></tr></table>`;
 
         const writeSuccess = () => {
           btnElement.innerHTML = `<span style="font-size:0.45rem; font-weight:bold;">DONE</span>`;
@@ -36886,11 +37119,11 @@
             let out = "";
             if (dt.shifts.length === 1) {
               const s = dt.shifts[0];
-              out = `[${d} - ${dayNameShort}] W: ${formatDuration(s.workSec)} | B: ${formatDuration(s.breakSec)} | G: ${formatDuration(goalSec)} | ${plainDiff}`;
-              htmlOut += `<tr><td style="padding-right: 16px; white-space: nowrap; font-weight: 600;">[${escapeHTML(d)} - ${dayNameShort}]</td><td style="padding-right: 16px; white-space: nowrap;">${bW}${formatDuration(s.workSec)}</td><td style="padding-right: 16px; white-space: nowrap;">${bB}${formatDuration(s.breakSec)}</td><td style="padding-right: 16px; white-space: nowrap;">${bG}${formatDuration(goalSec)}</td><td style="white-space: nowrap;">${htmlDiff}</td></tr>`;
+              out = `[${exportDate(d)} - ${dayNameShort}] W: ${formatDuration(s.workSec)} | B: ${formatDuration(s.breakSec)} | G: ${formatDuration(goalSec)} | ${plainDiff}`;
+              htmlOut += `<tr><td style="padding-right: 16px; white-space: nowrap; font-weight: 600;">[${escapeHTML(exportDate(d))} - ${dayNameShort}]</td><td style="padding-right: 16px; white-space: nowrap;">${bW}${formatDuration(s.workSec)}</td><td style="padding-right: 16px; white-space: nowrap;">${bB}${formatDuration(s.breakSec)}</td><td style="padding-right: 16px; white-space: nowrap;">${bG}${formatDuration(goalSec)}</td><td style="white-space: nowrap;">${htmlDiff}</td></tr>`;
             } else {
-              out = `[${d} - ${dayNameShort}] ∑W: ${formatDuration(dt.w)} | ∑B: ${formatDuration(dt.b)} | G: ${formatDuration(goalSec)} | ${plainDiff}\n`;
-              htmlOut += `<tr><td style="padding-right: 16px; white-space: nowrap; font-weight: 600;">[${escapeHTML(d)} - ${dayNameShort}]</td><td style="padding-right: 16px; white-space: nowrap;">∑ ${bW}${formatDuration(dt.w)}</td><td style="padding-right: 16px; white-space: nowrap;">∑ ${bB}${formatDuration(dt.b)}</td><td style="padding-right: 16px; white-space: nowrap;">${bG}${formatDuration(goalSec)}</td><td style="white-space: nowrap;">${htmlDiff}</td></tr>`;
+              out = `[${exportDate(d)} - ${dayNameShort}] ∑W: ${formatDuration(dt.w)} | ∑B: ${formatDuration(dt.b)} | G: ${formatDuration(goalSec)} | ${plainDiff}\n`;
+              htmlOut += `<tr><td style="padding-right: 16px; white-space: nowrap; font-weight: 600;">[${escapeHTML(exportDate(d))} - ${dayNameShort}]</td><td style="padding-right: 16px; white-space: nowrap;">∑ ${bW}${formatDuration(dt.w)}</td><td style="padding-right: 16px; white-space: nowrap;">∑ ${bB}${formatDuration(dt.b)}</td><td style="padding-right: 16px; white-space: nowrap;">${bG}${formatDuration(goalSec)}</td><td style="white-space: nowrap;">${htmlDiff}</td></tr>`;
               dt.shifts.forEach((s) => {
                 out += `  ↳ W: ${formatDuration(s.workSec)} | B: ${formatDuration(s.breakSec)}\n`;
                 htmlOut += `<tr><td style="padding-right: 16px; white-space: nowrap; color: #888;">&nbsp;&nbsp;↳</td><td style="padding-right: 16px; white-space: nowrap;">${bW}${formatDuration(s.workSec)}</td><td style="padding-right: 16px; white-space: nowrap;">${bB}${formatDuration(s.breakSec)}</td><td colspan="2"></td></tr>`;
@@ -37008,6 +37241,7 @@
           TZ_DISPLAY_KEY,
           WORK_WEEK_KEY, // The work week and its history
           CLOCK_FORMAT_KEY, // 12-hour or 24-hour
+          DATE_ORDER_KEY, // MM/DD/YY, DD/MM/YY or YYYY-MM-DD
           TZ_RECENT_KEY, // The zone picker's recent choices
           TZ_INSTALL_KEY, // Whether this device predates zones
           TZ_NOTICE_KEY, // Whether it has dismissed the time zones notice
@@ -38741,7 +38975,7 @@
           exportJSON();
 
           const dateStr = getWorkDate();
-          const emailSubject = `${dateStr} - nodrift JSON Backup`;
+          const emailSubject = `${exportDate(dateStr)} - nodrift JSON Backup`;
           const emailBody = "";
 
           const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&su=${encodeURIComponent(
@@ -38960,11 +39194,11 @@
               const plainDiff = isOver ? `O: ${diffAbs}` : `U: ${diffAbs}`;
               const htmlDiff = isOver ? `${bO}${diffAbs}` : `${bU}${diffAbs}`;
 
-              let txt = `[${log.date} - ${dayNameShort}] W: ${formatDuration(log.workSec)} | B: ${formatDuration(log.breakSec)} | G: ${formatDuration(goal)} | ${plainDiff}`;
-              let htmlOut = `<table style="border-collapse: collapse; font-family: sans-serif; font-size: 14px;"><tr><td style="padding-right: 16px; white-space: nowrap; font-weight: 600;">[${escapeHTML(log.date)} - ${dayNameShort}]</td><td style="padding-right: 16px; white-space: nowrap;">${bW}${formatDuration(log.workSec)}</td><td style="padding-right: 16px; white-space: nowrap;">${bB}${formatDuration(log.breakSec)}</td><td style="padding-right: 16px; white-space: nowrap;">${bG}${formatDuration(goal)}</td><td style="white-space: nowrap;">${htmlDiff}</td></tr></table>`;
+              let txt = `[${exportDate(log.date)} - ${dayNameShort}] W: ${formatDuration(log.workSec)} | B: ${formatDuration(log.breakSec)} | G: ${formatDuration(goal)} | ${plainDiff}`;
+              let htmlOut = `<table style="border-collapse: collapse; font-family: sans-serif; font-size: 14px;"><tr><td style="padding-right: 16px; white-space: nowrap; font-weight: 600;">[${escapeHTML(exportDate(log.date))} - ${dayNameShort}]</td><td style="padding-right: 16px; white-space: nowrap;">${bW}${formatDuration(log.workSec)}</td><td style="padding-right: 16px; white-space: nowrap;">${bB}${formatDuration(log.breakSec)}</td><td style="padding-right: 16px; white-space: nowrap;">${bG}${formatDuration(goal)}</td><td style="white-space: nowrap;">${htmlDiff}</td></tr></table>`;
 
               const writeSuccess = () => {
-                showAppToast(`Copied summary for ${log.date}`);
+                showAppToast(`Copied summary for ${exportDate(log.date)}`);
               };
 
               if (navigator.clipboard && window.ClipboardItem) {
@@ -41993,7 +42227,7 @@
                     parseInt(m, 10) - 1,
                     parseInt(day, 10),
                   );
-                  logbookStyleDate = `${dayNames[dateObj.getDay()]} (${m.padStart(2, "0")}/${day.padStart(2, "0")})`;
+                  logbookStyleDate = `${dayNames[dateObj.getDay()]} (${formatDateKey(task.date, "short")})`;
                 }
               } catch (e) {}
 
@@ -42263,7 +42497,7 @@
         );
         const durStr = formatDuration(task.durationSec || 0);
 
-        const txt = `[${task.date}] ${whenText} | Duration: ${durStr} | Note: ${task.note}`;
+        const txt = `[${exportDate(task.date)}] ${whenText} | Duration: ${durStr} | Note: ${task.note}`;
 
         if (navigator.clipboard && navigator.clipboard.writeText) {
           navigator.clipboard
@@ -42297,7 +42531,7 @@
               exportTimeView(task, "out"),
             );
             const durStr = formatDuration(task.durationSec || 0);
-            return `[${task.date}] ${whenText} | Duration: ${durStr} | Note: ${task.note || ""}`;
+            return `[${exportDate(task.date)}] ${whenText} | Duration: ${durStr} | Note: ${task.note || ""}`;
           })
           .join("\n");
 
@@ -42337,7 +42571,7 @@
           const pausedStr = formatDuration(Number(task.pausedSec) || 0);
           csv +=
             csvRow([
-              task.date,
+              exportDate(task.date),
               startStr,
               endStr,
               durStr,
@@ -43286,7 +43520,11 @@
           const isLegacy = typeof item === "string";
           const date = isLegacy ? item : item.date;
           const type = isLegacy ? "Leave" : item.type;
-          const safeDate = escapeHTML(date);
+          /* Two different strings on purpose: the row SHOWS the date in the
+             chosen order, and the delete button carries the STORED key,
+             because that is what removeLeaveDate matches on (F1). */
+          const safeDate = escapeHTML(formatDateKey(date, "full"));
+          const safeKey = escapeHTML(date);
           const safeType = escapeHTML(type);
 
           const visuals = getLeaveVisuals(type);
@@ -43300,7 +43538,7 @@
                 <span style="font-variant-numeric: tabular-nums; font-feature-settings: 'tnum' 1;">${safeDate}</span>
                 <span class="badge ${badgeClass}">${safeType}</span>
               </div>
-              <button class="leave-delete-btn" data-action="remove-leave" data-date="${safeDate}" title="Remove Leave">
+              <button class="leave-delete-btn" data-action="remove-leave" data-date="${safeKey}" title="Remove Leave">
                 <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${getSprite("sprite-004")}</svg>
               </button>
             </div>
@@ -44207,7 +44445,7 @@
         const clock = isClock24()
           ? `${two(h % 24)}:${two(m)}${s ? `:${two(s)}` : ""}`
           : `${h % 12 || 12}:${two(m)}${s ? `:${two(s)}` : ""} ${h % 24 < 12 ? "AM" : "PM"}`;
-        return `${clock} doesn't exist on ${typed.dateKey} in ${TimeZones.longName(zone, typed.ms)} — clocks jumped forward.`;
+        return `${clock} doesn't exist on ${formatDateKey(typed.dateKey, "full")} in ${TimeZones.longName(zone, typed.ms)} — clocks jumped forward.`;
       }
 
       /* A typed In/Out pair on one date, read in `zone`, as
@@ -45510,6 +45748,8 @@
             "Log Times: Show each record's In and Out times in the zone it was recorded in, or all of them in your work or local zone.",
           "clock-format-select":
             "Clock: Write every time on screen as 12-hour or 24-hour. Typing accepts both. Exported files and backups stay 12-hour.",
+          "date-order-select":
+            "Date: The order every date is written in, on screen, when you type one and in exported files. The JSON backup keeps MM/DD/YY so it restores anywhere.",
           "goal-autopopulate-toggle":
             "Auto-Populate: Adjusts your daily target dynamically to pace you toward a 40-hour work week.",
           "weekly-goal-hours":
@@ -45612,6 +45852,7 @@
           "tz-labels-row",
           "tz-log-times-select",
           "clock-format-select",
+          "date-order-select",
           "goal-autopopulate-toggle",
           "weekly-goal-hours",
           "idle-toggle",
