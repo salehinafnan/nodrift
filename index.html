@@ -4788,6 +4788,23 @@
         flex: 0 0 auto;
       }
 
+      /* Same trick, same reason. Left to fill the row these two ran to 226px
+         and 254px to hold "Monday" and "Next work day" -- a box that wide
+         reads as one waiting for something longer, and the chevron ends up a
+         thumb's width from the value it belongs to. Each is sized instead to
+         the widest option it can ever have to show: "Saturday" asks 5.5rem
+         and "Spread over the week" 9.7rem, so 6.5rem and 10.5rem, the latter
+         the width the phone sheet already gives both. No flex here -- the row
+         has space to spare at every width so nothing shrinks, and saying it
+         would take the phone's shrink away too. */
+      .ww-settings-card .ww-week-start-select {
+        width: 6.5rem;
+      }
+
+      .ww-settings-card .ww-catch-up-select {
+        width: 10.5rem;
+      }
+
       .ww-settings-card
         .settings-row:has(.ww-week-start-select)
         .settings-label,
