@@ -1,6 +1,6 @@
 # Follow-ups: work week, clock and date formats, re-filing records
 
-> **Status:** plan approved by the user on 2026-09-15, including every proposed default in §10. Phases W0 (measurements), W1 (the `WorkWeek` module, behaviour-identical apart from two differences the user chose), W2 (the schedule, its history and the generalised rules), W3 (the settings card, the wording, the bar and the guide) and W4 (live multi-device, the iPhone pass, and decision W16) are done, and W0–W4 are **deployed** (`676976f`, 2026-09-19); Phase C1 (the 24-hour clock) and Phase D1 (the date order) are done and not yet deployed; Phase Z1 is next.
+> **Status:** plan approved by the user on 2026-09-15, including every proposed default in §10. Phases W0 (measurements), W1 (the `WorkWeek` module, behaviour-identical apart from two differences the user chose), W2 (the schedule, its history and the generalised rules), W3 (the settings card, the wording, the bar and the guide) and W4 (live multi-device, the iPhone pass, and decision W16) are done, and W0–W4 are **deployed** (`676976f`, 2026-09-19); Phase C1 (the 24-hour clock) and Phase D1 (the date order) are done and **deployed** (`add47ce`, 2026-09-20); Phase Z1 (re-filing a record in another zone) is done and not yet deployed; Phase R is next.
 > **Baseline commit:** `0ba1bd6` (all line numbers below refer to it and WILL drift — re-grep before editing).
 > **Rule:** one phase at a time. A phase starts only when the previous phase's exit criteria are green and committed.
 > **Origin:** the candidate follow-ups in §9 of `docs/implement.md`. "More than two clocks; per-client zones" was dropped by the user (§11 here).
@@ -14,7 +14,7 @@
 | W4    | Work week sync hardening, multi-device, iPhone                    | no               | **yes**             | M                 | done    |
 | C1    | 24-hour clock                                                     | prefs            | no                  | M                 | done    |
 | D1    | Date order: MM/DD, DD/MM, YYYY-MM-DD                              | prefs            | no                  | M–L (split D1a/b) | done    |
-| Z1    | Re-filing a record in another time zone                           | yes (edit paths) | no                  | M (split Z1a/b)   | planned |
+| Z1    | Re-filing a record in another time zone                           | yes (edit paths) | no                  | M (split Z1a/b)   | done    |
 | R     | Release: full mutation run, README, guide sweep, iPhone checklist | no               | full sweep          | S                 | planned |
 
 ---
@@ -430,7 +430,7 @@ D1 three choices — MM/DD/YY, DD/MM/YY, YYYY-MM-DD — default MM/DD/YY; everyt
   - places the rest with `resolveTypedWindow` (34387), which refuses a gap (D6) and takes the earlier repeated hour;
   - saves with an explicit `tz`.
 - The task edit dialog (11388) has the same shape.
-- **Records carry no "manual entry" marker** (grep finds none), so the dialog cannot tell a timed shift from a typed one by a flag. Z1a audits whether anything reliable exists (placeholders, `loginEpochMs` provenance).
+- **Records carry no "manual entry" marker** on the record itself, so the dialog cannot tell a timed shift from a typed one by a flag. **Audited in Z1a and settled (see the results below): nothing reliable stands in for one.** A tracked record and a typed one carry the same seventeen fields; the milliseconds on `loginEpochMs` say "timed" only one way round, since a clock-in on a whole second looks typed; and the one marker that exists — the words "manual entry" that `saveManualModal` puts in `searchStr` — is erased by `saveEditModal` the first time the record is saved. P-Z4 therefore stands.
 
 ### 7.2 Decisions in force
 
@@ -506,7 +506,7 @@ It runs over a matrix of weekly goals (40, 37.5, 20, 15), log patterns (none, be
 | `harness-workweek-model.js`                                                                                                                                                                              | stub / fake server | W2     |
 | `probe-workweek-ui.js`                                                                                                                                                                                   | none               | W3     |
 | `harness-formats.js` (clock and date, screens, typing, exports)                                                                                                                                          | none               | C1, D1 |
-| `probe-refile.js`                                                                                                                                                                                        | none               | Z1     |
+| `probe-refile.js` (one device for rows 70-80 and 82-84; a second against a fake server for row 81)                                                                                                       | none               | Z1     |
 | extensions to `harness-progress.js`, `harness-phase8.js`, `harness-wipe.js`, `harness-security.js`, `probe-csv-shape.js`, `probe-backup-and-leave.js`, `probe-leave-rows.js`, `harness-signin-render.js` | live / none        | W2–Z1  |
 
 Also from W0: `probe-workweek-audit.js` (no account; W0, then W2b, where its measured check that a goal of 0 survives a reload turns green) and `run-followups-regression.sh` (the list below, one suite at a time, power and md5 at both ends).
@@ -522,7 +522,8 @@ Also from W0: `probe-workweek-audit.js` (no account; W0, then W2b, where its mea
 - from W2: `harness-workweek-model.js` and `probe-workweek-audit.js`;
 - from W3: `probe-workweek-ui.js`, and the golden master's `--expect=w3`;
 - from W4: `probe-workweek-server.js` (live; last in the list, so a shared-account failure is easy to re-run alone);
-- from C1: `harness-formats.js`, before the live suite (it covers D1's rows 55-69 too, from D1b).
+- from C1: `harness-formats.js`, before the live suite (it covers D1's rows 55-69 too, from D1b);
+- from Z1: `probe-refile.js`, also before the live suite (28 entries).
 
 **House rules:**
 
@@ -1027,6 +1028,43 @@ Two of the three also needed their `mustFail` pointed at the check that now catc
 
 **Commits:** `feat(time): re-file a record in another time zone` (Z1a) and `feat(time): choose a record's zone in the edit dialogs` (Z1b).
 
+#### Phase Z1 results (2026-09-20)
+
+**The audit §7.1 asked for, and what it settles.** §7.1 says records carry no "manual entry" marker and asks Z1a to find out whether anything reliable stands in for one, because P-Z4's default depends on it. Measured on the real build (`z1-probe-marker.js`, 10 checks):
+
+- a shift filed by clocking in and out and one typed into the manual dialog carry **exactly the same seventeen fields** — `_idx`, `breakSec`, `date`, `dayGoal`, `diff`, `displayDate`, `epochMs`, `id`, `lastModified`, `login`, `loginEpochMs`, `logout`, `logoutEpochMs`, `notes`, `searchStr`, `tz`, `workSec`. None of them says how the record came to exist;
+- the only signal in the numbers is the milliseconds on `loginEpochMs` — 582 for the tracked one, 0 for the typed one — and it is one-directional: a clock-in landing exactly on a whole second files a record with `loginEpochMs % 1000 === 0`, measured, indistinguishable from a typed one;
+- there **is** one marker, and the edit dialog destroys it. `saveManualModal` writes the literal words "manual entry" into `searchStr` so a person can search for one; `saveEditModal` rebuilds `searchStr` without them, so **saving a manual record unchanged through the edit dialog erases the marker**. The one dialog that would read it is the one that wipes it.
+
+So **P-Z4 stands as proposed**: both readings are offered for every record, keeping the real moments is the default, and nothing in this phase branches on provenance.
+
+**A defect the audit found in the tree, and it is the phase's shape.** `typedFormZone(prefix)` already existed, and its comment already said it was "the zone a dialog's typed times are read in" — but only the live typing preview called it. Both save paths read `recordZone(record)` for themselves. Two copies of one concept, agreeing only by coincidence: exactly what §6 found in the two typed-date parsers. Z1a points the save paths at the one resolver, which is what lets a chosen zone reach the save without the preview and the save disagreeing about what it means.
+
+**A shipped bug found on the way, fixed on its own (`9ce4801`).** Every `.modal-overlay` carries the same `z-index`, so which dialog paints on top fell to the order they happen to be authored in, and `#confirm-modal` is authored before `#edit-modal`. Measured with `elementFromPoint` at the prompt's own centre: **the overlap prompt the shift editor raises opens behind the editor that raised it**, so the screen looks stuck. It predates this work by a long way, and Z1 cannot function without fixing it, since the zone picker is authored before both edit dialogs. The open-order registry already knew the answer — it tracks which dialog opened last for the keyboard layer, with a comment saying neither DOM order nor z-index can stand in for it. That is equally true of painting, and for the same reason: a dialog nested under one authored earlier is unreachable, there by the keyboard and here by the eye. The rank is recomputed over the dialogs open at that moment rather than counted up forever, so it stays between 1 and the number of overlays and can never climb into the toast layer.
+
+**The shape of it.**
+
+- **`planRefile(record, zone, mode)`** is the one place either reading is worked out. The preview and the re-fill are the same answer rather than two, so a preview cannot promise one thing and the save do another.
+- **Keeping the moments carries the instants explicitly**, in the shape `keptTypedInstant` already compares, because reading a re-filled time back out of the text would lose which occurrence of a repeated hour it came from. With a change pending, the record's own instants are never consulted: they belong to the old zone and cannot stand in for text read in the new one.
+- **Re-filing is the one thing allowed to move a business date** (P-Z3, the single exception to I2) — and only where a real moment decided it in the first place. An end holding "Manual" or "Entry" never had one, so its date stays.
+- **Which records are offered which reading.** "Keep the times as written" needs times that were written, so a record with a placeholder end is offered only the other reading (row 82). That is the only branch in the feature, and it is about what the record contains, not about how it was filed.
+- **Already true, asserted rather than built:** `saveEditModal` marks the old month dirty at entry and the new one inside the save, so a record crossing a month marks both (row 76); `rebuildWeeklyCache` clears and refills `dailyAnchorMap` wholesale, so both days' anchors recompute and the record keeps its locked `dayGoal` (row 78); the overlap loop compares instants, so a moved record meets the existing warning (row 77).
+
+**A pre-existing red on the unmodified tree, and it only shows on a Sunday.** The baseline was 26 of 27: `probe-workweek-ui.js`'s transition-week note read empty. The transition week runs from this week's start to the day before the new start day, so it holds _today_ only when the new start day still lies ahead inside the current week — `p < q`, where `p` is today's place in the week and `q` the length of the run the change leaves. With the default Monday start and a Sunday today, `p` is 6 and no allowed start gives `q > 6`: on a Sunday **no** week-start change can leave a short week containing today, whichever one the test picks. It now chooses the pair at run time, and reads 111 of 111.
+
+**Four things the suite found, each a test bug rather than a defect, and each worth writing down.**
+
+- **The save path refuses any date more than two days ahead**, so four seeds were being refused rather than tested. Every seed now sits behind today.
+- **A fake server that echoes `last_modified` back as a number applies nothing.** The wire carries integer milliseconds, the column is a timestamptz, and `mergeRows` does `Date.parse(row.last_modified)` — a number parses to `NaN` and the row is skipped in silence. The same crossing of two domains W4 found in the settings stamp.
+- **A zone picker row cannot be clicked through a dialog that paints above it**, which is how the stacking bug announced itself: the click landed on the edit dialog's header.
+- **Splitting a CSS rule at a prefix takes the rest of the rule with it.** An edit that closed `.modal-overlay` after its `z-index` moved `display: none` into the new selector, so every hidden overlay fell back to a div's default and covered the page. The symptom is that `elementFromPoint` returns the _last_ overlay in the document for every click, and only the suites that click by coordinate notice.
+
+**§7.4 rows asserted:** 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83 and 84, with F1, F3, F4 and P-Z3 each carrying a check of its own.
+
+**Tests.** `probe-refile.js` is new (ports 8892 / 9492 and CDP 9493 for its second device) and is **68 of 68**: fifteen sections on one device, then row 81 against a fake server transcribed from `0004_sync_session.sql` — one upload, the row that goes up carrying the new zone and date, and the other device taking both and drawing the times in the record's zone. The regression list is **28 entries** now and ran **28 of 28 green in chain** (17:07:06–17:18:33, AC at 2419 MHz and md5 `afc90a43` at both ends), with the golden master `compare --expect=w3` at **300 sets, 0 differ** — Z1 changes nothing for a user who touches nothing. None of the three standing in-chain flakes flaked on mains.
+
+**Mutations: 379 in the file, 0 anchor misses, and all twelve new `Z1:` entries GOOD on the first grading.** They include the four §9 names — keep-moments recomputing instants, keep-written reading in the old zone, the date not re-derived, and only the new month marked dirty — plus the two that grade the stacking fix, the placeholder branch, the pending change outliving its dialog, a zone taken on trust, a preview that never says the day moves, and a task re-filed in its old zone. Two existing mutations were re-anchored onto `typedFormZone`, since the save paths no longer name `recordZone` themselves.
+
 ### Phase R — Release
 
 - Full mutation run on AC power, with the 9-class triage of `docs/implement.md` Phase 7 (re-grade every BAD alone on the work tree and on the previous commit).
@@ -1085,6 +1123,11 @@ Two of the three also needed their `mustFail` pointed at the check that now catc
 **Confirmed during Phase W4 (2026-09-19):**
 
 - **W16 — "No goal" belongs to the day, not to the arithmetic.** P-W16 as W3 shipped it reached every goal of 0, including a work day whose automatic goal lands there because the week is already met, or because the day is on leave. Restricted to days off: a work day with a 0 goal keeps the percentage line, the full bar and the heatmap ladder it has always had. Measured before and after — with the rewrite rule for it removed, the golden master compares 300 sets, 0 differ, so the app is byte-identical to `0ba1bd6` again and W3's only intended difference is the "Day off" wording. Rejected: the wider reading as shipped; extending it to leave days, which would have changed what every existing user sees on a leave day.
+
+**Confirmed during Phase Z1 (2026-09-20):**
+
+- **P-Z4 stands: the default reading is "keep the real moments", for every record.** Measured rather than assumed, because §7.1 made the default conditional on the audit. Nothing on a record says how it was filed: a tracked shift and a typed one carry the same seventeen fields, the milliseconds on `loginEpochMs` identify a timed shift only one way round, and the one marker that exists is erased by the edit dialog itself. Rejected: branching on `loginEpochMs % 1000`, which would read about one timed shift in a thousand as typed; branching on the `searchStr` marker, which the first edit destroys.
+- **A dialog opened over another paints above it.** Not a question the plan asked, but one re-filing forced: the zone picker is authored before both edit dialogs, and painting followed authoring order. Fixed for every dialog at once rather than for this one, because the same bug already hid the overlap prompt the shift editor raises. Rejected: raising only the zone picker, which would have left the overlap prompt behind the dialog that raises it.
 
 **Proposed by the plan and confirmed with it on 2026-09-15** (the user approved the plan as written; any of these can still be revisited before the phase named):
 
