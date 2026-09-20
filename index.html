@@ -35423,6 +35423,7 @@
         const log = logs.find((l) => l.id === logId);
         if (!log) return;
         editingLogId = log.id;
+        clearRefile("edit");
         /* Shown in the chosen order, with the stored key kept on the field
            so that saving it back needs no second reading of the text. */
         DOM.editDate.value = formatDateKey(log.date, "full");
@@ -35475,6 +35476,9 @@
         DOM.editModal.style.display = "none";
         editingLogId = null;
         editOriginal = null;
+        /* A zone change that was never saved dies with the dialog, so the
+           next shift opened is not read in it (§7). */
+        clearRefile("edit");
         isEditSubmitting = false;
       }
 
@@ -35486,6 +35490,7 @@
         const task = cachedTaskLogs.find((t) => t.id === taskId);
         if (!task) return;
         editingTaskId = taskId;
+        clearRefile("edit-task");
 
         const dateEl = document.getElementById("edit-task-date");
         const startEl = document.getElementById("edit-task-start");
@@ -35533,20 +35538,23 @@
         if (modal) modal.style.display = "none";
         editingTaskId = null;
         editTaskOriginal = null;
+        clearRefile("edit-task");
       };
 
       window.saveEditTaskModal = function () {
         if (!editingTaskId) return;
         const task = cachedTaskLogs.find((t) => t.id === editingTaskId);
         if (!task) return;
-        const typedZone = recordZone(task);
+        /* The zone the form is on: the task's own, or the one a pending
+           re-file chose (§7). */
+        const typedZone = typedFormZone("edit-task");
         const typedOriginalNow =
           editTaskOriginal && editTaskOriginal.id === task.id
             ? editTaskOriginal
             : null;
         const keepTyped = (d, s, e) => ({
-          start: keptTypedInstant(typedOriginalNow, d, "in", s),
-          end: keptTypedInstant(typedOriginalNow, d, "out", e),
+          start: keptRefileInstant("edit-task", typedOriginalNow, d, "in", s),
+          end: keptRefileInstant("edit-task", typedOriginalNow, d, "out", e),
         });
 
         const dateInput = document.getElementById("edit-task-date");
@@ -35843,17 +35851,20 @@
             0,
           );
 
-          /* Read in the shift's own zone, not today's work zone (§3.7). */
-          const editZone = recordZone(log);
+          /* The zone the form is on: the shift's own, not today's work zone
+             (§3.7) -- or the one a pending re-file chose (§7). */
+          const editZone = typedFormZone("edit");
           const editOriginalNow =
             editOriginal && editOriginal.id === log.id ? editOriginal : null;
-          const keptLogin = keptTypedInstant(
+          const keptLogin = keptRefileInstant(
+            "edit",
             editOriginalNow,
             newDate,
             "in",
             newLogin,
           );
-          const keptLogout = keptTypedInstant(
+          const keptLogout = keptRefileInstant(
+            "edit",
             editOriginalNow,
             newDate,
             "out",
@@ -44451,16 +44462,61 @@
         return out;
       }
 
-      /* The zone a dialog's typed times are read in: an existing record's
-         own zone, else the work zone, which new records are filed in. */
-      function typedFormZone(prefix) {
+      /* ---- Re-filing a record in another zone (docs/followups.md §7) ----
+
+         A zone change a dialog is holding but has not saved yet. `refiled`
+         is the form as the re-fill left it, in typedOriginal's shape, so the
+         instants it placed can be carried through the save instead of being
+         read back out of the text -- a re-fill landing in a repeated hour
+         would otherwise lose the occurrence it came from. It is null in
+         "written" mode, where the whole point is that the text IS read
+         again, in the new zone. */
+      let pendingRefile = { edit: null, "edit-task": null };
+
+      /* The two fields each dialog re-fills, so neither the plan nor the
+         preview has to know a field id. */
+      const REFILE_FIELDS = {
+        edit: { date: "edit-date", in: "edit-login", out: "edit-logout" },
+        "edit-task": {
+          date: "edit-task-date",
+          in: "edit-task-start",
+          out: "edit-task-end",
+        },
+      };
+
+      function refileOf(prefix) {
+        return pendingRefile[prefix] || null;
+      }
+
+      function clearRefile(prefix) {
+        pendingRefile[prefix] = null;
+      }
+
+      /* The record a dialog is open on, or null. */
+      function refileRecord(prefix) {
         if (prefix === "edit") {
-          const log = getLogs().find((l) => l.id === editingLogId);
-          if (log) return recordZone(log);
-        } else if (prefix === "edit-task") {
-          const task = cachedTaskLogs.find((t) => t.id === editingTaskId);
-          if (task) return recordZone(task);
+          return getLogs().find((l) => l.id === editingLogId) || null;
         }
+        if (prefix === "edit-task") {
+          return cachedTaskLogs.find((t) => t.id === editingTaskId) || null;
+        }
+        return null;
+      }
+
+      /* The zone a dialog's typed times are read in: the one a pending
+         re-file chose, else an existing record's own zone, else the work
+         zone, which new records are filed in.
+
+         The live preview and both save paths ask this one function (F3).
+         They used to disagree by accident -- the preview called here, and
+         each save path read recordZone() for itself -- which is the same
+         shape as the two date parsers D1 found, and it is what would let a
+         re-filed record save in a zone the preview never mentioned. */
+      function typedFormZone(prefix) {
+        const pending = refileOf(prefix);
+        if (pending) return pending.zone;
+        const record = refileRecord(prefix);
+        if (record) return recordZone(record);
         return getWorkZone();
       }
 
@@ -44499,6 +44555,136 @@
         const sec = parseTypedClockSeconds(typedValue);
         if (sec === null || o.sec === null) return null;
         return sec === o.sec ? o.ms : null;
+      }
+
+      /* The instant to keep for one end of a dialog being saved. With a
+         re-file pending the record's own instants belong to the OLD zone and
+         cannot stand in for text read in the new one, so only the re-fill's
+         own snapshot is asked; without one, the dialog's. Both are answered
+         by keptTypedInstant, so "untouched" means the same thing either
+         way. */
+      function keptRefileInstant(prefix, original, dateStr, end, typedValue) {
+        const pending = refileOf(prefix);
+        const snapshot = pending ? pending.refiled : original;
+        return keptTypedInstant(snapshot, dateStr, end, typedValue);
+      }
+
+      /* One end of a re-filled form, in typedOriginal's shape. */
+      function refiledEnd(text, ms) {
+        const t = normalizeTypedTime(text);
+        return {
+          text: t,
+          sec: parseTypedClockSeconds(t),
+          ms: Number.isFinite(ms) ? ms : null,
+        };
+      }
+
+      /* What re-filing `record` into `zone` would do, in one of the two
+         modes. The one place either is worked out, so the preview and the
+         re-fill cannot drift apart (F3).
+
+           moments  the instants stand; the business date is read again from
+                    the login instant in the new zone and the times are
+                    re-filled from those instants;
+           written  the date and the text stand; the instants are read again
+                    in the new zone, so a gap is refused (D6) and a repeated
+                    hour takes the earlier reading.
+
+         Re-filing is the one thing allowed to move a business date (P-Z3,
+         the single exception to I2) -- and only where a real moment decided
+         it in the first place. An end with a placeholder ("Manual",
+         "Entry") never had one, so its date is not re-derived. */
+      function planRefile(record, zone, mode) {
+        const ends = {
+          in: recordEndpoint(record, "in"),
+          out: recordEndpoint(record, "out"),
+        };
+        const plan = {
+          zone,
+          mode: mode === "written" ? "written" : "moments",
+          date: record.date,
+          dateMoved: false,
+          inText: recordEndpointText(record, "in"),
+          outText: recordEndpointText(record, "out"),
+          inMs: ends.in.ms,
+          outMs: ends.out.ms,
+          refiled: null,
+          error: null,
+        };
+        if (plan.mode === "written") {
+          /* The same rule the save path applies, worked out from the record
+             rather than repeated as a constant: a shift whose two ends read
+             alike spans a day, a task never does (it has no hours of its
+             own, so the sum is 0). */
+          const sameIsNextDay =
+            plan.inText.toLowerCase() === plan.outText.toLowerCase() &&
+            (Number(record.workSec) || 0) + (Number(record.breakSec) || 0) > 0;
+          const placed = resolveTypedWindow(
+            plan.date,
+            plan.inText,
+            plan.outText,
+            zone,
+            sameIsNextDay,
+          );
+          plan.error = placed.error;
+          plan.inMs = placed.loginMs;
+          plan.outMs = placed.logoutMs;
+          return plan;
+        }
+        if (!ends.in.placeholder && Number.isFinite(ends.in.ms)) {
+          plan.date = TimeZones.dateKey(ends.in.ms, zone);
+          plan.dateMoved = plan.date !== record.date;
+        }
+        const shown = (e) =>
+          e.placeholder || !Number.isFinite(e.ms)
+            ? e.str
+            : TimeZones.formatTime(e.ms, zone, clockStyle("time"));
+        plan.inText = shown(ends.in);
+        plan.outText = shown(ends.out);
+        plan.refiled = {
+          id: record.id,
+          date: plan.date,
+          in: refiledEnd(plan.inText, ends.in.ms),
+          out: refiledEnd(plan.outText, ends.out.ms),
+        };
+        return plan;
+      }
+
+      /* The form, written from a plan. Only "keep the moments" re-fills:
+         in the other mode the strings on screen are the thing being kept.
+         The date goes in the order on screen with its stored key on the
+         field, exactly as editSingleShift fills it (F1). */
+      function fillRefiledForm(prefix, plan) {
+        const ids = REFILE_FIELDS[prefix];
+        if (!ids) return;
+        const dateEl = document.getElementById(ids.date);
+        if (dateEl) {
+          dateEl.value = formatDateKey(plan.date, "full");
+          dateEl.dataset.dateKey = plan.date;
+        }
+        const inEl = document.getElementById(ids.in);
+        if (inEl) inEl.value = plan.inText;
+        const outEl = document.getElementById(ids.out);
+        if (outEl) outEl.value = plan.outText;
+      }
+
+      /* Put a chosen re-file into a dialog: remember it, and re-fill the
+         form when the mode asks for it. Returns the plan, which is also what
+         the preview is drawn from. An unknown zone is refused outright (F4);
+         the record's own zone simply cancels the change. */
+      function applyRefile(prefix, zone, mode) {
+        const record = refileRecord(prefix);
+        if (!record) return null;
+        const clean = TimeZones.sanitize(zone, null);
+        if (!clean) return null;
+        const plan = planRefile(record, clean, mode);
+        pendingRefile[prefix] = {
+          zone: clean,
+          mode: plan.mode,
+          refiled: plan.refiled,
+        };
+        if (plan.mode === "moments") fillRefiledForm(prefix, plan);
+        return plan;
       }
 
       /* "Times are in UTC+6, the zone this was recorded in." Only when that
