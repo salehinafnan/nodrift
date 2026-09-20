@@ -1,6 +1,6 @@
 # Follow-ups: work week, clock and date formats, re-filing records
 
-> **Status:** plan approved by the user on 2026-09-15, including every proposed default in §10. Phases W0 (measurements), W1 (the `WorkWeek` module, behaviour-identical apart from two differences the user chose), W2 (the schedule, its history and the generalised rules), W3 (the settings card, the wording, the bar and the guide) and W4 (live multi-device, the iPhone pass, and decision W16) are done, and W0–W4 are **deployed** (`676976f`, 2026-09-19); Phase C1 (the 24-hour clock) is done and not yet deployed; Phase D1 is next.
+> **Status:** plan approved by the user on 2026-09-15, including every proposed default in §10. Phases W0 (measurements), W1 (the `WorkWeek` module, behaviour-identical apart from two differences the user chose), W2 (the schedule, its history and the generalised rules), W3 (the settings card, the wording, the bar and the guide) and W4 (live multi-device, the iPhone pass, and decision W16) are done, and W0–W4 are **deployed** (`676976f`, 2026-09-19); Phase C1 (the 24-hour clock) and Phase D1 (the date order) are done and not yet deployed; Phase Z1 is next.
 > **Baseline commit:** `0ba1bd6` (all line numbers below refer to it and WILL drift — re-grep before editing).
 > **Rule:** one phase at a time. A phase starts only when the previous phase's exit criteria are green and committed.
 > **Origin:** the candidate follow-ups in §9 of `docs/implement.md`. "More than two clocks; per-client zones" was dropped by the user (§11 here).
@@ -13,7 +13,7 @@
 | W3    | Work week UI: settings card, phone sheet, bar, labels, guide      | prefs            | no                  | M–L (split W3a/b) | done    |
 | W4    | Work week sync hardening, multi-device, iPhone                    | no               | **yes**             | M                 | done    |
 | C1    | 24-hour clock                                                     | prefs            | no                  | M                 | done    |
-| D1    | Date order: MM/DD, DD/MM, YYYY-MM-DD                              | prefs            | no                  | M–L (split D1a/b) | planned |
+| D1    | Date order: MM/DD, DD/MM, YYYY-MM-DD                              | prefs            | no                  | M–L (split D1a/b) | done    |
 | Z1    | Re-filing a record in another time zone                           | yes (edit paths) | no                  | M (split Z1a/b)   | planned |
 | R     | Release: full mutation run, README, guide sweep, iPhone checklist | no               | full sweep          | S                 | planned |
 
@@ -357,7 +357,7 @@ C1 a 12-hour / 24-hour switch, default 12-hour; every time on screen follows; ty
 - **Typed:**
   - `handleDateInputBlur` (two copies, around 41940 and 42250), bound to nine inputs (42365);
   - an ambiguous `03/04` is read by the device's region (`_cachedLocaleDayFirst`, 18080);
-  - ISO and month names are accepted;
+  - month names are accepted; ISO is accepted by the typing preview but **not** by the blur handler, which stores the 30th of the month instead (measured in D1, fixed in D1b);
   - `saveEditModal` re-checks `^\d{1,2}/\d{1,2}/` as MM/DD (34348–34360);
   - `parseDateStringLocal` (42463);
   - labels "Date (MM/DD/YY)" and placeholders "05/16/26" (11388, 11507–11514, 11632, 11781–11787, 12082);
@@ -522,7 +522,7 @@ Also from W0: `probe-workweek-audit.js` (no account; W0, then W2b, where its mea
 - from W2: `harness-workweek-model.js` and `probe-workweek-audit.js`;
 - from W3: `probe-workweek-ui.js`, and the golden master's `--expect=w3`;
 - from W4: `probe-workweek-server.js` (live; last in the list, so a shared-account failure is easy to re-run alone);
-- from C1: `harness-formats.js`, before the live suite.
+- from C1: `harness-formats.js`, before the live suite (it covers D1's rows 55-69 too, from D1b).
 
 **House rules:**
 
@@ -963,6 +963,53 @@ Worth recording: running the checklist leaves the device holding a `nodrift_work
 - the logbook short form built by slicing.
 
 **Commits:** `feat(date): date order for everything shown and exported` (D1a) and `feat(date): typed dates and search follow the date order` (D1b).
+
+#### Phase D1 results (2026-09-20)
+
+**The measurement C1 left open is closed.** `probe-tz-picker.js` is **176 of 176** on AC, alone and in the chain. Its six failures during C1 were the four-times-CPU-throttle budgets reading a laptop that had come off mains, exactly as the C1 handoff said. Nothing was wrong with the build. The D1 baseline on the unmodified tree is **27 of 27** — every suite green, with `harness-signin-render.js`'s single in-chain failure its usual flake and 13 of 13 alone. On mains the two other standing in-chain flakes, `probe-tz-ui.js` and `harness-phase8.js`, did not flake either, and the golden master ran in 185 s against 346 s on battery.
+
+**A bug found in the audit, and what it says about F3.** §6.1 records that a typed ISO date is accepted. It is not. Driving the real `handleDateInputBlur` on the unmodified tree:
+
+| typed        | field became |
+| ------------ | ------------ |
+| `2026-09-15` | `09/30/15`   |
+| `2026/09/15` | `09/30/15`   |
+| `09/15/26`   | `09/15/26`   |
+| `15/09/26`   | `09/15/26`   |
+| `sep 15`     | `09/15/26`   |
+
+The handler swaps the dashes for slashes before anything else, so the slash branch reads `2026` as a day number and the clamp pins it to the 30th. The _other_ copy of these rules — `parseDatePreview`, which draws the tooltip while you type — has a real year-first branch and gets it right. So the two copies of the date rules disagreed with each other, and the one that told the user what would happen was not the one that decided. That is F3's argument stated as a defect, and it makes §6.4 row 60 a fix rather than something to preserve.
+
+**How the phase was split, and why it differs from §9.** §9 puts the labels, placeholders and toasts in D1a and `parseTypedDate` in D1b. They cannot be separated that way: every save path calls `handleDateInputBlur` and then re-reads the field, so a field showing `03/04/26` on a DD/MM screen would be re-read by the old device-region rule and filed as the wrong day. Shipping that would have been a commit that corrupts a date, and every commit here has to be deploy-safe. So the line moved: **D1a** is the preference, the resolver and every date shown and exported; **D1b** is typing, and with it the labels, placeholders, filters and search. That also fits the commit messages §9 itself chose — a label reading "Date (DD/MM/YY)" belongs with "typed dates follow the date order".
+
+**The shape of it.**
+
+- **`formatDateKey(key, form)`** is the one display function, in three forms: `full`, `short` (the logbook's row heading) and `weekday`. **`exportDate(key)`** is its export twin. Unlike a clock time, an exported date follows the preference, because decision D1 says an exported date is one the user reads, where decision C2 says a clock time is one a spreadsheet reads.
+- **The default order is a pass-through, not a rebuild.** In `mdy`, `formatDateKey` hands the stored key back character for character and the short form is the same slice the logbook always took. This was measured, not designed: `probe-csv-shape.js` seeds a loose legacy key, `1/2/26`, and asserts the CSV prints it as it stands. A rebuilt-and-padded `01/02/26` broke it. §1 promises a user who changes nothing sees exactly what `0ba1bd6` gave them, and the only way to promise that for a key an old import left loose is to return the input rather than a rebuild of it.
+- **`parseTypedDate(value)`** is the one parser and replaces both copies. `handleDateInputBlur` falls from 174 lines to a wrapper; `parseDatePreview` from 154 to 9. An unambiguous date reads the only way it can whatever the order; a year-first date is always taken; an ambiguous one follows the preference, and in YYYY-MM-DD mode follows the device's region as it always has (decision P-F2).
+- **A field carries its own key.** The blur handler parses in the order that is on screen and leaves the stored key on the field as `dataset.dateKey`; every save path reads that rather than the text (F1), which is C1's `storedTypedTime` pattern applied to dates. The key is dropped first thing on every blur, so a field that stops parsing cannot keep a stale one and file the date the user just replaced. The three native pickers, the four task pickers and `CustomDatePicker` write the key on directly instead of round-tripping through the typed rules — which on a DD/MM screen would read `03/04/26` back as the 3rd of April.
+- **The preference** is `nodrift_date_order_v1`, absent meaning `"mdy"`, and it rides C1's funnel: `onDisplayFormatChanged()` already drops the caches, bumps the version `zoneRenderKey()` carries and redraws, so the logbook, tasks, insights and heatmap follow without a reload (F8). It syncs on the clock format's terms and is resent when an older build drops it (decision S1, F10).
+- **The backup does not follow it** (decision D2): every date inside stays `MM/DD/YY` and the file names stay year-first, so a backup restores on any build. The preference itself travels, so a restore brings the order back with it.
+
+**Three things the new tests found, and each was real.**
+
+- **The logbook row built its short form by splitting the key** — a second site, in the row loop, beside the one in insights that D1a had already fixed. Only a check that read the rendered rows found it.
+- **The funnel redrew six things and none of them owns the leave list**, so leave dates kept the old order until the dialog was closed and reopened. `renderLeaveDatesList()` joined the funnel (F8).
+- **The date picker's own value label built `MM/DD/YY` by hand** from the ISO string it had.
+
+**Two traps in the tests themselves, worth writing down.** `harness-formats.js`'s last C1 section leaves the page on 375 px phone metrics and never restores the desktop, so every D1 check appended after it silently ran on a phone and the settings-card click landed nowhere — reported as "covered by nothing", which is what `elementFromPoint` returning null actually means: the point is not in the viewport at all. And a blind identifier rename inside a spliced block rewrites string literals too: renaming a local `gap` to dodge a collision turned `status === "gap"` into `status === "gapD1"`, and the check then failed for a reason that had nothing to do with the app.
+
+**§6.4 rows asserted:** 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68 and 69, with F1, F2, F3, F4, F8 and F9 each carrying a check of its own.
+
+**Tests.** `probe-workweek-golden.js compare --expect=w3`: **300 sets, 0 differ** — D1 changes nothing for a user who touches nothing, which is row 55 and §1's promise. `harness-formats.js` is **96 of 96**, up from 43, and now covers both format phases. The rest of the list green: `harness.js` 80, `harness-progress.js` 26, `harness-motion.js` 43, `harness-cloud-panel.js` 27, `harness-security.js` 17, `probe-csv-shape.js`, `probe-leave-rows.js` 12, `probe-backup-and-leave.js` 26, `probe-shift-rewind.js` 13, `probe-lease-endshift.js` 30, `harness-handoff.js` 24, `harness-tz-core.js` 86, `harness-tz-model.js` 28, `harness-tz-display.js` 129, `probe-tz-picker.js` 176, `probe-tz-ui.js` 149, `harness-phase8.js` 14, `harness-signin-render.js` 13, `harness-wipe.js` 18, `harness-workweek-core.js` 78, `probe-workweek-eviction.js` 6, `harness-workweek-model.js` 114, `probe-workweek-audit.js` 11, `probe-workweek-ui.js` 110 and `probe-workweek-server.js` 38. Two intended differences went into `probe-tz-ui.js`: the Time and date card's row list gains the Date row, and the phone's touch-target count is **six** rather than five. The closing run of the whole list was **27 of 27 with nothing failing in the chain at all** — on mains, not one of the three standing in-chain flakes appeared, and the md5 was identical at both ends.
+
+**Mutations: 367 in the file, 0 anchor misses.** Sixteen new `D1:` entries, including all four §9 names — the backup follows the preference, the ambiguous parse ignores it, the CSV column stays MM/DD, and the short form built by slicing. Three were BAD on the first grading, and each named a real gap rather than a defect in the build:
+
+- **The manual dialog's save path was never driven.** Every save check went through the edit dialog, so mutating the other save path broke nothing that was tested. Closed by filing a shift through the real manual dialog and reading the stored key back off the record.
+- **The search's shape guard was graded with a word.** `parseTypedDate` refuses a word anyway, so removing the guard changed nothing. The guard exists for a term the parser _would_ read as a date — `9` is the 9th of this month to it — and the check searches for that now.
+- **The date range was one both readings contain.** 1–3 January holds the day whether it is read day-first or month-first; 2–3 January holds it only day-first, and that is the range the check uses.
+
+Two of the three also needed their `mustFail` pointed at the check that now catches them — the lesson C1 wrote down, which is that the runner grades a mutation by finding a failing check whose _name_ matches, so a new check proves nothing until `mustFail` names it.
 
 ### Phase Z1 — Re-filing a record in another zone
 
