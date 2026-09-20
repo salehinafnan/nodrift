@@ -4246,8 +4246,12 @@
         border: var(--hairline);
         border-radius: 0.75rem;
         padding: 0.85rem;
-        width: 18.5rem;
-        /* Expanded width for descriptions */
+        /* Wide enough that the longest description in the help strip below
+           reaches two lines rather than three, which is what used to be cut
+           off at the strip's fixed height. Scales with the root's
+           clamp(14px, 1vw, 20px), so the ratio of text to box holds at every
+           window size. */
+        width: 24rem;
         max-height: calc(86vh - 8.5rem);
         overflow-y: auto;
         overscroll-behavior: contain;
@@ -4398,7 +4402,11 @@
       }
 
       .settings-help-strip {
-        height: 2.8rem;
+        /* Fixed, so the panel does not change height as the pointer moves
+           between rows -- but tall enough for two lines of description with
+           room around them, rather than exactly two lines and nothing to
+           spare. */
+        height: 3.2rem;
         box-sizing: border-box;
         display: flex;
         align-items: center;
