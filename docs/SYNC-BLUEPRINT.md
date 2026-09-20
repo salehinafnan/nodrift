@@ -1191,5 +1191,107 @@ updates an old client on its next launch.
 
 ---
 
+## 16. The work week, the display formats, and re-filing _(2026-09-20)_
+
+Four features landed after time zones: a schedule the user chooses (which days
+they work, when their week starts, what a day off is worth, how a shortfall is
+made up), a 12/24-hour clock, a date order, and an edit that moves a record to
+another time zone. The design, its invariants (F1–F10) and its edge cases are
+in `docs/followups.md`; this section is what a change to sync has to respect.
+
+**Three new preferences, all in `PREF_KEYS`, all whole-blob last-writer-wins.**
+
+| Preference    | Key                       | Shape                                     | Flags                                 |
+| ------------- | ------------------------- | ----------------------------------------- | ------------------------------------- |
+| `workWeek`    | `nodrift_work_week_v1`    | an object, `v: 1`, with a `history` array | `json`, `schedule`, `resendIfMissing` |
+| `clockFormat` | `nodrift_clock_format_v1` | `"12h"` or `"24h"`                        | `display`, `resendIfMissing`          |
+| `dateOrder`   | `nodrift_date_order_v1`   | `"mdy"`, `"dmy"` or `"ymd"`               | `display`, `resendIfMissing`          |
+
+Each carries a `validate`, so a value this engine cannot use is skipped and the
+previous one kept, never applied and never thrown (F4). `isWorkWeekPref` checks
+the schedule field by field because storage, a synced blob and a backup are all
+things somebody else can write; unknown keys inside it are ignored, which is the
+room a rotating schedule would need, and a `v` this build does not know is
+refused whole.
+
+**The schedule is one value on purpose.** Work days, week start, day-off goal,
+day-off counting and catch-up mode travel together, so two devices racing can
+never leave one device's work days beside the other's catch-up mode. The newest
+blob wins entire, as it does for every preference.
+
+**Its history is interpretation, not data.** `history[]` holds the schedules
+that came before, each stamped with the last business date it applied to
+(`until`, an `MM/DD/YY` key), so a week that has already ended keeps the target
+it was worked under (F5). A new entry is archived only when a change actually
+lands, and only for the run that ended before this week's start; the list is
+capped at `HISTORY_LIMIT` (520 entries, ten years of weekly changes) from the
+front. Losing an entry to a settings race costs a re-reading of a past week and
+nothing else: **no record changes, so no history entry can lose data.** A backup
+restores the value whole, history and all, because a restore is not an edit of
+this week.
+
+**Two funnels, one per family (F8).** `applyPrefs` sets `scheduleChanged` when
+it writes a key marked `schedule` and `displayChanged` for one marked `display`,
+then calls `onScheduleChanged()` and `onDisplayFormatChanged()` **once per
+adopted blob** rather than once per key. Each bumps a version that every cache
+key and row key includes, so a synced change redraws the goals, the bar, the
+logbook, the insights and the heatmap without anything else knowing the
+preference exists.
+
+**Nothing derived is uploaded (F2, I11).** An absent preference means today's
+behaviour, resolved in memory: no schedule means Monday–Friday, no clock format
+means 12-hour, no date order means `MM/DD/YY`. Nothing writes any of the three
+keys but a user's change, so a device that has never touched them omits them
+from `readPrefs()` entirely — and absence on the wire is absence, never a
+deletion.
+
+**`resendIfMissing`: how an older build's blob is repaired (decision W11,
+F10).** A build that predates a preference uploads a blob without it; the server
+keeps only the newest blob, so the account loses the preference while every
+device holding it keeps its own copy (`applyPrefs` never deletes). A device that
+adopts such a blob while holding a valid copy of a `resendIfMissing` preference
+marks its settings edited, stamped past the blob it adopted (now, or one tick
+beyond it, whichever is later), so
+its next beat puts the whole blob back and the next device to sign in receives
+it. Only when the key is **absent**: one that is present but invalid here may
+come from a newer build, and is not this build's to overwrite.
+
+**Re-filing is an ordinary record edit.** Moving a shift or a task to another
+zone rewrites `tz`, both instants or both written times, and — where a real
+moment decided it — the business `date`, all inside the `jsonb` payload. It is
+stamped like any other edit, so `lastModifiedOf`, `mergeRows` and the
+server-side last-writer-wins guard are untouched, and the other device simply
+receives a newer row. Two things follow:
+
+- **It is the one edit that can move a record's business date**, the single
+  exception to I2, "a business date is decided once". The device
+  making the change marks the old month's chunk and the new one; the device
+  receiving it already did, because `mergeRows` calls `markChunk` on the local
+  record before replacing it and on the incoming one after. `dailyAnchorMap` is
+  rebuilt wholesale by `saveLogs`, so nothing keyed on the old date survives.
+- **Nothing about the re-file is device-local.** The zone rides in the payload
+  and is sanitised where it is read (`recordZone`), so a record re-filed on one
+  device reads identically on the other — including a record that had no `tz`
+  at all, which was `LEGACY_TZ` until the re-file gave it one explicitly.
+
+**Backup, import and wipe.** A backup carries all three preferences; the dates
+and times inside it stay `MM/DD/YY` and 12-hour whatever the screen is set to
+(decision D2, F1), so it restores on any build. Import applies each through its
+own setter and only when valid — an invalid schedule is left out and the device
+keeps its own. The factory reset purges all three keys with the rest of the
+user's preferences, and the account wipe empties the server's settings blob, so
+the account's copies go with it.
+
+**Older clients.** A build from before these features ignores all three keys. The
+clock format and the date order are display-only, so such a build simply shows
+12-hour `MM/DD/YY` times and dates over exactly the same stored data — nothing
+to reconcile. The work week is the one that changes numbers: an old build works
+Monday–Friday and splits the weekly goal five ways, and the `resendIfMissing`
+rule above is what puts the schedule back on the account after it has run. A
+record re-filed by a newer build is, to an old one, just a record with a `tz` it
+already knew how to read.
+
+---
+
 _Phases 0-3 deliver shared history; phases 4-5 deliver live handoff; 6-7 are what
 make it survivable; 9 makes ending a shift as reliable as starting one._

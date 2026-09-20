@@ -1,21 +1,21 @@
 # Follow-ups: work week, clock and date formats, re-filing records
 
-> **Status:** plan approved by the user on 2026-09-15, including every proposed default in §10. Phases W0 (measurements), W1 (the `WorkWeek` module, behaviour-identical apart from two differences the user chose), W2 (the schedule, its history and the generalised rules), W3 (the settings card, the wording, the bar and the guide) and W4 (live multi-device, the iPhone pass, and decision W16) are done, and W0–W4 are **deployed** (`676976f`, 2026-09-19); Phase C1 (the 24-hour clock) and Phase D1 (the date order) are done and **deployed** (`add47ce`, 2026-09-20); Phase Z1 (re-filing a record in another zone) is done and not yet deployed; Phase R is next.
+> **Status:** plan approved by the user on 2026-09-15, including every proposed default in §10. Phases W0 (measurements), W1 (the `WorkWeek` module, behaviour-identical apart from two differences the user chose), W2 (the schedule, its history and the generalised rules), W3 (the settings card, the wording, the bar and the guide) and W4 (live multi-device, the iPhone pass, and decision W16) are done, and W0–W4 are **deployed** (`676976f`, 2026-09-19); Phase C1 (the 24-hour clock) and Phase D1 (the date order) are **deployed** (`add47ce`, 2026-09-20); Phase Z1 (re-filing a record in another zone) and Phase R (release) are **deployed** (`a06b60e`, 2026-09-20, production `index.html` md5 `83ece16b`). **All four features are live and every phase is done.**
 > **Baseline commit:** `0ba1bd6` (all line numbers below refer to it and WILL drift — re-grep before editing).
 > **Rule:** one phase at a time. A phase starts only when the previous phase's exit criteria are green and committed.
 > **Origin:** the candidate follow-ups in §9 of `docs/implement.md`. "More than two clocks; per-client zones" was dropped by the user (§11 here).
 
-| Phase | Title                                                             | Touches data?    | Needs live account? | Size              | State   |
-| ----- | ----------------------------------------------------------------- | ---------------- | ------------------- | ----------------- | ------- |
-| W0    | Work week groundwork: golden master, probes, audit                | no               | one probe           | S–M               | done    |
-| W1    | `WorkWeek` core + behaviour-identical refactor                    | no               | regression only     | L (split W1a/W1b) | done    |
-| W2    | The schedule: preference, history, the generalised rules          | prefs            | stub / fake server  | L (split W2a/W2b) | done    |
-| W3    | Work week UI: settings card, phone sheet, bar, labels, guide      | prefs            | no                  | M–L (split W3a/b) | done    |
-| W4    | Work week sync hardening, multi-device, iPhone                    | no               | **yes**             | M                 | done    |
-| C1    | 24-hour clock                                                     | prefs            | no                  | M                 | done    |
-| D1    | Date order: MM/DD, DD/MM, YYYY-MM-DD                              | prefs            | no                  | M–L (split D1a/b) | done    |
-| Z1    | Re-filing a record in another time zone                           | yes (edit paths) | no                  | M (split Z1a/b)   | done    |
-| R     | Release: full mutation run, README, guide sweep, iPhone checklist | no               | full sweep          | S                 | planned |
+| Phase | Title                                                             | Touches data?    | Needs live account? | Size              | State |
+| ----- | ----------------------------------------------------------------- | ---------------- | ------------------- | ----------------- | ----- |
+| W0    | Work week groundwork: golden master, probes, audit                | no               | one probe           | S–M               | done  |
+| W1    | `WorkWeek` core + behaviour-identical refactor                    | no               | regression only     | L (split W1a/W1b) | done  |
+| W2    | The schedule: preference, history, the generalised rules          | prefs            | stub / fake server  | L (split W2a/W2b) | done  |
+| W3    | Work week UI: settings card, phone sheet, bar, labels, guide      | prefs            | no                  | M–L (split W3a/b) | done  |
+| W4    | Work week sync hardening, multi-device, iPhone                    | no               | **yes**             | M                 | done  |
+| C1    | 24-hour clock                                                     | prefs            | no                  | M                 | done  |
+| D1    | Date order: MM/DD, DD/MM, YYYY-MM-DD                              | prefs            | no                  | M–L (split D1a/b) | done  |
+| Z1    | Re-filing a record in another time zone                           | yes (edit paths) | no                  | M (split Z1a/b)   | done  |
+| R     | Release: full mutation run, README, guide sweep, iPhone checklist | no               | full sweep          | S                 | done  |
 
 ---
 
@@ -1074,6 +1074,42 @@ So **P-Z4 stands as proposed**: both readings are offered for every record, keep
 - This document's status line and table.
 
 **Commit:** `docs: work week, clock and date formats`. Push only on the user's word, then verify production's `index.html` md5.
+
+#### Phase R results (2026-09-20)
+
+**Committed as** `a06b60e` `docs(guide): the guide catches up with the four new settings` (`index.html` alone), then this docs commit.
+
+**The guide sweep found three things, and they were the phase's only app change.** Reading the four features' sections together is what found them; none of the three shows up reading one section at a time.
+
+- **"Typing times quickly" was wrong on a 24-hour screen.** It promised `0900` → **09:00:00 AM** and `900p` → **09:00:00 PM**. Both are 12-hour readings, and the field is written by `handleLoginLogoutBlur` → `parseClockTimePreview` → `secondsToClockText`, which returns 24-hour whenever the preference is on — so the box actually reads `21:00:00`. The section sits directly above "12-hour or 24-hour", which says typing accepts both forms, so the two contradicted each other. It now says the tidied result follows whichever clock was chosen, and gives both readings.
+- **Three pointers still named a card that decision P-F1 renamed.** The card and the phone slot have read **"Time and date"** since C1, but the guide sent the reader to a "Time zones" card and a "Time Zone" section — once in the phone-layout tour and twice in the zones section itself.
+- **The phone-layout tour had been missing a whole section since W3.** It listed Goals, Time Zone, Appearance, Cloud sync and Tools; the sheet has a **Work week** slot between Goals and Time and date.
+
+Prose only: no behaviour, no selector and no label changed. prettier left the file unchanged on the first pass; 3 script blocks, 0 syntax errors; **379 anchors, 0 misses** before and after.
+
+**The iPhone checklist was run headlessly instead of by hand**, at the user's request — `r-probe-checklist.js` (scratchpad, ports 8893 / 9494), 390 × 844, real clicks aimed with `elementFromPoint`, **37 of 37**. It walks the written steps: the Settings & Tools sheet reports its sections as `Goals | Work week | Time and date | Appearance | Cloud | Tools` (which is what the corrected guide now says); Clock starts on 12-hour with **nothing stored** (F2) and moves the status bar `05:13:02AM` → `05:13:06`, the logbook `09:00:00 AM - 09:00:00 PM` → `09:00:00 - 21:00:00`, and the Edit Shift boxes to `09:00:00` / `21:00:00`, then returns byte-identical; Date moves the logbook heading `(09/15)` → `(15/09)` → `(09-15)` and the field's own label to `Date (DD/MM/YY)` and `Date (YYYY-MM-DD)`; typing `15/09/26` on a DD/MM screen stores the key `09/15/26`; and the records still read `09/15/26 | 09:00:00 AM | 09:00:00 PM` at the end (F1).
+
+**A flake found and fixed in the harness, no app change.** `harness-lease-prompt.js` went red on two checks after the guide edit, and looked at first like a regression from it — HEAD green, the edited tree red, twice running. A proper A/B, three runs each alternating with a browser kill and a pause before every run, came back **HEAD red 2 of 3, the edited tree red 2 of 3**: a pre-existing flake at identical rates.
+
+The cause is worth keeping. `SessionLease.renameDevice` persists the label locally (`Sync.setDeviceLabel` → `persistMeta`) and fires `beat("rename")` **without awaiting it**, so `await rename("Laptop A")` returns before the server has the name — while `ensureLabel(id)` refuses to re-fetch a device id it already holds a name for until `LABEL_TTL_MS` (5 minutes). One early fetch of a stale row therefore stuck for the whole run, and the banner read "Chrome on Windows". The suite now signs A in alone, renames it, and **polls the devices table until the server really reads "Laptop A"** before B and C sign in at all, so there is no stale row to cache; the poll is asserted as a check of its own, so a failed premise says so instead of failing two checks downstream. 23 → **24 checks**, and **0 failures in 4 runs**.
+
+It mattered now because five mutations grade against that suite and the runner caches exactly one baseline run per harness. None of their `mustFail` patterns names either flaky check, so no grade was wrong — but a flake there can still produce a spurious "failed, but not on the expected test". `harness-lease-prompt.js` is **not** in the regression list, which is why no earlier phase caught it.
+
+**A markdown trap, recorded because `prettier --check` does not catch it.** A paragraph followed immediately by `---` is a **setext H2** in CommonMark, so the whole paragraph renders as a heading. §16 of `SYNC-BLUEPRINT.md` landed that way against the file's closing footer and passed prettier both before and after the fix. Leave a blank line before a `---`.
+
+**The full mutation run**, all 379 on AC with the laptop idle (18:27:53–21:32:10, 3 h 04 m, md5 `83ece16b` at both ends, `index.html` and `sw.js` restored byte-identical): **373 caught, 6 not.** Each of the 6 was graded again **alone**, with the full output kept, and each was also graded on `65d249f` — the tree before this phase's only app change — so that nothing here is blamed on the guide edit.
+
+- **Four were caught alone; the full run had graded them on a broken run.** Two on `harness-handoff.js` (`boot: recover a session this device only mirrored`, `rollover: let a mirror file the other device's shift at midnight`) reported every check failing including "harness", which is the crash signature; the other two (`applyPrefs: adopt a synced zone without validating it` on `harness-tz-model.js`, `Notice: never offered at startup` on `probe-tz-ui.js`) reported an **empty** failure list, which is the same thing said more quietly. Alone, each failed on the check written for it: "and after a reload it refuses to recover it", "a synced blob with junk zones is skipped, not applied", "on the first launch after the upgrade, the notice appears by itself".
+- **One was an ungradeable mutation, and it is fixed here.** `W1b: a week starts on Sunday whatever the schedule says` dropped `weekStart` from `weekOfDay`'s **start** line only, leaving the end line still subtracting it. Every week then collapsed to a single day, and — the part that mattered — `weekOfDay(Sunday)` and `weekOfDay(Monday)` returned the _same_ week, so a loop advancing by `endDay + 1` never moved. The page hung, the suite reported `ERROR` rather than `FAIL`, and the runner reads only lines beginning `FAIL`, so it saw an empty list and graded a mutation the suite had plainly detected as uncaught. A longer evaluate budget was tried first and did not help — 240 s hung exactly as 45 s did, which is what proved non-termination rather than slowness — so the budget change was reverted and **the mutation now changes both ends**, giving the real Sunday-based seven-day weeks its name describes. It grades **GOOD**, failing on "every date of 2026-2028 … 1096 of 1096 wrong".
+- **One is a flaky grade, and it is recorded rather than claimed fixed.** `lease hand-back: drop all three sign-out guards` graded **BAD, BAD, BAD, GOOD, GOOD** on this tree and **GOOD, BAD, BAD, BAD** on `65d249f`: mixed on both, so it is neither a regression nor a property of this phase. When it is caught it is caught by "signing out hands the lease back while the tokens work" — the _quiet_ sign-out — which only exercises the first guard when a beat happens to be in flight at that instant. The check written for the race, "a beat still in flight cannot undo the sign-out", did not catch it in any run. One cause was found and addressed: sign-out is itself a round trip, and holding the claim response for only 600 ms meant that whenever sign-out ran longer the claim landed _before_ it finished, where `stop()` overwrote it and the test passed with or without the guards. The hold is now **4 s**. That reasoning is sound but the measurement does not yet confirm it — 2 of 3 after, against 2 of 5 before, is not a difference this sample can show — so the flake is **still open**, with a named next step: assert on what the late claim actually does to `SessionLease.status().phase`, rather than inferring it from a sign-out that may have been quiet.
+
+**No app defect came out of the run**, and nothing in it is attributable to Phase R: both surviving items reproduce on `65d249f`. Anchors: **379, 0 misses**, before and after.
+
+**The exit sweep.** The regression list, all 28, one suite at a time on AC (18:13:45–18:25:24, battery 2 / cpu 2419 and md5 `83ece16b` at both ends): **28 of 28**. The one red inside the chain was the standing timing flake — `probe-tz-picker.js` "the first open at 4x paints within 100 ms" (126.1 ms, 107.1 ms) — **176/176 alone** immediately after. The golden master `compare --expect=w3` is **300 sets, 0 differ**, so the app is still byte-identical to `0ba1bd6` for a user who changes nothing, four features later.
+
+**Deployed.** On the user's explicit word, `add47ce..a06b60e` was pushed — the three Z1 commits, the Z1 docs and the guide fix. Production served `index.html` md5 **`83ece16b`**, byte-identical to the tested file, and `sw.js` `977da949`, both HTTP 200 on the first check. **The work week, the 24-hour clock, the date order and re-filing are all live.**
+
+**What is left.** One flaky grade, described above, on a live suite unrelated to any of the four features: `lease hand-back: drop all three sign-out guards`. It is a test-quality problem, not an app one.
 
 ---
 

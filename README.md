@@ -28,9 +28,12 @@ It tracks active work hours, rest breaks, daily goals, and weekly workloads with
 ### ⏳ Intelligent Tracking & Smart Pacing
 
 - **Adaptive Daily Goals:** The app dynamically calculates your required daily velocity to hit your weekly target — 40 hours by default, configurable — automatically deducting scheduled leaves and holidays.
+- **Your Work Week:** Work any mix of the seven days, and start the week on Monday, Sunday or Saturday. The weekly goal is split equally across your work days. A day off has its own goal and can count toward the week if you want it to, and a shortfall either lands on the next work day or spreads across the rest of the week. Changing any of it never retargets a week that has already ended: every past week keeps the schedule it was worked under.
 - **Sleep & Idle Detection:** Steps away? The app detects system sleep and user inactivity, pausing your timer and prompting you to recover or discard the time when you return.
 - **Midnight Rollover:** If you work past midnight in your work time zone, nodrift safely slices the shift, saves yesterday's logs, and starts a fresh day.
 - **Work & Local Time Zones:** Pick any time zone for work and another for where you are. The status bar shows both clocks, each log keeps the zone it was filed in so changing zones never moves a past shift, and a running shift keeps its zone until it ends.
+- **Re-file a Record:** Filed a shift in the wrong zone? The edit dialog moves it to another one, keeping either the real moments it happened at or the times exactly as written. A preview shows both readings, and says so when the change moves the record to another day.
+- **Your Clock and Date Format:** A 12-hour or a 24-hour clock, and dates as `MM/DD/YY`, `DD/MM/YY` or `YYYY-MM-DD`, for every time and date on screen. Typing accepts either clock form and reads dates in the order you chose. Change nothing and nothing changes.
 
 ### 🧠 The Command Center (HUD)
 
@@ -182,8 +185,8 @@ flowchart TD
 
 Your data is yours. Period.
 
-- **JSON Import/Export**: Fully portable state and logbook backups.
-- **CSV Export**: Instantly download your logbook formatted for HR or Excel.
+- **JSON Import/Export**: Fully portable state and logbook backups. A backup keeps the stored form — `MM/DD/YY` dates and 12-hour times — whatever your screen is set to, so it restores on any device and into any build. Your format preferences travel inside it.
+- **CSV Export**: Instantly download your logbook formatted for HR or Excel. Dates follow your chosen order; times stay 12-hour, which is what spreadsheets and payroll expect.
 - **Auto-Timesheets**: The app can compile a daily summary, copy it to your clipboard, and automatically open a Gmail draft ready to send.
 
 ---
