@@ -8215,13 +8215,6 @@
           display: none;
         }
 
-        /* And nothing hovers a phone, so the strip would only ever show its
-           own placeholder -- the reason the cloud panel gave up its own. */
-        #m-sheet #work-week-popup .settings-help-strip,
-        #m-sheet #time-date-popup .settings-help-strip {
-          display: none;
-        }
-
         /* The time zones card, filling the Time and date panel, which at
            this width is a sheet the Preferences row opens. Its rows take the
            Cloud row's shape and 48px height. */
@@ -16726,22 +16719,11 @@
                 </div>
                 <span class="ww-note" id="ww-note" hidden></span>
               </div>
-              <div class="settings-card settings-help-strip">
-                <svg
-                  class="settings-help-icon"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="1.8"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                >
-                  <g data-sprite="sprite-037"></g>
-                </svg>
-                <span class="settings-help-text settings-help-out"
-                  >Hover over any setting to view its description.</span
-                >
-              </div>
+              <!-- No help strip here, for the reason the cloud panel has
+                   none. Nothing in this panel was ever wired to write into
+                   one, so it showed its own placeholder for the whole life of
+                   the panel; the settings row that opens it says what is
+                   inside before you arrive. -->
             </div>
 
             <div id="time-date-popup" class="idle-popup" style="gap: 0.35rem">
@@ -17017,22 +16999,11 @@
                   </div>
                 </div>
               </div>
-              <div class="settings-card settings-help-strip">
-                <svg
-                  class="settings-help-icon"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="1.8"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                >
-                  <g data-sprite="sprite-037"></g>
-                </svg>
-                <span class="settings-help-text settings-help-out"
-                  >Hover over any setting to view its description.</span
-                >
-              </div>
+              <!-- And none here either. Six rows did write into this one, but
+                   a strip that idles until the pointer happens to rest on a
+                   row is a poor place to keep an explanation, and it cost the
+                   panel a card's height to say nothing. Those descriptions
+                   went with it; see stripFor. -->
             </div>
           </div>
           <input
@@ -46723,18 +46694,6 @@
 
       function initSettingsHoverHelp() {
         const descriptions = {
-          "tz-work-row":
-            "Work Time Zone: Decides today's date, when a shift rolls over at midnight and the date new records are filed under. Changed during a shift, it applies when the shift ends.",
-          "tz-local-row":
-            "Local Time Zone: Where you are. Only the second clock and the finish estimate use it; nothing stored changes.",
-          "tz-labels-row":
-            "Clock Labels: How the clocks name their zones: an abbreviation such as PDT, a generic name such as PT, or the UTC offset. A nickname of up to six characters, such as BST, replaces the label for that zone.",
-          "tz-log-times-select":
-            "Log Times: Show each record's In and Out times in the zone it was recorded in, or all of them in your work or local zone.",
-          "clock-format-select":
-            "Clock: Write every time on screen as 12-hour or 24-hour. Typing accepts both. Exported files and backups stay 12-hour.",
-          "date-order-select":
-            "Date: The order every date is written in, on screen, when you type one and in exported files. The JSON backup keeps MM/DD/YY so it restores anywhere.",
           "settings-nav-week":
             "Work Week: The days you work, when your week starts, the goal on a day off and how a missed day is made up.",
           "settings-nav-tz":
@@ -46755,11 +46714,16 @@
             "Continuous Ticking: Keeps the tab title timer ticking in the background.",
           "snapshot-restore-select":
             "Snapshot Rollback: Restores your database logs to an automatically captured historical state.",
-          /* The nine sync-row-* descriptions that used to close this map went
-             with the cloud panel's help strip. They had no other reader, and
-             a listener writing into a strip that is not there is not a
-             feature. If those read-outs need explaining again, the place for
-             it is a title on the row, not a strip that idles. */
+          /* Two sets of descriptions have been retired with the strips that
+             read them: nine sync-row-* ones with the cloud panel's, and six
+             tz, clock and date ones with the Work week and Time and date
+             panels'. Neither set had another reader, and a listener writing
+             into a strip that is not there is not a feature. What survives
+             here is what the settings panel's own strip can still show --
+             including the two nav rows, which is where a reader now learns
+             what each sub-panel is for. If a row inside one needs explaining
+             again, the place for it is a title on the row, not a strip that
+             idles. */
         };
 
         const defaultText = "Hover over any setting to view its description.";
@@ -46838,12 +46802,6 @@
         const rowIds = [
           "settings-nav-week",
           "settings-nav-tz",
-          "tz-work-row",
-          "tz-local-row",
-          "tz-labels-row",
-          "tz-log-times-select",
-          "clock-format-select",
-          "date-order-select",
           "goal-autopopulate-toggle",
           "weekly-goal-hours",
           "idle-toggle",
