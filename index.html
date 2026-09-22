@@ -1280,6 +1280,24 @@
         margin-right: auto;
       }
 
+      /* Sized to the row it sits on rather than to the dialog under it. The
+         shared .preset-pill padding stood this 29px tall beside a label and a
+         zone of 14px, for the sake of one 0.75rem word -- the heaviest thing
+         in the quietest row of the dialog, and reading like a button someone
+         had left in the wrong place.
+
+         Height only, and 24px of it, which is the floor a pointer target may
+         not go under. The width is what the word needs and was never the
+         problem; the padding moves off the block axis so the height is the
+         one number that decides this. */
+      .refile-row .preset-pill {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        height: 24px;
+        padding: 0 12px;
+      }
+
       .refile-preview {
         display: flex;
         flex-direction: column;
@@ -9044,11 +9062,37 @@
         }
 
         /* The two controls of the zone row are hit, not read, and they sit
-           among fields that are already 44px here. Kept off the list above
-           so the rule that governs a dialog's fields stays about fields. */
-        .refile-row .preset-pill,
+           among fields that are already 44px here. Kept off the list above so
+           the rule that governs a dialog's fields stays about fields.
+
+           The cancel takes the whole 44: it draws no box of its own, so the
+           height is 44px of underlined text and costs the eye nothing. */
         .refile-cancel {
           min-height: 44px;
+        }
+
+        /* The pill does draw a box, and at 44px that box was a 62x44 slab
+           around one 10px word, beside a label and a zone 13px tall. The
+           fields below earn that height by holding something a person typed.
+           This holds "Change", and sizing it to them was the whole mistake.
+
+           28px, and the width does not move: height was all of what was
+           wrong. It is still a target on its own terms -- over the 24px
+           floor, 62px wide, with the row's own space above and 12px of
+           margin below it before anything else can be hit, and a mis-tap
+           lands on dialog background rather than on another control. What it
+           is not is 44px, deliberately: a rarely-used affordance on the
+           quietest row in the dialog does not get to be the tallest thing in
+           it. Nor is there an invisible target under it -- both of this
+           button's pseudo-elements are spoken for, ::after by the pill's
+           shadow and ::before by the hover fade every button in the app gets,
+           and a hit area is not worth taking one of them back.
+
+           min-height is restated because .preset-pill's own 40px further down
+           would otherwise clamp a height this rule sets. */
+        .refile-row .preset-pill {
+          height: 28px;
+          min-height: 28px;
         }
 
         /* The panel pins its own title and footer, so the sheet must not
