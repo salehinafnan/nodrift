@@ -1226,6 +1226,38 @@
         margin-bottom: 0;
       }
 
+      /* A dialog's fields are one size.
+
+         .input-standard means to set that and never has. The generic
+         `input[type="text"]` rule further down is (0,1,1) against its (0,1,0),
+         so every text field in the app has quietly been wearing that rule's
+         0.3rem padding and 0.8rem type -- 26px tall -- while the date group
+         and the selects beside them stand at the app's 38px control height. In
+         a two-column row that mismatch is the whole of it: a date box a third
+         taller than the goal box it shares a line with.
+
+         38px is --header-el-height, which select.input-standard and
+         .date-picker-group already are, so this is the fields catching up with
+         the controls they sit next to rather than a new size to maintain.
+
+         Every labelled field in a dialog, however deep the markup around it
+         goes -- the submission note sits inside a .custom-select and is a
+         field like any other. The phone's min-height: 44px still clamps all
+         of them upward, as it is meant to. */
+      .modal-container .form-group input.input-standard {
+        height: var(--header-el-height);
+        padding: 0 var(--space-3);
+      }
+
+      /* Except the date field's input, which is not a field of its own: it is
+         the inside of .date-picker-group, which owns the 38px and the padding
+         and lends it the room left over. Sized like the others it would stand
+         2px taller than the box drawn round it. */
+      .modal-container .form-group .date-picker-group input.input-standard {
+        height: 100%;
+        padding: 0;
+      }
+
       .form-label {
         display: block;
         font-size: var(--text-xs);
@@ -2646,6 +2678,11 @@
         gap: var(--actions-gap);
         margin-top: 0;
         min-height: 60px;
+        /* The row reserves 60px and the button is 4rem, so below 1500px the
+           button was sitting 2-4px off the floor of its own pane. It ends on
+           the pane's bottom edge now, which is the line the sidebar's tool
+           strip ends on too. */
+        align-content: end;
       }
 
       .actions button {
@@ -4148,11 +4185,21 @@
         border-top: 1px solid var(--border-main);
         display: flex;
         justify-content: center;
-        align-items: center;
         width: 100%;
         box-sizing: border-box;
         flex-shrink: 0;
-        min-height: 56px;
+        /* Bottom, not centre, and no reserved height.
+
+           56px held a row of 32px buttons centred in it, which put the strip
+           4-8px short of the bottom line the Work button ends on -- close
+           enough to read as a strip that had not quite landed, and it was
+           charging the log list above for the difference. The height is what
+           the buttons need now and they sit at the foot of it: the two panes
+           end on one line and the list keeps what the reserve was holding.
+
+           The tablet is unaffected either way -- its own 40px buttons and
+           0.5rem of bottom padding already came to exactly 56. */
+        align-items: flex-end;
       }
 
       /* Left Side: Two-line Micro Metadata */
@@ -9692,6 +9739,114 @@
         .theme-container:hover .theme-presets,
         .theme-container:focus-within .theme-presets {
           transform: none;
+        }
+      }
+
+      /* DESKTOP (1150px and up) Everything above this is already the desktop,
+         so the band gets a block of its own only for what the two narrower
+         ones must not have. Today that is the status bar's three columns and
+         the room they reserve, which would put the tablet's bar -- already
+         wrapping at 1024 -- onto a second line. */
+      @media (min-width: 1150px) {
+        /* The bar the phone has drawn since Phase 5a, now on the desktop:
+           three columns, logo | clocks | tail.
+
+           What it replaces: the badge was exactly as wide as its text, so the
+           second clock appearing changed its width by the width of a clock --
+           and because a grid item's min-width is auto, that badge was what
+           decided how the console divided its two columns. Signed out at 1440
+           the column fell back to its 1.1fr share, which left 94px of dead
+           air between the badge and the Goal box and handed the log list 94px
+           it had not had a moment earlier. A header should not be deciding
+           how wide the log list is.
+
+           Be clear about which of these two rules fixes that, because it is
+           not this one: the reserve below is. It carries the bar's own width
+           past the 1.1fr share in both states, so the column is sized by the
+           bar either way and the bar fills it exactly -- which is why the
+           dead air is gone with no help from `flex: 1`, and why the clocks
+           land where they land with no help from the three columns. Mutating
+           either of them away moves nothing, at any width from 1150 to 2560.
+
+           They stay because they are the shape this bar is supposed to have,
+           and the one the phone's copy of it already has: the moment the
+           column has room to spare -- a narrower Goal box, a change to
+           --panel-columns -- flex: 1 is what reaches the Goal box with it and
+           the three columns are what keep the clocks in the middle instead of
+           letting the slack pile up on one side. That is exactly the failure
+           above, so the guard against it belongs here even while it is idle. */
+        .status-bar .status-badge.status-time {
+          flex: 1;
+          display: grid;
+          align-items: center;
+          grid-template-columns: 1fr auto 1fr;
+        }
+
+        /* Dead centre to about 6px, and the last 6px are deliberately not
+           bought.
+
+           Two 1fr tracks are equal to each other only once there is room to
+           spare between them. At its narrowest -- which is where this bar
+           sits, since it is the thing sizing its own column -- a grid gives
+           each fr track its own content instead, and the logo and the status
+           chip are not the same width. So the clocks rest a little off the
+           centre of the bar, left of it below about 1700px and right of it
+           above, as the logo grows with the type and the px-fixed chip does
+           not.
+
+           `min-width: max-content` on the badge closes it exactly and was
+           here for a while. It costs the bar ~10px it would not otherwise
+           ask for, which is 2.2% of the right pane at 1440 -- and probe-tz-ui
+           holds the clocks to 2% of it, a budget from Phase 5a that is the
+           reason there are no chevrons on the zone labels either. Six pixels
+           on a 490px bar is not worth the log list, so the bar stays at its
+           narrowest and the clocks stay within 7px of centre.
+
+           What does matter, and does hold exactly: they sit in the same place
+           whether there are two of them or one. */
+
+        .m-clock-cluster {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        /* One clock keeps the room two would take. That is what holds the
+           split still, and it has to be room ADDED to the clock rather than a
+           width the clock is held to.
+
+           Both were tried. A min-width on the cluster, or a minmax() floor on
+           the track above, replaces the content minimum instead of adding to
+           it -- and `flex: 1` gives this badge a 0% basis, so the badge sits
+           at exactly that minimum and anything wider is what gets squeezed. A
+           pair of labels longer than an offset (UTC+5:30 beside PDT) wants
+           12px more than the floor, and both of those forms handed it 12px
+           less and let the clocks run under the status chip. Two spacers are
+           simply part of the content, so the cluster is never narrower than
+           what is in it, whatever the zones are called.
+
+           Half the missing clock on each side, so the one that is showing
+           lands dead centre of the room the two of them would have had, which
+           is where the pair's own centre is. Measured, not guessed: a clock,
+           its label and the rule between them come to 8.85rem + 46px, and
+           half of that tracks the real width within a tenth of a pixel at
+           every step from 1150 to 2560. The rem half scales with the type;
+           the px half is the rule's own 32px of margin and what a label
+           carries in px.
+
+           The cluster is a div and both of its pseudo-elements were free --
+           which is not true of a button in this app, where ::before is the
+           hover fade every one of them gets. */
+        .m-clock-cluster.is-single-zone::before,
+        .m-clock-cluster.is-single-zone::after {
+          content: "";
+          flex: 0 0 calc(4.42rem + 23px);
+        }
+
+        .m-status-tail {
+          display: flex;
+          align-items: center;
+          justify-content: flex-end;
         }
       }
 
