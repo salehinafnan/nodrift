@@ -35,10 +35,32 @@
     <!-- Home-screen / standalone behaviour. -->
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="mobile-web-app-capable" content="yes" />
-    <meta
-      name="apple-mobile-web-app-status-bar-style"
-      content="black-translucent"
-    />
+    <!-- default, not black-translucent, and it has to stay that way.
+         black-translucent runs the page up under the status bar, and since
+         iOS 26 the system fills that inset with its Liquid Glass scroll edge
+         effect: a blur that carries on about 45pt past the bar, which is
+         exactly where the top bar sits, so the installed app's clocks came
+         out smeared -- a white haze on the light themes, a black one on the
+         dark. Safari in a tab never showed it; only the home-screen app runs
+         under the bar.
+
+         Nothing on the page can switch it off. WebKit trades the blur for a
+         flat colour only when its host reports that inset as covered, and a
+         home-screen app reports nothing: every pane already puts a fixed,
+         opaque, full-screen box exactly where WebKit samples (4px down, mid
+         width), in the status bar's own colour, and the blur is drawn over it
+         anyway. The only lever is to put nothing up there.
+
+         With default the web view starts below an opaque status bar, so
+         env(safe-area-inset-top) is 0, and iOS tints that bar with
+         theme-color -- which the boot script at the end of <head> sets to the
+         surface the phone shell paints, so the bar and the app still read as
+         one surface.
+
+         WebKit itself never parses this tag; Safari reads it when an icon is
+         added to the Home Screen. An icon added before this change can keep
+         the blur until it is added again. -->
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="nodrift" />
     <meta name="application-name" content="nodrift" />
     <meta name="theme-color" content="#f2f2f7" />
@@ -1620,12 +1642,15 @@
         :root {
           /* Tightly crop the bottom gap */
           --m-safe-bottom: 22px !important;
-          /* Close the top gap slightly to reduce empty space below notches/islands,
-             but ensure it never goes below standard 20px status bar */
-          --m-safe-top: max(
-            20px,
-            calc(env(safe-area-inset-top) - 8px)
-          ) !important;
+          /* And nothing for the top, on purpose. This used to pull the top bar
+             8px up into the status bar's inset, with a 20px floor, back when
+             the installed app ran under a black-translucent bar. It runs below
+             an opaque bar now (see the status-bar-style meta in <head>), where
+             the inset is 0 and that floor would only open a 20px dead band
+             between the status bar and the top bar. The phone shell's own
+             env(safe-area-inset-top) is right either way: 0 under the opaque
+             bar, and the bar's full height on an icon added before the change,
+             which still lays out correctly -- just still blurred. */
         }
 
         /* The fill itself is no longer set here. */
