@@ -29448,6 +29448,62 @@
         }, 20);
       };
 
+      /* Under the default status bar iOS paints the bar itself, in the
+         colour the page's canvas had when the page loaded, and it does not
+         look again while the page lives: a theme picked in the installed app
+         reached the bar only at the next launch. A load is what makes iOS
+         read it again (a Safari tab's bar behaves the same way, WebKit bug
+         301108), so once a pick has changed the canvas the installed app
+         reloads, and the sheet it was picked in comes back as it was. */
+      const STATUS_BAR_RELOAD_KEY = "production_status_bar_reload";
+      const canvasAtLoad = readCanvas();
+
+      function readCanvas() {
+        try {
+          return getComputedStyle(document.documentElement).backgroundColor;
+        } catch (e) {
+          return "";
+        }
+      }
+
+      /* navigator.standalone is iOS's alone, and true only in an app opened
+         from a Home Screen icon. An icon added under black-translucent runs
+         the page under the bar, behind a top inset, and the page paints the
+         bar itself, so a switch reaches it live. */
+      function iosPaintsTheStatusBar() {
+        if (navigator.standalone !== true) return false;
+        const probe = document.createElement("div");
+        probe.style.cssText =
+          "position:fixed;visibility:hidden;padding-top:env(safe-area-inset-top)";
+        document.body.appendChild(probe);
+        const inset = parseFloat(getComputedStyle(probe).paddingTop) || 0;
+        probe.remove();
+        return inset === 0;
+      }
+
+      function reloadForStatusBar() {
+        if (readCanvas() === canvasAtLoad || !iosPaintsTheStatusBar()) return;
+        try {
+          const sheetBody = document.getElementById("m-sheet-body");
+          sessionStorage.setItem(
+            STATUS_BAR_RELOAD_KEY,
+            JSON.stringify({
+              pane: window.MobileShell ? window.MobileShell.pane : null,
+              sheet: document.body.classList.contains("m-sheet-open"),
+              top: sheetBody ? sheetBody.scrollTop : 0,
+            }),
+          );
+        } catch (e) {}
+        /* Let go of the lock now rather than when the page is torn down, so
+           the page that replaces this one never finds it still held and
+           takes itself for a second copy. */
+        if (typeof webLockReleaser === "function") {
+          webLockReleaser();
+          webLockReleaser = null;
+        }
+        location.reload();
+      }
+
       /**
        * Directly updates current system design layouts from target popovers
        */
@@ -29476,6 +29532,7 @@
           }
 
           if (icon) icon.classList.remove("theme-switching");
+          reloadForStatusBar();
         }, 200);
       };
 
@@ -48521,6 +48578,43 @@
           openSheet: openSheet,
           closeSheet: closeSheet,
         };
+      })();
+
+      /* The other half of reloadForStatusBar(): the sheet the theme was
+         picked in comes back open, on the same pane and scrolled to the same
+         place, with its transitions held off so it is simply there rather
+         than sliding in a second time. */
+      (function () {
+        let back = null;
+        try {
+          back = JSON.parse(sessionStorage.getItem(STATUS_BAR_RELOAD_KEY));
+          sessionStorage.removeItem(STATUS_BAR_RELOAD_KEY);
+        } catch (e) {}
+        if (!back) return;
+        const reopen = function () {
+          if (!MobileShell.active) return;
+          if (back.pane && back.pane !== MobileShell.pane) {
+            MobileShell.setPane(back.pane);
+          }
+          if (!back.sheet) return;
+          const still = ["m-sheet", "m-sheet-backdrop", "m-tabbar"]
+            .map((id) => document.getElementById(id))
+            .filter(Boolean);
+          still.forEach((node) => (node.style.transition = "none"));
+          MobileShell.openSheet();
+          const sheetBody = document.getElementById("m-sheet-body");
+          if (sheetBody) sheetBody.scrollTop = back.top || 0;
+          requestAnimationFrame(() =>
+            requestAnimationFrame(() =>
+              still.forEach((node) => (node.style.transition = "")),
+            ),
+          );
+        };
+        if (document.readyState === "loading") {
+          document.addEventListener("DOMContentLoaded", reopen, { once: true });
+        } else {
+          reopen();
+        }
       })();
       if ("serviceWorker" in navigator) {
         window.addEventListener("load", () => {
