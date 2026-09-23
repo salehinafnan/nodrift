@@ -19541,6 +19541,7 @@
       }
       let filterCache = null; // Memoized result of getFilteredLogs()
       let filterCacheKey = null; // Serialized filter state for cache invalidation
+      let filterCacheSource = null; // The logs array filterCache was built from
       let insightsCacheKey = null; // Force invalidate insights cache immediately to prevent race conditions
       let dataVersion = 0; // Incremented on every data mutation; used for cache keys
 
@@ -19566,6 +19567,19 @@
         filterCache = null;
         filterCacheKey = null;
         insightsCacheKey = null;
+      }
+
+      /* The one way a logbook read from storage becomes the logbook in memory
+         (startup, another tab's write, a takeover, a failed save's rollback).
+         Startup used to assign cachedLogs without a new dataVersion, so a
+         logbook drawn before the read finished - the pane a theme reload
+         puts back - cached the leave days alone under a key the loaded
+         shifts never changed: 125 logs counted, only leaves listed, until
+         the app was closed. */
+      function adoptLogs(logs) {
+        cachedLogs = logs;
+        cachedTodayDate = null;
+        invalidateDerivedCaches();
       }
       const faviconLink = document.querySelector("link[rel='icon']");
       let lastFaviconKey = "";
@@ -28414,12 +28428,7 @@
           loadLogsFromDB()
             .then(async (logs) => {
               if (logs !== null) {
-                cachedLogs = logs;
-                cachedTodayDate = null;
-                filterCache = null;
-                filterCacheKey = null;
-                insightsCacheKey = null;
-                dataVersion++;
+                adoptLogs(logs);
                 await rebuildWeeklyCache();
                 if (DOM.tabLogbook.style.display !== "none") {
                   renderLogbook();
@@ -28766,9 +28775,8 @@
               );
               return;
             }
-            cachedLogs = logs;
+            adoptLogs(logs);
             persistedChunkSignatures.clear();
-            cachedTodayDate = null;
             rebuildWeeklyCache();
             renderStaticUI();
             renderTimersOnly();
@@ -29678,8 +29686,7 @@
                 recoveredLogs !== null &&
                 dataVersion === expectedVersion + 1
               ) {
-                cachedLogs = recoveredLogs;
-                dataVersion++;
+                adoptLogs(recoveredLogs);
                 await rebuildWeeklyCache();
                 if (DOM.tabLogbook && DOM.tabLogbook.style.display !== "none")
                   renderLogbook();
@@ -33337,7 +33344,14 @@
 
         // Improvement 5: Safer Cache Invalidation using dataVersion (captures edits perfectly)
         const cacheKey = `${criteria.timeFilter}|${criteria.status}|${criteria.hasNotes}|${criteria.dateStartVal}|${criteria.dateEndVal}|${criteria.hoursOp}|${criteria.hoursVal}|${criteria.searchVal}|${dataVersion}`;
-        if (filterCache && filterCacheKey === cacheKey) return filterCache;
+        /* Keyed on the array it filtered as well, so a path that replaces the
+           logbook without a new dataVersion can never be served the old one. */
+        if (
+          filterCache &&
+          filterCacheKey === cacheKey &&
+          filterCacheSource === logs
+        )
+          return filterCache;
 
         // Improvement 1: Pre-calculate Loop Invariants
         let absoluteStartMs = 0;
@@ -33518,6 +33532,7 @@
 
         filterCache = result;
         filterCacheKey = cacheKey;
+        filterCacheSource = logs;
         return result;
       }
 
@@ -47148,9 +47163,9 @@
            purge and Chrome's storage-pressure cleanup. */
         requestDurableStorage();
 
-        cachedLogs = await loadLogsFromDB();
-        if (cachedLogs === null) {
-          cachedLogs = [];
+        const loadedLogs = await loadLogsFromDB();
+        adoptLogs(loadedLogs === null ? [] : loadedLogs);
+        if (loadedLogs === null) {
           isDatabaseHealthy = false;
           showAppToast(
             "Database unreadable — writes disabled to protect history",
