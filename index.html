@@ -35,35 +35,34 @@
     <!-- Home-screen / standalone behaviour. -->
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="mobile-web-app-capable" content="yes" />
-    <!-- black-translucent, so the page paints the status bar's background
-         itself: white on the white themes, black on the dark ones. The price
-         is the glass iOS lays over it, which the top bar has to stay out of.
+    <!-- default: iOS draws an opaque status bar and the web view starts
+         below it, so no part of the page is ever under the bar.
 
-         From iOS 26 the system covers that inset with its Liquid Glass scroll
-         edge effect, a blur that carries on past the bar. On an iPhone 16 Pro
-         Max under iOS 27 it smears 10px at 8pt below the inset and is gone by
-         34pt below it, and the top bar used to sit right in it -- the white
-         haze on the light themes, the black one on the dark. Nothing on the
-         page can switch it off: WebKit trades it for a flat colour only when
-         its host reports the inset as covered, and a home-screen app reports
-         nothing, so the fixed, opaque box every pane already puts under the
-         bar changes nothing. Over a flat colour, though, it leaves no trace
-         (253-254 of 255 against 255, in the same screenshot), so the rule is
-         only that nothing with detail sits in it. See --m-safe-top in the
-         standalone block.
+         That is the only way out of iOS 26+'s Liquid Glass. A page that runs
+         under the bar (black-translucent) gets the system's scroll edge effect
+         over the inset and on past it -- 34pt past it on an iPhone 16 Pro Max
+         under iOS 27 -- and nothing on the page can switch it off: WebKit
+         trades it for a flat colour only when its host reports the inset as
+         covered, and a home-screen app reports nothing. So under
+         black-translucent the top bar either sits in the blur or 36pt further
+         down the screen to clear it, and both were turned down (a2cc0ba was
+         the second).
 
-         `default` was tried and is worse. The web view starts below an opaque
-         bar that iOS colours on its own, and iOS 27 painted it black on the
-         white themes: nothing the page sets at run time reaches it, not
-         theme-color and not the page's background.
+         What default costs is that iOS picks the bar's colour. On iOS 26.5 it
+         was reported to take the page's own background when the app opens and
+         to keep it until the app is opened again, whatever the page sets in
+         between, theme-color included. So the page's background is the
+         theme's canvas from the first frame (the boot script at the end of
+         <head> sets data-theme before anything paints), and a theme picked
+         while the app is open reaches the bar the next time it opens. Not yet
+         confirmed on iOS 27: the black bar over a white theme under 150182b
+         was on a fresh icon, which starts in the phone's own appearance.
 
          WebKit never parses this tag. Safari reads it when an icon is added
-         to the Home Screen, so a change here only reaches an icon that is
-         added again. -->
-    <meta
-      name="apple-mobile-web-app-status-bar-style"
-      content="black-translucent"
-    />
+         to the Home Screen, so a change here only reaches an icon added
+         again, and an icon added under black-translucent keeps running under
+         the bar (see --m-safe-top in the standalone block). -->
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="nodrift" />
     <meta name="application-name" content="nodrift" />
     <meta name="theme-color" content="#f2f2f7" />
@@ -1645,21 +1644,26 @@
         :root {
           /* Tightly crop the bottom gap */
           --m-safe-bottom: 22px !important;
-          /* The top clears iOS's glass, not just the status bar. The
-             installed app runs under a black-translucent bar (see the meta in
-             <head>), and iOS 26+ lays its scroll edge blur over the inset and
-             on past it. Measured off the E-Ink top bar's black border on an
-             iPhone 16 Pro Max under iOS 27: a 10px smear 8pt below the inset,
-             5px at 18pt, 2px at 26-32pt, and sharp from 34pt down. Over the
-             flat canvas it leaves nothing, so the band costs nothing as long as
-             nothing with detail sits in it -- and the top bar hangs 12px below
-             this line, so +24px puts its top edge 36pt under the inset.
+          /* The line the top bar hangs 12px below.
 
-             The min() turns it off where there is no inset to blur: a phone on
-             its side, or an icon added while the bar was `default`, whose web
-             view starts below an opaque bar. */
+             Under the `default` bar (see the meta in <head>) the web view
+             starts below an opaque status bar and the inset is 0. The line
+             goes 8px above the web view, into the bar, so the top bar sits
+             4pt under the bar: where it sat on screen before the installed
+             app ever changed, when it ran under the bar and this rule pulled
+             it 8px up into the inset.
+
+             An icon added while the bar was black-translucent still runs under
+             it, in iOS 26+'s blur, which on an iPhone 16 Pro Max under iOS 27
+             is sharp only from 34pt below the inset. That icon keeps clearing
+             it: +24px puts the top bar's top edge 36pt under the inset, and
+             the band above stays flat canvas, where the blur leaves no trace.
+
+             clamp() picks the branch: the inset times 100, less 8px, is -8px
+             with no inset and far past 24px with one. */
           --m-safe-top: calc(
-            env(safe-area-inset-top) + min(24px, env(safe-area-inset-top) * 100)
+            env(safe-area-inset-top) +
+              clamp(-8px, env(safe-area-inset-top) * 100 - 8px, 24px)
           ) !important;
         }
 
@@ -1674,15 +1678,17 @@
           min-height: 100vh !important;
         }
 
-        /* The toasts come down from the same line as the top bar, for the same
-           reason: hung from the inset itself they sat in the thick of the
-           blur. !important because the toast rule is further down the file
-           with the same specificity. */
+        /* On an icon still under the black-translucent bar the toasts come
+           down to the top bar's line, for the same reason: hung from the inset
+           itself they sat in the thick of the blur. Under the `default` bar
+           that line is 4px down, and they keep their own 16px. !important
+           because the toast rule is further down the file with the same
+           specificity. */
         #undo-toast,
         #sync-toast,
         #goal-toast,
         #app-toast {
-          top: calc(var(--m-safe-top) + 12px) !important;
+          top: max(16px, calc(var(--m-safe-top) + 12px)) !important;
         }
       }
 
@@ -7799,11 +7805,15 @@
           pointer-events: auto;
           padding-left: var(--m-gutter);
           padding-right: var(--m-gutter);
-          padding-top: var(--m-safe-top);
+          padding-top: max(0px, var(--m-safe-top));
         }
 
+        /* 12px below the safe line, which the installed app can put above the
+           pane's top edge (-8px, under the `default` bar). Padding cannot go
+           negative, so the pane pads the part of the line that is positive
+           and the margin takes the rest. */
         body[data-mpane="timer"] .main-ui .status-bar {
-          margin-top: 12px;
+          margin-top: calc(12px + min(0px, var(--m-safe-top)));
         }
 
         body:not([data-mpane="timer"]) .main-ui > *:not(.status-bar) {
