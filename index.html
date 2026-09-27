@@ -29651,14 +29651,34 @@
             }),
           );
         } catch (e) {}
-        /* Let go of the lock now rather than when the page is torn down, so
-           the page that replaces this one never finds it still held and
-           takes itself for a second copy. */
-        if (typeof webLockReleaser === "function") {
-          webLockReleaser();
-          webLockReleaser = null;
-        }
-        location.reload();
+        /* The theme is a synced preference, and this reload came before any
+           beat could notice the pick: the next launch took the new theme as
+           its baseline, and the other devices never heard of it. It is
+           recorded as an edit here and the stamp is on disk before the page
+           goes, so the next launch finds the account's settings older than
+           its own and sends them. Bounded, so a store that never answers
+           cannot hold the reload back. */
+        let recorded = Promise.resolve();
+        try {
+          if (window.bootCompletedAt && window.Sync) {
+            Sync.notePrefsChanged();
+            recorded = Sync.flushMeta();
+          }
+        } catch (e) {}
+        const reload = () => {
+          /* Let go of the lock now rather than when the page is torn down,
+             so the page that replaces this one never finds it still held and
+             takes itself for a second copy. */
+          if (typeof webLockReleaser === "function") {
+            webLockReleaser();
+            webLockReleaser = null;
+          }
+          location.reload();
+        };
+        Promise.race([recorded, new Promise((r) => setTimeout(r, 1000))]).then(
+          reload,
+          reload,
+        );
       }
 
       /**
