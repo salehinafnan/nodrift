@@ -47808,11 +47808,19 @@
         function selectDate(dateStr) {
           const input = document.getElementById(targetId);
           if (input) {
-            /* The grid speaks ISO and the field speaks the chosen order, so
-               the key is written on straight rather than read back out of
-               the text -- which is how this used to reach the blur handler
-               as "2026-09-15" and come back as 09/30/15. */
-            const pickedKey = parseTypedDate(dateStr);
+            /* The grid speaks ISO. A date field -- the logbook's From and
+               To, the only fields the calendar writes into directly --
+               speaks the chosen order, so the key is written on straight
+               rather than read back out of the text, which is how this
+               used to reach the blur handler as "2026-09-15" and come back
+               as 09/30/15. Every other target is a hidden "-picker" whose
+               change handler reads ISO and fills its own field, so it gets
+               the grid's date as it is. Given the chosen order instead,
+               that handler split "09/15/26" on "-" and wrote
+               "undefined/undefined/26" into the field. */
+            const pickedKey = DATE_INPUT_IDS.includes(targetId)
+              ? parseTypedDate(dateStr)
+              : null;
             if (pickedKey) {
               input.dataset.dateKey = pickedKey;
               input.value = formatDateKey(pickedKey, "full");
