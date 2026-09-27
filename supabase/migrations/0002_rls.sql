@@ -1,8 +1,7 @@
 -- 0002 - row level security.
 --
--- Extracted from section 6 of docs/SYNC-BLUEPRINT.md. The policies are dropped
--- before being recreated so the file can be re-run; the definitions are
--- unchanged.
+-- The policies are dropped before being recreated so the file can be re-run;
+-- the definitions are unchanged.
 --
 -- This file is the entire reason the publishable key can sit in index.html in
 -- a public repository. The key identifies the project, it does not grant

@@ -1,8 +1,7 @@
 -- 0003 - functions and triggers.
 --
--- Extracted from sections 6 and 8 of docs/SYNC-BLUEPRINT.md. Every function
--- is already `create or replace`; the triggers are dropped before being
--- recreated so the file can be re-run. Definitions are unchanged.
+-- Every function is already `create or replace`; the triggers are dropped
+-- before being recreated so the file can be re-run. Definitions are unchanged.
 --
 -- claim_session is superseded by sync_session in 0004 but is deliberately
 -- left deployed and untouched, as 0004 records.

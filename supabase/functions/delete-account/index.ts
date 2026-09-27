@@ -16,10 +16,9 @@
  *   account for anybody who asks -- authentication would prove only that the
  *   caller is *a* user, not that they are *that* user.
  *
- * No supabase-js. Two plain fetches do the whole job, which is the same
- * reasoning section 3 of docs/SYNC-BLUEPRINT.md applies to the app itself,
- * and it keeps a third-party dependency out of the one place in this project
- * that holds the service-role key.
+ * No supabase-js. Two plain fetches do the whole job, for the same reason the
+ * app itself does without it, and it keeps a third-party dependency out of the
+ * one place in this project that holds the service-role key.
  *
  * Deploy:
  *   npx supabase functions deploy delete-account --project-ref <ref>

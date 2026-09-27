@@ -1311,7 +1311,7 @@
         color: var(--text-muted);
       }
 
-      /* Re-filing a record in another zone (docs/followups.md §7). A row of
+      /* Re-filing a record in another zone. A row of
          its own above the form rather than a field inside it: the zone is
          not one more value to edit, it is what every time below it means. */
       .refile-row {
@@ -1990,7 +1990,7 @@
         display: contents;
       }
 
-      /* The clocks' zone labels (docs/implement.md §4.1, §4.5). Each is a
+      /* The clocks' zone labels. Each is a
          button that opens the picker for its role; the phone's bar only
          reads. Two spans each, so the phone can drop the "UTC" of an offset
          label with a stylesheet rule, which follows a breakpoint crossing
@@ -4851,7 +4851,7 @@
         color: var(--text-muted);
       }
 
-      /* The time zones card (docs/implement.md §4.3). It fills the Time and
+      /* The time zones card. It fills the Time and
          date panel, whose title names it, and its two zone rows are buttons
          shaped like settings rows: label, the zone, a chevron. */
       .tz-settings-card {
@@ -5041,7 +5041,7 @@
         height: 14px;
       }
 
-      /* The Work week card (docs/followups.md §4.5). It fills the Work week
+      /* The Work week card. It fills the Work week
          panel, and is shaped like the Time zones card above so the two read
          as one set. One node for both layouts. */
       .ww-settings-card {
@@ -6251,7 +6251,7 @@
         pointer-events: none;
       }
 
-      /* Zone picker (docs/implement.md §4.2).
+      /* Zone picker.
 
          One scroller. The container is a fixed-height column and only the
          list scrolls: on the phone sheet a scroller inside a scroller fights
@@ -6885,9 +6885,9 @@
         margin-left: 8px;
       }
 
-      /* A day the schedule does not work. Called a weekend until phase W3 of
-         docs/followups.md, when the days became the user's to choose and
-         Saturday stopped being the only answer (P-W11). */
+      /* A day the schedule does not work. Called a weekend until the days
+         became the user's to choose and Saturday stopped being the only
+         answer. */
       .badge-day-off {
         font-size: var(--text-3xs);
         color: color-mix(in srgb, var(--text-main) 30%, var(--accent-blue));
@@ -7881,7 +7881,7 @@
           display: none;
         }
 
-        /* Five characters at most (docs/implement.md §4.1): an offset label
+        /* Five characters at most: an offset label
            drops its "UTC" (+5:30), and a six-character nickname is cut with
            an ellipsis. The 5.5ch leaves room for the minus sign, which the
            monospace fallback may draw from a wider font. The cap is on the
@@ -10656,7 +10656,7 @@
     <!-- Sync Session Toast Notification -->
     <div id="sync-toast"></div>
 
-    <!-- Zone picker (docs/implement.md §4.2): ZonePicker.open(). Nothing
+    <!-- Zone picker: ZonePicker.open(). Nothing
          opens it until Phase 5 gives it its triggers. -->
     <div id="zone-picker-modal" class="modal-overlay">
       <div
@@ -10715,7 +10715,7 @@
       </div>
     </div>
 
-    <!-- Clock labels (docs/implement.md §4.2, §4.5): openZoneLabels(), from
+    <!-- Clock labels: openZoneLabels(), from
          the Time zones card. The label style, and a nickname for the zone
          each clock shows. -->
     <div id="zone-labels-modal" class="modal-overlay">
@@ -10863,7 +10863,7 @@
       </div>
     </div>
 
-    <!-- The time zones notice (docs/implement.md §4.4): once, on a device
+    <!-- The time zones notice: once, on a device
          that used nodrift before zones. offerZoneNotice() fills and raises
          it when the screen is clear. -->
     <div id="zone-notice-modal" class="modal-overlay">
@@ -17137,7 +17137,7 @@
                     </div>
                   </div>
                 </div>
-                <!-- The clock format (docs/followups.md §5, decision C1).
+                <!-- The clock format.
                      Display only: what a record stores, what syncs and
                      what every export carries stay 12-hour (F1, C2). -->
                 <div class="settings-row tz-clock-row">
@@ -17190,7 +17190,7 @@
                     </div>
                   </div>
                 </div>
-                <!-- The date order (docs/followups.md §6, decision D1).
+                <!-- The date order.
                      It sits under the clock because the card is "Time and
                      date" and this is the date half (decision P-F1).
                      Display, typing and exports follow it; the stored key
@@ -17847,7 +17847,7 @@
       window.getStandardDayGoalSec = getStandardDayGoalSec;
 
       /* The work week. Every question about weeks and goals is answered here
-         and nowhere else (docs/followups.md §3 F3, §4.4): which days are work
+         and nowhere else: which days are work
          days, where a week starts and ends, what a day asks, what a week or a
          span asks, and how far behind the automatic goal thinks today is.
 
@@ -17855,7 +17855,7 @@
          is on day numbers -- whole days since 1970-01-01 -- so no zone and no
          DST change can move a week boundary (I2).
 
-         The schedule is the user's (docs/followups.md §4.3): the current one
+         The schedule is the user's: the current one
          is state.weeklyGoalHours plus the work week preference, and each
          archived one governs the dates up to its "until", so a change never
          rewrites a week that has ended (F5). With nothing stored it is
@@ -18947,21 +18947,21 @@
          which now always shows the work zone. Nothing reads it and it no
          longer syncs; a factory reset still wipes it. */
       const TZ_KEY = "production_tz_pref";
-      /* The time zone preferences (docs/implement.md §3.8). All three sync
+      /* The time zone preferences. All three sync
          as settings; every write goes through onZoneContextChanged(). */
       const WORK_TZ_KEY = "nodrift_work_tz_v1";
       const LOCAL_TZ_KEY = "nodrift_local_tz_v1";
       const TZ_DISPLAY_KEY = "nodrift_tz_display_v1";
-      /* The work week and its history (docs/followups.md §4.3). Absent means
+      /* The work week and its history. Absent means
          today's schedule, and nothing writes it but a change (F2). */
       const WORK_WEEK_KEY = "nodrift_work_week_v1";
-      /* "12h" or "24h" -- how every clock time on screen is written
-         (docs/followups.md §5, decision C1). Display only: stored strings,
+      /* "12h" or "24h" -- how every clock time on screen is written.
+         Display only: stored strings,
          sync payloads, backups and exports stay 12-hour (F1, decision C2).
          Absent means "12h", and nothing writes it but a change (F2). */
       const CLOCK_FORMAT_KEY = "nodrift_clock_format_v1";
       /* "mdy", "dmy" or "ymd" -- the order every date on screen and in an
-         export is written in (docs/followups.md §6, decision D1). Display
+         export is written in. Display
          only: a record's stored date, the chunk keys, the sync blob and the
          JSON backup stay MM/DD/YY (F1, decision D2). Absent means "mdy",
          and nothing writes it but a change (F2). */
@@ -20253,7 +20253,7 @@
        * zone" is decided by getWorkZone() / getLocalZone() and never by
        * whichever formatter happened to be nearest.
        *
-       * Two rules this module exists to hold (docs/implement.md, I6 and I8):
+       * Two rules this module exists to hold:
        *
        *   - A zone string is never trusted. It is canonicalised and checked
        *     against the engine's own list before any formatter sees it,
@@ -20344,8 +20344,8 @@
             timeZoneName: "shortOffset",
           },
 
-          /* The 24-hour twins of the four styles that show a clock time
-             (docs/followups.md §5.3). `hourCycle: "h23"` and never
+          /* The 24-hour twins of the four styles that show a clock time.
+             `hourCycle: "h23"` and never
              the hour12 flag turned off, which some engines render as "24:05" at
              midnight rather than "00:05". Which twin a screen uses is
              clockStyle()'s to say, not this module's: the styles are the
@@ -20672,7 +20672,7 @@
           return "";
         }
 
-        /* A short label for a clock (docs/implement.md §4.5): a valid
+        /* A short label for a clock: a valid
            nickname, else the abbreviation or generic name when it is plain
            letters, else the UTC offset. Only 111 of 418 zones have letters in
            en-US, so the offset is the common case, not the fallback. */
@@ -20768,7 +20768,7 @@
            measured -- and keeping one per zone per fact would hold well
            over a thousand alive, so these are built, read and dropped,
            deliberately outside the cache. One formatter per call, so the
-           caller can yield between any two (docs/implement.md §3.11):
+           caller can yield between any two:
 
              stage 0 -> offset minutes at each instant
              stage 1 -> the abbreviation at each instant ("PDT", "GMT+6")
@@ -20989,8 +20989,8 @@
 
       let _derivedWork = null;
 
-      /* Decision D5: the work zone of somebody who has not chosen one
-         (docs/implement.md §3.3). Worked out from what the device holds, so
+      /* Decision D5: the work zone of somebody who has not chosen one.
+         Worked out from what the device holds, so
          devices with the same logbook agree, and never written anywhere
          (I11):
          - a device that used nodrift before zones, or any log or task filed
@@ -21101,7 +21101,7 @@
 
       /* The zone the second clock and the finish estimate are shown in.
          Display only (I10): nothing stored ever depends on it. Unset means
-         automatic, the device's own zone (docs/implement.md §3.3). */
+         automatic, the device's own zone. */
       function getLocalZone() {
         const v = readZonePrefs().local;
         return v && v !== "auto" ? v : currentDeviceZone();
@@ -21302,7 +21302,7 @@
         checkDeviceZone();
       }
 
-      /* ---- Record times (docs/implement.md §3.4 and §3.9) ----
+      /* ---- Record times --------------------------------------
 
          Every In/Out time shown for a log or a task is read here, from the
          record's instants, in getDisplayZone(record) (decision D1). The
@@ -21324,7 +21324,7 @@
         return (display && display.logTimes) || "recorded";
       }
 
-      /* ── The clock format (docs/followups.md §5) ────────────────────────
+      /* ── The clock format ───────────────────────────────────────────────
 
          One resolver (F3): every screen that shows a clock time asks
          clockStyle() which formatter style to use, and nothing else reads
@@ -21373,7 +21373,7 @@
         return isClock24() ? CLOCK_STYLE_H23[style] || style : style;
       }
 
-      /* ── The date order (docs/followups.md §6) ──────────────────────────
+      /* ── The date order ─────────────────────────────────────────────────
 
          One resolver (F3): every screen that shows a business date asks
          formatDateKey(), and nothing else takes a key apart to write one.
@@ -21548,7 +21548,7 @@
         return `${TimeZones.version}|${zoneDisplayMode()}|${getWorkZone()}|${displayFormatKey()}`;
       }
 
-      /* The label style every zone label uses (docs/implement.md §4.5). */
+      /* The label style every zone label uses. */
       function zoneLabelStyle() {
         const display = readZonePrefs().display;
         return (display && display.labelStyle) || "abbr";
@@ -21840,7 +21840,7 @@
        * 3c. ZONE CATALOG
        *
        * What the zone picker knows about the world's time zones, and how it
-       * searches them (docs/implement.md §4.2). Built on first use and never
+       * searches them. Built on first use and never
        * at boot: nothing here runs until a picker asks.
        *
        * Two tiers, because they cost different things (§3.11, measured on
@@ -22338,7 +22338,7 @@
        * 3d. ZONE PICKER
        *
        * ZonePicker.open({ role, current, onPick }): the searchable list of
-       * every time zone (docs/implement.md §4.2). role is "work" or "local";
+       * every time zone. role is "work" or "local";
        * only the local picker offers Automatic, which onPick receives as
        * "auto". Tapping a row, or Enter on the highlighted one, picks it and
        * closes. The nickname and label-style controls arrive in Phase 5 with
@@ -24330,8 +24330,8 @@
            blob. On a device that had not yet heard the account's settings --
            a fresh sign-in whose day moves when the account's logs arrive --
            the blob it uploaded was its own defaults, stamped newer than the
-           account's, and every other device adopted them
-           (docs/implement.md §5 row 31). So the write re-takes the baseline,
+           account's, and every other device adopted them.
+           So the write re-takes the baseline,
            unless a real edit was already waiting to be sent: that one still
            goes, and carries the rewritten goal with it. */
         function notePrefsDerived(write) {
@@ -26150,9 +26150,8 @@
 
         /* One sentence for the state sync is in, written here rather than in
            the render so each threshold sits beside the constant that defines
-           it. Section 10 of docs/SYNC-BLUEPRINT.md is the specification for
-           every branch below, and the order of the branches is the priority
-           order: a storage fault matters more than a backlog, and being
+           it. The order of the branches below is the priority order: a storage
+           fault matters more than a backlog, and being
            offline explains a backlog rather than competing with it. */
         function describe(pending) {
           if (!SyncNet.signedIn) return { text: "Signed out", tone: "muted" };
@@ -26763,7 +26762,7 @@
           }
         }
 
-        /* The blueprint's adoption checklist, in order. Returns a reason
+        /* The adoption checklist, in order. Returns a reason
            string when it refuses, so a refusal is diagnosable rather than
            looking like nothing happened. */
         function adoptSession(wirePayload, wireTask, asMirror) {
@@ -29038,7 +29037,7 @@
         if (ampmEl.textContent !== ampmPart) ampmEl.textContent = ampmPart;
       }
 
-      /* One clock's zone label (docs/implement.md §4.5): a nickname, else the
+      /* One clock's zone label: a nickname, else the
          style's name when it is plain letters, else the UTC offset. An offset
          label is split so the phone can drop its "UTC" (§4.1). Nicknames are
          user- and sync-supplied, so the text reaches the page through
@@ -29084,7 +29083,7 @@
         renderPendingZoneBanner(ms);
       }
 
-      /* ---- Changing zones (docs/implement.md §3.5, §4.3, §4.4) ----
+      /* ---- Changing zones -----------------------------------------
 
          The clock buttons, the settings card and the phone sheet all change
          a zone through the choose* functions below, so a change takes one
@@ -29335,7 +29334,7 @@
         );
       }
 
-      /* ---- Clock labels (docs/implement.md §4.2's label footer, §4.5) ----
+      /* ---- Clock labels --------------------------------------------------
 
          Opened from the Time zones card: the picker keeps picking and
          closing on a tap (decided 2026-09-14). The style is one setting for
@@ -29455,7 +29454,7 @@
         return setZoneDisplayPref(display);
       }
 
-      /* ---- The time zones notice (docs/implement.md §4.4) ----
+      /* ---- The time zones notice -----------------------------
 
          Once, on a device that used nodrift before zones: what the two zones
          are now. It waits its turn exactly as the takeover offer does
@@ -38583,7 +38582,7 @@
       }
       window.onScheduleChanged = onScheduleChanged;
 
-      /* ---- The Work week card (docs/followups.md §4.5) -------------------
+      /* ---- The Work week card --------------------------------------------
 
          The schedule the rules above resolve, made editable. Every control
          goes through applyScheduleChange, so there is one place that asks
@@ -45111,7 +45110,7 @@
         if (el) el.addEventListener("blur", handleTimeInputBlur);
       });
 
-      /* -- Typing a date (docs/followups.md §6.3) ------------------------
+      /* -- Typing a date -------------------------------------------------
 
          One parser (F3). This build used to carry two copies of these rules
          -- the blur handler and the typing preview -- and they disagreed.
@@ -45504,7 +45503,7 @@
         };
       };
 
-      /* ---- Typed times (docs/implement.md §3.7) ----
+      /* ---- Typed times -----------------------------
 
          A clock time typed on a date, read in `zone`, `dayOffset` calendar
          days later: wallToInstant's { ms, status, alt } plus the date key and
@@ -45630,7 +45629,7 @@
         return out;
       }
 
-      /* ---- Re-filing a record in another zone (docs/followups.md §7) ----
+      /* ---- Re-filing a record in another zone ---------------------------
 
          A zone change a dialog is holding but has not saved yet. `refiled`
          is the form as the re-fill left it, in typedOriginal's shape, so the

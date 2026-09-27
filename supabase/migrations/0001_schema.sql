@@ -1,8 +1,7 @@
 -- 0001 - tables and indexes.
 --
--- Extracted verbatim from section 6 of docs/SYNC-BLUEPRINT.md, which was the
--- only record of this schema until now. Guards were added so the file can be
--- re-run (see supabase/README.md); nothing else differs from what is deployed.
+-- Written down after the fact. Guards were added so the file can be re-run
+-- (see supabase/README.md); nothing else differs from what is deployed.
 --
 -- The kind check here allows only 'log' and 'task'. 0005 widens it. Applying
 -- these in order on a fresh project reproduces the current database.
