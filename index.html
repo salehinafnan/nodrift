@@ -23564,6 +23564,25 @@
            exactly where conversion is supposed to live. */
         let settingsModifiedWire = 0;
 
+        /* When each preference in PREF_KEYS last changed, in the same
+           server domain and durable with the stamp above. The blob is still
+           sent and stored whole, but these travel inside it as
+           `prefsModified`, and a device adopting a blob takes each
+           preference only when that copy is newer than the one it holds.
+
+           Without them a blob won or lost as a unit. A device holding an
+           old leave allowance ledger changed its clock format, uploaded
+           every preference it held under that fresh stamp, and the totals
+           just corrected on another device went back to the old ones
+           everywhere. A blob carrying no stamps, from an older build, still
+           wins or loses as a unit. */
+        let prefStamps = Object.create(null);
+        /* Preferences the last adoption left alone because the copy here
+           was newer. resendKeptPrefs sends them back up. */
+        let keptPrefs = [];
+        const wireStamp = (v) =>
+          typeof v === "number" && Number.isFinite(v) ? v : null;
+
         /* How far AHEAD this device's clock runs, measured against Postgres
            by the network layer. Zero until then, which makes every
            conversion below the identity function while signed out. */
@@ -23635,7 +23654,11 @@
             label: deviceLabel,
             registeredFor: deviceRegisteredFor,
           });
-          out.push({ key: "settings", modifiedWire: settingsModifiedWire });
+          out.push({
+            key: "settings",
+            modifiedWire: settingsModifiedWire,
+            prefStamps: Object.assign({}, prefStamps),
+          });
           return out;
         }
 
@@ -23962,8 +23985,15 @@
          * is left alone rather than deleted: an older device that predates a
          * preference must not be able to erase it by omission.
          */
-        function applyPrefs(prefs) {
+        function applyPrefs(prefs, modifiedWire) {
           if (!prefs || typeof prefs !== "object") return false;
+          keptPrefs = [];
+          const held = readPrefs();
+          const blobStamp = wireStamp(modifiedWire);
+          const theirStamps =
+            prefs.prefsModified && typeof prefs.prefsModified === "object"
+              ? prefs.prefsModified
+              : {};
           let changed = false;
           let zoneChanged = false;
           let scheduleChanged = false;
@@ -23983,6 +24013,10 @@
                the wire is allowed to mean "erase what you have". */
             if (incoming === null || incoming === undefined) continue;
             if (spec.validate && !spec.validate(incoming)) continue;
+            /* How old this copy is: its own stamp, or the blob's when the
+               sender predates them. */
+            const theirs = wireStamp(theirStamps[name]) ?? blobStamp;
+            const ours = wireStamp(prefStamps[name]);
             const next = spec.json
               ? JSON.stringify(incoming)
               : String(incoming);
@@ -23990,9 +24024,25 @@
             try {
               current = localStorage.getItem(spec.key);
             } catch (e) {}
-            if (current === next) continue;
+            if (current === next) {
+              if (theirs !== null && (ours === null || theirs > ours))
+                prefStamps[name] = theirs;
+              continue;
+            }
+            /* Kept only when this device holds a copy it would send: an
+               absence cannot travel, so it never outranks a value. */
+            if (
+              name in held &&
+              ours !== null &&
+              theirs !== null &&
+              ours > theirs
+            ) {
+              keptPrefs.push(name);
+              continue;
+            }
             try {
               localStorage.setItem(spec.key, next);
+              if (theirs !== null) prefStamps[name] = theirs;
               changed = true;
               if (spec.zone) zoneChanged = true;
               if (spec.schedule) scheduleChanged = true;
@@ -24017,7 +24067,15 @@
         }
 
         function settingsToWire(s) {
-          return Object.assign(pick(s, SETTINGS_FIELDS), readPrefs());
+          const prefs = readPrefs();
+          const prefsModified = {};
+          for (const name in prefs) {
+            const at = wireStamp(prefStamps[name]);
+            if (at !== null) prefsModified[name] = at;
+          }
+          return Object.assign(pick(s, SETTINGS_FIELDS), prefs, {
+            prefsModified,
+          });
         }
 
         /* Must be deterministic across devices: two browsers deriving
@@ -24207,7 +24265,21 @@
           return JSON.stringify(picked);
         }
 
+        /* Gives each preference held here with no stamp of its own the
+           blob's current one, before that moves. A ledger untouched since
+           this device last took the account's settings is that old, not as
+           new as the edit about to be sent beside it, and unstamped it
+           would travel under the new blob stamp and win. */
+        function pinPrefStamps() {
+          const held = readPrefs();
+          for (const name in held) {
+            if (wireStamp(prefStamps[name]) === null)
+              prefStamps[name] = settingsModifiedWire;
+          }
+        }
+
         function markSettingsEdited() {
+          pinPrefStamps();
           markDirty("settings");
           /* Stamped here, at the edit, rather than at push time. A stamp
              taken when the request is finally sent would let a device that
@@ -24235,9 +24307,16 @@
            instead, which catches every writer including the next one
            somebody adds. */
         function notePrefsChanged() {
-          const print = JSON.stringify(readPrefs());
+          const prefs = readPrefs();
+          const print = JSON.stringify(prefs);
           if (prefsPrint !== null && print !== prefsPrint) {
+            const was = JSON.parse(prefsPrint);
             markSettingsEdited();
+            /* Only what moved takes the new stamp. */
+            for (const name in PREF_KEYS) {
+              if (JSON.stringify(was[name]) !== JSON.stringify(prefs[name]))
+                prefStamps[name] = settingsModifiedWire;
+            }
           }
           prefsPrint = print;
         }
@@ -24268,6 +24347,7 @@
            very next save, or two devices ping-pong the same preferences
            forever, each one's adoption outranking the other's. */
         function noteSettingsAdopted(s, modifiedWire) {
+          pinPrefStamps();
           /* Both baselines, taken after applyPrefs has run so they describe
              what is actually on the device now. Read back from storage
              rather than from the incoming blob, because a key the blob
@@ -24309,6 +24389,24 @@
           return false;
         }
 
+        /* The same repair for a preference applyPrefs kept because the copy
+           here is newer than the adopted one -- a ledger corrected on this
+           device while another, which never saw it, uploaded its own
+           settings. The whole blob goes back up, stamped after the one
+           adopted so the server takes it, and each device then keeps the
+           newer copy of every preference. */
+        function resendKeptPrefs(modifiedWire) {
+          if (!keptPrefs.length) return false;
+          keptPrefs = [];
+          markDirty("settings");
+          settingsModifiedWire = Math.max(
+            toWire(Date.now()),
+            (Number(modifiedWire) || 0) + 1,
+          );
+          persistMeta();
+          return true;
+        }
+
         /* ── boot ──────────────────────────────────────────────────────── */
 
         const ready = (async () => {
@@ -24340,6 +24438,15 @@
             }
             settingsModifiedWire =
               Number(settingsMeta && settingsMeta.modifiedWire) || 0;
+            const storedStamps = settingsMeta && settingsMeta.prefStamps;
+            if (storedStamps && typeof storedStamps === "object") {
+              for (const name in storedStamps) {
+                const at = wireStamp(storedStamps[name]);
+                const held = wireStamp(prefStamps[name]);
+                if (at !== null && (held === null || at > held))
+                  prefStamps[name] = at;
+              }
+            }
             deviceId = (device && device.id) || newUuid();
             deviceLabel = (device && device.label) || guessLabel();
             deviceRegisteredFor = (device && device.registeredFor) || null;
@@ -24377,6 +24484,8 @@
             cursor[kind] = 0;
           }
           settingsModifiedWire = 0;
+          prefStamps = Object.create(null);
+          keptPrefs = [];
           dirty.clear();
 
           if (!isSupported) return;
@@ -24434,6 +24543,7 @@
           settingsToWire,
           noteSettingsAdopted,
           resendMissingPrefs,
+          resendKeptPrefs,
           get settingsModifiedWire() {
             return settingsModifiedWire;
           },
@@ -26747,7 +26857,17 @@
              comparison would reject preferences that are genuinely newer. */
           const remoteWire = Number(modifiedWireMs);
           if (!Number.isFinite(remoteWire)) return false;
-          if (remoteWire <= Sync.settingsModifiedWire) return false;
+          if (remoteWire <= Sync.settingsModifiedWire) {
+            /* Older than this device's last edit, so the account never got
+               it. The flag that sends an edit lives in memory: a page closed
+               or suspended before its next beat dropped it, and the next
+               launch took the edited value as its baseline and never sent
+               it. It goes now, as does an edit made while this beat was in
+               flight. */
+            if (remoteWire < Sync.settingsModifiedWire)
+              Sync.markDirty("settings");
+            return false;
+          }
 
           let changed = false;
           for (let i = 0; i < Sync.SETTINGS_FIELDS.length; i++) {
@@ -26762,14 +26882,16 @@
              allowance ledger, each in its own localStorage key. Applied
              before the fingerprint below is taken, or the very next save
              would read them back as a local edit and push them again. */
-          const prefsChanged = Sync.applyPrefs(blob);
+          const prefsChanged = Sync.applyPrefs(blob, remoteWire);
 
           /* The stamp is adopted even when no field moved: this device has
              now seen that version, and re-adopting it every beat would be
              noise. */
           Sync.noteSettingsAdopted(state, remoteWire);
-          /* After the baselines, so the stamp it may set is not taken back. */
+          /* After the baselines, so the stamp they may set is not taken
+             back. */
           Sync.resendMissingPrefs(blob, remoteWire);
+          Sync.resendKeptPrefs(remoteWire);
           if (changed) {
             if (typeof saveState === "function") saveState(true);
           }
@@ -27308,7 +27430,34 @@
         });
 
         document.addEventListener("visibilitychange", () => {
-          if (!document.hidden) beat("visible");
+          if (!document.hidden) {
+            beat("visible");
+            return;
+          }
+          /* Going into the background is the last moment a phone is sure to
+             run anything: iOS suspends the page next and may end it without
+             another event. A preference changed since the last beat is
+             stamped now, put on disk, and sent while it still can be. */
+          if (!SyncNet.signedIn || !window.bootCompletedAt) return;
+          Sync.notePrefsChanged();
+          if (Sync.dirty.has("settings")) {
+            Sync.flushMeta();
+            beat("hidden");
+          }
+        });
+
+        /* A settings edit goes out now rather than on the next heartbeat,
+           which on a phone that is only watching is a minute away -- ample
+           time to put it in a pocket. Debounced, because a typed allowance
+           is an edit per keystroke. */
+        let settingsPushTimer = null;
+        Sync.onDirty((kind) => {
+          if (kind !== "settings") return;
+          if (settingsPushTimer) clearTimeout(settingsPushTimer);
+          settingsPushTimer = setTimeout(() => {
+            settingsPushTimer = null;
+            if (Sync.dirty.has("settings")) beat("settings edit");
+          }, 1500);
         });
         window.addEventListener("online", () => {
           beat("online");
@@ -43960,10 +44109,24 @@
       }
 
       function saveLeaveAllowances(allowances) {
-        return safeSetLocalStorage(
+        const ok = safeSetLocalStorage(
           LEAVE_ALLOWANCES_KEY,
           JSON.stringify(allowances),
         );
+        /* Stamped as an edit now, as a zone pinned at clock-in is, rather
+           than whenever the next beat looks. That is up to a minute away on
+           a phone, and an edit whose page was closed first was never sent:
+           the account kept the old totals, and the next settings upload
+           from another device put them back here. */
+        if (
+          ok &&
+          window.bootCompletedAt &&
+          window.Sync &&
+          typeof Sync.notePrefsChanged === "function"
+        ) {
+          Sync.notePrefsChanged();
+        }
+        return ok;
       }
 
       /* The year a balance is counted in, when no record names one. Balances
