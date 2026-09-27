@@ -47646,29 +47646,15 @@
         let currentMonth =
           typeof getWorkDateObj === "function" ? getWorkDateObj() : new Date(); // tracks the viewed month
 
-        function parseDateString(str) {
-          if (!str)
-            return typeof getWorkDateObj === "function"
-              ? getWorkDateObj()
-              : new Date();
-          str = str.trim();
-          let isoMatch = str.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
-          if (isoMatch) {
-            return new Date(
-              parseInt(isoMatch[1], 10),
-              parseInt(isoMatch[2], 10) - 1,
-              1,
-            );
-          }
-          let slashMatch = str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
-          if (slashMatch) {
-            let year = parseInt(slashMatch[3], 10);
-            if (year < 100) year += 2000;
-            return new Date(year, parseInt(slashMatch[1], 10) - 1, 1);
-          }
-          return typeof getWorkDateObj === "function"
-            ? getWorkDateObj()
-            : new Date();
+        /* The date a target holds, as { y, m, d }, read the way the logbook
+           filter reads the same field: a hidden picker holds ISO and the
+           logbook's From and To hold the chosen order, which only the
+           typed-date parser knows. Read as MM/DD/YY, "15/09/26" opened the
+           calendar on March 2027 with nothing marked. */
+        function heldDate(input) {
+          const text = input ? String(input.value || "").trim() : "";
+          const key = text ? parseTypedDate(text) : null;
+          return key ? TimeZones.parseKey(key) : null;
         }
 
         function init() {
@@ -47769,19 +47755,10 @@
               : new Date();
           const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
 
-          const input = document.getElementById(targetId);
-          const selectedStr = input ? input.value : "";
-          let normalizedSelectedStr = selectedStr;
-          if (selectedStr && selectedStr.includes("/")) {
-            const parts = selectedStr.split("/");
-            if (parts.length === 3) {
-              const m = parts[0].padStart(2, "0");
-              const d = parts[1].padStart(2, "0");
-              let y = parts[2];
-              if (y && y.length === 2) y = "20" + y;
-              normalizedSelectedStr = `${y}-${m}-${d}`;
-            }
-          }
+          const held = heldDate(document.getElementById(targetId));
+          const normalizedSelectedStr = held
+            ? `${held.y}-${String(held.m).padStart(2, "0")}-${String(held.d).padStart(2, "0")}`
+            : "";
 
           for (let i = 0; i < firstDay; i++) {
             html += `<div class="cdp-day cdp-empty"></div>`;
@@ -47865,9 +47842,9 @@
 
             targetId = id;
             const input = document.getElementById(id);
-            if (input && input.value) {
-              currentMonth = parseDateString(input.value);
-              currentMonth.setDate(1);
+            const held = heldDate(input);
+            if (held) {
+              currentMonth = new Date(held.y, held.m - 1, 1);
             } else {
               currentMonth =
                 typeof getWorkDateObj === "function"
