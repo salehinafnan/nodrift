@@ -1,0 +1,12 @@
+sequenceDiagram
+  participant D as This device
+  participant PG as Postgres
+  Note over D,PG: A change syncs 800 ms later. A poll also<br/>runs every 60 s, on focus and on reconnect.
+  D->>PG: GET rows changed after cursor − 5 s
+  PG-->>D: rows, 500 per page
+  D->>D: merge: newer lastModified wins
+  D->>D: outbox = logbook vs. shadow
+  D->>PG: push_records(outbox)
+  PG->>PG: upsert only if incoming is newer
+  PG-->>D: ok
+  D->>D: shadow and cursor move forward

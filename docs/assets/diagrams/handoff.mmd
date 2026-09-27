@@ -1,0 +1,15 @@
+sequenceDiagram
+  participant L as Laptop
+  participant DB as Postgres
+  participant P as Phone
+  L->>DB: claim + session, every 30 s
+  DB-->>L: held, gen 5
+  P->>DB: watch
+  DB-->>P: owner: laptop + session
+  Note over P: Read-only timer<br/>and Continue here
+  P->>DB: claim, force
+  DB-->>P: held, gen 6
+  Note over P: Controls come alive.<br/>Elapsed stays put.
+  L->>DB: next beat
+  DB-->>L: owner: phone, gen 6
+  Note over L: Steps down<br/>to read-only

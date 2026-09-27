@@ -1,0 +1,9 @@
+stateDiagram-v2
+  direction TB
+  [*] --> free: signed in
+  free --> owner: a shift starts here
+  free --> follower: another device claims it
+  follower --> owner: Continue here
+  owner --> follower: another device takes over
+  owner --> free: the shift ends here
+  follower --> free: holder ends it, or is quiet 90 s

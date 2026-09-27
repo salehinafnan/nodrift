@@ -1,0 +1,11 @@
+sequenceDiagram
+  participant W as Ticker worker
+  participant M as Main thread
+  participant S as localStorage
+  W->>M: tick
+  M->>M: elapsed = max(now − anchor, floor)
+  M->>M: idle, midnight and tab-lock checks
+  M->>M: redraw on the next frame
+  M-->>S: saveState(), every 15th tick
+  M->>W: ack
+  Note over W,M: The next tick waits<br/>for this ack, so a busy<br/>page never piles up ticks

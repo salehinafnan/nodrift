@@ -1,0 +1,11 @@
+flowchart TB
+  subgraph Browser["In your browser"]
+    Ticker[["Ticker worker<br/>one tick per second"]] --> Engine["Timer engine<br/>anchors, idle, rollover"]
+    Engine --> Persist["Persistence<br/>saveLogs, saveState"]
+    Engine --> UI["UI<br/>desktop and phone"]
+    Persist --> Storage[("localStorage<br/>and IndexedDB")]
+    Persist --> Analytics[["Analytics<br/>worker"]]
+    Analytics --> UI
+    Persist -. dirty .-> Sync["Sync<br/>modules"]
+  end
+  Sync <-- "HTTPS + WSS" --> Cloud[("Supabase<br/>only when signed in")]

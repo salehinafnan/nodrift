@@ -1,0 +1,14 @@
+stateDiagram-v2
+  direction TB
+  [*] --> Ready
+  Ready --> Running: Work
+  state Running {
+    direction LR
+    [*] --> Working
+    Working --> OnBreak: Break
+    OnBreak --> Working: Work
+  }
+  Running --> Paused: idle or asleep
+  Paused --> Running: work, break or discard
+  Running --> Filed: End Shift
+  Filed --> Ready

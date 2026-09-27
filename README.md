@@ -46,7 +46,6 @@
 - [Security model](#security-model)
 - [Run it yourself](#run-it-yourself)
 - [Repository layout](#repository-layout)
-- [Design documents](#design-documents)
 - [License](#license)
 
 ---
@@ -101,8 +100,6 @@ Times display as 12-hour or 24-hour, and dates as `MM/DD/YY`, `DD/MM/YY` or `YYY
 
 ### Protection that runs by itself
 
-<img align="right" width="380" src="docs/assets/screenshots/idle.png" alt="The Inactivity Detected dialog: last active time, current time, the work-time span, the unaccounted duration, and three buttons: Log as Work, Log as Break, Discard Idle Time" />
-
 - **Idle lock.** With no typing, clicking or scrolling past your threshold (1 hour by default), the timer pauses at your last input. When you return, nodrift shows exactly how long the gap was and asks whether it was work, break, or nothing.
 - **Sleep detection.** A laptop lid closing or a browser freezing the tab is caught on wake and gets the same question.
 - **Midnight rollover.** A shift still running at midnight in your work zone is filed under the day that ended, and the new day starts fresh.
@@ -112,19 +109,21 @@ Times display as 12-hour or 24-hour, and dates as `MM/DD/YY`, `DD/MM/YY` or `YYY
 
 Idle lock can be switched off, which is the better setting on a phone that sits in a pocket. Everything else always runs.
 
-<br clear="right" />
+<p align="center">
+  <img width="460" alt="The Inactivity Detected dialog: last active time, current time, the work-time span, the unaccounted duration, and three buttons: Log as Work, Log as Break, Discard Idle Time" src="docs/assets/screenshots/idle.png" />
+</p>
 
 ### Logbook, tasks and leave
 
-<img align="left" width="360" alt="The Logbook tab: shifts listed newest first with start and end times, work, break and over/under badges, and note, copy, edit and delete actions on each row" src="docs/assets/screenshots/logbook.png" />
+<p align="center">
+  <img width="420" alt="The Logbook tab: shifts listed newest first with start and end times, work, break and over/under badges, and note, copy, edit and delete actions on each row" src="docs/assets/screenshots/logbook.png" />
+</p>
 
 The **Logbook** holds every saved shift, newest first, and stays smooth with thousands of rows because it only renders the rows on screen. Add a shift you did not track live by filling in any two of login, logout and work time, and the third is worked out. Date fields take shorthand such as `t`, `y`, `-3`, `jan 15` or `122526`, and time fields take `900`, `9:30p` or `1730`. Filter by date, hours or text, and save a filter you use often as a named view. **Copy** puts a plain-text summary on the clipboard (short days flagged), and **CSV** downloads what you are looking at, ready for a spreadsheet.
 
 **Tasks** is a separate stopwatch for timing pieces of work inside the day, with its own history, filters and export. It never touches the shift timers.
 
 **Leave** books days off by type (Casual, Sick (IPD), Sick (OPD), Annual, In Lieu, or types you add) and tracks each type's allowance, used and remaining days. A leave day is striped in the insights and left out of the pace maths.
-
-<br clear="left" />
 
 ### Insights and the heatmap
 
@@ -190,20 +189,12 @@ Shortcuts are ignored while you type in a field and while the idle prompt is wai
 
 Everything above runs inside one page. Two small Web Workers are created from inline source at startup, storage is split between a synchronous and an asynchronous store, and the sync backend is a set of plain `fetch` calls (no SDK) to Supabase, used only after you sign in. Around the page, a service worker keeps the app shell cached for offline launches, and a browser-level lock keeps a second tab from writing at the same time.
 
-```mermaid
-flowchart TB
-  subgraph Browser["Your browser: everything here works offline, signed out"]
-    Ticker[["Ticker worker<br/>one tick per second"]] --> Engine["Timer engine<br/>anchors · idle · rollover · goals"]
-    Engine --> UI["UI<br/>desktop and phone layouts"]
-    Engine --> Persist["Persistence<br/>saveLogs · saveState"]
-    Persist --> LS[("localStorage<br/>live state · preferences<br/>logbook mirror")]
-    Persist --> IDB[("IndexedDB<br/>month chunks · snapshots<br/>sync metadata")]
-    Persist --> Analytics[["Analytics worker<br/>day · month · year groups"]]
-    Analytics --> UI
-    Persist -. marks dirty .-> Sync["Sync modules<br/>SyncEngine · SessionLease · SyncLive"]
-  end
-  Sync <-- "HTTPS · WSS" --> Cloud[("Supabase, only when signed in<br/>Auth · Postgres with RLS<br/>Realtime · delete-account function")]
-```
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/diagrams/architecture-dark.png" />
+    <img width="764" alt="Architecture: a ticker worker drives the timer engine, which renders the UI and saves through saveLogs and saveState into localStorage and IndexedDB. An analytics worker regroups logs for the UI. Saves mark the sync modules dirty, and only the sync modules talk to Supabase, over HTTPS and WSS, and only when signed in." src="docs/assets/diagrams/architecture-light.png" />
+  </picture>
+</p>
 
 The rest of this section walks through the decisions that make the numbers trustworthy.
 
@@ -219,19 +210,12 @@ The tick only decides when to redraw. A tab that was frozen for an hour shows th
 
 The `max` handles one narrow failure. If the process is killed and the system clock is set backwards before the next launch, `now − anchor` would shrink. So every save records the highest elapsed value seen so far (`activeSegmentFloorSec`), and time inside a segment can never go backwards. Setting a new anchor always resets its floor, so a floor can never outlive the anchor it was measured against.
 
-```mermaid
-sequenceDiagram
-  participant W as Ticker worker
-  participant M as Main thread
-  participant S as localStorage
-  W->>M: tick
-  M->>M: elapsed = max(now − anchor, floor)
-  M->>M: idle check, midnight check, lease renewal
-  M->>M: redraw on the next animation frame
-  M-->>S: saveState() raises the floor, every 15th tick
-  M->>W: ack
-  Note over W,M: The next tick is armed only after the ack,<br/>so a busy page never builds a backlog of ticks
-```
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/diagrams/ticker-dark.png" />
+    <img width="671" alt="Sequence: the ticker worker sends a tick. The main thread computes elapsed as the larger of now minus the anchor and the floor, runs the idle, midnight and tab-lock checks, redraws, saves state every 15th tick, and acks. The next tick waits for the ack." src="docs/assets/diagrams/ticker-light.png" />
+  </picture>
+</p>
 
 The ticker lives in a worker, which background tabs throttle far less than page timers, so the tab-title clock keeps ticking while you are in another tab. With that setting off, a hidden page stops ticking altogether: there is nothing to draw, and on return the wake-up path recomputes everything from the anchors and checks for sleep, idleness and midnight. Where a worker cannot be created, the same interface falls back to a main-thread timer.
 
@@ -245,22 +229,12 @@ Every correction is written to an anomaly log that survives reloads, so timekeep
 
 ### The life of a shift
 
-```mermaid
-stateDiagram-v2
-  direction LR
-  [*] --> Ready
-  Ready --> Running: Work
-  state Running {
-    direction LR
-    [*] --> Working
-    Working --> OnBreak: Break
-    OnBreak --> Working: Work
-  }
-  Running --> Paused: idle or asleep
-  Paused --> Running: work, break or discard
-  Running --> Filed: End Shift
-  Filed --> Ready
-```
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/diagrams/lifecycle-dark.png" />
+    <img width="556" alt="State diagram: Ready goes to Running on Work. Inside Running, Working and OnBreak switch on Break and Work. Running goes to Paused when idle or asleep, and back on work, break or discard. End Shift goes to Filed, then back to Ready." src="docs/assets/diagrams/lifecycle-light.png" />
+  </picture>
+</p>
 
 **Paused** rewinds to your last input, so the gap is measured precisely and then assigned to work, to break, or to nothing, in which case the shift resumes in whichever mode it was in. When the app itself was closed rather than idle, it credits the gap without asking if it was short enough to be a reload or a crash (up to 90 seconds), and asks otherwise.
 
@@ -272,17 +246,12 @@ stateDiagram-v2
 
 Every change to the logbook, whether from the timer, an edit, an import or a sync merge, goes through one function, `saveLogs()`. It writes in a deliberate order:
 
-```mermaid
-flowchart TD
-  Change["Any change<br/>end shift · edit · delete · import · sync merge"] --> Save["saveLogs()"]
-  Save --> Mark["1 · Mark dirty for sync<br/>a no-op when signed out"]
-  Save --> Snap{"2 · First change<br/>today?"}
-  Snap -- yes --> Pre[("Snapshot of the logbook<br/>before this change<br/>IndexedDB · five most recent")]
-  Save --> Mem["3 · New in-memory logbook<br/>version bump invalidates every cache"]
-  Mem --> Worker["Analytics worker rebuilds<br/>day, month and year groupings"]
-  Save --> Mirror[("4 · Mirror<br/>whole logbook, synchronous<br/>localStorage")]
-  Save --> Chunks[("5 · IndexedDB logs_chunked<br/>one record per month<br/>only changed months rewritten")]
-```
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/diagrams/write-path-dark.png" />
+    <img width="600" alt="Flow: any change calls saveLogs, which marks sync dirty, takes a snapshot on the first change of the day, swaps the in-memory logbook and has the analytics worker regroup it, writes the localStorage mirror, then writes the changed months to IndexedDB." src="docs/assets/diagrams/write-path-light.png" />
+  </picture>
+</p>
 
 - **The snapshot is taken before the change lands.** A restore point that already contains the accident cannot undo it.
 - **The mirror is synchronous.** localStorage writes finish before the function returns, so even a tab killed mid-save leaves one complete copy. If IndexedDB cannot be opened at the next launch, nodrift boots from the mirror and freezes writes, so a partial view can never be saved over the full database. When the page is opened straight from disk, nodrift does not use IndexedDB at all and the mirror is the store.
@@ -306,20 +275,12 @@ The most important decision in the sync design is **not** treating the app's dat
 
 **Records.** Rather than recording every delete as it happens (and missing one path some day), each device keeps a _shadow_: a map from record id to the `lastModified` the server last confirmed. The outbox is computed by comparing the logbook with the shadow. Anything new or changed is pushed, and anything the shadow has that the logbook doesn't was deleted, by any code path, including ones not written yet. The shadow only moves forward on a confirmed response, so it doubles as a crash-proof retry queue.
 
-```mermaid
-sequenceDiagram
-  participant D as This device
-  participant PG as Postgres
-  Note over D: A logbook change schedules a sync 800 ms later.<br/>A poll also runs every 60 s, on focus and on reconnect.
-  D->>PG: GET records changed after (cursor − 5 s)
-  PG-->>D: rows, 500 per page
-  D->>D: merge: newer lastModified wins, equal is a no-op
-  D->>D: outbox = logbook compared with the shadow
-  D->>PG: rpc push_records(outbox), 200 per batch
-  PG->>PG: upsert only WHERE incoming last_modified is newer
-  PG-->>D: ok
-  D->>D: shadow and cursor move forward
-```
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/diagrams/record-sync-dark.png" />
+    <img width="667" alt="Sequence: the device pulls rows changed since its cursor minus five seconds, merges by newest lastModified, computes the outbox from the shadow and pushes it with push_records. Postgres upserts only rows that are newer, then the device moves its shadow and cursor forward." src="docs/assets/diagrams/record-sync-light.png" />
+  </picture>
+</p>
 
 Three details make this safe:
 
@@ -335,37 +296,21 @@ The live session is guarded by the same idea as the tab lock, moved into the dat
 
 Every signed-in device is in one of three states:
 
-```mermaid
-stateDiagram-v2
-  direction LR
-  [*] --> free: signed in
-  free --> owner: a shift starts here
-  free --> follower: another device claims it
-  follower --> owner: Continue here
-  owner --> follower: another device takes over
-  owner --> free: the shift ends here
-  follower --> free: the holder ends it or goes quiet for 90 s
-```
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/diagrams/lease-dark.png" />
+    <img width="686" alt="State diagram of the session lease with three states, free, owner and follower, and transitions for a shift starting or ending here, another device claiming or taking over, Continue here, and the holder ending the shift or going quiet for 90 seconds." src="docs/assets/diagrams/lease-light.png" />
+  </picture>
+</p>
 
 And this is a handoff from a laptop to a phone, as the database sees it:
 
-```mermaid
-sequenceDiagram
-  participant L as Laptop
-  participant DB as Postgres
-  participant P as Phone
-  L->>DB: sync_session(claim, session) every 30 s
-  DB-->>L: held, generation 5
-  P->>DB: sync_session(watch)
-  DB-->>P: owner is the laptop, plus its session
-  Note over P: Shows the laptop's running timer, read-only,<br/>with "Continue here"
-  P->>DB: sync_session(claim, force)
-  DB-->>P: held, generation 6
-  Note over P: Controls come alive. Elapsed does not move,<br/>because the anchor did not change, only who writes it.
-  L->>DB: next beat
-  DB-->>L: owner is the phone, generation 6
-  Note over L: Steps down to read-only within one beat
-```
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/diagrams/handoff-dark.png" />
+    <img width="740" alt="Sequence: the laptop claims the lease every 30 seconds at generation 5. The phone watches and shows the running timer read-only. The phone claims with force and gets generation 6. On its next beat the laptop learns the phone owns the session and steps down to read-only." src="docs/assets/diagrams/handoff-light.png" />
+  </picture>
+</p>
 
 Handoff is possible at all because of the anchor design. The phone does not replay any history. It receives the anchor and computes the same elapsed. The lease lasts 90 seconds and the holder renews it every 30, so one dropped request never costs the lease, and a laptop that vanishes releases the session within a minute and a half without anyone pressing anything. A device watching someone else's shift checks every 20 seconds, and one with nothing to watch checks every 60.
 
@@ -464,26 +409,14 @@ nodrift/
 │   └── functions/
 │       └── delete-account/ The only code that runs outside the browser
 └── docs/
-    ├── SYNC-BLUEPRINT.md   Cross-device sync and live handoff design
-    ├── implement.md        Time zones: design, invariants, edge cases
-    ├── followups.md        Work week, clock and date formats, re-filing
-    └── assets/             Logo and screenshots
+    └── assets/
+        ├── screenshots/    The images in this README
+        └── diagrams/       Diagram sources (.mmd) and their renders
 ```
 
 Inside `index.html`, the script is organised into twenty numbered sections, from state and DOM bindings through the clock policy, the IndexedDB engine, the multi-tab lock, timers, rendering, idle auditing, the virtualised logbook and backups, to initialisation. Self-contained modules sit between them, each an IIFE with a small API on `window`: `WorkWeek`, `TimeZones`, `ZoneCatalog`, `ZonePicker`, `Sync`, `SyncNet`, `SyncEngine`, `SessionLease`, `SyncLive` and `MobileShell`. Formatting follows [Prettier](https://prettier.io) with CRLF line endings, which [`.gitattributes`](.gitattributes) enforces for every clone.
 
 There is no automated test suite in this repository. Behaviour was verified with a separate harness that drives the real app in headless Chrome, including multi-device and clock-skew scenarios against a live test database. That harness is deliberately kept out of the repository because it holds a test account's fixtures.
-
----
-
-## Design documents
-
-The reasoning behind the hard parts is written down, including what was measured and what was wrong the first time.
-
-- **[Sync blueprint](docs/SYNC-BLUEPRINT.md).** Why records, the session and preferences need different merge rules, the shadow-map outbox, clock domains, the lease, the failure matrix, and later chapters on ending a shift everywhere, time zones, the work week and per-preference merging.
-- **[Time zones](docs/implement.md).** Vocabulary, the invariants every change must keep, and an edge-case catalogue covering DST gaps, repeated hours and midnight in every kind of zone.
-- **[Work week, formats and re-filing](docs/followups.md).** How a schedule keeps its history, how display formats stay display-only, and how moving a record to another zone works.
-- **[Supabase backend](supabase/README.md).** Every migration, why the publishable key is safe, and the edge function's security properties, measured.
 
 ---
 

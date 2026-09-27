@@ -1,0 +1,9 @@
+flowchart TB
+  Change["Any change<br/>end shift, edit, delete, import, sync"] --> Save["saveLogs()"]
+  Save --> S1["1. Mark dirty for sync<br/>a no-op when signed out"]
+  S1 --> S2{"2. First change<br/>today?"}
+  S2 -- yes --> Snap[("Snapshot of the logbook<br/>before this change")]
+  S2 --> S3["3. Swap the in-memory logbook<br/>version bump clears every cache"]
+  S3 -.-> Worker[["Analytics worker<br/>regroups day, month, year"]]
+  S3 --> S4[("4. Mirror in localStorage<br/>whole logbook, synchronous")]
+  S4 --> S5[("5. IndexedDB, one record per month<br/>only changed months rewritten")]

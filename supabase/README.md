@@ -3,32 +3,29 @@
 Everything the sync backend consists of: three tables, three policies, five
 functions, two triggers. Apply `migrations/` in filename order.
 
-| File                                                                  | What it creates                                                                 | Blueprint |
-| :-------------------------------------------------------------------- | :------------------------------------------------------------------------------ | :-------- |
-| [0001_schema.sql](migrations/0001_schema.sql)                         | `devices`, `session_state`, `records`, `records_pull_idx`                       | §6        |
-| [0002_rls.sql](migrations/0002_rls.sql)                               | RLS enabled + forced, three `own_*` policies                                    | §6        |
-| [0003_functions.sql](migrations/0003_functions.sql)                   | `touch_updated_at` + triggers, `push_records`, `server_now`, `claim_session`    | §6, §8    |
-| [0004_sync_session.sql](migrations/0004_sync_session.sql)             | `sync_session` — lease, live session and settings in one call                   | Phase 5   |
-| [0005_record_kinds.sql](migrations/0005_record_kinds.sql)             | widens `kind` to `leave`/`view`; fixes a `settings_modified` default            | Phase 8   |
-| [0006_realtime.sql](migrations/0006_realtime.sql)                     | publishes `session_state` and `records` for realtime — **optional**             | Phase 9   |
-| [0007_realtime_columns.sql](migrations/0007_realtime_columns.sql)     | narrows both publications to the columns actually read — **optional**           | Phase 9   |
-| [0008_one_write_per_beat.sql](migrations/0008_one_write_per_beat.sql) | folds the session write into the claim so a beat writes the row once, not twice | Scaling   |
+| File                                                                  | What it creates                                                                 |
+| :-------------------------------------------------------------------- | :------------------------------------------------------------------------------ |
+| [0001_schema.sql](migrations/0001_schema.sql)                         | `devices`, `session_state`, `records`, `records_pull_idx`                       |
+| [0002_rls.sql](migrations/0002_rls.sql)                               | RLS enabled + forced, three `own_*` policies                                    |
+| [0003_functions.sql](migrations/0003_functions.sql)                   | `touch_updated_at` + triggers, `push_records`, `server_now`, `claim_session`    |
+| [0004_sync_session.sql](migrations/0004_sync_session.sql)             | `sync_session` — lease, live session and settings in one call                   |
+| [0005_record_kinds.sql](migrations/0005_record_kinds.sql)             | widens `kind` to `leave`/`view`; fixes a `settings_modified` default            |
+| [0006_realtime.sql](migrations/0006_realtime.sql)                     | publishes `session_state` and `records` for realtime — **optional**             |
+| [0007_realtime_columns.sql](migrations/0007_realtime_columns.sql)     | narrows both publications to the columns actually read — **optional**           |
+| [0008_one_write_per_beat.sql](migrations/0008_one_write_per_beat.sql) | folds the session write into the claim so a beat writes the row once, not twice |
 
-0001–0003 were extracted from [../docs/SYNC-BLUEPRINT.md](../docs/SYNC-BLUEPRINT.md)
-after the fact. Until then the schema of the deployed database existed only as
-fenced code blocks inside a design document, which meant rebuilding production
-would have started with reading prose.
+0001–0003 were written down after the fact, so that rebuilding production
+starts from SQL rather than from prose.
 
 0004 and 0005 are the files previously named `phase5.sql` and `phase8.sql`,
 moved unchanged.
 
 ## Re-running is safe
 
-Every file is idempotent. The blueprint's original script used bare
-`create table` and `create policy`, which fail on the second run; the
-extracted files add `if not exists` and `drop policy if exists` guards.
-That is the **only** difference from the blueprint text — no definition was
-altered, so these files still describe exactly what is deployed.
+Every file is idempotent. Tables and indexes are created with `if not exists`,
+functions with `create or replace`, and policies and triggers are dropped with
+`if exists` before they are created, so running a file a second time changes
+nothing. The definitions describe exactly what is deployed.
 
 Each file ends with a commented-out verification query.
 
@@ -43,8 +40,8 @@ first, then ship the client.
 
 ## One thing these files deliberately do not carry
 
-§7 of the blueprint proposes pruning tombstones after 90 days on a weekly
-`pg_cron` schedule:
+The sync design prunes tombstones (the rows that record a deletion) after 90
+days, on a weekly `pg_cron` schedule:
 
 ```sql
 delete from public.records
@@ -59,9 +56,7 @@ retention window still holds the deleted record and never learns it went
 away, so a cursor older than the window has to force a full resync instead of
 a delta. Enabling the prune without that half loses deletions silently.
 
-Aside from this, `migrations/` is the complete database. Verified
-mechanically: every statement in the extracted files appears in the
-blueprint, and the only blueprint statement not extracted is the one above.
+Aside from this, `migrations/` is the complete database.
 
 ## The migrations the app does not need
 
