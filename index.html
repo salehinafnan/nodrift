@@ -514,10 +514,16 @@
         --break-timer-size: clamp(2.5rem, min(4.9vw, 9vh), 7rem);
 
         /* Dynamic Grid System & Segment Fallbacks */
+        /* The desktop's margin, one width on all four sides of the window,
+           and again between the stage and the inspector (see THE SHELL). */
+        --shell-inset: clamp(1.5rem, 3vw, 3.5rem);
         /* Stage and inspector at 61 / 39: the inspector carries the day's
            records and gets the room to show them, the stage keeps the clearly
-           larger share. 464px is the narrowest the log rows' figures fit. */
-        --panel-columns: minmax(0, 1.55fr) minmax(464px, 1fr);
+           larger share. 452px is the narrowest card the log rows' figures
+           fit, and the inspector's column holds the margin to its right as
+           well. */
+        --panel-columns: minmax(0, 1.55fr)
+          minmax(calc(452px + var(--shell-inset)), 1fr);
         --panel-gap: 0px;
         --segment-height: 8px;
         --segment-gap: 6px;
@@ -2021,6 +2027,12 @@
            the inspector  -- Insights, Logbook and Tasks, in one floating card
                              inset from the window's edges (.sidebar)
 
+         One margin frames the two, --shell-inset, the same on every side:
+         the status row hangs as far below the top as the wordmark stands in
+         from the left, the controls rest as far above the foot, and the card
+         keeps it from the top, the right and the foot. So the card's top and
+         foot run level with the status row's and the controls'.
+
          Filling the window used to mean filling it with nothing: the old
          console was a fixed-proportion card, so a large screen only grew the
          moat around it. Here the stage takes whatever the inspector leaves,
@@ -2028,7 +2040,6 @@
          numerals are sized by the window (see --timer-size) -- and let the
          canvas show between the two as deliberate space rather than margin. */
       .console-panel {
-        --shell-inset: 12px;
         width: 100%;
         height: 100vh;
         height: 100svh;
@@ -2051,10 +2062,9 @@
         justify-content: flex-start;
         min-height: 0;
         min-width: 0;
-        /* The same inset at the foot as at the head, so the controls rest
-           as far above the window's bottom edge as the status row hangs
-           below its top. */
-        padding: calc(var(--shell-inset) + 8px) clamp(1.5rem, 3vw, 3.5rem);
+        /* The window's margin all round (see THE SHELL); on the right it is
+           the space between the stage and the inspector. */
+        padding: var(--shell-inset);
       }
 
       /* Ambient light. A soft pool of the session's own colour behind the
@@ -3651,7 +3661,8 @@
           9. SIDEBAR LAYOUT & TABS
           ========================================================================= */
       /* The inspector: one floating card, inset from the window on three
-         sides so the canvas frames it. Its height comes from the grid row it
+         sides by the window's margin so the canvas frames it (the stage's
+         padding is the fourth). Its height comes from the grid row it
          stretches in, less the margins, so it never needs measuring. */
       .sidebar {
         display: flex;
@@ -5262,11 +5273,17 @@
            off at the strip's fixed height. Scales with the root size, so the
            ratio of text to box holds at every window size. */
         width: 24rem;
-        /* The panel opens upward from the foot of a full-height inspector, so
-           the window less the dock and the inspector's own inset is what it
-           may use. */
-        max-height: calc(100vh - 120px);
-        max-height: calc(100svh - 120px);
+        /* The panel opens upward from the dock at the foot of the inspector,
+           so it may use the window less the dock, the 12px it stands off,
+           the inspector's foot under the dock (its 8px padding and its edge)
+           and the window's margin at both ends: a tall panel stops at the
+           margin rather than running off the top of a short window. */
+        max-height: calc(
+          100vh - 2 * var(--shell-inset) - var(--tab-nav-height) - 21px
+        );
+        max-height: calc(
+          100svh - 2 * var(--shell-inset) - var(--tab-nav-height) - 21px
+        );
         overflow-y: auto;
         overscroll-behavior: contain;
         -webkit-overflow-scrolling: touch;
@@ -11717,7 +11734,7 @@
         :root {
           --timer-size: clamp(
             4.5rem,
-            min(12.2vw, 21vh, (94vw - 476px) * 0.225),
+            min(12.2vw, 21vh, (91vw - 464px) * 0.225),
             18rem
           );
           --break-timer-size: calc(var(--timer-size) * 0.58);
