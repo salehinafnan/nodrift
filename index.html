@@ -534,7 +534,11 @@
         --tab-nav-bg: color-mix(in srgb, var(--text-main) 6%, transparent);
         --tab-nav-border: none;
         --tab-nav-height: var(--header-el-height);
-        --tab-btn-radius: calc(var(--radius-md) - 1px);
+        /* The track's corners less its inset, so a segment at either end
+           follows the track's curve instead of cutting across it. */
+        --tab-btn-radius: calc(
+          var(--header-el-radius) - var(--tab-nav-padding)
+        );
         --tab-btn-color: var(--text-muted);
         /* The active segment is one sliding thumb rather than a fill on the
            active button (see .tab-nav::before), so these describe the thumb. */
@@ -3664,10 +3668,12 @@
         position: relative;
       }
 
-      /* Subtle Scroll-to-Top borderless action above footer, centered */
+      /* Subtle Scroll-to-Top borderless action above footer, centered, and
+         12px clear of the dock at every size: the dock is a key of the tab
+         track's height, with 10px above it and the inspector's 8px below. */
       .scroll-top-btn {
         position: absolute;
-        bottom: 66px;
+        bottom: calc(var(--tab-nav-height) + 30px);
         left: 50%;
         transform: translateX(-50%) scale(0.85);
         width: 34px;
@@ -5069,11 +5075,15 @@
           ========================================================================= */
       /* THE DOCK. The app's tools -- backup, restore, leave, heatmap, help,
          adjust, sync, settings, and the wipe set apart at the end -- in one
-         row of tiles along the inspector's foot. */
+         row of keys along the inspector's foot.
+
+         The inspector opens on the tab track and closes on the dock, and
+         the two are one family: the keys are cut from the track's material,
+         and the dock stands as far below the list as the track stands
+         above it, with no rule drawn between them. */
       .sidebar-footer {
         margin-top: auto;
-        padding-top: 8px;
-        border-top: var(--hairline-width) solid var(--hairline-color);
+        padding-top: 10px;
         display: flex;
         justify-content: center;
         width: 100%;
@@ -5134,11 +5144,10 @@
         text-align: center;
       }
 
-      /* Each tool in a tile of its own, and the tiles share the row out
-         evenly, so the dock runs the inspector's full width the way the tab
-         track does at its head. A tile is the inspector's level 1, the
-         material of the rows above it. Absolutely placed panels in the row
-         take no column. */
+      /* Each tool a key of its own, and the keys share the row out evenly,
+         so the dock runs the inspector's full width the way the tab track
+         does at its head. Absolutely placed panels in the row take no
+         column. */
       .sidebar-footer .footer-icons {
         display: grid;
         grid-auto-flow: column;
@@ -5150,13 +5159,16 @@
         align-items: stretch;
       }
 
+      /* A key is the tab track in small: its height, its pill and its
+         tint, with no edge. A pointer deepens the tint; a tool whose panel
+         is open takes the track's thumb (below). */
       .sidebar-footer .sq-btn {
         width: 100%;
-        height: clamp(40px, 2.875rem, 48px);
+        height: var(--tab-nav-height);
         padding: 0;
-        background: var(--surface-1);
-        border: var(--hairline);
-        border-radius: var(--radius-lg);
+        background: var(--tab-nav-bg);
+        border: 0;
+        border-radius: var(--header-el-radius);
         color: var(--text-muted);
         display: flex;
         align-items: center;
@@ -5168,38 +5180,28 @@
            below still lands in a single frame. */
         transition:
           background-color var(--motion-fast) ease,
-          border-color var(--motion-fast) ease,
+          box-shadow var(--motion-fast) ease,
           color var(--motion-fast) ease;
       }
 
       .sidebar-footer .sq-btn svg {
-        width: 21px;
-        height: 21px;
+        width: clamp(20px, 1.375rem, 23px);
+        height: clamp(20px, 1.375rem, 23px);
       }
 
       .sidebar-footer .sq-btn:hover {
-        background: color-mix(in srgb, var(--text-main) 7%, var(--surface-1));
-        border-color: var(--hairline-hover-color);
+        background: var(--tab-btn-bg-active);
         color: var(--text-main);
       }
 
       .sidebar-footer .sq-btn:active {
-        background: color-mix(in srgb, var(--text-main) 11%, var(--surface-1));
+        background: color-mix(in srgb, var(--text-main) 16%, transparent);
         transform: none !important;
       }
 
-      /* The wipe keeps its colour at rest, a tile tinted in the break red. */
+      /* The wipe keeps its colour at rest, a key tinted in the break red. */
       .sidebar-footer .sq-btn.danger-icon {
-        background: color-mix(
-          in srgb,
-          var(--accent-break) 7%,
-          var(--surface-1)
-        );
-        border-color: color-mix(
-          in srgb,
-          var(--accent-break) 24%,
-          var(--hairline-color)
-        );
+        background: color-mix(in srgb, var(--accent-break) 10%, transparent);
       }
 
       /* A tool whose panel is open stays lit, so the panel can be traced
@@ -5211,6 +5213,23 @@
         background: var(--accent-soft);
         border-color: var(--accent-line);
         color: var(--accent-blue);
+      }
+
+      /* On the dock it is lit the way the chosen tab is, on the track's
+         thumb. */
+      .sidebar-footer .icon-stack:has(> .idle-popup.show) > .sq-btn,
+      .sidebar-footer
+        .footer-icons:has(> #sync-config-popup.show)
+        #sync-config-btn,
+      .sidebar-footer
+        .footer-icons:has(> #work-week-popup.show)
+        #settings-config-btn,
+      .sidebar-footer
+        .footer-icons:has(> #time-date-popup.show)
+        #settings-config-btn {
+        background: var(--tab-btn-active-bg);
+        box-shadow: var(--tab-btn-active-shadow);
+        color: var(--tab-btn-active-color);
       }
 
       /* Settings Config Popup Styling */
@@ -7722,10 +7741,13 @@
         align-items: stretch;
       }
 
+      /* The chosen tab is filled in place rather than by a sliding thumb,
+         so its own corners are the ones on show: at the track's rounded
+         ends an 8px corner was cut off by the track. */
       .help-tab-btn {
         flex: 1;
         padding: 8px 12px;
-        border-radius: calc(var(--radius-md) - 2px);
+        border-radius: var(--tab-btn-radius);
         background: transparent;
         color: var(--tab-btn-color, var(--text-muted));
         font-size: var(--text-sm);
