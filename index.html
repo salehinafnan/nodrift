@@ -2047,8 +2047,10 @@
         justify-content: flex-start;
         min-height: 0;
         min-width: 0;
-        padding: calc(var(--shell-inset) + 8px) clamp(1.5rem, 3vw, 3.5rem)
-          clamp(1.25rem, 3vh, 2rem);
+        /* The same inset at the foot as at the head, so the controls rest
+           as far above the window's bottom edge as the status row hangs
+           below its top. */
+        padding: calc(var(--shell-inset) + 8px) clamp(1.5rem, 3vw, 3.5rem);
       }
 
       /* Ambient light. A soft pool of the session's own colour behind the
@@ -2059,7 +2061,10 @@
          One static gradient on one layer: it repaints only when the session
          changes mode, and the 0.6s fade between modes is the registered
          --ambient colour interpolating, not a second layer crossfading. Paper
-         has no light to cast, so E-Ink opts out. */
+         has no light to cast, so E-Ink opts out.
+
+         Strong enough to register on an OLED panel, where a dimmer pool sank
+         into the black and read as no light at all. */
       @property --ambient {
         syntax: "<color>";
         inherits: true;
@@ -2081,11 +2086,11 @@
       }
 
       :root[data-session-mode="work"] {
-        --ambient: color-mix(in srgb, var(--accent-work) 9%, transparent);
+        --ambient: color-mix(in srgb, var(--accent-work) 13%, transparent);
       }
 
       :root[data-session-mode="break"] {
-        --ambient: color-mix(in srgb, var(--accent-break) 8%, transparent);
+        --ambient: color-mix(in srgb, var(--accent-break) 12%, transparent);
       }
 
       :root[data-session-mode="idle"] {
@@ -2093,11 +2098,11 @@
       }
 
       :root[data-theme="sf-dark"][data-session-mode="work"] {
-        --ambient: color-mix(in srgb, var(--accent-work) 13%, transparent);
+        --ambient: color-mix(in srgb, var(--accent-work) 20%, transparent);
       }
 
       :root[data-theme="sf-dark"][data-session-mode="break"] {
-        --ambient: color-mix(in srgb, var(--accent-break) 12%, transparent);
+        --ambient: color-mix(in srgb, var(--accent-break) 19%, transparent);
       }
 
       :root[data-theme="vercel-dark"][data-session-mode] {
@@ -2343,12 +2348,13 @@
       /* Inline-block, not flex: flex would make the two spans separate
          items, and anything that copies or reads the text would get "UTC",
          a line break, then "+6". */
-      /* A zone's name, set as an overline in front of its clock. */
+      /* A zone's name, set as an overline in front of its clock, in the
+         accent: the one mark of colour in the clocks. */
       .tz-clock-label {
         font-size: var(--overline-size);
         font-weight: 600;
         letter-spacing: 0.06em;
-        color: var(--text-muted);
+        color: var(--accent-blue);
         font-family: var(--font-sans);
         display: inline-block;
         padding: 0.25rem 0;
@@ -2596,12 +2602,11 @@
       /* =========================================================================
           7. TIMERS & PROGRESS GAUGES (SYMMETRICAL LAYOUT)
           ========================================================================= */
-      /* The instrument: work timer, progress, break timer, and -- below, in
-         .actions -- the controls, centred as one block in the stage. The two
-         auto margins (this one's top, .actions' bottom) split the free height
-         evenly above and below the block, so it rides the middle of the
-         window at every size instead of the timers floating in the middle
-         and the buttons sinking to the floor. */
+      /* The instrument: work timer, progress, break timer, with the controls
+         (.actions) docked at the foot of the stage, as on the phone. The two
+         auto margins split the height between the status row and the dock
+         evenly, so the timers ride the middle of that space at every window
+         size. */
       .timers-wrapper {
         flex: 0 0 auto;
         display: flex;
@@ -2609,7 +2614,7 @@
         justify-content: center;
         gap: clamp(1.25rem, 3.6vh, 2.5rem);
         align-items: center;
-        margin: auto 0 0;
+        margin: auto 0;
         min-height: 0;
         width: 100%;
       }
@@ -2680,16 +2685,16 @@
         /* Controlled by flex gaps */
       }
 
-      /* The timer names, as overlines with a state dot in front. The render
-         paints these labels inline (the accent while their timer runs, the
-         ink otherwise), and that paint is overruled here on purpose: which
-         timer is live is read from data-session-mode, the same attribute the
-         ambient light follows, so the dot, the word and the glow behind them
-         are driven by one fact. */
+      /* The timer names, as overlines. The render paints these labels inline
+         (the accent while their timer runs, the ink otherwise), and that
+         paint is overruled here on purpose: which timer is live is read from
+         data-session-mode, the same attribute the ambient light follows, so
+         the dot, the word and the glow behind them are driven by one fact. */
       .timer-group .label-xs {
+        --overline-dot-gap: 8px;
+        position: relative;
         display: inline-flex;
         align-items: center;
-        gap: 8px;
         font-family: var(--font-sans) !important;
         font-size: var(--overline-size);
         font-weight: 600;
@@ -2700,15 +2705,36 @@
         transition: color var(--motion-base) ease;
       }
 
+      /* The running timer's dot, and only that timer's: none at all while
+         nothing runs. It hangs off the word's left edge rather than taking
+         a place in the line, so the word stays centred over its figures
+         when the dot comes and goes. Each dot keeps its own timer's colour,
+         so it fades out in that colour rather than in the next mode's. */
       .timer-group .label-xs::before {
         content: "";
+        position: absolute;
+        top: 50%;
+        right: 100%;
         width: 7px;
         height: 7px;
+        margin-right: var(--overline-dot-gap);
         border-radius: 50%;
-        background: color-mix(in srgb, var(--text-muted) 40%, transparent);
+        background: var(--dot-accent);
+        box-shadow: 0 0 0 4px
+          color-mix(in srgb, var(--dot-accent) 22%, transparent);
+        opacity: 0;
+        transform: translateY(-50%) scale(0.4);
         transition:
-          background-color var(--motion-base) ease,
-          box-shadow var(--motion-base) ease;
+          opacity var(--motion-base) ease,
+          transform var(--motion-base) var(--ease-out);
+      }
+
+      .timer-group:first-child .label-xs {
+        --dot-accent: var(--accent-work);
+      }
+
+      .timer-group:last-child .label-xs {
+        --dot-accent: var(--accent-break);
       }
 
       :root[data-session-mode="work"] .timer-group:first-child .label-xs,
@@ -2720,9 +2746,8 @@
       :root[data-session-mode="break"]
         .timer-group:last-child
         .label-xs::before {
-        background: var(--live-accent);
-        box-shadow: 0 0 0 4px
-          color-mix(in srgb, var(--live-accent) 22%, transparent);
+        opacity: 1;
+        transform: translateY(-50%) scale(1);
       }
 
       :root[data-session-mode="work"] {
@@ -3126,16 +3151,23 @@
       /* =========================================================================
           8. BUTTONS & ACTIONS
           ========================================================================= */
-      /* The instrument's controls, under the timers and centred with them
-         (see .timers-wrapper for the two auto margins that centre the pair). */
+      /* The instrument's controls, docked at the foot of the stage. The top
+         margin is the least room they leave the timers on a short window;
+         .timers-wrapper's auto margins share out the rest. */
       .actions {
         --button-height: 3.25rem;
         display: grid;
         grid-template-columns: 1fr 1fr;
         gap: var(--actions-gap);
         width: min(100%, 40rem);
-        margin: clamp(1.75rem, 5.5vh, 3.5rem) auto auto;
+        margin: clamp(1.75rem, 5.5vh, 3.5rem) auto 0;
         align-content: end;
+      }
+
+      /* The other device's banner belongs to the controls (its one button
+         takes the session over), so it sits just above them. */
+      .remote-session-banner.is-visible + .actions {
+        margin-top: 0;
       }
 
       .actions button {
@@ -3373,7 +3405,7 @@
         justify-content: center;
         gap: var(--space-3, 12px);
         flex-wrap: wrap;
-        margin-bottom: var(--space-2, 8px);
+        margin: var(--space-4, 16px) 0 var(--space-2, 8px);
         padding: 8px 14px;
         border: 1px solid var(--border-soft, rgba(128, 128, 128, 0.28));
         border-radius: 10px;
@@ -9919,18 +9951,27 @@
           min-height: 44px;
         }
 
-        /* Timer pane The timer is the hero of this screen. */
+        /* Timer pane The timer is the hero of this screen.
+
+           The instrument takes the room the pane gives it. The work timer
+           runs as wide as the gutters allow on any phone tall enough to
+           hold it, and is held by the height only on a short screen (an SE
+           with the browser's bars showing); everything else in the block
+           -- the overlines, the rail and the line under it, the break timer
+           -- is measured off it, and the gaps between the three groups grow
+           with the height, so the block fills the pane between the top bar
+           and the dock instead of floating small in the middle of it. */
         :root {
-          --timer-size: clamp(4.5rem, 19.5vw, 6.8rem);
+          --timer-size: clamp(4.5rem, min(22.5vw, 13.5svh), 7.75rem);
           --timer-weight: 300;
-          --break-timer-size: clamp(3.2rem, 14.5vw, 5rem);
+          --break-timer-size: calc(var(--timer-size) * 0.75);
         }
 
         /* The three groups (work timer, progress, break timer) must read as one block. */
         body[data-mpane="timer"] .timers-wrapper {
           flex: 1;
           justify-content: center;
-          gap: 1.8rem;
+          gap: clamp(1.8rem, 6svh, 3.75rem);
           margin: 0;
         }
 
@@ -9939,8 +9980,34 @@
         }
 
         .timer-group .label-xs {
-          margin-bottom: 0.15rem;
+          font-size: clamp(
+            var(--overline-size),
+            calc(var(--timer-size) * 0.13),
+            0.9375rem
+          );
+          margin-bottom: 0.4em;
           text-align: center;
+        }
+
+        .timer-group .label-xs::before {
+          width: 0.6em;
+          height: 0.6em;
+        }
+
+        .progress-centerpiece {
+          gap: 12px;
+        }
+
+        .progress-rail {
+          height: 10px;
+        }
+
+        .progress-meta {
+          font-size: clamp(
+            var(--text-xs),
+            calc(var(--timer-size) * 0.14),
+            var(--text-base)
+          );
         }
 
         .timer-val {
@@ -11260,15 +11327,16 @@
         /* THE STAGE, scaled to its room. Every piece of the instrument is
            measured off the work timer, so the overlines, the rail, the line
            under it and the dock grow together and keep their proportions at
-           every window size: the rail runs about 1.13 timer-widths, the dock
-           just over one. The gaps between them grow with the window's
-           height, which is the spare dimension on a 16:10 screen. */
+           every window size: the rail runs about 1.13 timer-widths, and the
+           dock at the foot of the stage runs the rail's width, so the two
+           line up. The gaps between them grow with the window's height,
+           which is the spare dimension on a 16:10 screen. */
         .timers-wrapper {
           gap: clamp(1.5rem, 4.4vh, 3.25rem);
         }
 
         .timer-group .label-xs {
-          gap: 9px;
+          --overline-dot-gap: 9px;
           font-size: 0.8125rem;
           margin-bottom: 0.7rem;
         }
@@ -11294,7 +11362,7 @@
         .actions {
           --button-height: 3.75rem;
           gap: 14px;
-          width: min(100%, calc(var(--timer-size) * 4.15));
+          width: min(100%, calc(var(--timer-size) * 4.5));
           margin-top: clamp(2rem, 6.8vh, 4.75rem);
         }
 
@@ -11535,7 +11603,7 @@
         }
 
         .timer-group .label-xs {
-          gap: 0.65em;
+          --overline-dot-gap: 0.65em;
           font-size: clamp(
             0.8125rem,
             calc(var(--timer-size) * 0.079),
@@ -11573,7 +11641,7 @@
             4.75rem
           );
           gap: 16px;
-          width: min(100%, calc(var(--timer-size) * 4.3));
+          width: min(100%, calc(var(--timer-size) * 4.6));
         }
 
         .actions button {
