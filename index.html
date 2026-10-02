@@ -8186,7 +8186,14 @@
         }
       }
 
-      /* High-Performance Flat Timer Styles - 0% CPU Software Rendering */
+      /* High-Performance Flat Timer Styles - 0% CPU Software Rendering
+
+         The negative tracking is added after every figure, the last one
+         included, so without the end padding the box stops short of the
+         last figure's ink: paint containment clipped the right-hand curve
+         of an 8, and the figures sat off centre by half the tracking. The
+         padding gives back exactly what the last figure lost, so the ink
+         has the same room on both sides and centres on the column. */
       .timer-val {
         display: flex;
         justify-content: center;
@@ -8195,6 +8202,7 @@
         line-height: 1;
         font-weight: var(--timer-weight);
         letter-spacing: var(--timer-spacing);
+        padding-inline-end: calc(-1 * var(--timer-spacing));
         margin-bottom: 0;
         transition:
           color 0.4s ease,
@@ -10021,10 +10029,10 @@
            -- the overlines, the rail and the line under it, the break timer
            -- is measured off it, and the gaps between the three groups grow
            with the height, so the block fills the pane between the top bar
-           and the dock instead of floating small in the middle of it. */
+           and the dock instead of floating small in the middle of it. The
+           figures keep the desktop's weight. */
         :root {
           --timer-size: clamp(4.5rem, min(22.5vw, 13.5svh), 7.75rem);
-          --timer-weight: 300;
           --break-timer-size: calc(var(--timer-size) * 0.85);
         }
 
@@ -16719,9 +16727,9 @@
           }
 
           #task-timer-display {
+            --timer-spacing: -0.035em;
             font-size: 2.5rem;
             font-weight: 300;
-            letter-spacing: -0.035em;
             margin: 0;
           }
 
