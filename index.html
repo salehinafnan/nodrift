@@ -506,8 +506,8 @@
         /* The hero numerals. A regular weight with tight tracking at display
            size, sized by the smaller of the window's width and height, so a
            short wide screen and a tall narrow one both get the largest figure
-           that fits. These are the tablet's sizes; a desktop sets its own
-           (see THE STAGE ON A DESKTOP). */
+           that fits. A fallback only: the phone shell (tablets included)
+           and the desktop each set their own (see THE STAGE ON A DESKTOP). */
         --timer-size: clamp(4.5rem, min(10.9vw, 19vh), 16rem);
         --timer-weight: 400;
         --timer-spacing: -0.045em;
@@ -952,7 +952,7 @@
          This breakpoint is PHONE_BREAKPOINT_PX. CSS cannot read a custom
          property in a media condition, so the literal is repeated across the
          phone blocks by necessity -- keep them in step. */
-      @media (max-width: 767px) {
+      @media (max-width: 1149px) {
         :root {
           --blur-2: var(--glass-blur);
         }
@@ -1895,7 +1895,7 @@
       }
 
       /* Installed-PWA chrome trimming. */
-      @media (max-width: 767px) and (display-mode: standalone) {
+      @media (max-width: 1149px) and (display-mode: standalone) {
         :root {
           /* Tightly crop the bottom gap */
           --m-safe-bottom: 22px !important;
@@ -1943,7 +1943,7 @@
         #sync-toast,
         #goal-toast,
         #app-toast {
-          top: max(16px, calc(var(--m-safe-top) + 12px)) !important;
+          top: max(16px, calc(var(--m-safe-top) + var(--m-topbar-top))) !important;
         }
       }
 
@@ -2064,11 +2064,29 @@
          has no light to cast, so E-Ink opts out.
 
          Strong enough to register on an OLED panel, where a dimmer pool sank
-         into the black and read as no light at all. */
+         into the black and read as no light at all.
+
+         The pool rises from the timer that is running: --glow-x/--glow-y are
+         that timer's centre, measured by placeAmbientLight() because the
+         timers ride auto margins no stylesheet can see. With nothing running
+         the light rests between the two, and it travels with the session --
+         down to the break timer on a break and back up to work. */
       @property --ambient {
         syntax: "<color>";
         inherits: true;
         initial-value: transparent;
+      }
+
+      @property --glow-x {
+        syntax: "<length-percentage>";
+        inherits: true;
+        initial-value: 50%;
+      }
+
+      @property --glow-y {
+        syntax: "<length-percentage>";
+        inherits: true;
+        initial-value: 46%;
       }
 
       .main-ui::before {
@@ -2078,11 +2096,14 @@
         z-index: -1;
         pointer-events: none;
         background: radial-gradient(
-          58% 52% at 50% 46%,
+          58% 48% at var(--glow-x) var(--glow-y),
           var(--ambient),
           transparent 72%
         );
-        transition: --ambient 0.6s ease;
+        transition:
+          --ambient 0.6s ease,
+          --glow-x 0.6s var(--ease-out),
+          --glow-y 0.6s var(--ease-out);
       }
 
       :root[data-session-mode="work"] {
@@ -3205,12 +3226,11 @@
         transform: scale(0.985);
       }
 
-      /* The quiet half of the dock. While a shift runs the two controls are
-         Break and End Shift, and neither is the thing to press next -- the
-         timer is the subject. So they stand as neutral raised buttons and only
-         their glyphs carry colour; the solid fill is kept for Work, the one
-         control that starts something. */
-      .actions .btn-break,
+      /* The quiet end of the dock. Work and Break are the session's two
+         states, each drawn solid in its own colour (see the emphasis recipe
+         below); End Shift is never the thing to press next -- the timer is
+         the subject -- so it stands as a neutral raised button and only its
+         glyph carries colour. */
       .actions .btn-log {
         background: var(--raised-bg);
         border: 1px solid var(--raised-edge);
@@ -3218,16 +3238,11 @@
         box-shadow: var(--emph-highlight), var(--raised-shadow);
       }
 
-      .actions .btn-break svg {
-        color: var(--accent-break);
-      }
-
       .actions .btn-log svg {
         color: var(--accent-blue);
       }
 
       @media (hover: hover) {
-        .actions .btn-break:hover:not(:disabled),
         .actions .btn-log:hover:not(:disabled) {
           background: var(--raised-hover);
           border-color: var(--hairline-hover-color);
@@ -3235,7 +3250,6 @@
         }
       }
 
-      .actions .btn-break:active:not(:disabled),
       .actions .btn-log:active:not(:disabled) {
         background: var(--raised-hover);
         color: var(--text-main);
@@ -3369,22 +3383,26 @@
 
       .btn-work {
         --emph-accent: var(--accent-work);
-        /* The primary carries its colour into its shadow, so it lifts off the
-           canvas in its own light. */
-        box-shadow:
-          inset 0 1px 0 rgba(255, 255, 255, 0.24),
-          0 1px 2px rgba(0, 0, 0, 0.12),
-          0 10px 24px -12px
-            color-mix(in srgb, var(--accent-work) 75%, transparent);
-      }
-
-      :root[data-theme="theme-eink"] .btn-work,
-      :root[data-theme="vercel-dark"] .btn-work {
-        box-shadow: none;
       }
 
       .btn-break {
         --emph-accent: var(--accent-break);
+      }
+
+      /* The primaries carry their colour into their shadow, so each lifts
+         off the canvas in its own light. */
+      .btn-work,
+      .btn-break {
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.24),
+          0 1px 2px rgba(0, 0, 0, 0.12),
+          0 10px 24px -12px
+            color-mix(in srgb, var(--emph-accent) 75%, transparent);
+      }
+
+      :root[data-theme="theme-eink"] :is(.btn-work, .btn-break),
+      :root[data-theme="vercel-dark"] :is(.btn-work, .btn-break) {
+        box-shadow: none;
       }
 
       /* Shown only while the live session belongs to another device. Muted
@@ -3507,8 +3525,9 @@
         --emph-accent: var(--accent-blue);
       }
 
-      /* Prominence level 1. */
-      .btn-work {
+      /* Prominence level 1: Work in green, Break in red, the same solid. */
+      .btn-work,
+      .btn-break {
         --emph-fill: var(--emph-1-fill);
         --emph-hover: var(--emph-1-hover);
         --emph-press: var(--emph-1-press);
@@ -5050,7 +5069,7 @@
           ========================================================================= */
       /* THE DOCK. The app's tools -- backup, restore, leave, heatmap, help,
          adjust, sync, settings, and the wipe set apart at the end -- in one
-         row of ghost buttons along the inspector's foot. */
+         row of tiles along the inspector's foot. */
       .sidebar-footer {
         margin-top: auto;
         padding-top: 8px;
@@ -5067,10 +5086,7 @@
            enough to read as a strip that had not quite landed, and it was
            charging the log list above for the difference. The height is what
            the buttons need now and they sit at the foot of it: the two panes
-           end on one line and the list keeps what the reserve was holding.
-
-           The tablet is unaffected either way -- its own 40px buttons and
-           0.5rem of bottom padding already came to exactly 56. */
+           end on one line and the list keeps what the reserve was holding. */
         align-items: flex-end;
       }
 
@@ -5118,13 +5134,29 @@
         text-align: center;
       }
 
+      /* Each tool in a tile of its own, and the tiles share the row out
+         evenly, so the dock runs the inspector's full width the way the tab
+         track does at its head. A tile is the inspector's level 1, the
+         material of the rows above it. Absolutely placed panels in the row
+         take no column. */
+      .sidebar-footer .footer-icons {
+        display: grid;
+        grid-auto-flow: column;
+        grid-auto-columns: minmax(0, 1fr);
+        gap: 8px;
+      }
+
+      .sidebar-footer .icon-stack {
+        align-items: stretch;
+      }
+
       .sidebar-footer .sq-btn {
-        width: 34px;
-        height: 34px;
+        width: 100%;
+        height: clamp(40px, 2.875rem, 48px);
         padding: 0;
-        background: transparent;
-        border: var(--hairline-width) solid transparent;
-        border-radius: var(--radius-md);
+        background: var(--surface-1);
+        border: var(--hairline);
+        border-radius: var(--radius-lg);
         color: var(--text-muted);
         display: flex;
         align-items: center;
@@ -5141,18 +5173,33 @@
       }
 
       .sidebar-footer .sq-btn svg {
-        width: 18px;
-        height: 18px;
+        width: 21px;
+        height: 21px;
       }
 
       .sidebar-footer .sq-btn:hover {
-        background: color-mix(in srgb, var(--text-main) 7%, transparent);
+        background: color-mix(in srgb, var(--text-main) 7%, var(--surface-1));
+        border-color: var(--hairline-hover-color);
         color: var(--text-main);
       }
 
       .sidebar-footer .sq-btn:active {
-        background: color-mix(in srgb, var(--text-main) 11%, transparent);
+        background: color-mix(in srgb, var(--text-main) 11%, var(--surface-1));
         transform: none !important;
+      }
+
+      /* The wipe keeps its colour at rest, a tile tinted in the break red. */
+      .sidebar-footer .sq-btn.danger-icon {
+        background: color-mix(
+          in srgb,
+          var(--accent-break) 7%,
+          var(--surface-1)
+        );
+        border-color: color-mix(
+          in srgb,
+          var(--accent-break) 24%,
+          var(--hairline-color)
+        );
       }
 
       /* A tool whose panel is open stays lit, so the panel can be traced
@@ -5162,6 +5209,7 @@
       .footer-icons:has(> #work-week-popup.show) #settings-config-btn,
       .footer-icons:has(> #time-date-popup.show) #settings-config-btn {
         background: var(--accent-soft);
+        border-color: var(--accent-line);
         color: var(--accent-blue);
       }
 
@@ -7381,7 +7429,7 @@
          layer, because the phone forbids exactly this: #m-sheet-backdrop hands
          its scrim to whichever dialog is raised and takes it back in a single
          frame, and a scrim that ramps instead of switching is a visible
-         brightness pulse behind the sheet -- the reason the 767px block below
+         brightness pulse behind the sheet -- the reason the 1149px block below
          pins .modal-overlay to `opacity: 1 !important`. Source order would
          happen to give the same result today; a query says why, and survives
          someone moving a rule.
@@ -7405,7 +7453,7 @@
          already animates itself, on .is-open, and an animation outranks the id
          rule that holds it at opacity 0 until that class lands -- so including
          it here would show the card once, hide it, then transition it in. */
-      @media (min-width: 768px) {
+      @media (min-width: 1150px) {
         @keyframes modal-scrim-in {
           from {
             opacity: 0;
@@ -7434,7 +7482,7 @@
       /* Consistency heatmap.
 
          Every presentational property of this dialog lives here rather than in
-         a style attribute on the markup, and it has to: below 768px the phone
+         a style attribute on the markup, and it has to: below 1150px the phone
          layer turns it into a bottom sheet like every other dialog, and an
          inline style would outrank that media query no matter what it said.
          openHeatmapModal()/closeHeatmapModal() therefore touch exactly two
@@ -9177,16 +9225,18 @@
       /* =========================================================================
           MOBILE APP SHELL
 
-          Three blocks, and the boundaries are worth knowing before editing
-          here: the phone shell at (max-width: 767px) -- PHONE_BREAKPOINT_PX,
-          and the same breakpoint the material axis in 3.25 switches on -- a
-          tablet layout at (min-width: 768px) and (max-width: 1149px), and a
-          reduced-motion block for the phone. Nothing here is scoped to 1023px,
-          and the tablet band runs past it.
+          The boundaries are worth knowing before editing here: the phone
+          shell at (max-width: 1149px) -- PHONE_BREAKPOINT_PX, and the same
+          breakpoint the material axis in 3.25 switches on. A tablet runs it
+          too: a tablet is a big phone here, not a small desktop, because the
+          desktop's two panes overlapped on an iPad mini. Three blocks near
+          the end of the sheet fit the shell to its screen -- THE PHONE
+          SHELL, WIDE (600px and up), ON A TABLET (600px and up both ways)
+          and SHORT (under 500px tall).
 
-          The one rule outside all three is directly below, and it is the rule
-          that keeps this section off the desktop: the phone chrome is display:
-          none by default and each block opts its own back in.
+          The one rule outside all of them is directly below, and it is the
+          rule that keeps this section off the desktop: the phone chrome is
+          display: none by default and each block opts its own back in.
           ========================================================================= */
 
       #m-tabbar,
@@ -9196,7 +9246,7 @@
         display: none;
       }
 
-      @media (max-width: 767px) {
+      @media (max-width: 1149px) {
         :root {
           /* No material tokens here. The glass this shell is drawn in is
              chosen on the material and backdrop axes (3.25), which own
@@ -9218,6 +9268,16 @@
           --m-safe-left: env(safe-area-inset-left, 0px);
           --m-safe-right: env(safe-area-inset-right, 0px);
           --m-gutter: 1rem;
+          /* The panes' side inset: the gutter, clear of a landscape notch. A
+             wide screen sets it to centre one column (THE PHONE SHELL,
+             WIDE). */
+          --m-inset: calc(
+            var(--m-gutter) + max(var(--m-safe-left), var(--m-safe-right))
+          );
+          /* How far the top bar hangs below the safe line, and the room
+             between it and the pane under it. */
+          --m-topbar-top: 12px;
+          --m-topbar-gap: 24px;
 
           /* How far the bottom chrome runs PAST the bottom of the viewport. */
           --m-chrome-bleed: 24px;
@@ -9272,7 +9332,8 @@
           justify-content: flex-start;
           background: transparent;
           pointer-events: none;
-          padding: calc(12px + var(--m-safe-top)) var(--m-gutter) 0;
+          padding: calc(var(--m-topbar-top) + var(--m-safe-top)) var(--m-inset)
+            0;
           box-sizing: border-box;
           border: none;
           box-shadow: none;
@@ -9286,8 +9347,8 @@
           overscroll-behavior: contain;
           background: var(--surface-under);
           pointer-events: auto;
-          padding-left: var(--m-gutter);
-          padding-right: var(--m-gutter);
+          padding-left: var(--m-inset);
+          padding-right: var(--m-inset);
           padding-top: max(0px, var(--m-safe-top));
         }
 
@@ -9296,7 +9357,7 @@
            negative, so the pane pads the part of the line that is positive
            and the margin takes the rest. */
         body[data-mpane="timer"] .main-ui .status-bar {
-          margin-top: calc(12px + min(0px, var(--m-safe-top)));
+          margin-top: calc(var(--m-topbar-top) + min(0px, var(--m-safe-top)));
         }
 
         body:not([data-mpane="timer"]) .main-ui > *:not(.status-bar) {
@@ -9308,7 +9369,7 @@
           height: var(--m-topbar-h);
           min-height: var(--m-topbar-h);
           flex: none;
-          margin-bottom: 24px;
+          margin-bottom: var(--m-topbar-gap);
           gap: 0.25rem;
           overflow: hidden;
           /* The same rounding family as the floating tab bar at the other
@@ -9964,12 +10025,15 @@
         :root {
           --timer-size: clamp(4.5rem, min(22.5vw, 13.5svh), 7.75rem);
           --timer-weight: 300;
-          --break-timer-size: calc(var(--timer-size) * 0.75);
+          --break-timer-size: calc(var(--timer-size) * 0.85);
         }
 
-        /* The three groups (work timer, progress, break timer) must read as one block. */
+        /* The three groups (work timer, progress, break timer) must read as
+           one block. It grows into the pane but never shrinks below itself:
+           where the pane is too short for it, the pane scrolls rather than
+           the block running under the top bar and the dock. */
         body[data-mpane="timer"] .timers-wrapper {
-          flex: 1;
+          flex: 1 0 auto;
           justify-content: center;
           gap: clamp(1.8rem, 6svh, 3.75rem);
           margin: 0;
@@ -10358,8 +10422,10 @@
           border: 0;
           border-radius: 0;
           box-shadow: none;
-          padding: calc(var(--m-topbar-h) + var(--m-safe-top) + 24px)
-            var(--m-gutter) 0;
+          padding: calc(
+              var(--m-topbar-h) + var(--m-safe-top) + 2 * var(--m-topbar-top)
+            )
+            var(--m-inset) 0;
           box-sizing: border-box;
           background: var(--surface-under);
         }
@@ -11276,12 +11342,11 @@
         }
       }
 
-      /* THE SHELL ON A WIDE SCREEN (768px and up) -- tablet and desktop share
-         one stage. On a tablet, identity and the time sit together on the
-         left -- the wordmark, the clocks in one pill, presence -- and the
-         controls for the day sit on the right; from 1150px the status row
-         (below) lays the same pills out to fill the bar instead. */
-      @media (min-width: 768px) {
+      /* THE SHELL ON A WIDE SCREEN (1150px and up) -- the desktop's stage
+         and inspector. The markup's grouping (the wordmark, the clocks in
+         one pill, presence; the day's controls on the right) is the base the
+         status row below lays out to fill the bar. */
+      @media (min-width: 1150px) {
         .status-bar .status-badge.status-time {
           flex: 1 1 auto;
           min-width: 0;
@@ -11410,7 +11475,7 @@
           margin-right: 8px;
         }
 
-        /* The clocks' pill (its material is the tablet's, above). Wider than
+        /* The clocks' pill (its material is the wide shell's, above). Wider than
            its figures, it shares the spare out evenly round the two clocks
            and the rule between them -- auto margins, so a lone clock simply
            centres. */
@@ -11497,7 +11562,7 @@
 
       /* With the inspector at 39% of the window, the stage under 1280px is
          too narrow for both clocks, presence and the goal in one row. The
-         work clock stays, as it does on a tablet. */
+         work clock stays. */
       @media (min-width: 1150px) and (max-width: 1279px) {
         .status-bar .clock-divider,
         .status-bar .tz-clock-label.tz-local,
@@ -11518,9 +11583,11 @@
         }
       }
 
-      /* A large screen: the pills are long and the row tall, so their type
-         steps up one size rather than floating small in the middle of them. */
-      @media (min-width: 1680px) {
+      /* From 1366px the pills run long, and their type steps up a size so
+         the figures fill them rather than float small in the middle. Below
+         it the clocks' pill has no width to spare: both clocks and a zone
+         name each just fit it at 1280px. */
+      @media (min-width: 1366px) {
         .status-bar .nodrift-logo {
           font-size: 1.3rem;
         }
@@ -11540,25 +11607,17 @@
           font-size: 0.75rem;
         }
 
-        .status-bar .clock-divider {
-          margin: 0 18px;
-        }
-
         .status-bar .last-seen-status {
           font-size: var(--text-sm);
         }
-
-        .status-bar .goal-chevron {
-          width: 14px;
-          height: 14px;
-        }
       }
 
-      /* A very large screen, where the root size has stopped growing: one
-         more step, so the row keeps its proportion to the stage under it. */
-      @media (min-width: 2200px) {
+      /* A large screen: the pills are long and the row tall, so their type
+         steps up once more rather than floating small in the middle of
+         them. */
+      @media (min-width: 1680px) {
         .status-bar .nodrift-logo {
-          font-size: 1.45rem;
+          font-size: 1.4rem;
         }
 
         .status-bar #work-clock,
@@ -11576,18 +11635,54 @@
           font-size: 0.8125rem;
         }
 
+        .status-bar .clock-divider {
+          margin: 0 18px;
+        }
+
         .status-bar .last-seen-status {
           font-size: var(--text-base);
         }
+
+        .status-bar .goal-chevron {
+          width: 14px;
+          height: 14px;
+        }
       }
 
-      /* THE STAGE ON A DESKTOP (1150px and up). The work timer is set larger
-         here than on a tablet: across about 90% of the stage's measure, or
-         21% of the window's height on a short screen, whichever is less (the
+      /* A very large screen, where the root size has stopped growing: one
+         more step, so the row keeps its proportion to the stage under it. */
+      @media (min-width: 2200px) {
+        .status-bar .nodrift-logo {
+          font-size: 1.55rem;
+        }
+
+        .status-bar #work-clock,
+        .status-bar #local-clock,
+        .status-bar .goal-inputs input[type="text"] {
+          font-size: 1.3125rem;
+        }
+
+        .status-bar .clock-ampm {
+          font-size: 0.8125rem;
+        }
+
+        .status-bar .tz-clock-label,
+        .status-bar .goal-inputs span.label {
+          font-size: 0.875rem;
+        }
+
+        .status-bar .last-seen-status {
+          font-size: var(--text-md);
+        }
+      }
+
+      /* THE STAGE ON A DESKTOP (1150px and up). The work timer runs across
+         about 90% of the stage's measure, or 21% of the window's height on
+         a short screen, whichever is less (the
          third term keeps it inside the stage where the inspector's minimum
          width squeezes it). Every other piece of the instrument is measured
          off it, so they all grow together -- the overlines, the rail and the
-         line under it, the break timer at 0.45 of its size, the dock. */
+         line under it, the break timer at 0.58 of its size, the dock. */
       @media (min-width: 1150px) {
         :root {
           --timer-size: clamp(
@@ -11595,7 +11690,7 @@
             min(12.2vw, 21vh, (94vw - 476px) * 0.225),
             18rem
           );
-          --break-timer-size: calc(var(--timer-size) * 0.45);
+          --break-timer-size: calc(var(--timer-size) * 0.58);
         }
 
         .timers-wrapper {
@@ -11660,94 +11755,272 @@
         }
       }
 
-      /* TABLET (768-1149px) The same shell at a tighter density, which is what
-         a native iPad app does. Touch rules apply here too: there is no
-         cursor on an iPad. */
-      @media (min-width: 768px) and (max-width: 1149px) {
-        /* 46%: a log row here carries its four actions all the time (no
-           cursor to reveal them), and its three figures need the room. */
+      /* THE PHONE SHELL, WIDE (600px and up, under 1150px). Under 1150px a
+         tablet runs the phone's shell -- one pane at a time, the tab bar at
+         the foot, the sheet -- rather than the desktop's two panes squeezed
+         to fit, which ran into each other on an iPad mini. A wide shell
+         spends its width on margin rather than on stretched pieces:
+
+           the panes     one centred column
+           the tab bar   a capsule of a phone's proportions, centred
+           the overlays  the sheet, its panels and the dialogs rise as cards
+                         of a readable width, not as full-bleed slabs
+           the dock      the width of the rail, as on the desktop
+
+         The next block scales the pieces up for a tablet; a phone on its
+         side takes this one and the compact block after that. */
+      @media (min-width: 600px) and (max-width: 1149px) {
         :root {
-          --panel-columns: minmax(0, 1fr) minmax(360px, 46%);
+          --m-inset: max(
+            var(--m-gutter) + max(var(--m-safe-left), var(--m-safe-right)),
+            (100% - 54rem) / 2
+          );
+          /* Room for the sheet's four-across tiles, narrow enough to read as
+             a card risen over the pane. */
+          --m-card-width: min(100% - 2 * var(--m-gutter), 40rem);
         }
 
-        .console-panel {
-          padding-top: env(safe-area-inset-top);
-          padding-bottom: env(safe-area-inset-bottom);
+        #m-tabbar {
+          left: 0;
+          right: 0;
+          width: min(100% - 2 * var(--m-gutter), 32rem);
+          margin-inline: auto;
         }
 
-        .main-ui {
-          padding-left: 1.25rem;
-          padding-right: 1.25rem;
+        .progress-centerpiece,
+        .actions {
+          width: min(100%, calc(var(--timer-size) * 4.5));
         }
 
-        /* The bar has to be allowed to reflow at this width: the day's
-           controls drop to a second line before anything is clipped. */
+        /* The sheet and the panels it raises keep their rise and their
+           keyboard lift; only the width changes, and the sides take the
+           hairline the top edge already has. */
+        #m-sheet,
+        #m-sheet .idle-popup {
+          left: 0;
+          right: 0;
+          width: var(--m-card-width);
+          margin-inline: auto;
+        }
+
+        #m-sheet::before {
+          border-left: var(--hairline);
+          border-right: var(--hairline);
+        }
+
+        .modal-container,
+        .modal-container.accent-warning,
+        .modal-container.accent-danger,
+        .modal-container.accent-info,
+        .modal-container.accent-success {
+          max-width: var(--m-card-width) !important;
+          border-left: var(--hairline) !important;
+          border-right: var(--hairline) !important;
+        }
+
+        /* Help and the heatmap are dense reading, and take the column. */
+        .modal-container.modal-width-lg,
+        #heatmap-container-anim {
+          max-width: min(100% - 2 * var(--m-gutter), 54rem) !important;
+        }
+      }
+
+      /* THE PHONE SHELL ON A TABLET (600px and up on both sides, under
+         1150px). The chrome a size up -- a wider gutter, a taller top bar
+         carrying both clocks with the rule between them, a taller tab bar --
+         and the instrument sized to the pane: across most of a portrait
+         column, held by the height on a landscape screen. */
+      @media (min-width: 600px) and (min-height: 600px) and (max-width: 1149px) {
+        :root {
+          --m-gutter: clamp(1.5rem, 3.4vw, 2.25rem);
+          --m-topbar-h: 4.1rem;
+          --m-topbar-top: 16px;
+          --m-topbar-gap: 28px;
+          --m-tabbar-bar: 4.4rem;
+          --m-tabbar-gap: 16px;
+          /* Never wider than the column. */
+          --timer-size: clamp(4.5rem, min(21vw, 16.5svh), 13.25rem);
+        }
+
         .status-bar {
-          flex-wrap: wrap;
-          row-gap: 10px;
+          padding: 4px 16px 4px 22px;
         }
 
-        /* The work clock alone, as it always was here: the bar is already
-           tight in this band and wraps to two lines at 1024 px and below
-           (83 px, measured before Phase 5a). */
-        .status-bar .clock-divider,
-        .status-bar .tz-clock-label.tz-local,
+        .nodrift-logo {
+          font-size: 1.1rem;
+        }
+
+        .status-bar .tz-clock-label {
+          font-size: 0.8125rem;
+        }
+
+        .status-bar .tz-label-text {
+          max-width: 9ch;
+        }
+
+        .status-bar #work-clock,
         .status-bar #local-clock {
-          display: none;
+          font-size: 0.9375rem;
         }
 
-        /* Touch targets: the dock's 34px buttons are under the touch minimum
-           on a device that has no cursor. */
-        .sidebar-footer .sq-btn {
-          width: 40px !important;
-          height: 40px !important;
+        .status-bar #work-clock .clock-ampm,
+        .status-bar #local-clock .clock-ampm {
+          font-size: 0.6875rem;
         }
 
-        .sidebar-footer .sq-btn svg {
-          width: 20px !important;
-          height: 20px !important;
+        .status-bar .clock-divider {
+          display: inline-block;
+          margin: 0 14px;
         }
 
-        /* Ten 40px buttons plus gaps need ~436px; */
-        .footer-icons {
-          flex-wrap: wrap;
-          justify-content: center;
+        #last-seen.last-seen-status {
+          height: 30px;
+          padding: 0 13px 0 11px;
+          font-size: 0.8125rem;
+          gap: 0.5em;
         }
 
-        /* Touch affordances still apply here -- there is no cursor on an iPad. */
-        input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]),
-        select,
-        textarea {
-          font-size: var(--field-text-touch) !important;
+        #last-seen.last-seen-status::before {
+          width: 6px;
+          height: 6px;
         }
 
-        button,
-        .preset-pill,
-        .tab-btn,
-        .icon-btn,
-        .sq-btn {
-          -webkit-tap-highlight-color: transparent;
-          touch-action: manipulation;
+        #m-tabbar {
+          padding: 6px;
         }
 
-        .tab-content,
-        #logbook-scroll-viewport,
-        #task-log-scroll-viewport {
-          overscroll-behavior: contain;
-          -webkit-overflow-scrolling: touch;
+        .m-tab {
+          gap: 4px;
+          border-radius: calc(var(--radius-2xl) - 6px);
         }
 
-        .modal-container {
-          max-height: 88svh;
-          overflow-y: auto;
-          overscroll-behavior: contain;
+        .m-tab svg {
+          width: 24px;
+          height: 24px;
         }
 
-        /* These popovers are centred on their trigger with translateX(-50%). */
-        .goal-presets,
-        .theme-presets {
-          max-width: calc(100vw - 2.5rem);
-          flex-wrap: wrap;
+        .m-tab-label {
+          font-size: 11px;
+        }
+
+        body[data-mpane="timer"] .timers-wrapper {
+          gap: clamp(2rem, 5.5svh, 4rem);
+        }
+
+        .timer-group .label-xs {
+          font-size: clamp(
+            0.875rem,
+            calc(var(--timer-size) * 0.09),
+            1.125rem
+          );
+          margin-bottom: 0.55em;
+        }
+
+        .progress-centerpiece {
+          gap: 14px;
+        }
+
+        .progress-rail {
+          height: 12px;
+        }
+
+        .progress-meta {
+          font-size: clamp(
+            var(--text-base),
+            calc(var(--timer-size) * 0.1),
+            1.1875rem
+          );
+        }
+
+        .actions {
+          gap: 14px;
+        }
+
+        .actions button {
+          min-height: 68px;
+          font-size: 1.25rem;
+          border-radius: 18px;
+        }
+      }
+
+      /* THE PHONE SHELL, SHORT (under 500px tall: a phone on its side).
+         Height is the scarce side, so the chrome goes compact -- a lower top
+         bar, the tab labels beside their icons -- and the instrument is
+         sized by the height, its gaps closed up. Whatever still does not fit
+         scrolls with the pane; nothing in it overlaps. */
+      @media (max-width: 1149px) and (max-height: 500px) {
+        :root {
+          --m-topbar-h: 2.9rem;
+          --m-topbar-top: 8px;
+          --m-topbar-gap: 10px;
+          --m-tabbar-bar: 2.9rem;
+          --m-tabbar-gap: 8px;
+          --timer-size: clamp(3rem, min(22.5vw, 15svh), 7.75rem);
+        }
+
+        .status-bar {
+          border-radius: var(--radius-lg);
+        }
+
+        #m-tabbar {
+          padding: 4px;
+          border-radius: var(--radius-xl);
+        }
+
+        .m-tab {
+          flex-direction: row;
+          gap: 7px;
+          border-radius: calc(var(--radius-xl) - 4px);
+        }
+
+        .m-tab svg {
+          width: 20px;
+          height: 20px;
+        }
+
+        .m-tab-label {
+          font-size: 11px;
+        }
+
+        body[data-mpane="timer"] .main-ui {
+          padding-bottom: calc(
+            var(--m-tabbar-h) + var(--m-safe-bottom) + 8px
+          );
+        }
+
+        body[data-mpane="timer"] .timers-wrapper {
+          gap: 0.75rem;
+        }
+
+        .timer-group .label-xs {
+          margin-bottom: 0.2em;
+        }
+
+        .progress-centerpiece {
+          gap: 8px;
+        }
+
+        /* Never so narrow that the line under the rail, or End Shift,
+           breaks onto a second line. */
+        .progress-centerpiece,
+        .actions {
+          width: min(100%, max(calc(var(--timer-size) * 4.5), 22rem));
+        }
+
+        .actions {
+          margin-top: 0.75rem;
+          padding-top: 0;
+        }
+
+        .actions button {
+          min-height: 46px;
+          height: 46px;
+          font-size: 1rem;
+        }
+
+        .actions button svg {
+          width: 22px !important;
+          height: 22px !important;
         }
       }
 
@@ -11756,7 +12029,7 @@
          This replaces the three hand-listed exemptions that used to sit here
          -- the phone sheet, its backdrop and the dialog rise. Naming rules one
          at a time is a list that is wrong the moment anyone adds an animation
-         and forgets to come back, and it was: nothing outside the 767px sheet
+         and forgets to come back, and it was: nothing outside the phone's sheet
          had ever been covered. Declaring it once over everything means no new
          rule in this sheet can be missed, and none of them needs its own
          guard.
@@ -11835,7 +12108,7 @@
            boot script runs pre-paint, before PHONE_BREAKPOINT_PX exists. If
            that constant ever moves, move this with it. */
         const prop =
-          window.matchMedia && window.matchMedia("(max-width: 767px)").matches
+          window.matchMedia && window.matchMedia("(max-width: 1149px)").matches
             ? "--surface-under"
             : "--page-bg";
 
@@ -15658,7 +15931,7 @@
             </div>
             <div class="font-sans progress-meta">
               <span id="progress-text">0.0% (Remaining: 08:00:00)</span>
-              <span id="eta-text">Est. EOD: --:--</span>
+              <span id="eta-text">EOD: --:--</span>
             </div>
             <!-- A work zone chosen during a shift, waiting for the shift to
                  end (decision D2). Shown by renderPendingZoneBanner(), by
@@ -20270,8 +20543,9 @@
       }
     </script>
     <script>
-      /* The one phone breakpoint. */
-      const PHONE_BREAKPOINT_PX = 767;
+      /* The one phone breakpoint. A tablet is under it too: it runs the
+         phone's shell, scaled up (see THE PHONE SHELL ON A TABLET). */
+      const PHONE_BREAKPOINT_PX = 1149;
       const PHONE_MEDIA_QUERY = window.matchMedia(
         `(max-width: ${PHONE_BREAKPOINT_PX}px)`,
       );
@@ -20785,11 +21059,12 @@
         "sprite-107":
           '<rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><polyline points="9 11 12 14 22 4"></polyline>',
         "sprite-108": '<path d="M8 12l3 3 8-8"/><path d="M8 17l3 3 8-8"/>',
-        /* Cloud, for the sync panel's own footer button. Drawn as one outline
-           at the same weight as the rest of the footer so it reads as a peer
-           of the gear beside it, not as a status light. */
+        /* The account: a head and shoulders in a ring, the sign-in mark
+           people already know, for the sync panel's footer button and the
+           sheet's row. Drawn at the footer's weight, so it reads as a peer of
+           the gear beside it, not as a status light. */
         "sprite-109":
-          '<path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"></path>',
+          '<circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="9.6" r="3.2"></circle><path d="M17.4 19.2a5.4 5.4 0 0 0-10.8 0"></path>',
         "sprite-110":
           '<circle cx="12" cy="12" r="9"></circle><polyline points="12 7 12 12 15.5 13.5"></polyline>',
       };
@@ -32131,6 +32406,64 @@
         el.classList.add("is-visible");
       }
 
+      /* The ambient light's centre, on the running timer (see
+         .main-ui::before). Measured, because the timers ride auto margins
+         that the window, the banners and the fonts all move; any resize of
+         the stage or the pieces stacked in it measures again, a frame later.
+         A timer the phone has hidden behind another tab is not measured:
+         the light keeps its last centre until the pane is back. */
+      const ambientLight = { stage: null, frame: 0, x: "", y: "" };
+
+      function placeAmbientLight() {
+        ambientLight.frame = 0;
+        const stage = ambientLight.stage;
+        const mode = document.documentElement.getAttribute("data-session-mode");
+        const timer =
+          mode === "work"
+            ? DOM.workTimer
+            : mode === "break"
+              ? DOM.breakTimer
+              : null;
+        let x = "";
+        let y = "";
+        if (timer) {
+          if (!timer.getClientRects().length) return;
+          const s = stage.getBoundingClientRect();
+          const t = timer.getBoundingClientRect();
+          x = `${(t.left + t.width / 2 - s.left - stage.clientLeft + stage.scrollLeft).toFixed(1)}px`;
+          y = `${(t.top + t.height / 2 - s.top - stage.clientTop + stage.scrollTop).toFixed(1)}px`;
+        }
+        if (x === ambientLight.x && y === ambientLight.y) return;
+        ambientLight.x = x;
+        ambientLight.y = y;
+        if (x) {
+          stage.style.setProperty("--glow-x", x);
+          stage.style.setProperty("--glow-y", y);
+        } else {
+          stage.style.removeProperty("--glow-x");
+          stage.style.removeProperty("--glow-y");
+        }
+      }
+
+      function scheduleAmbientLight() {
+        if (!ambientLight.stage) {
+          ambientLight.stage = document.querySelector(".main-ui");
+          if (!ambientLight.stage) return;
+          if (typeof ResizeObserver === "function") {
+            const observer = new ResizeObserver(scheduleAmbientLight);
+            [
+              ambientLight.stage,
+              ambientLight.stage.querySelector(".status-bar"),
+              ambientLight.stage.querySelector(".timers-wrapper"),
+              ambientLight.stage.querySelector(".actions"),
+            ].forEach((el) => el && observer.observe(el));
+          }
+        }
+        if (!ambientLight.frame) {
+          ambientLight.frame = requestAnimationFrame(placeAmbientLight);
+        }
+      }
+
       function renderStaticUI() {
         const isIdle = !!state.idleLock;
         const hasStarted = !!state.loginTimestamp;
@@ -32146,6 +32479,7 @@
           "data-session-mode",
           mode || "idle",
         );
+        scheduleAmbientLight();
         if (leased) {
           document.documentElement.setAttribute("data-session-remote", "1");
         } else {
@@ -32843,7 +33177,7 @@
                   );
                   domWriteCache.cachedEtaString = `${etaTime} ${etaLabel}`;
                 }
-                etaText = `Est. EOD: ${domWriteCache.cachedEtaString}`;
+                etaText = `EOD: ${domWriteCache.cachedEtaString}`;
                 etaColorClass = "text-main";
               }
             }
@@ -49553,7 +49887,7 @@
         ========================================================================= */
       window.MobileShell = (function () {
         // Shared with isPhoneLayout() and with the stylesheet's
-        // `@media (max-width: 767px)` blocks -- see PHONE_BREAKPOINT_PX.
+        // `@media (max-width: 1149px)` blocks -- see PHONE_BREAKPOINT_PX.
         const PHONE_MQ = PHONE_MEDIA_QUERY;
         const PANES = ["timer", "insights", "logbook", "tasks"];
         const DEFAULT_PANE = "timer";
