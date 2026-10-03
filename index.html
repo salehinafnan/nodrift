@@ -36128,6 +36128,19 @@
         "Dec",
       ];
 
+      /* A pooled node handed a different record is a different row, not the
+         old row changing, so it takes the new row's colours outright. The
+         fades on .log-row are for a row being pointed at or picked; left on
+         while a node changed hands, they faded one record's colours into the
+         next, and a leave day's tint was seen leaving one row for another
+         as the list scrolled. The renderer holds the transition off while it
+         writes the row; reading the style back here commits the new colours
+         before it is handed back, so there is nothing left to animate. */
+      function settleReboundRows(rows) {
+        for (const row of rows) void getComputedStyle(row).backgroundColor;
+        for (const row of rows) row.style.transition = "";
+      }
+
       function renderVirtualVisibleItems(
         passedScrollTop,
         passedViewportHeight,
@@ -36264,9 +36277,16 @@
         /* A row's tag and its no-goal delta follow the work week. */
         const weekKey = WorkWeek.renderKey();
 
+        const rebound = [];
         for (let k = 0; k < targetPoolSize; k++) {
           const i = startIndex + k;
-          const child = rowNodesPool[k];
+          /* Row i always lives in node i % pool, so a row keeps its node for
+             as long as it stays in the window, and scrolling on by a row
+             hands a new log to one node only: the one that just left the far
+             end, out of sight in the overscan. Node k used to take row
+             start + k, which handed every node its neighbour's log at each
+             row. */
+          const child = rowNodesPool[i % targetPoolSize];
 
           if (i <= endIndex && i < virtualScrollLogs.length) {
             const log = virtualScrollLogs[i];
@@ -36301,6 +36321,10 @@
             const isMultiSelected = logSelectMode && selectedLogIds.has(log.id);
             const rowKey = `${log.id}|${isSelected}|${isMultiSelected}|${log.date}|${log.login}|${log.logout}|${log.dayGoal}|${log.workSec}|${log.breakSec}|${isLogOver(log) ? "OVER" : "UNDER"}|${log.notes || ""}|${dtString}|${log.isLeaveRecord ? "LEAVE" : "WORK"}|${log.leaveType || ""}|${isWorkedLeave ? "WL" : ""}|${log.tz || ""}|${log.loginEpochMs}|${log.logoutEpochMs}|${zoneKey}|${weekKey}`;
             if (child._rowKey !== rowKey) {
+              if (child._logId !== log.id) {
+                child.style.transition = "none";
+                rebound.push(child);
+              }
               child._rowKey = rowKey;
               child._logId = log.id;
               child._isSelected = isSelected;
@@ -36456,6 +36480,7 @@
             child.style.display = "flex";
           }
         }
+        settleReboundRows(rebound);
       }
 
       /**
@@ -45273,9 +45298,11 @@
         const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
         const zoneKey = zoneRenderKey();
 
+        const rebound = [];
         for (let k = 0; k < targetPoolSize; k++) {
           const i = startIndex + k;
-          const child = taskRowNodesPool[k];
+          // Row i in node i % pool, as in renderVirtualVisibleItems.
+          const child = taskRowNodesPool[i % targetPoolSize];
 
           if (i <= endIndex && i < virtualScrollTasks.length) {
             const task = virtualScrollTasks[i];
@@ -45286,7 +45313,12 @@
               taskSelectMode && selectedTaskIds.has(task.id);
             const rowKey = `${task.id}|${task.note}|${task.durationSec}|${task.startMs}|${task.endMs}|${isSelected}|${isMultiSelected}|${task.tz || ""}|${task.date}|${zoneKey}`;
             if (child._rowKey !== rowKey) {
+              if (child._taskId !== task.id) {
+                child.style.transition = "none";
+                rebound.push(child);
+              }
               child._rowKey = rowKey;
+              child._taskId = task.id;
               child._isSelected = isSelected;
               let rowClass = isSelected ? "log-row kb-selected" : "log-row";
               if (isMultiSelected) rowClass += " multi-selected";
@@ -45343,6 +45375,7 @@
             child.style.display = "flex";
           }
         }
+        settleReboundRows(rebound);
       }
 
       let virtualScrollTasks = [];
