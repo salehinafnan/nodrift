@@ -7066,17 +7066,17 @@
         padding-bottom: 8px;
       }
 
-      /* A day. The rows share the pane's height between them, up to a
-         comfortable cap -- a short week fills the card instead of leaving a
-         bare floor under five slivers, and a tall window does not stretch
-         them into empty slabs. */
+      /* A day, or in the longer views a week or a month. The rows share all
+         of the pane's height between them, so a short list runs down to the
+         foot of the pane instead of stopping short of it. No row is ever
+         shorter than its content -- the flex item's automatic minimum, which
+         a min-height here would override -- so once every row is down to
+         its content the list scrolls instead of squeezing them. */
       .breakdown-row {
         display: flex;
         flex-direction: column;
         justify-content: center;
         gap: 6px;
-        min-height: 60px;
-        max-height: 6.25rem;
         height: auto;
         padding: 10px 14px;
         /* Level 1, solid twin: the Insights list scrolls and a whole week of rows is on screen at once. */
@@ -10590,17 +10590,16 @@
           pointer-events: none;
         }
 
-        /* Icon over label, the platform's tab. The current one is drawn in
-           the accent on a capsule of its wash, inset by the bar's padding so
-           its rounding runs parallel to the bar's. */
+        /* The icon alone, centred in its share of the bar; each button
+           carries its name in aria-label. The current one is drawn in the
+           accent on a capsule of its wash, inset by the bar's padding so its
+           rounding runs parallel to the bar's. */
         .m-tab {
           flex: 1;
           min-width: 0;
           display: flex;
-          flex-direction: column;
           align-items: center;
           justify-content: center;
-          gap: 3px;
           padding: 0;
           border: 0;
           border-radius: calc(var(--radius-2xl) - 5px);
@@ -10614,25 +10613,17 @@
             transform var(--motion-fast) var(--ease-out);
         }
 
-        /* Every paint property for the tab icons lives here, so the markup carries only a viewBox and the sprites only geometry. */
+        /* Every paint property for the tab icons lives here, so the markup carries only a viewBox and the sprites only geometry.
+           A size up from the 22px each took above its label, now that the
+           icon is the whole tab. */
         .m-tab svg {
-          width: 22px;
-          height: 22px;
+          width: 24px;
+          height: 24px;
           fill: none;
           stroke: currentColor;
           stroke-width: 1.6;
           stroke-linecap: round;
           stroke-linejoin: round;
-        }
-
-        /* 10px is the platform's own tab label size; the rem scale runs
-           small on a phone, where the root is 14px. */
-        .m-tab-label {
-          font-size: 10px;
-          font-weight: 600;
-          letter-spacing: 0.01em;
-          line-height: 1;
-          white-space: nowrap;
         }
 
         .m-tab[aria-selected="true"] {
@@ -11981,17 +11972,12 @@
         }
 
         .m-tab {
-          gap: 4px;
           border-radius: calc(var(--radius-2xl) - 6px);
         }
 
         .m-tab svg {
-          width: 24px;
-          height: 24px;
-        }
-
-        .m-tab-label {
-          font-size: 11px;
+          width: 26px;
+          height: 26px;
         }
 
         body[data-mpane="timer"] .timers-wrapper {
@@ -12036,9 +12022,9 @@
 
       /* THE PHONE SHELL, SHORT (under 500px tall: a phone on its side).
          Height is the scarce side, so the chrome goes compact -- a lower top
-         bar, the tab labels beside their icons -- and the instrument is
-         sized by the height, its gaps closed up. Whatever still does not fit
-         scrolls with the pane; nothing in it overlaps. */
+         bar and tab bar -- and the instrument is sized by the height, its
+         gaps closed up. Whatever still does not fit scrolls with the pane;
+         nothing in it overlaps. */
       @media (max-width: 1149px) and (max-height: 500px) {
         :root {
           --m-topbar-h: 2.9rem;
@@ -12059,18 +12045,12 @@
         }
 
         .m-tab {
-          flex-direction: row;
-          gap: 7px;
           border-radius: calc(var(--radius-xl) - 4px);
         }
 
         .m-tab svg {
           width: 20px;
           height: 20px;
-        }
-
-        .m-tab-label {
-          font-size: 11px;
         }
 
         body[data-mpane="timer"] .main-ui {
@@ -13100,22 +13080,22 @@
             <h4>The screen on a phone</h4>
             <p>
               On a narrow screen nodrift switches to a phone layout that shows one
-              thing at a time, with five buttons along the bottom edge.
+              thing at a time, with five icon buttons along the bottom edge.
             </p>
             <ul>
               <li>
-                <strong>Timer</strong> (the middle button) is the tracker: your
-                two timers, the progress bar and the Work / Break / End Shift
-                buttons.
+                <strong>Timer</strong> (the hourglass, in the middle) is the
+                tracker: your two timers, the progress bar and the Work / Break /
+                End Shift buttons.
               </li>
               <li>
-                <strong>Insights</strong>, <strong>Logbook</strong> and
-                <strong>Tasks</strong> open the same three views a computer shows
-                on the right-hand side.
+                <strong>Insights</strong> (the bar chart), <strong>Tasks</strong>
+                (the ticked box) and <strong>Logbook</strong> (the clipboard) open
+                the same three views a computer shows on the right-hand side.
               </li>
               <li>
-                <strong>Settings &amp; Tools</strong> (the last button) slides a
-                panel up from the bottom, in labelled sections:
+                <strong>Settings &amp; Tools</strong> (the sliders, at the end)
+                slides a panel up from the bottom, in labelled sections:
                 <strong>Goals</strong> — the Daily Goal and the Weekly goal
                 together, which is where the weekly one lives on a phone;
                 <strong>Preferences</strong>, two rows that each open a sheet of
@@ -19140,7 +19120,6 @@
         <svg viewBox="0 0 24 24">
           <g data-sprite="sprite-103"></g>
         </svg>
-        <span class="m-tab-label">Insights</span>
       </button>
       <button
         class="m-tab"
@@ -19152,7 +19131,6 @@
         <svg viewBox="0 0 24 24">
           <g data-sprite="sprite-105"></g>
         </svg>
-        <span class="m-tab-label">Tasks</span>
       </button>
       <button
         class="m-tab"
@@ -19164,7 +19142,6 @@
         <svg viewBox="0 0 24 24">
           <g data-sprite="sprite-102"></g>
         </svg>
-        <span class="m-tab-label">Timer</span>
       </button>
       <button
         class="m-tab"
@@ -19176,7 +19153,6 @@
         <svg viewBox="0 0 24 24">
           <g data-sprite="sprite-104"></g>
         </svg>
-        <span class="m-tab-label">Logbook</span>
       </button>
       <button
         class="m-tab"
@@ -19188,7 +19164,6 @@
         <svg viewBox="0 0 24 24">
           <g data-sprite="sprite-106"></g>
         </svg>
-        <span class="m-tab-label">Settings</span>
       </button>
     </nav>
 
