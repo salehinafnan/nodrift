@@ -5621,6 +5621,25 @@
         overflow-y: auto;
         overscroll-behavior: contain;
         -webkit-overflow-scrolling: touch;
+        /* An even inset all round, and a corner that is the field's corner
+           plus that inset and the card's own hairline, so the card's curve
+           and the curve of whatever stands against its edge share a centre.
+           This card used to take the settings cards' 4px above and below and
+           12px at the sides, which is right for rows of text and wrong for a
+           stack of boxes: the email field sat 5px under the top edge and
+           13px in from the sides, and no one corner can follow a field that
+           stands closer on one side than the other. The buttons at the foot
+           of the account read-outs had the same gap against the bottom edge.
+
+           8px rather than the 12px the sides had, because the corner grows
+           with the inset: at 12px it would run rounder than the panel's own
+           20px around it on a desktop, and the inner curve would bulge
+           against the outer one. */
+        --card-inset: 8px;
+        padding: var(--card-inset);
+        border-radius: calc(
+          var(--radius-md) + var(--card-inset) + var(--hairline-width)
+        );
       }
 
       .sync-footer {
