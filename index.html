@@ -2022,8 +2022,9 @@
       /* THE SHELL. Two regions, edge to edge:
 
            the stage      -- the timer, standing directly on the canvas with
-                             nothing boxed round it, lit from behind by the
-                             session (see .main-ui::before)
+                             nothing boxed round it, the running figures lit
+                             in the session's colour (see THE RUNNING
+                             TIMER'S LIGHT)
            the inspector  -- Insights, Logbook and Tasks, in one floating card
                              inset from the window's edges (.sidebar)
 
@@ -2052,8 +2053,8 @@
 
       .main-ui {
         position: relative;
-        /* The ambient light below paints at z-index -1, and this keeps it
-           behind the stage's own content rather than behind the page. */
+        /* A stacking context of its own, so whatever the stage layers stays
+           inside the stage. */
         isolation: isolate;
         display: flex;
         flex-direction: column;
@@ -2065,87 +2066,6 @@
         /* The window's margin all round (see THE SHELL); on the right it is
            the space between the stage and the inspector. */
         padding: var(--shell-inset);
-      }
-
-      /* Ambient light. A soft pool of the session's own colour behind the
-         instrument -- green while working, the break colour on a break, a
-         trace of blue at rest -- so the state of the day reads from across
-         the room before a single digit does.
-
-         One static gradient on one layer: it repaints only when the session
-         changes mode, and the 0.6s fade between modes is the registered
-         --ambient colour interpolating, not a second layer crossfading. Paper
-         has no light to cast, so E-Ink opts out.
-
-         Strong enough to register on an OLED panel, where a dimmer pool sank
-         into the black and read as no light at all.
-
-         The pool rises from the timer that is running: --glow-x/--glow-y are
-         that timer's centre, measured by placeAmbientLight() because the
-         timers ride auto margins no stylesheet can see. With nothing running
-         the light rests between the two, and it travels with the session --
-         down to the break timer on a break and back up to work. */
-      @property --ambient {
-        syntax: "<color>";
-        inherits: true;
-        initial-value: transparent;
-      }
-
-      @property --glow-x {
-        syntax: "<length-percentage>";
-        inherits: true;
-        initial-value: 50%;
-      }
-
-      @property --glow-y {
-        syntax: "<length-percentage>";
-        inherits: true;
-        initial-value: 46%;
-      }
-
-      .main-ui::before {
-        content: "";
-        position: absolute;
-        inset: 0;
-        z-index: -1;
-        pointer-events: none;
-        background: radial-gradient(
-          58% 48% at var(--glow-x) var(--glow-y),
-          var(--ambient),
-          transparent 72%
-        );
-        transition:
-          --ambient 0.6s ease,
-          --glow-x 0.6s var(--ease-out),
-          --glow-y 0.6s var(--ease-out);
-      }
-
-      :root[data-session-mode="work"] {
-        --ambient: color-mix(in srgb, var(--accent-work) 13%, transparent);
-      }
-
-      :root[data-session-mode="break"] {
-        --ambient: color-mix(in srgb, var(--accent-break) 12%, transparent);
-      }
-
-      :root[data-session-mode="idle"] {
-        --ambient: color-mix(in srgb, var(--accent-blue) 5%, transparent);
-      }
-
-      :root[data-theme="sf-dark"][data-session-mode="work"] {
-        --ambient: color-mix(in srgb, var(--accent-work) 20%, transparent);
-      }
-
-      :root[data-theme="sf-dark"][data-session-mode="break"] {
-        --ambient: color-mix(in srgb, var(--accent-break) 19%, transparent);
-      }
-
-      :root[data-theme="vercel-dark"][data-session-mode] {
-        --ambient: rgba(255, 255, 255, 0.045);
-      }
-
-      :root[data-theme="theme-eink"][data-session-mode] {
-        --ambient: transparent;
       }
 
       /* =========================================================================
@@ -2723,8 +2643,8 @@
       /* The timer names, as overlines. The render paints these labels inline
          (the accent while their timer runs, the ink otherwise), and that
          paint is overruled here on purpose: which timer is live is read from
-         data-session-mode, the same attribute the ambient light follows, so
-         the dot, the word and the glow behind them are driven by one fact. */
+         data-session-mode, the same attribute the figures' light follows, so
+         the dot, the word and the glow are driven by one fact. */
       .timer-group .label-xs {
         --overline-dot-gap: 8px;
         position: relative;
@@ -2791,6 +2711,64 @@
 
       :root[data-session-mode="break"] {
         --live-accent: var(--accent-break);
+      }
+
+      /* THE RUNNING TIMER'S LIGHT. The timer that is running gives off its
+         own colour -- green at work, the break colour on a break -- from
+         its figures, not from a pool behind them: a tight halo hugging every
+         stroke and a wider bloom round the digits, so the light takes the
+         shape of the time and turns with it. Nothing glows at rest, and
+         paper has no light to give, so E-Ink opts out.
+
+         Text shadows: a tick repaints only the digits it changes, light and
+         all, with no layer, filter or measuring. The white figures of
+         Vercel Dark take it at half strength. */
+      :root {
+        --timer-glow-core: 60%;
+        --timer-glow-mid: 38%;
+        --timer-glow-bloom: 24%;
+      }
+
+      :root[data-theme="vercel-dark"] {
+        --timer-glow-core: 35%;
+        --timer-glow-mid: 18%;
+        --timer-glow-bloom: 10%;
+      }
+
+      :root[data-session-mode="work"] #work-timer,
+      :root[data-session-mode="break"] #break-timer {
+        text-shadow:
+          0 0 0.03em
+            color-mix(
+              in srgb,
+              var(--live-accent) var(--timer-glow-core),
+              transparent
+            ),
+          0 0 0.12em
+            color-mix(
+              in srgb,
+              var(--live-accent) var(--timer-glow-mid),
+              transparent
+            ),
+          0 0 0.4em
+            color-mix(
+              in srgb,
+              var(--live-accent) var(--timer-glow-bloom),
+              transparent
+            );
+      }
+
+      /* On a light page a halo tight to the strokes only blurs them, so
+         the light there is one soft bloom. */
+      :root[data-theme="sf-light"][data-session-mode="work"] #work-timer,
+      :root[data-theme="sf-light"][data-session-mode="break"] #break-timer {
+        text-shadow: 0 0 0.3em
+          color-mix(in srgb, var(--live-accent) 30%, transparent);
+      }
+
+      :root[data-theme="theme-eink"] #work-timer,
+      :root[data-theme="theme-eink"] #break-timer {
+        text-shadow: none;
       }
 
       /* Inverted spacing for the break group */
@@ -6730,6 +6708,15 @@
         flex: 0 0 100%;
       }
 
+      /* The figure and its share move as one: where the line has no room
+         for both beside the view's name, both go under it. */
+      .weekly-figure {
+        display: inline-flex;
+        align-items: baseline;
+        column-gap: 6px;
+        white-space: nowrap;
+      }
+
       #weekly-summary-text {
         font-size: var(--text-xl);
         font-weight: 600;
@@ -6770,6 +6757,54 @@
         letter-spacing: -0.01em;
         color: var(--accent-break);
         font-variant-numeric: tabular-nums;
+      }
+
+      /* On a desktop the card says the same in two lines instead of three,
+         and a laptop's short window keeps the line for the days below: the
+         figure stands beside the view's name rather than under it, and the
+         break total sits under its label on the pace line. The header and
+         the break column hand their pieces to the card's grid. */
+      @media (min-width: 1150px) {
+        #weekly-progress-card {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) auto;
+          column-gap: 12px;
+          row-gap: 6px;
+          align-items: baseline;
+        }
+
+        .weekly-progress-header,
+        .weekly-break {
+          display: contents;
+        }
+
+        .weekly-headline {
+          grid-area: 1 / 1;
+        }
+
+        .weekly-headline > .view-container {
+          flex: 0 0 auto;
+        }
+
+        .weekly-break-label {
+          grid-area: 1 / 2;
+          justify-self: end;
+          padding-top: 0;
+        }
+
+        #weekly-status-msg {
+          grid-area: 2 / 1;
+          margin-bottom: 8px;
+        }
+
+        #total-weekly-break {
+          grid-area: 2 / 2;
+          justify-self: end;
+        }
+
+        #weekly-progress-card > .segmented-progress-bar {
+          grid-area: 3 / 1 / auto / -1;
+        }
       }
 
       /* =====================================================================
@@ -7070,7 +7105,10 @@
       }
 
       /* Today: an accent edge and the faintest wash of it, so the eye lands
-         on the live row without the row shouting. */
+         on the live row without the row shouting. The edge only, with no
+         halo outside it: today's row is often the one the list's foot cuts
+         through, and a halo peeking out there read as a stray blue rule
+         over the dock. */
       .breakdown-row.is-today-row {
         border-color: color-mix(in srgb, var(--accent-blue) 55%, transparent);
         background: color-mix(
@@ -7078,13 +7116,10 @@
           var(--accent-blue) 5%,
           var(--surface-1-solid)
         );
-        box-shadow: 0 0 0 3px
-          color-mix(in srgb, var(--accent-blue) 9%, transparent);
       }
 
       :root[data-theme="theme-eink"] .breakdown-row.is-today-row {
         border: 2px solid #111111;
-        box-shadow: none;
       }
 
       /* The day's name inside a row: the render sets its weight inline (600
@@ -8245,11 +8280,20 @@
         margin-bottom: 0;
         transition:
           color 0.4s ease,
-          opacity 0.4s ease;
+          opacity 0.4s ease,
+          text-shadow 0.4s ease;
         font-family: var(--number-font);
         font-variant-numeric: tabular-nums;
         font-feature-settings: "tnum" 1;
         contain: layout paint;
+      }
+
+      /* The two session timers give off light past their boxes (see THE
+         RUNNING TIMER'S LIGHT), which paint containment would cut off square
+         at the box's edges, so theirs contains layout only. */
+      #work-timer,
+      #break-timer {
+        contain: layout;
       }
 
       /* Colons are punctuation, not figures: lighter, a hair of air either
@@ -16641,8 +16685,10 @@
                     </button>
                   </div>
                 </div>
-                <span id="weekly-summary-text">00:00:00/40h</span>
-                <span id="weekly-progress-percent">(0%)</span>
+                <span class="weekly-figure">
+                  <span id="weekly-summary-text">00:00:00 / 40h</span>
+                  <span id="weekly-progress-percent">(0%)</span>
+                </span>
               </div>
               <div class="weekly-break">
                 <span class="weekly-break-label">Total Break</span>
@@ -21375,9 +21421,21 @@
       }
 
       // High-performance background Web Worker ticker to keep loop active continuously when backgrounded
+      // A number is the tab title's own alarm (see THE TAB'S TITLE): one
+      // 'title' after that many milliseconds, or none for 0. It has a timer
+      // of its own, so it never moves the tick's.
       const tickerWorkerCode = `
         let timeoutId = null;
+        let titleId = null;
         self.onmessage = function(e) {
+          if (typeof e.data === 'number') {
+            if (titleId) clearTimeout(titleId);
+            titleId = e.data > 0 ? setTimeout(() => {
+              titleId = null;
+              self.postMessage('title');
+            }, e.data) : null;
+            return;
+          }
           if (e.data === 'start') {
             if (timeoutId) clearTimeout(timeoutId);
             timeoutId = setTimeout(() => {
@@ -21396,6 +21454,7 @@
       `;
       let tickerWorker;
       let tickerIntervalId = null;
+      let titleTimeoutId = null;
       try {
         const tickerBlob = new Blob([tickerWorkerCode], {
           type: "application/javascript",
@@ -21410,6 +21469,19 @@
         );
         tickerWorker = {
           postMessage: function (msg) {
+            if (typeof msg === "number") {
+              if (titleTimeoutId) clearTimeout(titleTimeoutId);
+              titleTimeoutId =
+                msg > 0
+                  ? setTimeout(() => {
+                      titleTimeoutId = null;
+                      if (typeof tickerWorker.onmessage === "function") {
+                        tickerWorker.onmessage({ data: "title" });
+                      }
+                    }, msg)
+                  : null;
+              return;
+            }
             if (msg === "start" || msg === "ack") {
               if (tickerIntervalId) clearTimeout(tickerIntervalId);
               tickerIntervalId = setTimeout(() => {
@@ -21436,6 +21508,8 @@
           tick();
           // tick() can stop the ticker via syncTickerState; don't re-arm it.
           if (tickerRunning) tickerWorker.postMessage("ack");
+        } else if (e.data === "title") {
+          tickTabTitle();
         }
       };
 
@@ -21455,6 +21529,67 @@
         if (document.hidden && !state.continuousTabTickingEnabled)
           stopUITimer();
         else startUITimer();
+        syncTitleTicker();
+      }
+
+      /* THE TAB'S TITLE. A desktop carries the running timer in its tab's
+         title, to the second, so the day can be read from any other tab. A
+         phone or tablet does so when Continuous tab ticking is on, as
+         before.
+
+         A page in view sets the title from tick(), with every other
+         read-out. A hidden page stops tick() unless that setting keeps it
+         going, so a desktop's title then keeps time by itself, on an alarm
+         in the ticker's worker -- a hidden tab's own timers are slowed to
+         as little as one a minute, a worker's are not -- set to go off just
+         after the running figure turns. Each alarm reads the clock and
+         writes the title, and that is all: no layout, no storage, no lease,
+         no checks, and nothing at all while no timer runs. */
+      let titleTickerArmed = false;
+
+      function titleShowsTime() {
+        return !!state.continuousTabTickingEnabled || !isPhoneLayout();
+      }
+
+      function runningTitle(seconds, word) {
+        return titleShowsTime() ? `${formatDuration(seconds)} • ${word}` : word;
+      }
+
+      function titleNeedsTicker() {
+        return (
+          document.hidden &&
+          !tickerRunning &&
+          !isTabConflict &&
+          !state.idleLock &&
+          (state.currentMode === "work" || state.currentMode === "break") &&
+          !isPhoneLayout()
+        );
+      }
+
+      function tickTabTitle() {
+        titleTickerArmed = false;
+        if (!titleNeedsTicker()) return;
+        const working = state.currentMode === "work";
+        const seconds = working
+          ? getCurrentWorkSeconds()
+          : getCurrentBreakSeconds();
+        const title = runningTitle(seconds, working ? "Working" : "Break");
+        if (document.title !== title) document.title = title;
+        /* 20ms past the turn, so the next reading is always the new second
+           and never the old one a hair early. */
+        const intoSecond = Number.isFinite(seconds) ? (seconds + 1e-9) % 1 : 0;
+        titleTickerArmed = true;
+        tickerWorker.postMessage(Math.ceil((1 - intoSecond) * 1000) + 20);
+      }
+
+      /* Called wherever the session or the page's visibility changes. */
+      function syncTitleTicker() {
+        if (titleNeedsTicker()) {
+          tickTabTitle();
+        } else if (titleTickerArmed) {
+          titleTickerArmed = false;
+          tickerWorker.postMessage(0);
+        }
       }
 
       /*==========================================================================
@@ -32453,64 +32588,6 @@
         el.classList.add("is-visible");
       }
 
-      /* The ambient light's centre, on the running timer (see
-         .main-ui::before). Measured, because the timers ride auto margins
-         that the window, the banners and the fonts all move; any resize of
-         the stage or the pieces stacked in it measures again, a frame later.
-         A timer the phone has hidden behind another tab is not measured:
-         the light keeps its last centre until the pane is back. */
-      const ambientLight = { stage: null, frame: 0, x: "", y: "" };
-
-      function placeAmbientLight() {
-        ambientLight.frame = 0;
-        const stage = ambientLight.stage;
-        const mode = document.documentElement.getAttribute("data-session-mode");
-        const timer =
-          mode === "work"
-            ? DOM.workTimer
-            : mode === "break"
-              ? DOM.breakTimer
-              : null;
-        let x = "";
-        let y = "";
-        if (timer) {
-          if (!timer.getClientRects().length) return;
-          const s = stage.getBoundingClientRect();
-          const t = timer.getBoundingClientRect();
-          x = `${(t.left + t.width / 2 - s.left - stage.clientLeft + stage.scrollLeft).toFixed(1)}px`;
-          y = `${(t.top + t.height / 2 - s.top - stage.clientTop + stage.scrollTop).toFixed(1)}px`;
-        }
-        if (x === ambientLight.x && y === ambientLight.y) return;
-        ambientLight.x = x;
-        ambientLight.y = y;
-        if (x) {
-          stage.style.setProperty("--glow-x", x);
-          stage.style.setProperty("--glow-y", y);
-        } else {
-          stage.style.removeProperty("--glow-x");
-          stage.style.removeProperty("--glow-y");
-        }
-      }
-
-      function scheduleAmbientLight() {
-        if (!ambientLight.stage) {
-          ambientLight.stage = document.querySelector(".main-ui");
-          if (!ambientLight.stage) return;
-          if (typeof ResizeObserver === "function") {
-            const observer = new ResizeObserver(scheduleAmbientLight);
-            [
-              ambientLight.stage,
-              ambientLight.stage.querySelector(".status-bar"),
-              ambientLight.stage.querySelector(".timers-wrapper"),
-              ambientLight.stage.querySelector(".actions"),
-            ].forEach((el) => el && observer.observe(el));
-          }
-        }
-        if (!ambientLight.frame) {
-          ambientLight.frame = requestAnimationFrame(placeAmbientLight);
-        }
-      }
-
       function renderStaticUI() {
         const isIdle = !!state.idleLock;
         const hasStarted = !!state.loginTimestamp;
@@ -32526,7 +32603,7 @@
           "data-session-mode",
           mode || "idle",
         );
-        scheduleAmbientLight();
+        syncTitleTicker();
         if (leased) {
           document.documentElement.setAttribute("data-session-remote", "1");
         } else {
@@ -32617,28 +32694,25 @@
             iconColor = "#ffffff";
           }
         } else if (state.currentMode === "work") {
-          activeTitle = state.continuousTabTickingEnabled
-            ? `${formatDuration(workSeconds)} • Working`
-            : "Working";
+          activeTitle = runningTitle(workSeconds, "Working");
           iconColor = "#4ade80";
           slashColor = "var(--accent-work)";
         } else if (state.currentMode === "break") {
-          activeTitle = state.continuousTabTickingEnabled
-            ? `${formatDuration(breakSeconds)} • Break`
-            : "Break";
+          activeTitle = runningTitle(breakSeconds, "Break");
           iconColor = "#f87171";
           slashColor = "var(--accent-break)";
         } else {
           if (state.loginTimestamp) {
-            activeTitle = state.continuousTabTickingEnabled
-              ? `${formatDuration(workSeconds)} • Paused`
-              : "Paused";
+            activeTitle = runningTitle(workSeconds, "Paused");
           } else {
             activeTitle = "nodrift";
           }
         }
 
-        // Minute resolution above is load-bearing, not cosmetic:
+        /* Assigning document.title repaints the tab strip and rebuilds an
+           accessibility node in the browser, so it is only assigned when the
+           string has changed: once a second while a timer runs and the title
+           carries it (see THE TAB'S TITLE), never at rest. */
         if (document.title !== activeTitle) {
           document.title = activeTitle;
         }
@@ -32685,6 +32759,7 @@
           lastLiveWorkSec = currentWorkSecInt;
           lastLiveBreakSec = currentBreakSecInt;
           updateLiveTodayRow();
+          tickWeekFigures();
         }
 
         // Only call the heavy weekly summary calculation when the minute rolls over
@@ -32817,6 +32892,61 @@
         }
       }
 
+      /* The Insights card's headline, in every view: what was worked, to
+         the second, against the target in whole hours, and its share of
+         the target, capped at 100. */
+      function workAgainstGoalText(workSec, goalSec) {
+        return `${formatDuration(workSec)} / ${Math.round(goalSec / 3600)}h`;
+      }
+
+      function goalPercentText(workSec, goalSec) {
+        const percent =
+          goalSec > 0
+            ? Math.min((workSec / goalSec) * 100, 100)
+            : workSec > 0
+              ? 100
+              : 0;
+        return `(${percent.toFixed(0)}%)`;
+      }
+
+      /* The current week's work and break totals tick with the timers, the
+         way today's row under them does. updateLiveWeeklySummary() sums
+         what the logbook holds for the week, on render and once a minute;
+         each second only the running timers are added to those sums -- a
+         few text writes, no lookups. The work timer counts only on a day
+         that counts toward the week. */
+      const liveWeekFigures = {
+        on: false,
+        version: -1,
+        day: "",
+        loggedWork: 0,
+        loggedBreak: 0,
+        goal: 0,
+        todayCounts: false,
+      };
+
+      function tickWeekFigures() {
+        const f = liveWeekFigures;
+        if (
+          !f.on ||
+          f.version !== dataVersion ||
+          currentInsightsView !== "weekly" ||
+          document.hidden ||
+          !DOM.tabInsights ||
+          DOM.tabInsights.style.display === "none" ||
+          f.day !== getWorkDate()
+        )
+          return;
+        const work =
+          f.loggedWork + (f.todayCounts ? getCurrentWorkSeconds() : 0);
+        setText(DOM.weeklySummaryText, workAgainstGoalText(work, f.goal));
+        setText(DOM.weeklyProgressPercent, goalPercentText(work, f.goal));
+        setText(
+          DOM.weeklyBreak,
+          formatDuration(f.loggedBreak + getCurrentBreakSeconds()),
+        );
+      }
+
       /* High-performance micro-updater to live refresh weekly stats only when the Insights tab is visible and focused. */
       function updateLiveWeeklySummary(force = false) {
         const insightsTab = DOM.tabInsights;
@@ -32833,6 +32963,7 @@
           typeof currentInsightsView !== "undefined" &&
           currentInsightsView !== "weekly"
         ) {
+          liveWeekFigures.on = false;
           insightsCacheKey = null;
           renderInsights();
           return;
@@ -32844,7 +32975,10 @@
 
         const week = WorkWeek.weekOf(formatUTCDayStr(displayBaseDate));
         const todayKey = formatUTCDayStr(getWorkDateObj());
-        if (week.startDay !== WorkWeek.weekOf(todayKey).startDay) return;
+        if (week.startDay !== WorkWeek.weekOf(todayKey).startDay) {
+          liveWeekFigures.on = false;
+          return;
+        }
 
         const weeklyLogs = logsForWeek(week);
         const logsByDate = {};
@@ -32863,40 +32997,36 @@
           leaveDates.map((l) => (typeof l === "string" ? l : l.date)),
         );
         let totalW_MonFri = 0;
+        let loggedBreak = 0;
         for (let i = 0; i < week.keys.length; i++) {
           const dateStr = week.keys[i];
+          const day = logsByDate[dateStr];
+          if (day) loggedBreak += day.b;
           if (!WorkWeek.countsToward(dateStr)) continue;
-          totalW_MonFri += logsByDate[dateStr] ? logsByDate[dateStr].w : 0;
+          totalW_MonFri += day ? day.w : 0;
         }
 
         const stats = WorkWeek.targetOf(WorkWeek.workDaysOf(week), leaveSet);
         let dynamicWeeklyGoalSec = stats.targetSec;
 
-        if (WorkWeek.countsToward(todayKey)) {
+        const todayCounts = WorkWeek.countsToward(todayKey);
+        liveWeekFigures.on = true;
+        liveWeekFigures.version = dataVersion;
+        liveWeekFigures.day = getWorkDate();
+        liveWeekFigures.loggedWork = totalW_MonFri;
+        liveWeekFigures.loggedBreak = loggedBreak;
+        liveWeekFigures.goal = dynamicWeeklyGoalSec;
+        liveWeekFigures.todayCounts = todayCounts;
+
+        if (todayCounts) {
           totalW_MonFri += getCurrentWorkSeconds();
         }
 
-        const totalPercent =
-          dynamicWeeklyGoalSec > 0
-            ? Math.min((totalW_MonFri / dynamicWeeklyGoalSec) * 100, 100)
-            : totalW_MonFri > 0
-              ? 100
-              : 0;
-
-        const summaryText = DOM.weeklySummaryText;
-        const percentText = DOM.weeklyProgressPercent;
         const weekMsg = DOM.weeklyStatusMsg;
         const progressCard = DOM.weeklyProgressCard;
 
-        if (summaryText) {
-          setText(
-            summaryText,
-            `${formatFriendlyDuration(totalW_MonFri, "0h")} / ${Math.round(
-              dynamicWeeklyGoalSec / 3600,
-            )}h`,
-          );
-        }
-        if (percentText) setText(percentText, `(${totalPercent.toFixed(0)}%)`);
+        // The figure, its share and the break total, as each second sets them.
+        tickWeekFigures();
 
         if (progressCard) {
           if (totalW_MonFri >= dynamicWeeklyGoalSec)
@@ -37513,20 +37643,14 @@
         }
 
         // Active work is already accumulated into totalW_MonFri inside the day loop
-        const totalPercent =
-          dynamicWeeklyGoalSec > 0
-            ? Math.min((totalW_MonFri / dynamicWeeklyGoalSec) * 100, 100)
-            : totalW_MonFri > 0
-              ? 100
-              : 0;
-
         setText(
           summaryText,
-          `${formatFriendlyDuration(totalW_MonFri, "0h")} / ${Math.round(
-            dynamicWeeklyGoalSec / 3600,
-          )}h`,
+          workAgainstGoalText(totalW_MonFri, dynamicWeeklyGoalSec),
         );
-        setText(percentText, `(${totalPercent.toFixed(0)}%)`);
+        setText(
+          percentText,
+          goalPercentText(totalW_MonFri, dynamicWeeklyGoalSec),
+        );
 
         if (progressCard) {
           if (totalW_MonFri >= dynamicWeeklyGoalSec)
@@ -37604,11 +37728,13 @@
 
         DOM.weeklyBreakdown.innerHTML = breakdownHTML;
 
-        setText(DOM.weeklyBreak, formatFriendlyDuration(totalB_AllWeek, "0m"));
+        setText(DOM.weeklyBreak, formatDuration(totalB_AllWeek));
 
         // Instantly trigger live calculations if viewing the current active week
         if (isCurrentWeek) {
           updateLiveWeeklySummary(true);
+        } else {
+          liveWeekFigures.on = false;
         }
       }
 
@@ -37885,18 +38011,15 @@
 
         DOM.weeklyBreakdown.innerHTML = breakdownHTML;
 
-        const totalPercent =
-          grandGoal > 0
-            ? Math.min((grandTotalW / grandGoal) * 100, 100)
-            : grandTotalW > 0
-              ? 100
-              : 0;
         setText(
           DOM.weeklySummaryText,
-          `${formatFriendlyDuration(grandTotalW, "0h")} / ${Math.round(grandGoal / 3600)}h`,
+          workAgainstGoalText(grandTotalW, grandGoal),
         );
-        setText(DOM.weeklyProgressPercent, `(${totalPercent.toFixed(0)}%)`);
-        setText(DOM.weeklyBreak, formatFriendlyDuration(grandTotalB, "0m"));
+        setText(
+          DOM.weeklyProgressPercent,
+          goalPercentText(grandTotalW, grandGoal),
+        );
+        setText(DOM.weeklyBreak, formatDuration(grandTotalB));
 
         if (DOM.weeklyProgressCard) {
           if (grandTotalW >= grandGoal && grandGoal > 0)
