@@ -7789,6 +7789,12 @@
         border-radius: var(--header-el-radius);
         border: var(--tab-nav-border);
         overflow-x: auto;
+        /* The track clips at its edge, and a snap lines a tab up with that
+           edge unless told otherwise: on a phone the first tab opened flush
+           against it, and the chosen tab's outline was cut away down its
+           left side. A tab now comes to rest at the track's inset, as far
+           in from the end as it stands from the top and the foot. */
+        scroll-padding-inline: var(--tab-nav-padding);
         flex-shrink: 0;
         align-items: stretch;
       }
@@ -9773,6 +9779,14 @@
           display: none;
         }
 
+        /* The weekly goal is borrowed out of the settings popup's first
+           card, and the hairline that divided it from the auto-populate row
+           stayed behind, ruled across the foot of a card holding that row
+           alone. A rule with nothing under it divides nothing. */
+        .settings-card > .settings-separator:last-child {
+          display: none;
+        }
+
         #m-sheet .goal-chevron {
           display: none;
         }
@@ -11196,6 +11210,15 @@
         .icon-btn:active,
         .sq-btn:active {
           transform: scale(0.97);
+        }
+
+        /* Not a help tab, though: its track snaps to it, and a snap measures
+           a tab's transformed box, so a tab shrunk under the finger moved its
+           own resting place and the track settled with the chosen tab short
+           of its inset. A pressed help tab is tinted instead. */
+        .help-tab-btn:active:not(:disabled) {
+          transform: none;
+          background: var(--tab-btn-bg-active);
         }
 
         /* Text content stays selectable; app chrome does not. */
@@ -13177,6 +13200,10 @@
               the browser slows the page down in a background tab, or you lock the
               screen, the totals are still right when you come back.
             </p>
+            <p>
+              On a computer the browser tab's title carries the running timer,
+              so you can read it from another tab without switching back.
+            </p>
             <hr />
             <h4>Fixing a timer that is wrong</h4>
             <p>
@@ -13847,15 +13874,6 @@
                 <strong>Auto-email EOD summary</strong> — on ending a shift,
                 copies your summary to the clipboard and opens a new email draft
                 ready to paste into.
-              </li>
-              <li>
-                <strong>Continuous tab ticking</strong> — puts the running time
-                into the browser tab's title, so you can read it from another tab
-                without switching back. Left off, the title shows only
-                <strong>Working</strong>, <strong>Break</strong> or
-                <strong>Paused</strong>, and stops updating while the tab is in
-                the background. Your tracking is unaffected either way; this
-                changes the title, not the timer.
               </li>
               <li><strong>Restore Snapshot</strong> — see below.</li>
             </ul>
@@ -17805,21 +17823,6 @@
 
                   <div class="settings-separator"></div>
 
-                  <!-- Row 4.5: Continuous Tab Ticking -->
-                  <div class="settings-row">
-                    <span class="settings-label">Continuous tab ticking</span>
-                    <label class="switch">
-                      <input
-                        type="checkbox"
-                        id="continuous-ticking-toggle"
-                        onchange="onContinuousTickingToggleChange()"
-                      />
-                      <span class="slider-toggle"></span>
-                    </label>
-                  </div>
-
-                  <div class="settings-separator"></div>
-
                   <!-- Row 5: Restore Snapshot dropdown -->
                   <div class="settings-row flex-col">
                     <span class="settings-label">Restore Snapshot</span>
@@ -21224,7 +21227,6 @@
         weeklyGoalHours: WEEKLY_GOAL_DEFAULT_HOURS,
         autoBackupEnabled: false, // New property for silent backup
         autoEmailEnabled: false,
-        continuousTabTickingEnabled: false,
         idleType: null,
         lastHeartbeatWall: null,
         tabHiddenAt: null,
@@ -21501,29 +21503,29 @@
 
       /* A hidden page has nothing to compute. */
       function syncTickerState() {
-        if (document.hidden && !state.continuousTabTickingEnabled)
-          stopUITimer();
+        if (document.hidden) stopUITimer();
         else startUITimer();
         syncTitleTicker();
       }
 
       /* THE TAB'S TITLE. A desktop carries the running timer in its tab's
          title, to the second, so the day can be read from any other tab. A
-         phone or tablet does so when Continuous tab ticking is on, as
-         before.
+         phone or tablet names the mode alone: a title is seldom in view
+         there, and keeping one ticking would cost battery for nothing.
 
          A page in view sets the title from tick(), with every other
-         read-out. A hidden page stops tick() unless that setting keeps it
-         going, so a desktop's title then keeps time by itself, on an alarm
-         in the ticker's worker -- a hidden tab's own timers are slowed to
-         as little as one a minute, a worker's are not -- set to go off just
-         after the running figure turns. Each alarm reads the clock and
-         writes the title, and that is all: no layout, no storage, no lease,
-         no checks, and nothing at all while no timer runs. */
+         read-out. A hidden page stops tick(), so a desktop's title then
+         keeps time by itself, on an alarm in the ticker's worker -- a hidden
+         tab's own timers are slowed to as little as one a minute, a
+         worker's are not -- set to go off just after the running figure
+         turns. Each alarm reads the clock and writes the title, and that is
+         all: no layout, no storage, no lease, no checks, and nothing at all
+         while no timer runs. A phone or tablet sets no alarm, and a hidden
+         page there does nothing. */
       let titleTickerArmed = false;
 
       function titleShowsTime() {
-        return !!state.continuousTabTickingEnabled || !isPhoneLayout();
+        return !isPhoneLayout();
       }
 
       function runningTitle(seconds, word) {
@@ -21760,9 +21762,6 @@
         idleRangeContainer: document.getElementById("idle-range-container"),
         autoBackupToggle: document.getElementById("auto-backup-toggle"),
         autoEmailToggle: document.getElementById("auto-email-toggle"),
-        continuousTickingToggle: document.getElementById(
-          "continuous-ticking-toggle",
-        ),
         manualDate: document.getElementById("manual-date"),
         manualWork: document.getElementById("manual-work"),
         manualModal: document.getElementById("manual-modal"),
@@ -25681,7 +25680,6 @@
           "weeklyGoalHours",
           "autoBackupEnabled",
           "autoEmailEnabled",
-          "continuousTabTickingEnabled",
           "goalAutopopulateEnabled",
         ];
 
@@ -34210,9 +34208,6 @@
         const previousAutoEmail = isFactoryReset
           ? false
           : state.autoEmailEnabled;
-        const previousContinuousTabTicking = isFactoryReset
-          ? false
-          : state.continuousTabTickingEnabled;
         const previousGoalAutopopulate = isFactoryReset
           ? true
           : state.goalAutopopulateEnabled;
@@ -34252,10 +34247,6 @@
             previousAutoBackup !== undefined ? previousAutoBackup : false,
           autoEmailEnabled:
             previousAutoEmail !== undefined ? previousAutoEmail : false,
-          continuousTabTickingEnabled:
-            previousContinuousTabTicking !== undefined
-              ? previousContinuousTabTicking
-              : false,
           goalAutopopulateEnabled:
             previousGoalAutopopulate !== undefined
               ? previousGoalAutopopulate
@@ -39480,12 +39471,6 @@
           ) {
             return "autoEmailEnabled must be a boolean.";
           }
-          if (
-            data.state.continuousTabTickingEnabled !== undefined &&
-            typeof data.state.continuousTabTickingEnabled !== "boolean"
-          ) {
-            return "continuousTabTickingEnabled must be a boolean.";
-          }
         }
 
         return null; // Valid
@@ -39634,10 +39619,6 @@
               data.state.autoEmailEnabled !== undefined
                 ? data.state.autoEmailEnabled
                 : state.autoEmailEnabled;
-            state.continuousTabTickingEnabled =
-              data.state.continuousTabTickingEnabled !== undefined
-                ? data.state.continuousTabTickingEnabled
-                : state.continuousTabTickingEnabled;
             saveState();
           }
           const existingH = safeGetLocalStorage(GOAL_H_KEY);
@@ -44158,12 +44139,6 @@
         if (autoEmailCheckbox)
           autoEmailCheckbox.checked = !!state.autoEmailEnabled;
 
-        // Sync continuous ticking toggle
-        const continuousTickingCheckbox = DOM.continuousTickingToggle;
-        if (continuousTickingCheckbox)
-          continuousTickingCheckbox.checked =
-            !!state.continuousTabTickingEnabled;
-
         // Sync goal auto-populate toggle
         const goalAutopopulateCheckbox = document.getElementById(
           "goal-autopopulate-toggle",
@@ -44464,14 +44439,6 @@
         const checkbox = DOM.autoEmailToggle;
         state.autoEmailEnabled = checkbox.checked;
         saveState();
-      };
-
-      window.onContinuousTickingToggleChange = function () {
-        const checkbox = DOM.continuousTickingToggle;
-        state.continuousTabTickingEnabled = checkbox.checked;
-        saveState();
-        syncTickerState();
-        renderTimersOnly();
       };
 
       /**
@@ -48339,6 +48306,10 @@
             const elements = tab.querySelectorAll("h4, p, li, ul, hr");
             elements.forEach((el) => (el.style.display = ""));
           });
+          /* The track comes back scrolled to its start, wherever the chosen
+             tab is. */
+          if (tabNav)
+            revealHelpTab(tabNav.querySelector(".help-tab-btn.active"), false);
           return;
         }
 
@@ -48395,8 +48366,36 @@
         }
         if (btn) {
           btn.classList.add("active");
+          revealHelpTab(btn, true);
         }
       };
+
+      /* Where the tabs overflow their track it scrolls, and a tab part way
+         past either end is cut off by the track's rounded edge. The chosen
+         tab is never left like that: it is brought in to rest at the
+         track's inset, which is where a snap would leave it, so the snap
+         has nothing to undo.
+
+         Measured by layout rather than on screen, so that nothing drawn
+         over the tab -- a press, a transition -- can make one still cut off
+         read as whole. The first tab rests with the track scrolled to 0, so
+         any tab rests at its distance from the first. */
+      function revealHelpTab(btn, smooth) {
+        const nav = btn && btn.parentElement;
+        if (!nav || nav.scrollWidth <= nav.clientWidth) return;
+        const inset = parseFloat(getComputedStyle(nav).paddingLeft) || 0;
+        const rest = btn.offsetLeft - nav.firstElementChild.offsetLeft;
+        const room = nav.clientWidth - 2 * inset;
+        if (
+          rest > nav.scrollLeft - 1 &&
+          rest + btn.offsetWidth < nav.scrollLeft + room + 1
+        )
+          return;
+        nav.scrollTo({
+          left: rest,
+          behavior: smooth && !prefersReducedMotion() ? "smooth" : "auto",
+        });
+      }
 
       function showSyncToast(msg, requireAck = false) {
         dismissOtherToasts("sync-toast");
@@ -48953,6 +48952,9 @@
           }
 
           delete state.lastHeartbeatMonotonic;
+          /* Continuous tab ticking is no longer a setting: a desktop's title
+             always keeps time, and a phone's or a tablet's never does. */
+          delete state.continuousTabTickingEnabled;
 
           // Backward compatibility migration:
           if (
@@ -49113,8 +49115,6 @@
             "Auto-Backup: Automatically downloads a secure JSON backup file when your shift is submitted.",
           "auto-email-toggle":
             "Auto-Email: Pre-copies your formatted summary and opens a draft in your mail client.",
-          "continuous-ticking-toggle":
-            "Continuous Ticking: Keeps the tab title timer ticking in the background.",
           "snapshot-restore-select":
             "Snapshot Rollback: Restores your database logs to an automatically captured historical state.",
           /* Two sets of descriptions have been retired with the strips that
@@ -49179,7 +49179,6 @@
         bindHover("idle-input-box", DOM.idleInputBox);
         bindHover("auto-backup-toggle", DOM.autoBackupToggle);
         bindHover("auto-email-toggle", DOM.autoEmailToggle);
-        bindHover("continuous-ticking-toggle", DOM.continuousTickingToggle);
         bindHover("snapshot-restore-select", DOM.snapshotRestoreSelect);
 
         /* Hovering anywhere on a row explains it, not just the control at the
@@ -49210,7 +49209,6 @@
           "idle-toggle",
           "auto-backup-toggle",
           "auto-email-toggle",
-          "continuous-ticking-toggle",
         ];
         rowIds.forEach((id) => {
           const input = document.getElementById(id);

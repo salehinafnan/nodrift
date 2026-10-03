@@ -80,7 +80,7 @@ Three properties define it.
 
 ### Track the day
 
-The left half of the screen is the tracker: **Production Time** on top, **Break Time** below, and a progress bar between them. Only one timer runs at a time. The bar shows how much of today's goal is done and what is left, and on the right it estimates when you will finish, in your local time. The browser tab's icon changes colour with the timer's state, and an optional setting puts the running time in the tab title.
+The left half of the screen is the tracker: **Production Time** on top, **Break Time** below, and a progress bar between them. Only one timer runs at a time. The bar shows how much of today's goal is done and what is left, and on the right it estimates when you will finish, in your local time. The browser tab's icon changes colour with the timer's state, and on a desktop the tab's title carries the running time.
 
 If a timer is wrong because you forgot to press Break or started late, **Adjust Timer** takes amounts like `+15m`, `-5m 30s` or `1.5h`, previews the result, and offers an Undo afterwards.
 
@@ -217,7 +217,7 @@ The `max` handles one narrow failure. If the process is killed and the system cl
   </picture>
 </p>
 
-The ticker lives in a worker, which background tabs throttle far less than page timers, so the tab-title clock keeps ticking while you are in another tab. With that setting off, a hidden page stops ticking altogether: there is nothing to draw, and on return the wake-up path recomputes everything from the anchors and checks for sleep, idleness and midnight. Where a worker cannot be created, the same interface falls back to a main-thread timer.
+The ticker lives in a worker, which background tabs throttle far less than page timers. A hidden page stops ticking altogether: there is nothing to draw, and on return the wake-up path recomputes everything from the anchors and checks for sleep, idleness and midnight. All a desktop keeps going is the tab's title, which shows the running time to the second while you are in another tab: the worker sets an alarm for just after each second turns, and the page reads the clock and writes the title, nothing more. Phones and tablets set no alarm. Where a worker cannot be created, the same interface falls back to a main-thread timer.
 
 **The clock policy.** nodrift trusts the system clock, the same way server-backed trackers do. Cross-checking it against `performance.now()` sounds safer but does not work in a browser, because the monotonic clock stops while a tab is frozen or a phone is locked, and every wake would look like a clock change. What it does defend, because those cases are provable:
 
