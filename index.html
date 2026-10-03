@@ -3234,35 +3234,6 @@
         transform: scale(0.985);
       }
 
-      /* The quiet end of the dock. Work and Break are the session's two
-         states, each drawn solid in its own colour (see the emphasis recipe
-         below); End Shift is never the thing to press next -- the timer is
-         the subject -- so it stands as a neutral raised button and only its
-         glyph carries colour. */
-      .actions .btn-log {
-        background: var(--raised-bg);
-        border: 1px solid var(--raised-edge);
-        color: var(--text-main);
-        box-shadow: var(--emph-highlight), var(--raised-shadow);
-      }
-
-      .actions .btn-log svg {
-        color: var(--accent-blue);
-      }
-
-      @media (hover: hover) {
-        .actions .btn-log:hover:not(:disabled) {
-          background: var(--raised-hover);
-          border-color: var(--hairline-hover-color);
-          color: var(--text-main);
-        }
-      }
-
-      .actions .btn-log:active:not(:disabled) {
-        background: var(--raised-hover);
-        color: var(--text-main);
-      }
-
       button {
         border: none;
         border-radius: var(--radius-md);
@@ -3400,7 +3371,8 @@
       /* The primaries carry their colour into their shadow, so each lifts
          off the canvas in its own light. */
       .btn-work,
-      .btn-break {
+      .btn-break,
+      :where(.actions, #task-actions-group) .btn-log {
         box-shadow:
           inset 0 1px 0 rgba(255, 255, 255, 0.24),
           0 1px 2px rgba(0, 0, 0, 0.12),
@@ -3408,8 +3380,18 @@
             color-mix(in srgb, var(--emph-accent) 75%, transparent);
       }
 
-      :root[data-theme="theme-eink"] :is(.btn-work, .btn-break),
-      :root[data-theme="vercel-dark"] :is(.btn-work, .btn-break) {
+      :root[data-theme="theme-eink"]
+        :is(
+          .btn-work,
+          .btn-break,
+          :where(.actions, #task-actions-group) .btn-log
+        ),
+      :root[data-theme="vercel-dark"]
+        :is(
+          .btn-work,
+          .btn-break,
+          :where(.actions, #task-actions-group) .btn-log
+        ) {
         box-shadow: none;
       }
 
@@ -3533,9 +3515,19 @@
         --emph-accent: var(--accent-blue);
       }
 
-      /* Prominence level 1: Work in green, Break in red, the same solid. */
+      /* Prominence level 1: Work in green, Break in red, and the act that
+         closes a timer -- End Shift in the dock, Done on the task stopwatch
+         -- in blue, the same solid. End Shift used to stand neutral with only
+         its glyph in colour, on the reading that it is never the next thing
+         to press; on the black pages of the dark themes that left a slab
+         barely off the canvas beside a lit one. Done wore the tinted outline
+         the controls had before this recipe, the last one in either dock that
+         still did. Scoped to the two docks, through :where() so it weighs no
+         more than the classes beside it: the adjust popover's Apply carries
+         .btn-log too, as the quiet look of a session it cannot touch. */
       .btn-work,
-      .btn-break {
+      .btn-break,
+      :where(.actions, #task-actions-group) .btn-log {
         --emph-fill: var(--emph-1-fill);
         --emph-hover: var(--emph-1-hover);
         --emph-press: var(--emph-1-press);
