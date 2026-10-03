@@ -2611,7 +2611,14 @@
 
       /* The line under the rail: how far along, and when the day ends. A
          class rather than the inline style it used to carry, so the phone and
-         the desktop can each set its size. */
+         the desktop can each set its size.
+
+         Both ends of it rest muted while no shift runs and come up to full
+         ink together the moment one starts, on a break as at work: the same
+         fact, data-session-mode, that lights the running timer's name and
+         figures. The percentage used to stay muted and the finish time stay
+         full whatever the session was doing, so one line read in two
+         strengths. */
       .progress-meta {
         display: flex;
         justify-content: space-between;
@@ -2619,10 +2626,19 @@
         font-size: var(--text-xs);
         font-weight: 500;
         color: var(--text-muted);
+        transition: color var(--motion-base) ease;
       }
 
-      #eta-text {
+      :root[data-session-mode="work"] .progress-meta,
+      :root[data-session-mode="break"] .progress-meta {
         color: var(--text-main);
+      }
+
+      /* A met goal is said in the work colour, as the rail says it, while a
+         shift runs; at rest it is quiet with the rest of the line. */
+      :root[data-session-mode="work"] #eta-text.is-goal-met,
+      :root[data-session-mode="break"] #eta-text.is-goal-met {
+        color: var(--accent-work);
       }
 
       #break-timer {
@@ -33332,7 +33348,7 @@
             let etaColorClass = "";
             if (isGoalReached) {
               etaText = "Daily Goal Reached";
-              etaColorClass = "text-work";
+              etaColorClass = "is-goal-met";
             } else if (noDayGoal) {
               /* There is no hour to finish at when nothing is asked (P-W16):
                  the estimate stays empty rather than naming a moment already
@@ -33371,7 +33387,6 @@
                   domWriteCache.cachedEtaString = `${etaTime} ${etaLabel}`;
                 }
                 etaText = `EOD: ${domWriteCache.cachedEtaString}`;
-                etaColorClass = "text-main";
               }
             }
 
