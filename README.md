@@ -157,7 +157,7 @@ Sign in from the cloud button and this device keeps its shifts, tasks, leave, sa
 
 <img alt="The phone layout: the Timer tab with the running shift, the Insights tab with the week, and the Settings & Tools sheet with goals, preferences, themes, cloud sync and tools" src="docs/assets/screenshots/phone.png" />
 
-Under 768 px wide, nodrift becomes a phone app with five tabs along the bottom (Insights, Tasks, Timer, Logbook, Settings & Tools) and bottom sheets for everything else. Add it to your home screen and it runs full screen and offline.
+Under 1150 px wide, which takes in phones and tablets held upright, nodrift becomes a phone app with five icon tabs along the bottom (Insights, Tasks, Timer, Logbook, Settings & Tools) and bottom sheets for everything else. Add it to your home screen and it runs full screen and offline.
 
 ---
 
