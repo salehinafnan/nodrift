@@ -5400,7 +5400,13 @@
         padding: 0 12px;
         font-size: var(--text-xs);
         font-weight: 600;
-        border-radius: var(--radius-sm);
+        /* The fields' corner rather than the compact one. These run the full
+           width of the column the fields stand in, and two of them close the
+           card against its bottom edge, whose curve is drawn around exactly
+           this corner (see #sync-account-card); a tighter one sat 2px short of
+           following it. All five take it, so the set stays one shape, and on
+           a phone, where they are 44px like the fields, they now match them. */
+        border-radius: var(--radius-md);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -5634,7 +5640,12 @@
            8px rather than the 12px the sides had, because the corner grows
            with the inset: at 12px it would run rounder than the panel's own
            20px around it on a desktop, and the inner curve would bulge
-           against the outer one. */
+           against the outer one.
+
+           So every box that runs the card's width takes the field's corner
+           as well -- the submits, the storage note, the error and the
+           account buttons -- since any of them can be the one against an
+           edge. The links under a form draw no box at all. */
         --card-inset: 8px;
         padding: var(--card-inset);
         border-radius: calc(
@@ -5700,7 +5711,9 @@
         padding: 7px 9px;
         border: var(--hairline);
         border-color: color-mix(in srgb, var(--accent-break) 45%, transparent);
-        border-radius: var(--radius-sm);
+        /* The fields' corner, so it follows the card's: under a failed form it
+           is the last thing in the card, against its bottom edge. */
+        border-radius: var(--radius-md);
         background: color-mix(in srgb, var(--accent-break) 12%, transparent);
         line-height: 1.45;
       }
@@ -5714,7 +5727,9 @@
         gap: 8px;
         padding: 8px 10px;
         border: var(--hairline);
-        border-radius: var(--radius-sm);
+        /* The fields' corner, so it follows the card's: signed out it opens
+           the card, against its top edge. */
+        border-radius: var(--radius-md);
         background: var(--accent-wash);
       }
 
@@ -5739,7 +5754,7 @@
         display: flex;
       }
 
-      /* Navigation between the panes, not fields: these keep the compact 26px
+      /* Navigation between the panes, not fields: these keep the compact 28px
          treatment the rest of the card's buttons get, which is what separates
          them at a glance from the submit directly above. */
       .sync-auth-links {
@@ -5752,20 +5767,29 @@
       /* A single link sits under its own submit rather than stretching the
          width of the card.
 
-         Drawn as a link and not as an outlined chip: three bordered boxes
-         stacked down a 296px panel made a sign-in form read as a settings
-         list, with nothing for the eye to land on. Only the paint changes --
-         the compact rule above still owns the box, so the row under the
-         submit is the 26px it has always been. */
+         Drawn as a link, the way "show more" under the device list is drawn
+         further down this panel: these move between the panes and act on
+         nothing, and boxes stacked under the fields would read as a
+         settings list. The button underneath is the raised neutral one, so
+         everything it paints comes off here -- the fill, the edge and the
+         contact shadow. The shadow used to stay behind and draw a chip with
+         nothing inside it, in every theme but E-ink, whose raised buttons
+         cast none. Only the paint changes: the compact rule above still owns
+         the box, so the target is the 28px it was. */
       .sync-auth-links button {
         flex: 0 0 auto;
         background: transparent;
         border-color: transparent;
+        box-shadow: none;
         color: var(--accent-blue);
       }
 
+      /* The raised button's hover brings its edge back, which drew an outline
+         around an underlined link -- solid black on E-ink. A link answers a
+         pointer with its underline alone. */
       .sync-auth-links button:hover:not(:disabled) {
         background: transparent;
+        border-color: transparent;
         text-decoration: underline;
       }
 
