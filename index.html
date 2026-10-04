@@ -21804,6 +21804,14 @@
       let filterCacheSource = null; // The logs array filterCache was built from
       let insightsCacheKey = null; // Force invalidate insights cache immediately to prevent race conditions
       let dataVersion = 0; // Incremented on every data mutation; used for cache keys
+      /* Counts logbook saves and nothing else. A queued database write uses
+         it to tell whether a newer save has replaced it. It used to compare
+         dataVersion, which every cache invalidation bumps as well, so a
+         leave save or a restore's redraw landing while a write waited its
+         turn made that write look superseded. It was dropped, nothing newer
+         wrote in its place, and the logbook never reached IndexedDB: a
+         backup restored on a fresh device was gone after one reload. */
+      let logsWriteSeq = 0;
 
       /* Every cache derived from the logbook, dropped together.
 
@@ -40171,8 +40179,19 @@
                 : JSON.stringify(data.presets),
             );
           }
+          const keepLocal = resolutionType === "keep-local";
+          let leavesRestored = false;
           if (data.leaves) {
-            /* Through saveLeaveDates rather than straight to the key, so the
+            /* Merged by date, the way the shifts and tasks below are merged
+               by id. The list used to be replaced outright, which deleted
+               every leave the backup did not happen to hold - and a backup
+               holding none, "[]", emptied the list completely. Signed in, it
+               went further: the sync layer reads every date that vanished as
+               a delete, so the restore tombstoned those leaves on the account
+               and on every other device. The file wins on a date both hold,
+               unless the user chose to keep their own copy.
+
+               Through saveLeaveDates rather than straight to the key, so the
                restored entries are stamped as written NOW. A backup's leaves
                carry no stamp of their own, and writing them raw would leave
                them at zero - which loses every conflict against whatever is
@@ -40182,15 +40201,28 @@
               typeof data.leaves === "string"
                 ? JSON.parse(data.leaves)
                 : data.leaves;
-            saveLeaveDates(Array.isArray(raw) ? raw : []);
+            const incoming = normalizeLeaveShape(Array.isArray(raw) ? raw : []);
+            if (incoming.length > 0) {
+              const byDate = new Map();
+              getLeaveDates().forEach((entry) => byDate.set(entry.id, entry));
+              incoming.forEach((entry) => {
+                if (keepLocal && byDate.has(entry.id)) return;
+                byDate.set(entry.id, entry);
+              });
+              saveLeaveDates(
+                Array.from(byDate.values()).sort(
+                  (a, b) => leaveSortKey(a.date) - leaveSortKey(b.date),
+                ),
+              );
+              leavesRestored = true;
+            }
           }
           if (data.leaveAllowances) {
-            localStorage.setItem(
-              LEAVE_ALLOWANCES_KEY,
+            const raw =
               typeof data.leaveAllowances === "string"
-                ? data.leaveAllowances
-                : JSON.stringify(data.leaveAllowances),
-            );
+                ? JSON.parse(data.leaveAllowances)
+                : data.leaveAllowances;
+            restoreLeaveAllowances(raw, keepLocal);
           }
           /* Zone preferences only when they are real: a backup is a file
              anyone can edit, and a bad zone must never reach Intl. Through
@@ -40217,12 +40249,22 @@
             console.warn("Could not reset leave allowance migration latch", e);
           }
           if (data.views) {
-            /* Same reasoning as the leaves above. */
+            /* Same reasoning as the leaves above: merged by id, so a backup
+               cannot delete the views it does not hold. */
             const raw =
               typeof data.views === "string"
                 ? JSON.parse(data.views)
                 : data.views;
-            saveFilterViews(Array.isArray(raw) ? raw : []);
+            const incoming = normalizeViewShape(Array.isArray(raw) ? raw : []);
+            if (incoming.length > 0) {
+              const byId = new Map();
+              getFilterViewsLive().forEach((view) => byId.set(view.id, view));
+              incoming.forEach((view) => {
+                if (keepLocal && byId.has(view.id)) return;
+                byId.set(view.id, view);
+              });
+              saveFilterViews(Array.from(byId.values()));
+            }
           }
 
           if (data.taskState) {
@@ -40464,6 +40506,23 @@
           renderTimersOnly();
           renderPresets();
           loadSavedFilterViews();
+
+          /* The leave screens, which nothing here used to redraw: a restore
+             left the old list and balances on screen until the next reload.
+             The ledger may have changed even when no leave did. */
+          renderLeaveDatesList();
+          const balanceTab = document.getElementById("leave-tab-btn-balance");
+          if (balanceTab && balanceTab.classList.contains("active")) {
+            renderLeaveBalances();
+          }
+          /* The rest of what addLeaveDate redraws, since a leave day sits on
+             all of them: the logbook row, the week's figures, and today's
+             goal. */
+          if (leavesRestored) {
+            renderInsights();
+            renderLogbook();
+            autoPopulateDailyGoal(state.activeDate);
+          }
         } catch (err) {
           showAppToast("Error finalizing restore");
         }
@@ -46484,6 +46543,43 @@
           Sync.notePrefsChanged();
         }
         return ok;
+      }
+
+      /* Folds a backup's ledger into this device's, for finalizeImport.
+
+         A restore used to write the file's object straight over the stored
+         ledger. A stored ledger is authoritative even when it is empty (see
+         getLeaveAllowances), so a backup taken where it was "{}" deleted
+         every leave type on the device it was restored to: the Balances tab
+         and the type picker came up blank, and stayed blank across reloads.
+         Signed in, the settings beat then carried the empty ledger to the
+         account and to every other device.
+
+         So an empty or unreadable ledger in a file restores nothing, and
+         this device keeps its own. Otherwise the two are merged by type: the
+         file wins where both list a type, unless the user chose to keep
+         their own copy, and a type only one side lists is kept. A device
+         that has never stored a ledger contributes nothing, because the seed
+         it shows is not the user's data. Saved through saveLeaveAllowances,
+         so the restore is stamped as an edit made now; the raw write was not
+         stamped, and the next settings pull could put the account's older
+         ledger back. */
+      function restoreLeaveAllowances(raw, keepLocal) {
+        const incoming = normalizeAllowances(raw);
+        if (Object.keys(incoming).length === 0) return false;
+
+        let held = {};
+        const saved = safeGetLocalStorage(LEAVE_ALLOWANCES_KEY);
+        if (saved) {
+          try {
+            held = normalizeAllowances(JSON.parse(saved));
+          } catch (e) {
+            held = {};
+          }
+        }
+        return saveLeaveAllowances(
+          keepLocal ? { ...incoming, ...held } : { ...held, ...incoming },
+        );
       }
 
       /* The year a balance is counted in, when no record names one. Balances
