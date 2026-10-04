@@ -2160,10 +2160,6 @@
         justify-content: center;
       }
 
-      .theme-switching {
-        opacity: 0;
-      }
-
       /* Open-state paint follows the same split as the menu itself: hover where
          there is a pointer to hover with, .popover-open everywhere else. */
       @media (hover: hover) and (pointer: fine) {
@@ -31699,34 +31695,32 @@
 
       /**
        * Directly updates current system design layouts from target popovers
+       *
+       * At once. The pick used to wait 200ms behind a fade of the toggle's
+       * icon before anything changed, which only held back what was asked
+       * for -- and on the installed iPhone app, held back its reload too.
        */
       window.setThemeDirect = function (themeName) {
         if (themePreviewTimeout) clearTimeout(themePreviewTimeout);
-        const icon = DOM.themeToggleIcon;
-        if (icon) icon.classList.add("theme-switching");
 
-        currentTheme = themeName; // Instant state update
+        currentTheme = themeName;
         syncColorSchemeMeta(currentTheme);
+        document.documentElement.setAttribute("data-theme", currentTheme);
+        localStorage.setItem(THEME_KEY, currentTheme);
+        renderStaticUI();
+        renderThemeToggle();
 
-        setTimeout(() => {
-          document.documentElement.setAttribute("data-theme", currentTheme);
-          localStorage.setItem(THEME_KEY, currentTheme);
-          renderStaticUI();
-          renderThemeToggle();
+        // Dynamically update the heatmap colors if the modal is currently open
+        const heatmapModal = DOM.heatmapModal;
+        if (
+          heatmapModal &&
+          heatmapModal.style.display === "flex" &&
+          typeof renderHeatmap === "function"
+        ) {
+          renderHeatmap();
+        }
 
-          // Dynamically update the heatmap colors if the modal is currently open
-          const heatmapModal = DOM.heatmapModal;
-          if (
-            heatmapModal &&
-            heatmapModal.style.display === "flex" &&
-            typeof renderHeatmap === "function"
-          ) {
-            renderHeatmap();
-          }
-
-          if (icon) icon.classList.remove("theme-switching");
-          reloadForStatusBar();
-        }, 200);
+        reloadForStatusBar();
       };
 
       /**
