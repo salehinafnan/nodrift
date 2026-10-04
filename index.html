@@ -51187,7 +51187,67 @@
           reopen();
         }
       })();
+      /* A newer copy of the app, which the service worker has just stored
+         behind this launch (see sw.js). The app opens from that cache
+         without waiting on the network, so a release reaches it a launch
+         late -- unless this launch can take it at once: one that has only
+         just opened and that nobody has touched yet reloads into the copy
+         now in the cache. Anything else keeps what it has until the next
+         launch. */
+      const UPDATE_RELOAD_WINDOW_MS = 10000;
+      const UPDATE_SETTLE_MS = 400;
+      const UPDATE_RELOAD_KEY = "production_update_reload";
+      let untouchedSinceLoad = true;
+      ["pointerdown", "keydown"].forEach((type) =>
+        window.addEventListener(type, () => (untouchedSinceLoad = false), {
+          capture: true,
+          passive: true,
+          once: true,
+        }),
+      );
+
+      function reloadIntoUpdate() {
+        if (!untouchedSinceLoad) return;
+        if (performance.now() > UPDATE_RELOAD_WINDOW_MS) return;
+        /* Not before start-up has finished and its writes have had a moment
+           to land: the day's restore point is still on its way to IndexedDB
+           when the boot flag goes up. */
+        if (
+          !window.bootCompletedAt ||
+          Date.now() - window.bootCompletedAt < UPDATE_SETTLE_MS
+        ) {
+          setTimeout(reloadIntoUpdate, 100);
+          return;
+        }
+        if (document.visibilityState !== "visible") return;
+        if (isTabConflict || isFactoryResetting) return;
+        if (getVisibleModal()) return;
+        if (document.body.classList.contains("m-sheet-open")) return;
+        /* Once a minute at most, so a server that never sends the same page
+           twice cannot keep the app reloading. */
+        try {
+          const last = Number(sessionStorage.getItem(UPDATE_RELOAD_KEY)) || 0;
+          if (Date.now() - last < 60000) return;
+          sessionStorage.setItem(UPDATE_RELOAD_KEY, String(Date.now()));
+        } catch (e) {
+          return;
+        }
+        /* As reloadForStatusBar() does: the lock goes first, so the page that
+           replaces this one never finds it held and takes itself for a
+           second copy. */
+        if (typeof webLockReleaser === "function") {
+          webLockReleaser();
+          webLockReleaser = null;
+        }
+        location.reload();
+      }
+
       if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.addEventListener("message", (event) => {
+          if (event.data && event.data.type === "nodrift-update") {
+            reloadIntoUpdate();
+          }
+        });
         window.addEventListener("load", () => {
           navigator.serviceWorker
             .register("./sw.js")

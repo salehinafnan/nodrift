@@ -187,7 +187,7 @@ Shortcuts are ignored while you type in a field and while the idle prompt is wai
 
 ### Architecture
 
-Everything above runs inside one page. Two small Web Workers are created from inline source at startup, storage is split between a synchronous and an asynchronous store, and the sync backend is a set of plain `fetch` calls (no SDK) to Supabase, used only after you sign in. Around the page, a service worker keeps the app shell cached for offline launches, and a browser-level lock keeps a second tab from writing at the same time.
+Everything above runs inside one page. Two small Web Workers are created from inline source at startup, storage is split between a synchronous and an asynchronous store, and the sync backend is a set of plain `fetch` calls (no SDK) to Supabase, used only after you sign in. Around the page, a service worker opens the app from its cache and refreshes that copy behind it, so a launch never waits on the network and works offline, and a browser-level lock keeps a second tab from writing at the same time.
 
 <p align="center">
   <picture>
@@ -399,7 +399,7 @@ Out of the box the app points at the author's Supabase project. To use your own:
 ```
 nodrift/
 ├── index.html              The entire app: markup, styles and scripts
-├── sw.js                   Service worker: network-first for the page, cached for offline
+├── sw.js                   Service worker: the page from cache, refreshed behind it
 ├── manifest.json           PWA manifest
 ├── icon.svg                App icon
 ├── vercel.json             Security headers for the hosted copy
