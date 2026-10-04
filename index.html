@@ -40434,9 +40434,18 @@
           .catch(() => {}); // No database to clear (blocked, unsupported, file://)
       }
 
-      /* Reboots the app from a clean slate after a factory reset. */
-      function hardReloadApp(delayMs = 800, releaseLease = true) {
-        const reboot = () => {
+      /* Reboots the app from a clean slate after a factory reset.
+
+         The service worker and its caches are left as they are. They hold
+         the app's own files and its fonts, nothing of the user's, and tearing
+         them down, which this used to do after a fixed 800ms wait, made the
+         reboot a cold load over the network -- the slowest launch the app
+         has -- and turned a wipe done offline into a page that could not
+         load at all. The reboot comes from the cache now, at once, and the
+         worker's own refresh keeps that copy current. */
+      function hardReloadApp(delayMs = 0, releaseLease = true) {
+        // Scheduled up front and never cancelled:
+        setTimeout(() => {
           // Runtime keys, dropped last so no heartbeat can recreate them.
           try {
             if (releaseLease) {
@@ -40449,35 +40458,7 @@
           } catch (e) {
             window.location.href = window.location.href;
           }
-        };
-
-        // Scheduled up front and never cancelled:
-        setTimeout(reboot, delayMs);
-
-        const teardown = [];
-        try {
-          if (window.caches && typeof caches.keys === "function") {
-            teardown.push(
-              caches
-                .keys()
-                .then((keys) => Promise.all(keys.map((k) => caches.delete(k)))),
-            );
-          }
-          if (
-            navigator.serviceWorker &&
-            typeof navigator.serviceWorker.getRegistrations === "function"
-          ) {
-            teardown.push(
-              navigator.serviceWorker
-                .getRegistrations()
-                .then((regs) => Promise.all(regs.map((r) => r.unregister()))),
-            );
-          }
-        } catch (e) {
-          console.warn("Cache teardown unavailable in this context", e);
-        }
-
-        teardown.forEach((p) => p.catch(() => {}));
+        }, delayMs);
       }
 
       /**
