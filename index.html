@@ -3517,14 +3517,13 @@
 
       /* Prominence level 1: Work in green, Break in red, and the act that
          closes a timer -- End Shift in the dock, Done on the task stopwatch
-         -- in blue, the same solid. End Shift used to stand neutral with only
-         its glyph in colour, on the reading that it is never the next thing
-         to press; on the black pages of the dark themes that left a slab
-         barely off the canvas beside a lit one. Done wore the tinted outline
-         the controls had before this recipe, the last one in either dock that
-         still did. Scoped to the two docks, through :where() so it weighs no
-         more than the classes beside it: the adjust popover's Apply carries
-         .btn-log too, as the quiet look of a session it cannot touch. */
+         -- in blue. The docks refine it per theme below: tonal on the two SF
+         themes, and End Shift and Done in outline on Vercel Dark and E-Ink,
+         so the plain solid is what Work and Break wear there, and what the
+         adjust popover's Apply wears while a session runs. .btn-log is
+         scoped to the two docks, through :where() so it weighs no more than
+         the classes beside it: Apply carries it too, as the quiet look of a
+         session it cannot touch. */
       .btn-work,
       .btn-break,
       :where(.actions, #task-actions-group) .btn-log {
@@ -3541,6 +3540,74 @@
           --emph-1-label-press,
           var(--emph-1-label, var(--emph-ink))
         );
+      }
+
+      /* The docks on the two SF themes. They stay on screen for a whole
+         shift, and drawn solid they outshone the timer they serve, so here
+         they are tonal, as the Clock app draws Start and Stop: a wash of the
+         accent with the label and glyph in the accent itself, no edge and no
+         light of their own. A wash reads differently on black and on white,
+         so each theme sets its own strength, matched by how far the fill
+         stands off the page rather than by percentage -- SF Dark's reads
+         pale on white. --emph-gain lifts both by 1.4 on a touch screen, as it
+         does every tint, and each label is moved off its tone far enough to
+         hold 4.5:1 on the task card. */
+      :root[data-theme="sf-dark"]
+        :where(.actions, #task-actions-group)
+        :is(.btn-work, .btn-break, .btn-log) {
+        --emph-fill: 22%;
+        --emph-hover: 28%;
+        --emph-press: 34%;
+        --emph-ink-shift: 20%;
+      }
+
+      :root[data-theme="sf-light"]
+        :where(.actions, #task-actions-group)
+        :is(.btn-work, .btn-break, .btn-log) {
+        --emph-fill: 30%;
+        --emph-hover: 35%;
+        --emph-press: 40%;
+        --emph-ink-shift: 50%;
+      }
+
+      :root:is([data-theme="sf-dark"], [data-theme="sf-light"])
+        :where(.actions, #task-actions-group)
+        :is(.btn-work, .btn-break, .btn-log) {
+        --emph-edge: 0%;
+        --emph-label: var(--emph-ink);
+        --emph-label-hover: var(--emph-ink);
+        --emph-label-press: var(--emph-ink);
+        box-shadow: var(--elev-1);
+      }
+
+      /* End Shift and Done on Vercel Dark and E-Ink. Every accent there is
+         the one ink, so at prominence 1 they were the same solid as Break and
+         Pause beside them. They are drawn in outline instead, unfilled under
+         a full-strength edge and label: the solid marks the control pressed
+         through the day, the outline the one that ends it. E-Ink fills it on
+         hover and press, as it does every outlined control. */
+      :root[data-theme="vercel-dark"]
+        :where(.actions, #task-actions-group)
+        .btn-log {
+        --emph-fill: 0%;
+        --emph-hover: 9%;
+        --emph-press: 15%;
+        --emph-edge: 100%;
+        --emph-label: #ffffff;
+        --emph-label-hover: #ffffff;
+        --emph-label-press: #ffffff;
+      }
+
+      :root[data-theme="theme-eink"]
+        :where(.actions, #task-actions-group)
+        .btn-log {
+        --emph-fill: 0%;
+        --emph-hover: 100%;
+        --emph-press: 86%;
+        --emph-edge: 100%;
+        --emph-label: #111111;
+        --emph-label-hover: #ffffff;
+        --emph-label-press: #ffffff;
       }
 
       /* The two state rungs. */
