@@ -30581,7 +30581,7 @@
       async function saveLogsToDB(
         logsData,
         targetChunks = new Set(["ALL"]),
-        passedDataVersion = null,
+        writeSeq = null,
       ) {
         if (targetChunks.size === 0) return Promise.resolve();
         if (window.location.protocol === "file:") return Promise.resolve();
@@ -30597,10 +30597,10 @@
               new Error("Database is currently syncing with another tab."),
             );
           }
-          if (
-            passedDataVersion !== null &&
-            dataVersion > passedDataVersion + 1
-          ) {
+          /* Only a newer logbook save supersedes this one. It is queued
+             behind this write and puts every chunk whose contents changed,
+             so skipping here loses nothing. */
+          if (writeSeq !== null && writeSeq !== logsWriteSeq) {
             return Promise.resolve("Superseded");
           }
 
@@ -32151,6 +32151,7 @@
         if (window.dirtyChunks) window.dirtyChunks.clear();
 
         const expectedVersion = dataVersion;
+        const writeSeq = ++logsWriteSeq;
 
         /* Taken BEFORE cachedLogs is reassigned, and therefore before this
            mutation is visible anywhere.
@@ -32191,7 +32192,7 @@
         const taskPromise = _saveLogsQueue.then(async () => {
           try {
             if (window.location.protocol !== "file:") {
-              await saveLogsToDB(logs, capturedChunks, expectedVersion);
+              await saveLogsToDB(logs, capturedChunks, writeSeq);
               tabSyncChannel.postMessage({
                 type: "database_mutated",
                 fromTabId: myTabId,
@@ -32204,10 +32205,10 @@
             );
             try {
               const recoveredLogs = await loadLogsFromDB();
-              if (
-                recoveredLogs !== null &&
-                dataVersion === expectedVersion + 1
-              ) {
+              /* Rolled back only while no newer save has replaced memory,
+                 for the same reason the write above compares logsWriteSeq
+                 rather than dataVersion. */
+              if (recoveredLogs !== null && logsWriteSeq === writeSeq) {
                 adoptLogs(recoveredLogs);
                 await rebuildWeeklyCache();
                 if (DOM.tabLogbook && DOM.tabLogbook.style.display !== "none")
