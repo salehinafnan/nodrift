@@ -12526,6 +12526,36 @@
 
         root.setAttribute("data-theme", theme);
 
+        /* The session's mode as it was saved. renderStaticUI() owns
+           data-session-mode and renderTimersOnly() the wordmark's slash
+           colour, but they run only once the logbook has been read, and a
+           change to either restyles every element on the page: set here
+           instead, the start-up render finds them already right and changes
+           nothing. Same storage key as STATE_KEY; the rules are theirs. */
+        let mode = null;
+        let idle = false;
+        try {
+          const saved = JSON.parse(
+            localStorage.getItem("production_tracker_state_v2"),
+          );
+          if (
+            saved &&
+            (saved.currentMode === "work" || saved.currentMode === "break")
+          ) {
+            mode = saved.currentMode;
+          }
+          idle = !!(saved && saved.idleLock);
+        } catch (e) {
+          /* no saved session, or one that cannot be read: idle */
+        }
+        root.setAttribute("data-session-mode", mode || "idle");
+        if (mode && !idle) {
+          root.style.setProperty(
+            "--slash-color",
+            mode === "work" ? "var(--accent-work)" : "var(--accent-break)",
+          );
+        }
+
         /* Mirrors syncColorSchemeMeta() so native controls, scrollbars and
          form widgets are already correct on frame one. */
         const isDark = theme === "sf-dark" || theme === "vercel-dark";
@@ -12563,10 +12593,16 @@
         } catch (e) {
           /* fall through to the literal map */
         }
+        const resolved = !!color;
         if (!color) color = (FALLBACK[theme] || FALLBACK["sf-light"])[prop];
 
         const meta = document.querySelector('meta[name="theme-color"]');
         if (meta && color) meta.setAttribute("content", color);
+        /* What the tint was read for, so syncThemeColorMeta() can tell a
+           theme or a breakpoint that has moved from one it would only read
+           again. Left off a tint taken from the literal map, which the first
+           real read should replace. */
+        if (meta && resolved) meta.dataset.tintFor = theme + " " + prop;
       })();
     </script>
   </head>
@@ -21483,12 +21519,27 @@
 
       // ========================================================================= ZERO-FETCH SVG
       // HYDRATOR Bypasses Chrome file:// CORS.
+      /* One parse for every placeholder rather than one each. The markup of
+         all of them goes into a single detached <svg>, a <g> apiece, and the
+         children of each <g> then take their placeholder's place -- the same
+         nodes the placeholder's own outerHTML used to parse into. The
+         ninety-nine separate parses were most of what this cost at startup. */
       (function hydrateStaticSVGs() {
         const placeholders = document.querySelectorAll("g[data-sprite]");
+        if (!placeholders.length) return;
+        let markup = "";
         for (let i = 0; i < placeholders.length; i++) {
-          const el = placeholders[i];
-          const id = el.getAttribute("data-sprite");
-          el.outerHTML = getSprite(id);
+          const id = placeholders[i].getAttribute("data-sprite");
+          markup += "<g>" + getSprite(id) + "</g>";
+        }
+        const holder = document.createElementNS(
+          "http://www.w3.org/2000/svg",
+          "svg",
+        );
+        holder.innerHTML = markup;
+        const parsed = Array.from(holder.children);
+        for (let i = 0; i < placeholders.length; i++) {
+          placeholders[i].replaceWith(...parsed[i].childNodes);
         }
       })();
 
@@ -32906,11 +32957,19 @@
         const leased = window.SessionLease
           ? !SessionLease.mayWriteSession
           : false;
-        document.documentElement.setAttribute("data-theme", currentTheme);
-        document.documentElement.setAttribute(
-          "data-session-mode",
-          mode || "idle",
-        );
+        /* Both only when they change. Every write of data-theme, even of the
+           value it already held, woke the observer that re-reads the theme
+           colour, and that read is a style pass over the whole page: one more
+           on every call, and this function is called on every change of
+           state. */
+        const root = document.documentElement;
+        if (root.getAttribute("data-theme") !== currentTheme) {
+          root.setAttribute("data-theme", currentTheme);
+        }
+        const sessionMode = mode || "idle";
+        if (root.getAttribute("data-session-mode") !== sessionMode) {
+          root.setAttribute("data-session-mode", sessionMode);
+        }
         syncTitleTicker();
         if (leased) {
           document.documentElement.setAttribute("data-session-remote", "1");
@@ -32991,7 +33050,10 @@
 
         let activeTitle = "nodrift";
         let iconColor = "#ffffff";
-        let slashColor = "var(--accent-blue)";
+        /* Empty is the stylesheet's own fallback, var(--accent-blue): at rest
+           nothing is written, so the first render of an idle app does not
+           change a property on <html>, which every element inherits. */
+        let slashColor = "";
 
         if (state.idleLock) {
           if (state.idleType === "system") {
@@ -33027,7 +33089,8 @@
 
         const root = document.documentElement;
         if (root.style.getPropertyValue("--slash-color") !== slashColor) {
-          root.style.setProperty("--slash-color", slashColor);
+          if (slashColor) root.style.setProperty("--slash-color", slashColor);
+          else root.style.removeProperty("--slash-color");
         }
 
         if (!document.hidden) {
@@ -49640,12 +49703,6 @@
           loadState();
           await rebuildWeeklyCache();
 
-          const logbookTab = DOM.tabLogbook;
-          if (logbookTab) {
-            cachedViewportHeight = (DOM.logbookScrollViewport || logbookTab)
-              .clientHeight;
-          }
-
           /* The lease is acquired BEFORE any recovery runs. Recovery writes to
              the logbook - it can roll a shift over and file entries - and a tab
              that does not own the session must never do that. */
@@ -49695,6 +49752,15 @@
 
             autoPopulateDailyGoal(state.activeDate || getWorkDate());
             syncTickerState();
+
+            /* Measured after the renders above rather than before them: read
+               first, it laid the page out once for a state the renders then
+               replaced, and the frame laid it out again. */
+            const logbookTab = DOM.tabLogbook;
+            if (logbookTab) {
+              cachedViewportHeight = (DOM.logbookScrollViewport || logbookTab)
+                .clientHeight;
+            }
 
             /* The preference baseline, taken here and nowhere else.
                Everything above that writes a default into one of those keys -
@@ -50686,10 +50752,20 @@
           const prop = PHONE_SURFACE_MQ.matches
             ? "--surface-under"
             : "--page-bg";
+          /* The read below is a style pass over the whole page, and the tint
+             only moves with the theme or the surface. The pair it was last
+             read for is kept on the tag -- the boot script writes the first --
+             so asking again for the same one costs nothing. */
+          const key =
+            document.documentElement.getAttribute("data-theme") + " " + prop;
+          if (meta.dataset.tintFor === key) return;
           const bg = getComputedStyle(document.documentElement)
             .getPropertyValue(prop)
             .trim();
-          if (bg) meta.setAttribute("content", bg);
+          if (bg) {
+            meta.setAttribute("content", bg);
+            meta.dataset.tintFor = key;
+          }
         }
 
         /* haptics Android/Chrome only. */
