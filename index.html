@@ -327,6 +327,17 @@
         background-color: var(--page-bg);
       }
 
+      /* THE BOOT CURTAIN: out of the render tree while the parser reads the
+         body, transparent until the app has drawn itself. See the boot script
+         at the end of <head>. */
+      html[data-boot="parse"] body {
+        display: none;
+      }
+
+      html[data-boot="hold"] body {
+        opacity: 0;
+      }
+
       /* Drives native pickers, <select> popups, scrollbars and autofill so they
          match the active theme, while 'only' forbids Chrome Force Dark inversion. */
       :root[data-theme="sf-light"],
@@ -12603,6 +12614,65 @@
            again. Left off a tint taken from the literal map, which the first
            real read should replace. */
         if (meta && resolved) meta.dataset.tintFor = theme + " " + prop;
+
+        /* THE BOOT CURTAIN. The page is two megabytes of markup, style and
+           script, and the browser would otherwise draw it while reading it:
+           part of a desktop layout first, then the phone's, then a timer at
+           zero with the wrong buttons, which only learns the real figures
+           once the logbook has been read. Each of those frames was a style
+           and layout pass over the whole page, and each was on screen long
+           enough to be seen.
+
+           So the body is kept out of the render tree while the parser reads
+           it ("parse"), and is laid out but transparent from the moment the
+           document is complete until the app has drawn itself ("hold"). The
+           canvas behind it already wears the theme, so what shows meanwhile
+           is the app's own background, and the first frame anyone sees is
+           the finished one.
+
+           The listener below is the first DOMContentLoaded listener the page
+           registers, so the body is back in the render tree before
+           MobileShell mounts the phone layout and before anything measures
+           it; nothing that runs earlier reads the layout of anything inside
+           the body. Any uncaught error lifts the curtain at once, and a boot
+           that has not finished 2.5 seconds after the document did is shown
+           as it stands. */
+        root.setAttribute("data-boot", "parse");
+
+        function reveal() {
+          if (!root.hasAttribute("data-boot")) return;
+          try {
+            /* Settle the style pass first and then finish whatever it set
+               moving, so the page opens on the values the start-up render
+               arrived at instead of animating to them. */
+            if (document.body) void getComputedStyle(document.body).opacity;
+            if (document.getAnimations) {
+              document.getAnimations().forEach((animation) => {
+                try {
+                  animation.finish();
+                } catch (e) {
+                  /* an endless animation has no end to jump to */
+                }
+              });
+            }
+          } catch (e) {
+            /* showing the page matters more than settling it */
+          }
+          root.removeAttribute("data-boot");
+        }
+        window.revealApp = reveal;
+        window.addEventListener("error", reveal);
+        window.addEventListener("unhandledrejection", reveal);
+        document.addEventListener(
+          "DOMContentLoaded",
+          () => {
+            if (root.getAttribute("data-boot") === "parse") {
+              root.setAttribute("data-boot", "hold");
+            }
+            setTimeout(reveal, 2500);
+          },
+          { once: true },
+        );
       })();
     </script>
   </head>
@@ -49778,6 +49848,9 @@
                automated driver reaches the page long before it and would
                otherwise have its writes adopted as the baseline. */
             window.bootCompletedAt = Date.now();
+            /* The app has drawn itself: lift the boot curtain (see the boot
+               script in <head>), so the first frame shown is this one. */
+            if (typeof window.revealApp === "function") window.revealApp();
             /* The time zones notice, when this device is due one: after
                startup, and only once the screen is clear. */
             scheduleZoneNotice();
