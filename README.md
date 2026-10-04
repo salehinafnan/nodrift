@@ -137,7 +137,7 @@ The **heatmap** shows the whole year one square per day, with your current strea
 
 - **JSON backup** is one file holding every shift, task, leave day, saved view and preference. `Ctrl`/`Cmd` + `S` downloads it and opens an email draft to send it to yourself, and a setting can save one automatically at the end of every shift.
 - **Restore** merges a backup into what you have instead of replacing it. When the backup and this device disagree about the same days, a side-by-side conflict view lets you keep yours, take the backup's, or keep both.
-- **Snapshots** are automatic. The first change each day captures the logbook as it was before that change, and the five most recent are kept, so a bad edit or a regretted delete can be rolled back from Settings.
+- **Snapshots** are automatic. The day's first launch, or failing that its first change, captures the shifts, leaves and leave types as they were, and the five most recent days are kept, so a bad edit or a regretted delete can be rolled back from Settings.
 - **End-of-day email.** Optionally, ending a shift copies a formatted summary and opens an email draft.
 
 ### Cloud sync, if you want it

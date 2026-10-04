@@ -14323,11 +14323,18 @@
             <hr />
             <h4>Snapshots</h4>
             <p>
-              Before every change to your data, nodrift quietly saves a snapshot
-              of how things looked beforehand. If something goes wrong — a bad
-              edit, a deletion you regret — open Settings, pick a time from the
-              <strong>Restore Snapshot</strong> list, and everything returns to
-              exactly that moment.
+              Once a day, when you first open nodrift or just before the day's
+              first change, it quietly saves a snapshot of your shifts, leaves
+              and leave types as they were. The last five days are kept. If
+              something goes wrong — a bad edit, a deletion you regret — open
+              Settings and pick a day from the <strong>Restore Snapshot</strong>
+              list. Your shifts go back to exactly how they were; the leaves and
+              leave types it held come back, and any added since are kept.
+            </p>
+            <p>
+              A day that starts with nothing saved takes no snapshot until there
+              is something to save. Tasks, saved views and settings are not part
+              of a snapshot.
             </p>
             <p>
               Snapshots live in the same browser as your data, so they cover
@@ -21421,7 +21428,7 @@
         /* Before anything is written, so the day's restore point holds the
            leaves as they were. This is the funnel for the sync merge too,
            which is the path that can take every leave at once. */
-        snapshotBeforeLeaveChange();
+        snapshotBeforeChange();
         _leaveDatesSet = null;
         /* Here rather than at the call sites: this is the one funnel every
            leave write passes through - the leave editor, an import, and the
@@ -26441,7 +26448,7 @@
             /* A ledger from another device replaces this one's, so the
                day's restore point is taken first, while storage still holds
                the ledger as it was here. */
-            if (spec.key === LEAVE_ALLOWANCES_KEY) snapshotBeforeLeaveChange();
+            if (spec.key === LEAVE_ALLOWANCES_KEY) snapshotBeforeChange();
             try {
               localStorage.setItem(spec.key, next);
               if (theirs !== null) prefStamps[name] = theirs;
@@ -28291,6 +28298,7 @@
             kept: 0,
             pushed: 0,
           };
+          let holdsRestorePoint = false;
           try {
             for (const kind of KINDS) {
               let from = Sync.cursor[kind] || 0;
@@ -28313,6 +28321,17 @@
 
               const rows = await pullKind(kind, from);
               report.pulled += rows.length;
+
+              /* The day's restore point, before the first row lands. The
+                 merge edits the live lists in place, so by the time saveLogs
+                 is reached the logbook it would save is the pulled one, and
+                 a pull that took every shift left a restore point holding
+                 none. Held to the end of the cycle, so the kinds still to
+                 come cannot take one holding this kind's rows. */
+              if ((rows.length || stale) && !holdsRestorePoint) {
+                holdRestorePoint();
+                holdsRestorePoint = true;
+              }
 
               const merged = mergeRows(kind, rows);
               report.applied += merged.applied;
@@ -28383,6 +28402,7 @@
             notify();
             throw e;
           } finally {
+            if (holdsRestorePoint) releaseRestorePoint();
             running = false;
           }
         }
@@ -32207,7 +32227,13 @@
            never undo was that change. Deleting a month at 09:10 created a
            snapshot containing the deletion, and restoring it brought nothing
            back. A restore point that contains the accident is not a restore
-           point. */
+           point.
+
+           This only holds for a caller that hands over a new array. One that
+           edits the live logbook and passes it back - adding, editing or
+           deleting one shift, ending a shift, the sync merge - has already
+           changed what getLogs() returns, so each takes the restore point
+           itself before it edits; this call is then a no-op. */
         if (typeof triggerAutoSnapshot === "function") {
           triggerAutoSnapshot(getLogs());
         }
@@ -34142,6 +34168,8 @@
           `${displayDate} ${dateStr} ${loginTime} ${logoutTime} Auto-submitted (Midnight Reset)${zoneSearchTerms(entry)}`.toLowerCase();
 
         const logs = getLogs();
+        /* Before the live logbook is edited (see saveLogs). */
+        triggerAutoSnapshot();
         logs.unshift(entry);
         const _parts = entry.date.split("/");
         if (_parts.length === 3) {
@@ -34455,6 +34483,8 @@
           `${displayDate} ${entryDate} ${loginTime} ${logoutTime} ${forceNotes}${zoneSearchTerms(entry)}`.toLowerCase();
 
         window.lastSubmittedLogId = entry.id;
+        /* Before the live logbook is edited (see saveLogs). */
+        triggerAutoSnapshot();
         logs.unshift(entry);
         await saveLogs(logs);
         resetSession();
@@ -34479,6 +34509,8 @@
         saveState();
 
         const logs = getLogs();
+        /* Before the live logbook is edited (see saveLogs). */
+        triggerAutoSnapshot();
         if (window.lastSubmittedLogId) {
           const idx = logs.findIndex((l) => l.id === window.lastSubmittedLogId);
           if (idx > -1) logs.splice(idx, 1);
@@ -39486,6 +39518,8 @@
           const proceedWithSave = async () => {
             isEditSubmitting = true;
             const logBackup = Object.assign({}, log);
+            /* Before the shift is edited in place (see saveLogs). */
+            triggerAutoSnapshot();
             try {
               log.date = newDate;
               log.tz = editZone;
@@ -39592,6 +39626,8 @@
                 window.dirtyChunks.add(`${_fy}-${_p[0].padStart(2, "0")}`);
               }
             }
+            /* Before the live logbook is edited (see saveLogs). */
+            triggerAutoSnapshot();
             logs.splice(pos, 1);
             try {
               await saveLogs(logs);
@@ -40146,6 +40182,9 @@
       };
 
       function finalizeImport(resolutionType) {
+        /* One change for the day's restore point: it holds the app as it
+           was before the restore, or nothing when the app held nothing. */
+        holdRestorePoint();
         try {
           const data = tempImportData;
           tempImportData = null;
@@ -40558,6 +40597,8 @@
           }
         } catch (err) {
           showAppToast("Error finalizing restore");
+        } finally {
+          releaseRestorePoint();
         }
       }
 
@@ -44712,36 +44753,41 @@
           goalAutopopulateCheckbox.checked =
             state.goalAutopopulateEnabled !== false;
 
-        // Sync snapshots dropdown list
+        renderSnapshotList();
+      }
+
+      /* The Restore Snapshot list, with nothing chosen. */
+      function renderSnapshotList() {
         const snapshotSelect = document.getElementById(
           "snapshot-restore-select",
         );
-        if (snapshotSelect) {
-          snapshotSelect.innerHTML =
-            '<option value="">Choose a snapshot...</option>';
-          try {
-            snapshotIndex.forEach((s) => {
-              const opt = document.createElement("option");
-              /* Keyed by date rather than array position: the index is
-                 re-sorted and pruned, so an ordinal would go stale. */
-              opt.value = s.date;
-              /* A device event, so the local clock (I5), not whatever zone
-                 the browser happens to report. */
-              const formattedTime = TimeZones.formatter(
-                getLocalZone(),
-                clockStyle("hm"),
-              ).format(s.timestamp);
-              opt.textContent =
-                `${s.date} (${formattedTime}) - ${s.count} logs` +
-                (s.leaves !== null && s.leaves !== undefined
-                  ? `, ${s.leaves} leaves`
-                  : "");
-              snapshotSelect.appendChild(opt);
-            });
-          } catch (e) {}
+        if (!snapshotSelect) return;
+        snapshotSelect.innerHTML =
+          '<option value="">Choose a snapshot...</option>';
+        try {
+          snapshotIndex.forEach((s) => {
+            const opt = document.createElement("option");
+            /* Keyed by date rather than array position: the index is
+               re-sorted and pruned, so an ordinal would go stale. */
+            opt.value = s.date;
+            /* A device event, so the local clock (I5), not whatever zone
+               the browser happens to report. */
+            const formattedTime = TimeZones.formatter(
+              getLocalZone(),
+              clockStyle("hm"),
+            ).format(s.timestamp);
+            /* The day in the order the user reads dates in; the key stays
+               MM/DD/YY. */
+            opt.textContent =
+              `${formatDateKey(s.date)} (${formattedTime}) - ${s.count} logs` +
+              (s.leaves !== null && s.leaves !== undefined
+                ? `, ${s.leaves} leaves`
+                : "");
+            snapshotSelect.appendChild(opt);
+          });
+        } catch (e) {}
 
-          window.rebuildCustomSelect("snapshot-restore-select");
-        }
+        window.rebuildCustomSelect("snapshot-restore-select");
       }
 
       // Handles the snapshot restoration flow safely
@@ -44751,33 +44797,66 @@
           const target = await readSnapshot(index);
           if (!target || !Array.isArray(target.logs)) {
             showAppToast("Snapshot could not be read", "error");
+            renderSnapshotList();
             return;
           }
 
           const validationError = validateImportPayload({ logs: target.logs });
           if (validationError) {
             showAppToast(`Snapshot corrupt: ${validationError}`, "error");
+            renderSnapshotList();
             return;
           }
 
           const holdsLeaves = Array.isArray(target.leaves);
+          const day = formatDateKey(target.date);
           openConfirmModal(
             "Restore Snapshot?",
-            `Are you sure you want to restore the snapshot from ${target.date}? This will overwrite your current active logbook logs.` +
+            `Are you sure you want to restore the snapshot from ${day}? This will overwrite your current active logbook logs.` +
               (holdsLeaves
                 ? " The leaves and leave types it holds come back too; leaves added since are kept."
                 : ""),
-            () => {
-              /* Leaves first, so the goal saveLogs works out below already
-                 counts them. Merged rather than replaced, as a backup's are:
-                 everything the restore point held comes back, and a leave
-                 added since is not taken away. One taken before restore
-                 points held leaves has neither field, and today's are left
-                 alone rather than read as "none". */
-              const leavesBack = mergeLeaveRecords(target.leaves, false);
-              if (target.leaveAllowances) {
-                restoreLeaveAllowances(target.leaveAllowances, false);
-              }
+            async () => {
+              let leavesBack = false;
+              let saved = null;
+              /* One change, so today's restore point, when this takes it,
+                 holds the app as it was before the restore and can undo it. */
+              asOneChange(() => {
+                /* Leaves first, so the goal saveLogs works out below already
+                   counts them. Merged rather than replaced, as a backup's
+                   are: everything the restore point held comes back, and a
+                   leave added since is not taken away. One taken before
+                   restore points held leaves has neither field, and today's
+                   are left alone rather than read as "none". */
+                leavesBack = mergeLeaveRecords(target.leaves, false);
+                if (target.leaveAllowances) {
+                  restoreLeaveAllowances(target.leaveAllowances, false);
+                }
+
+                /* A restore point taken for its leaves while the logbook was
+                   empty has no shifts to give back, and must not empty the
+                   logbook to say so. */
+                if (!target.logs.length) return;
+
+                if (window.dirtyChunks) window.dirtyChunks.add("ALL");
+                /* A snapshot's records carry the lastModified they had when
+                   it was written, which is old by definition. Saved
+                   verbatim, the cloud's copies are newer under LWW, so the
+                   next pull puts them all back and the restore undoes itself
+                   a minute after the user watched it succeed. Restamping
+                   states the truth: this restore is the most recent edit to
+                   every record in it.
+
+                   Deletions need no equivalent. Records the snapshot does not
+                   contain but the shadow still knows about become tombstones
+                   on the next outbox derivation, without any code here. */
+                const restoredAt = Date.now();
+                for (let i = 0; i < target.logs.length; i++) {
+                  if (target.logs[i]) target.logs[i].lastModified = restoredAt;
+                }
+                saved = saveLogs(target.logs);
+              });
+
               renderLeaveDatesList();
               const balanceTab = document.getElementById(
                 "leave-tab-btn-balance",
@@ -44787,45 +44866,33 @@
               }
               if (leavesBack) autoPopulateDailyGoal(state.activeDate);
 
-              /* A restore point taken for its leaves while the logbook was
-                 empty has no shifts to give back, and must not empty the
-                 logbook to say so. */
-              if (!target.logs.length) {
+              if (!saved) {
                 renderLogbook();
                 renderInsights();
-                showAppToast(`Leaves restored from ${target.date} snapshot`);
-                DOM.snapshotRestoreSelect.value = "";
+                showAppToast(`Leaves restored from ${day} snapshot`);
+                renderSnapshotList();
                 return;
               }
 
-              if (window.dirtyChunks) window.dirtyChunks.add("ALL");
-              /* A snapshot's records carry the lastModified they had when it
-                 was written, which is old by definition. Saved verbatim, the
-                 cloud's copies are newer under LWW, so the next pull puts
-                 them all back and the restore undoes itself a minute after
-                 the user watched it succeed. Restamping states the truth:
-                 this restore is the most recent edit to every record in it.
-
-                 Deletions need no equivalent. Records the snapshot does not
-                 contain but the shadow still knows about become tombstones on
-                 the next outbox derivation, without any code here. */
-              const restoredAt = Date.now();
-              for (let i = 0; i < target.logs.length; i++) {
-                if (target.logs[i]) target.logs[i].lastModified = restoredAt;
-              }
-              saveLogs(target.logs);
               renderStaticUI();
               renderTimersOnly();
               renderLogbook();
               renderInsights();
-              showAppToast(`Logs reverted to ${target.date} snapshot`);
-              DOM.snapshotRestoreSelect.value = "";
+              renderSnapshotList();
+              try {
+                await saved;
+                showAppToast(`Logs reverted to ${day} snapshot`);
+              } catch (e) {
+                showAppToast("Could not restore snapshot", "error");
+              }
             },
             false,
             "Restore",
+            renderSnapshotList,
           );
         } catch (e) {
           showAppToast("Could not restore snapshot");
+          renderSnapshotList();
         }
       };
 
@@ -44844,6 +44911,8 @@
 
       const SNAPSHOT_RETENTION = 5;
       let snapshotIndex = [];
+      /* Open changes made of several writes (see holdRestorePoint). */
+      let restorePointHolds = 0;
 
       function snapshotsUsingFallback() {
         return (
@@ -44967,7 +45036,7 @@
        *   has already swapped it out.
        */
       function triggerAutoSnapshot(preImage) {
-        if (isFactoryResetting) return;
+        if (isFactoryResetting || restorePointHolds > 0) return;
         const todayStr = getWorkDate();
         if (snapshotIndex.some((s) => s.date === todayStr)) return;
 
@@ -45003,10 +45072,16 @@
 
         if (snapshotsUsingFallback()) {
           try {
+            /* Another tab may have taken today's already. Its copy is the
+               older of the two, so it is the one kept. */
+            const stored = readFallbackSnapshots();
+            const kept = stored.find((s) => s && s.date === todayStr);
+            if (kept) {
+              keepStoredRestorePoint(kept);
+              return;
+            }
             const all = [record]
-              .concat(
-                readFallbackSnapshots().filter((s) => s.date !== todayStr),
-              )
+              .concat(stored)
               .slice(0, FALLBACK_SNAPSHOT_RETENTION);
             localStorage.setItem(LS_LEGACY_SNAPSHOT_KEY, JSON.stringify(all));
           } catch (e) {
@@ -45027,19 +45102,33 @@
         (async () => {
           try {
             const db = await dbPromise;
-            await new Promise((resolve, reject) => {
+            const kept = await new Promise((resolve, reject) => {
               const tx = db.transaction("snapshots", "readwrite");
               const store = tx.objectStore("snapshots");
-              store.put(record);
-              const cutoff = snapshotIndex
-                .slice()
-                .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0))
-                .slice(SNAPSHOT_RETENTION);
-              cutoff.forEach((s) => store.delete(s.date));
-              tx.oncomplete = resolve;
+              let existing = null;
+              /* Asked inside the write's own transaction, so no other tab
+                 can land between the question and the put. An index that
+                 had not loaded yet, or another tab that took today's
+                 first, used to have its put overwrite the morning's
+                 restore point with a later state of the day. */
+              const req = store.get(todayStr);
+              req.onsuccess = () => {
+                if (req.result) {
+                  existing = req.result;
+                  return;
+                }
+                store.put(record);
+                const cutoff = snapshotIndex
+                  .filter((s) => s.date !== todayStr)
+                  .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0))
+                  .slice(SNAPSHOT_RETENTION - 1);
+                cutoff.forEach((s) => store.delete(s.date));
+              };
+              tx.oncomplete = () => resolve(existing);
               tx.onerror = () => reject(tx.error);
               tx.onabort = () => reject(tx.error);
             });
+            if (kept) keepStoredRestorePoint(kept);
             snapshotIndex = snapshotIndex
               .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0))
               .slice(0, SNAPSHOT_RETENTION);
@@ -45050,15 +45139,57 @@
         })();
       }
 
+      /* Today's restore point as storage already holds it, in place of the
+         one this tab registered and did not write. */
+      function keepStoredRestorePoint(stored) {
+        const entry = snapshotIndexEntry(stored);
+        snapshotIndex = snapshotIndex.map((s) =>
+          s.date === entry.date ? entry : s,
+        );
+      }
+
       /* The day's restore point, taken before the first change of the day to
-         the leaves or the leave types, as saveLogs takes it before the first
-         change to the shifts. Not before the app has started: the logbook
-         may not be loaded yet, and a restore point taken then would hold
-         none of it. The start-up capture in completeStartup covers that
-         stretch instead. */
-      function snapshotBeforeLeaveChange() {
+         the leaves or the leave types, or before a sync pull lands, as
+         saveLogs takes it before the first change to the shifts. Not before
+         the app has started: the logbook may not be loaded yet, and a
+         restore point taken then would hold none of it. The start-up capture
+         in completeStartup covers that stretch instead. */
+      function snapshotBeforeChange() {
         if (!window.bootCompletedAt) return;
         triggerAutoSnapshot();
+      }
+
+      /* Opens a change made of several writes - a backup's restore, a
+         restore point's own, a sync pull - by taking the day's restore point
+         now, before the first of them, and keeps every write until
+         releaseRestorePoint from taking it partway through.
+
+         Each writer used to take it for itself, so whichever one first found
+         something to save took it, after the writes before it had landed.
+         Restoring a backup into an empty app wrote its leaves, then took a
+         restore point at the leave types holding those leaves and none of
+         the shifts that came next: "0 logs, 21 leaves", the state before the
+         restore and the state after it at once. A sync pull did the same
+         the other way round, shifts in and leaves still out. Taken here, an
+         app that held nothing takes none, and the next change takes the
+         full one. */
+      function holdRestorePoint() {
+        snapshotBeforeChange();
+        restorePointHolds++;
+      }
+
+      function releaseRestorePoint() {
+        if (restorePointHolds > 0) restorePointHolds--;
+      }
+
+      /* fn as one change for the restore point. fn must be synchronous. */
+      function asOneChange(fn) {
+        holdRestorePoint();
+        try {
+          return fn();
+        } finally {
+          releaseRestorePoint();
+        }
       }
 
       window.onAutoEmailToggleChange = function () {
@@ -45289,6 +45420,8 @@
             entry.searchStr =
               `${entry.displayDate} ${entry.date} ${loginStr} ${logoutStr} manual entry ${notes}${zoneSearchTerms(entry)}`.toLowerCase();
 
+            /* Before the live logbook is edited (see saveLogs). */
+            triggerAutoSnapshot();
             logs.push(entry);
             logs.sort(
               (a, b) =>
@@ -46637,7 +46770,7 @@
 
       function saveLeaveAllowances(allowances) {
         /* The day's restore point first, so it holds the ledger as it was. */
-        snapshotBeforeLeaveChange();
+        snapshotBeforeChange();
         const ok = safeSetLocalStorage(
           LEAVE_ALLOWANCES_KEY,
           JSON.stringify(allowances),
@@ -49798,7 +49931,7 @@
           "auto-email-toggle":
             "Auto-Email: Pre-copies your formatted summary and opens a draft in your mail client.",
           "snapshot-restore-select":
-            "Snapshot Rollback: Restores your database logs to an automatically captured historical state.",
+            "Snapshot Rollback: Restores your shifts, leaves and leave types to one of the last five daily snapshots.",
           /* Two sets of descriptions have been retired with the strips that
              read them: nine sync-row-* ones with the cloud panel's, and six
              tz, clock and date ones with the Work week and Time and date
@@ -49974,6 +50107,10 @@
           loadState();
           await rebuildWeeklyCache();
 
+          /* The day's restore point, when none is held yet: the app as it was
+             opened, before the session recovery below can file a shift. */
+          triggerAutoSnapshot();
+
           /* The lease is acquired BEFORE any recovery runs. Recovery writes to
              the logbook - it can roll a shift over and file entries - and a tab
              that does not own the session must never do that. */
@@ -50016,10 +50153,6 @@
             renderPresets();
             syncSettingsUI();
             initSettingsHoverHelp();
-
-            if (typeof triggerAutoSnapshot === "function") {
-              triggerAutoSnapshot();
-            }
 
             autoPopulateDailyGoal(state.activeDate || getWorkDate());
             syncTickerState();
