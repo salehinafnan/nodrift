@@ -110,13 +110,19 @@ Times display as 12-hour or 24-hour, and dates as `MM/DD/YY`, `DD/MM/YY` or `YYY
 Idle lock can be switched off, which is the better setting on a phone that sits in a pocket. Everything else always runs.
 
 <p align="center">
-  <img width="460" alt="The Inactivity Detected dialog: last active time, current time, the work-time span, the unaccounted duration, and three buttons: Log as Work, Log as Break, Discard Idle Time" src="docs/assets/screenshots/idle.png" />
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/idle-dark.png" />
+    <img width="470" alt="The Inactivity Detected dialog: last active time, current time, the work-time span, the unaccounted duration, and three buttons: Log as Work, Log as Break, Discard Idle Time" src="docs/assets/screenshots/idle-light.png" />
+  </picture>
 </p>
 
 ### Logbook, tasks and leave
 
 <p align="center">
-  <img width="420" alt="The Logbook tab: shifts listed newest first with start and end times, work, break and over/under badges, and note, copy, edit and delete actions on each row" src="docs/assets/screenshots/logbook.png" />
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/logbook-dark.png" />
+    <img width="440" alt="The Logbook tab: shifts listed newest first with start and end times, work, break and over/under badges, and note, copy, edit and delete actions on each row" src="docs/assets/screenshots/logbook-light.png" />
+  </picture>
 </p>
 
 The **Logbook** holds every saved shift, newest first, and stays smooth with thousands of rows because it only renders the rows on screen. Add a shift you did not track live by filling in any two of login, logout and work time, and the third is worked out. Date fields take shorthand such as `t`, `y`, `-3`, `jan 15` or `122526`, and time fields take `900`, `9:30p` or `1730`. Filter by date, hours or text, and save a filter you use often as a named view. **Copy** puts a plain-text summary on the clipboard (short days flagged), and **CSV** downloads what you are looking at, ready for a spreadsheet.
@@ -129,7 +135,10 @@ The **Logbook** holds every saved shift, newest first, and stays smooth with tho
 
 **Insights** shows the week as one bar per work day, with total work, total break, the **pace required** per remaining day to still hit the target, and a plain-language ahead-or-behind verdict. Switch to monthly (one row per week) or yearly (one row per month), and step back through time with `[` and `]`. Hover a day for its full breakdown and notes.
 
-<img alt="The Consistency Heatmap for 2026: one square per day shaded by hours worked, leave days in orange, a 29-day streak, 1460 hours year to date and 12 leave days" src="docs/assets/screenshots/heatmap.png" />
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/heatmap-dark.png" />
+  <img alt="The heatmap for 2026: one square per day shaded by hours worked, leave days hatched, an 18-day streak, 1,445.9 hours worked and 9 days of leave taken" src="docs/assets/screenshots/heatmap-light.png" />
+</picture>
 
 The **heatmap** shows the whole year one square per day, with your current streak, year-to-date hours and leave used. Clicking a square jumps to that day in the logbook with the filters already set.
 
@@ -156,7 +165,10 @@ Sign in from the cloud button and this device keeps its shifts, tasks, leave, sa
 
 **SF Light**, **SF Dark**, **E-Ink** and **Vercel Dark**. The first launch follows your system's light or dark setting, and `Alt` + `T` cycles themes. Animations follow your system's reduced-motion setting.
 
-<img alt="The phone layout: the Timer tab with the running shift, the Insights tab with the week, and the Settings & Tools sheet with goals, preferences, themes, cloud sync and tools" src="docs/assets/screenshots/phone.png" />
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/phone-dark.png" />
+  <img alt="The phone layout: the Timer tab with the running shift, the Insights tab with the week, and the Settings & Tools sheet with goals, preferences, themes, cloud sync and tools" src="docs/assets/screenshots/phone-light.png" />
+</picture>
 
 Under 1150 px wide, which takes in phones and tablets held upright, nodrift becomes a phone app with five icon tabs along the bottom (Insights, Tasks, Timer, Logbook, Settings & Tools) and bottom sheets for everything else. Add it to your home screen and it runs full screen and offline.
 
