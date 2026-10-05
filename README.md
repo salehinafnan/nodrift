@@ -58,9 +58,9 @@ You press **Work** when you start, **Break** when you step away, and **End Shift
 
 Three properties define it.
 
-**Local-first.** Every feature except sync itself works with no account and no network, permanently. Your logbook lives in your browser's IndexedDB, with a synchronous copy in localStorage. None of your data leaves the device unless you sign in to sync.
+**Local-first.** Every feature except sync itself works with no account and no network, permanently. Your logbook and task history live in your browser's IndexedDB, the logbook with a synchronous copy in localStorage. None of your data leaves the device unless you sign in to sync.
 
-**One file.** `index.html` is the entire application: markup, about 10,000 lines of CSS and about 31,000 lines of hand-written JavaScript. There is no framework, no bundler, no `package.json` and no `npm install`. The only other files it serves are a service worker, a web manifest and an icon.
+**One file.** `index.html` is the entire application: markup, about 10,000 lines of CSS and about 33,000 lines of hand-written JavaScript. There is no framework, no bundler, no `package.json` and no `npm install`. The only other files it serves are a service worker, a web manifest and an icon.
 
 **Correct when things go wrong.** Timers are computed from saved wall-clock anchors instead of counted ticks, so background throttling, a sleeping laptop, a crashed tab, a changed system clock, midnight, a time zone change and a second device all resolve to the same, right number. Most of this README's second half is about how.
 
@@ -105,7 +105,7 @@ Times display as 12-hour or 24-hour, and dates as `MM/DD/YY`, `DD/MM/YY` or `YYY
 - **Midnight rollover.** A shift still running at midnight in your work zone is filed under the day that ended, and the new day starts fresh.
 - **Accidental shifts.** Ending a shift under 60 seconds asks you to confirm first.
 - **One tab at a time.** A second tab cannot silently overwrite the first. It offers to take over instead.
-- **Storage failures are loud.** If the browser refuses to save (private mode, blocked storage, a full disk), a red **RAM Only** badge appears and tells you to export.
+- **Storage failures are loud.** If the browser refuses to save (private mode, blocked storage, a full disk), a red **RAM Only** badge appears, the change that did not save says so, and the app tells you to export. When localStorage fills up, the logbook's spare copy there gives way to your own data first.
 
 Idle lock can be switched off, which is the better setting on a phone that sits in a pocket. Everything else always runs.
 
@@ -135,9 +135,9 @@ The **heatmap** shows the whole year one square per day, with your current strea
 
 ### Backups, snapshots and restore
 
-- **JSON backup** is one file holding every shift, task, leave day, saved view and preference. `Ctrl`/`Cmd` + `S` downloads it and opens an email draft to send it to yourself, and a setting can save one automatically at the end of every shift.
-- **Restore** merges a backup into what you have instead of replacing it. When the backup and this device disagree about the same days, a side-by-side conflict view lets you keep yours, take the backup's, or keep both.
-- **Snapshots** are automatic. The day's first launch, or failing that its first change, captures the shifts, leaves and leave types as they were, and the five most recent days are kept, so a bad edit or a regretted delete can be rolled back from Settings.
+- **JSON backup** is one file holding every shift, task, leave day, saved view and preference. `Ctrl`/`Cmd` + `S` downloads it and opens an email draft to send it to yourself, and a setting can save one automatically at the end of every shift. It is plain JSON, notes included, so keep it somewhere private. Signed out, the browser holds the only copy, and the app reminds you once a week when you have not exported in two weeks.
+- **Restore** merges a backup into what you have instead of replacing it. Shifts and tasks it holds that this device does not are added, and identical ones are left alone. When the backup and this device hold different versions of the same shift, task, leave day, leave type or saved view, a side-by-side conflict view lets you keep yours, take the backup's, or keep both, and nothing changes in silence. A running task timer is never replaced, and the restore only reports success once everything is saved.
+- **Snapshots** are automatic. The day's first launch, or failing that its first change, captures the shifts, leaves, leave types, tasks, saved views and settings as they were, and the five most recent days are kept, so a bad edit or a regretted delete can be rolled back from Settings.
 - **End-of-day email.** Optionally, ending a shift copies a formatted summary and opens an email draft.
 
 ### Cloud sync, if you want it
@@ -146,6 +146,7 @@ Sign in from the cloud button and this device keeps its shifts, tasks, leave, sa
 
 - **Live handoff.** Start a shift on the laptop, open the phone, and the phone shows the same running timer, to the second, with a **Continue here** button. Only one device may drive the session at a time. Ending the shift on one device clears it on the others.
 - **Offline is normal.** Edits made offline wait in a queue that survives a crash and go up when the network returns. A device that has been away for a week cannot overwrite newer data, because the server refuses stale writes.
+- **Nothing is deleted on a guess.** Only a record you deleted is deleted from your other devices. One that is simply missing on this device (a failed save, a closed tab) is downloaded again, and a sync that would delete five or more records you did not delete one by one asks first. _Sign out & erase this device_ uploads what it can before erasing and says plainly what has not reached the account.
 - **You can see what it is doing.** The sync panel shows each device, which one holds the session, the last push and pull, anything still waiting, and the measured clock offset. **Copy diagnostics** puts all of it on the clipboard.
 - **Leaving is clean.** _Sign out_ keeps this device's data. _Sign out & erase this device_ clears it here only. _Sign out everywhere_ signs out every device. Deleting the account removes it and every row it owns.
 
@@ -257,7 +258,7 @@ Every change to the logbook, whether from the timer, an edit, an import or a syn
 - **The mirror is synchronous.** localStorage writes finish before the function returns, so even a tab killed mid-save leaves one complete copy. If IndexedDB cannot be opened at the next launch, nodrift boots from the mirror and freezes writes, so a partial view can never be saved over the full database. When the page is opened straight from disk, nodrift does not use IndexedDB at all and the mirror is the store.
 - **The main store is chunked by month.** Editing one shift rewrites one month, not the whole history.
 - **Durable storage is requested at startup**, so the browser does not evict the data under storage pressure or Safari's seven-day purge of script-written storage.
-- **A full disk never truncates.** If the mirror cannot be written, the previous complete copy is left in place and the app says so.
+- **A full disk never truncates.** If the mirror cannot be written, the previous complete copy is left in place and the app says so. A write refused at commit, which is how running out of quota usually shows up, fails the save instead of leaving it, and every save queued behind it, waiting forever.
 
 ### One writer per browser
 
@@ -273,7 +274,11 @@ The most important decision in the sync design is **not** treating the app's dat
 | **The live session**: running timers, mode, idle lock | An exclusive lease. One device writes; the others watch   | There is exactly one real shift. Merging two running timers gives a number that is true of neither.           |
 | **Preferences**: goal, work week, zones, formats      | Last writer wins, per preference                          | Settings are not measurements. But an old copy of one setting must not ride in on an edit to a different one. |
 
-**Records.** Rather than recording every delete as it happens (and missing one path some day), each device keeps a _shadow_: a map from record id to the `lastModified` the server last confirmed. The outbox is computed by comparing the logbook with the shadow. Anything new or changed is pushed, and anything the shadow has that the logbook doesn't was deleted, by any code path, including ones not written yet. The shadow only moves forward on a confirmed response, so it doubles as a crash-proof retry queue.
+**Records.** Each device keeps a _shadow_: a map from record id to the `lastModified` the server last confirmed. The outbox is computed by comparing the logbook with the shadow, and anything new or changed is pushed. The shadow only moves forward on a confirmed response, so it doubles as a crash-proof retry queue.
+
+A delete is not inferred from absence. It is recorded as an intent at the moment a save takes the record out of storage, in the one function each collection saves through (`saveLogs`, `saveTaskLogs`, `persistLeaveRecords`, `persistFilterViews`), so a deletion path written later is still caught. A record the shadow knows that is missing here with no intent behind it is _lost_, not deleted: a logbook that had not loaded, a write the browser refused, a page closed halfway through a save. The engine downloads it again. Inferring deletes from absence is what used to turn each of those into a deletion on every device. And a cycle about to send five or more deletes that nobody made one by one, or in a bulk delete they confirmed, holds them and asks.
+
+Nothing compares the device with the cloud until its own data has loaded. The first cycle and the session check wait for the logbook, the tasks, the running shift, the leaves, the views and the sync bookkeeping, and a store that failed to load sits the cycle out rather than syncing an empty stand-in.
 
 <p align="center">
   <picture>
@@ -286,9 +291,11 @@ Three details make this safe:
 
 - **Two timestamps, two jobs.** `last_modified` is when you edited a record, and it decides conflicts. `updated_at` is when the server received it, and it drives the pull cursor. Using one for both loses data: an edit made offline at 09:00 and synced at 14:00 would be invisible to a device whose cursor is already at 11:00.
 - **The merge rule is enforced in SQL.** `push_records` only overwrites a row when the incoming copy is newer, so a device that has been offline for a week cannot clobber newer data, even if its client code is wrong.
-- **The cursor rewinds five seconds on each pull.** The server stamps rows with `clock_timestamp()` before the commit is visible, so a row can appear slightly behind one already seen. Re-reading a few seconds costs one comparison per record, because the merge is idempotent. A device whose cursor is older than 60 days rebuilds from a full download instead of a delta.
+- **The cursor rewinds five seconds on each pull.** The server stamps rows with `clock_timestamp()` before the commit is visible, so a row can appear slightly behind one already seen. Re-reading a few seconds costs one comparison per record, because the merge is idempotent. A device that has not completed a pull in 60 days rebuilds from a full download instead of a delta. That is measured from its last pull, not from the cursor, which only says when the cloud last changed.
+- **A refused upload is not an accepted one.** `push_records` returns how many rows it wrote. When that comes up short, the device fetches the server's copies of the batch and takes any that are newer, instead of recording its own as confirmed.
+- **The bookkeeping belongs to one account.** The shadow, the cursors and the preference stamps start over when the device signs into a different account, so that account's older records download and this device's history uploads, as on a first sign-in.
 
-**Preferences** travel as one blob with a stamp for each preference inside it, so a device that changes its clock format cannot resend an older leave balance along with it. Values the app works out for itself, like an automatic goal, are never uploaded as if someone chose them.
+**Preferences** travel as one blob with a stamp for each preference inside it, so a device that changes its clock format cannot resend an older leave balance along with it. The leave ledger goes one step further, with a stamp for each leave type and for each deleted one, so two devices editing different types at once both keep their edit and a deleted type stays deleted. Values the app works out for itself, like an automatic goal, are never uploaded as if someone chose them.
 
 ### Live handoff: a lease in Postgres
 
@@ -370,7 +377,7 @@ python3 -m http.server 8080
 
 Then open <http://localhost:8080>. Any static file server works.
 
-You can also double-click `index.html` and it will run from `file://`, with limits: nodrift does not use IndexedDB there, so the logbook lives only in localStorage (about 5 MB), service workers are unavailable, so it cannot install or work offline, and background workers may be blocked. Use a server for anything you care about.
+You can also double-click `index.html` and it will run from `file://`, with limits: nodrift does not use IndexedDB there, so the logbook and tasks live only in localStorage (about 5 MB), service workers are unavailable, so it cannot install or work offline, and background workers may be blocked. Use a server for anything you care about.
 
 ### Deploy your own copy
 

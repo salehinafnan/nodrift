@@ -53,8 +53,16 @@ a migration, and **whether it is scheduled on the project is not recorded
 here** — check the dashboard rather than assuming either way. It also has a
 client-side half that must ship with it: a device offline longer than the
 retention window still holds the deleted record and never learns it went
-away, so a cursor older than the window has to force a full resync instead of
-a delta. Enabling the prune without that half loses deletions silently.
+away, so a device that has not pulled for longer than that has to force a
+full resync instead of a delta. Enabling the prune without that half loses
+deletions silently. The client rebuilds after 60 days, inside the 90, and
+measures them from its own last completed pull rather than from the cursor:
+the cursor only says when the cloud last changed, so on a quiet account it
+grows old on a device that pulls every minute.
+
+The prune is also why a device that finds a record missing asks for it by id
+before giving up on it. A record the server no longer holds at all was a
+tombstone the prune removed, and the device stops asking.
 
 Aside from this, `migrations/` is the complete database.
 
