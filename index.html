@@ -4180,7 +4180,18 @@
       }
 
       /* A pane's toolbar: Filters and Add on the left; the count and the
-         export glyphs on the right, the glyphs set off by a hairline. */
+         export glyphs on the right, the glyphs set off by a hairline.
+
+         Nothing in it ever wraps. The buttons and the glyphs hold their
+         size and the count is the one part that gives way. When the row
+         still runs out of room, fitPaneToolbars() steps it down until it
+         fits, least useful first:
+           .tb-short  the count drops its words: "3 of 133"
+           .tb-icons  the buttons drop their labels; Filters keeps its tally
+           .tb-bare   the count goes altogether
+         Measured rather than set at breakpoints: the count's length, the
+         locale's digit grouping, select mode's two extra glyphs and the
+         reader's text size all move the point where the row stops fitting. */
       .logbook-controls-header {
         position: relative;
         padding: 2px 2px 0;
@@ -4199,6 +4210,11 @@
         min-width: 0;
       }
 
+      .logbook-controls-header > .toolbar-group:first-child,
+      .toolbar-icons {
+        flex-shrink: 0;
+      }
+
       .toolbar-count {
         font-size: var(--text-xs);
         color: var(--text-muted);
@@ -4206,6 +4222,46 @@
         font-variant-numeric: tabular-nums;
         white-space: nowrap;
         padding-right: 2px;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .tb-short .tc-word,
+      .tb-bare .toolbar-count {
+        display: none;
+      }
+
+      /* Out of sight, still the button's name. */
+      .tb-icons .tb-label {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+      }
+
+      /* The applied-filter tally: "(2)" after the label, a bare "2" once the
+         label is gone. The margin trims the button's gap to a word space. */
+      .tb-n:empty {
+        display: none;
+      }
+
+      .tb-n {
+        margin-left: -2px;
+      }
+
+      .tb-n::before {
+        content: "(";
+      }
+
+      .tb-n::after {
+        content: ")";
+      }
+
+      .tb-icons .tb-n::before,
+      .tb-icons .tb-n::after {
+        content: none;
       }
 
       .toolbar-icons {
@@ -4236,6 +4292,8 @@
         font-size: var(--text-xs);
         font-weight: 600;
         letter-spacing: var(--tracking-tight);
+        white-space: nowrap;
+        flex-shrink: 0;
         transition:
           color var(--motion-fast) ease,
           background-color var(--motion-fast) ease,
@@ -16804,7 +16862,8 @@
                   >
                     <g data-sprite="sprite-024"></g>
                   </svg>
-                  Filters
+                  <span class="tb-label">Filters</span>
+                  <span class="tb-n"></span>
                 </button>
 
                 <!-- Manual Log Addition Button -->
@@ -16824,7 +16883,7 @@
                   >
                     <g data-sprite="sprite-025"></g>
                   </svg>
-                  Add Log
+                  <span class="tb-label">Add Log</span>
                 </button>
               </div>
 
@@ -17670,7 +17729,7 @@
                   >
                     <g data-sprite="sprite-024"></g>
                   </svg>
-                  Filters
+                  <span class="tb-label">Filters</span>
                 </button>
                 <button
                   class="header-icon-btn"
@@ -17688,7 +17747,7 @@
                   >
                     <g data-sprite="sprite-025"></g>
                   </svg>
-                  Add Task
+                  <span class="tb-label">Add Task</span>
                 </button>
               </div>
               <div class="toolbar-group">
@@ -36821,25 +36880,50 @@
         if (searchFilter) activeCount++;
 
         const btn = DOM.filterToggleBtn;
-
-        if (activeCount > 0) {
-          btn.classList.add("filter-active");
-          btn.innerHTML = `
-            <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.8" width="14" height="14">${getSprite("sprite-024")}</svg>
-            Filters (${activeCount})
-          `;
-        } else {
-          btn.classList.remove("filter-active");
-          btn.innerHTML = `
-            <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.8" width="14" height="14">${getSprite("sprite-024")}</svg>
-            Filters
-          `;
-        }
+        btn.classList.toggle("filter-active", activeCount > 0);
+        btn.querySelector(".tb-n").textContent = activeCount || "";
 
         DOM.filterHoursVal.disabled = DOM.filterHoursOp.value === "ALL";
 
         renderFilterChips();
       }
+
+      /* Steps each pane toolbar down (.tb-short, .tb-icons, .tb-bare -- see
+         the CSS) until its row fits, and again whenever the row's width or
+         contents change: a resize, a new count, the filter tally, select
+         mode showing its two extra glyphs. Both observers deliver before the
+         next paint, so a step is never seen to happen. */
+      (function fitPaneToolbars() {
+        const STEPS = ["tb-short", "tb-icons", "tb-bare"];
+
+        const fit = (bar) => {
+          const count = bar.querySelector(".toolbar-count");
+          const overflowing = () =>
+            bar.scrollWidth > bar.clientWidth ||
+            count.scrollWidth > count.clientWidth;
+          bar.classList.remove(...STEPS);
+          if (!bar.clientWidth) return; // A hidden pane refits when shown.
+          for (const step of STEPS) {
+            if (!overflowing()) break;
+            bar.classList.add(step);
+          }
+        };
+
+        const resized = new ResizeObserver((entries) =>
+          entries.forEach((e) => fit(e.target)),
+        );
+
+        document.querySelectorAll(".logbook-controls-header").forEach((bar) => {
+          resized.observe(bar);
+          new MutationObserver(() => fit(bar)).observe(bar, {
+            subtree: true,
+            childList: true,
+            characterData: true,
+            attributes: true,
+            attributeFilter: ["style"],
+          });
+        });
+      })();
 
       /**
        * Renders active filters as dismissible rounded chips/badges.
@@ -38486,7 +38570,7 @@
             searchActive;
 
           if (isFiltering) {
-            countDisplay.textContent = `Showing ${filteredCount.toLocaleString()} of ${totalLogsCount.toLocaleString()} log${totalLogsCount !== 1 ? "s" : ""}`;
+            countDisplay.innerHTML = `<span class="tc-word">Showing </span>${filteredCount.toLocaleString()} of ${totalLogsCount.toLocaleString()}<span class="tc-word"> log${totalLogsCount !== 1 ? "s" : ""}</span>`;
           } else {
             countDisplay.textContent = `${totalLogsCount.toLocaleString()} Log${totalLogsCount !== 1 ? "s" : ""}`;
           }
@@ -48280,7 +48364,7 @@
           const totalCount = cachedTaskLogs.length;
           const filteredCount = virtualScrollTasks.length;
           if (filteredCount < totalCount) {
-            countDisplay.textContent = `Showing ${filteredCount.toLocaleString()} of ${totalCount.toLocaleString()} task${totalCount !== 1 ? "s" : ""}`;
+            countDisplay.innerHTML = `<span class="tc-word">Showing </span>${filteredCount.toLocaleString()} of ${totalCount.toLocaleString()}<span class="tc-word"> task${totalCount !== 1 ? "s" : ""}</span>`;
           } else {
             countDisplay.textContent = `${totalCount.toLocaleString()} Task${totalCount !== 1 ? "s" : ""}`;
           }
