@@ -5664,8 +5664,8 @@
       }
 
       /* Every button in the cloud panel, wherever it sits: the two pinned
-         under the card and the three inside it. One box for all five,
-         because they are read as a set -- things that end a session -- and a
+         under the card, the pair at its far end and the takeover under the
+         address. One box for all five, because they are read as a set, and a
          set that is not one height reads as a mistake. That is exactly what
          the panel looked like when .btn-danger-outline was missing from the
          compact rule below and "Sign out & erase this device" fell back to
@@ -5710,16 +5710,27 @@
         line-height: 1.25;
       }
 
-      /* Stacked, and deliberately not pinned. Everything in here removes
-         data or access, so reaching it should cost a scroll past the
-         read-outs while the two ordinary buttons stay under the thumb. Full
-         width apiece because "Sign out & erase this device" does not fit
-         half a 296px panel, and a destructive control is the last place to
-         accept a wrapped label. */
+      /* Deliberately not pinned: both of these remove data, so they sit at
+         the far end of the card, past the read-outs, while the two ordinary
+         buttons stay under the thumb.
+
+         One row of two halves, the shape of the footer under the card, now
+         that the longer label is "Erase this device". They used to stand a
+         full width apiece, because "Sign out & erase this device" did not
+         fit half the panel, and that second row was most of what pushed
+         "Delete account" below the fold. A destructive control is still the
+         last place to accept a wrapped label, so neither half may shrink
+         past its own: on a screen too narrow for both, the second one moves
+         under the first rather than breaking its words. */
       .sync-danger {
         display: flex;
-        flex-direction: column;
+        flex-wrap: wrap;
         gap: 6px;
+      }
+
+      .sync-danger > .sync-action-btn {
+        flex: 1 1 0;
+        min-width: max-content;
       }
 
       .settings-card
@@ -5949,13 +5960,13 @@
         );
       }
 
+      /* No rule and no padding above it: the card's edge is the separation,
+         at the gap every band of this panel keeps from the next. */
       .sync-footer {
         flex: 0 0 auto;
         display: grid;
         grid-template-columns: 1fr 1fr;
         gap: 6px;
-        padding-top: 0.55rem;
-        border-top: var(--hairline);
       }
 
       /* The two facts somebody opens this panel for, given room to be read
@@ -5989,7 +6000,8 @@
 
       /* The dot takes the colour the render writes onto the text beside it,
          so the two can never disagree about which state this is. */
-      #sync-state::before {
+      #sync-state::before,
+      #sync-row-live > .settings-label:first-child::before {
         content: "";
         display: inline-block;
         width: 7px;
@@ -5998,6 +6010,28 @@
         border-radius: 50%;
         background: currentColor;
         vertical-align: 1px;
+      }
+
+      /* The live session, as the second status line. A sentence rather than
+         a label and a value at opposite ends ("Live session running on
+         Chrome on Windows"), so a long device name wraps where words do. The
+         render colours the line, and both halves take it from there.
+
+         The labels' own size is set on the line as well, or its strut is the
+         panel's and stands the line a few pixels taller than the one above. */
+      #sync-row-live {
+        display: block;
+        font-size: var(--text-xs);
+      }
+
+      #sync-row-live > .settings-label {
+        color: inherit;
+      }
+
+      /* Clear of the status lines above it, which sit closer together than
+         a button should sit to anything it does not belong to. */
+      #sync-lease-takeover-btn {
+        margin-top: 4px;
       }
 
       /* A form-level failure, and the only thing in this panel that is not a
@@ -6096,8 +6130,7 @@
       .sync-details-heading {
         display: flex;
         align-items: center;
-        justify-content: space-between;
-        gap: 8px;
+        gap: 6px;
         width: 100%;
         margin-top: 2px;
         padding-top: 6px;
@@ -6458,15 +6491,52 @@
         margin-right: var(--space-2);
       }
 
-      /* The trailing half of a heading row: how many devices there are, or
-         the one line of warning over the destructive buttons. Drawn in the
-         read-out's weight so it reads as a fact about the group rather than
-         as a second heading. */
-      .sync-heading-note {
-        font-size: var(--text-2xs);
-        font-weight: 500;
+      /* How many devices there are, beside the word it counts, in the
+         counter capsule lists use for a count. Quieter than the heading so it
+         reads as a fact about the group rather than as a second heading. */
+      .sync-heading-count {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 16px;
+        height: 16px;
+        padding: 0 5px;
+        box-sizing: border-box;
+        border-radius: var(--radius-pill);
+        background: color-mix(in srgb, var(--text-main) 8%, transparent);
+        font-size: var(--overline-size);
+        font-weight: 600;
+        font-variant-numeric: tabular-nums;
+        line-height: 1;
         color: var(--text-muted);
-        text-align: right;
+      }
+
+      .sync-heading-count:empty {
+        display: none;
+      }
+
+      /* A group's own action, at the trailing end of its heading. Drawn as a
+         link, the way "Show all" under the same list is: what it does is
+         said by the confirmation it opens, and a link reads as a way in to
+         that rather than as the act itself. */
+      .sync-heading-action {
+        margin-left: auto;
+        padding: 2px 0;
+        background: transparent;
+        border: none;
+        font-size: var(--text-2xs);
+        font-weight: 600;
+        color: var(--accent-blue);
+        cursor: pointer;
+      }
+
+      .sync-heading-action:hover:not(:disabled) {
+        text-decoration: underline;
+      }
+
+      .sync-heading-action:disabled {
+        color: var(--text-muted);
+        cursor: default;
       }
 
       /* The devices list. Rows rather than cards: it sits between two other
@@ -6499,14 +6569,6 @@
         border-radius: 6px;
       }
 
-      /* The one row with no cross still leaves room for the column. Every
-         other row stops its age short of the panel edge by a button's width,
-         and a single row running past all of them reads as a drawing mistake
-         rather than as the exception it is. */
-      .sync-device-row.is-mine {
-        padding-right: calc(var(--device-action) + 8px);
-      }
-
       /* Takes whatever the other two leave. `min-width: 0` is what actually
          permits the ellipsis: a flex item's automatic minimum is its content,
          so without it a long name pushes the meta and the button off the end
@@ -6530,8 +6592,13 @@
          Drawn as a cross rather than a labelled button because it is one of
          up to a dozen in a column -- a word repeated down a list stops being
          read -- and given the row's own tooltip and an aria-label so it is
-         never the icon alone that has to carry the meaning. */
-      .sync-device-remove {
+         never the icon alone that has to carry the meaning.
+
+         This device's row has a pencil in the same column instead, the label
+         of its rename field: one column of row actions, of which this row's
+         is the one that does not sign anything out. */
+      .sync-device-remove,
+      .sync-device-edit {
         flex: 0 0 auto;
         width: var(--device-action);
         height: var(--device-action);
@@ -6546,13 +6613,21 @@
         cursor: pointer;
       }
 
-      .sync-device-remove svg {
+      .sync-device-remove svg,
+      .sync-device-edit svg {
         width: 13px;
         height: 13px;
         fill: none;
         stroke: currentColor;
         stroke-width: 2.2;
         stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+
+      /* A pencil has corners a cross does not, and at the cross's weight
+         they close up. */
+      .sync-device-edit svg {
+        stroke-width: 2;
       }
 
       /* Held back until the row is pointed at, and only where there is a
@@ -6565,12 +6640,15 @@
           background: var(--element-hover);
         }
 
-        .sync-device-remove {
+        .sync-device-remove,
+        .sync-device-edit {
           opacity: 0.45;
         }
 
         .sync-device-row:hover .sync-device-remove,
-        .sync-device-remove:focus-visible {
+        .sync-device-remove:focus-visible,
+        .sync-device-row:hover .sync-device-edit,
+        .sync-device-row:focus-within .sync-device-edit {
           opacity: 1;
         }
       }
@@ -6586,6 +6664,16 @@
         cursor: default;
       }
 
+      /* Blue rather than the cross's red: it changes a name, nothing more. */
+      .sync-device-edit:hover {
+        color: var(--accent-blue);
+        background: var(--accent-soft);
+      }
+
+      .sync-device-row:focus-within .sync-device-edit {
+        color: var(--accent-blue);
+      }
+
       /* The device you are holding gets the weight, so finding yourself in
          the list takes no reading. */
       /* --text-primary is not a token this app has ever defined, so this
@@ -6596,9 +6684,45 @@
         color: var(--text-main);
       }
 
-      .sync-device-empty {
-        color: var(--text-muted);
-        font-style: italic;
+      /* This device's name, which is also the field that renames it. Drawn
+         as the name until it is pointed at or focused: a field's box around
+         one row of a list read as a form in the middle of a read-out. It
+         takes the list's type rather than a field's, and its text lines up
+         with the names under it -- the row's hover inset comes back as the
+         field's own padding.
+
+         The !important flags answer two rules that carry their own: the
+         compact one for inline row fields, and on a touch layout the field
+         size every input takes. Neither is wrong for a field; this is a name
+         that can be edited, drawn the way the names under it are drawn. */
+      #sync-device-label {
+        flex: 1 1 auto;
+        min-width: 0;
+        width: auto;
+        height: var(--device-action);
+        min-height: var(--device-action) !important;
+        margin-left: -4px;
+        /* The inset less the field's 1px edge, so the text lands exactly on
+           the column the names under it start at. */
+        padding: 0 3px !important;
+        background: transparent;
+        border-color: transparent;
+        border-radius: 6px;
+        font-size: var(--text-xs) !important;
+        letter-spacing: 0;
+        text-overflow: ellipsis;
+      }
+
+      @media (hover: hover) {
+        #sync-device-label:hover:not(:focus) {
+          border-color: var(--hairline-hover-color);
+        }
+      }
+
+      #sync-device-label:focus {
+        background: var(--surface-1);
+        border-color: var(--accent-blue);
+        box-shadow: var(--accent-ring);
       }
 
       /* Not a control in the sense the five buttons are: it changes how much
@@ -6632,27 +6756,32 @@
         overflow-wrap: anywhere;
       }
 
-      /* Six read-outs in two columns rather than six full-width rows.
+      /* Six read-outs in three columns of two, rather than six full-width
+         rows or the two columns of three this was until the panel had to
+         fit a laptop's window without scrolling.
 
-         Not label-and-value across a half-width row: the panel is 18.5rem
-         wide, a column of it is about 118px, and "Clock offset" set against
-         "+59 ms" spends nearly all of that before the gap between them --
-         "this device · gen 12" does not fit at all. Stacked, each pair gets
-         the full column for its value and the long one wraps instead of
+         Not label-and-value across a row: a column here is under 100px, and
+         "Clock offset" set against "-451 ms" spends all of it before the gap
+         between them. Stacked, each pair gets the full column for its value
+         and a long one ("this device · gen 12") wraps instead of
          overflowing, at any width this panel is ever given.
 
-         Filled down, not across, which is the reason for the fixed three
-         rows: it puts the three elapsed times in one column and the three
-         states in the other, so each column is a group rather than a
+         Filled across: the three elapsed times are the top row and the three
+         states the one under it, so each row is a group rather than a
          fragment of the reading order. That does assume six children -- a
-         seventh read-out wants a fourth row here, and one taken away wants
-         three. */
+         seventh read-out would start a third row on its own.
+
+         The last column a little wider, because it is the lease's: the only
+         value here that carries a device's name, and "nobody · gen 1" ran
+         one character past an even third on a 1280px window. */
       #sync-details {
         display: grid;
-        grid-auto-flow: column;
-        grid-template-rows: repeat(3, auto);
-        grid-auto-columns: minmax(0, 1fr);
-        gap: 8px 12px;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.25fr);
+        gap: 8px 10px;
+      }
+
+      .sync-lease-gen {
+        white-space: nowrap;
       }
 
       /* Undresses .settings-row for this one use: the pair stacks, and the
@@ -11305,19 +11434,39 @@
           overflow: hidden;
         }
 
-        /* The one control in this panel that is hit rather than read, in a
-           column of near neighbours, so it is sized for a thumb here. Not on
-           the 44px list above with the fields and the submits: a device list
-           four rows deep would then be 176px of a panel this change exists to
-           make shorter. 36px clears the 24px minimum with room to spare and
-           keeps the list the length somebody will actually read. */
+        /* The row actions are hit rather than read, in a column of near
+           neighbours, so they are sized for a thumb here. Not on the 44px
+           list above with the fields and the submits: a device list four rows
+           deep would then be 176px of a panel this change exists to make
+           shorter. 36px clears the 24px minimum with room to spare and keeps
+           the list the length somebody will actually read. */
         .sync-devices {
           --device-action: 36px;
         }
 
-        .sync-device-remove svg {
+        .sync-device-remove svg,
+        .sync-device-edit svg {
           width: 15px;
           height: 15px;
+        }
+
+        /* The sheet boxes every field in it, with an !important of its own,
+           and this one is drawn as a name until it is focused. */
+        #m-sheet #sync-device-label {
+          background: transparent !important;
+          border-color: transparent !important;
+        }
+
+        #m-sheet #sync-device-label:focus {
+          background: var(--surface-1) !important;
+          border-color: var(--accent-blue) !important;
+        }
+
+        /* A thumb's height for the heading's action, taken out of the space
+           around it rather than added to the heading. */
+        .sync-heading-action {
+          padding-block: 10px;
+          margin-block: -10px;
         }
 
         /* The phone's field padding, with the reveal button's column still
@@ -14374,20 +14523,18 @@
             </p>
             <ul>
               <li>
-                <strong>This device</strong> — the name your other devices see.
-                Rename it to something you will recognise; the prompt below quotes
-                it.
-              </li>
-              <li>
-                <strong>Live session</strong> — which device is currently allowed
-                to run the timer. Finishing a shift on one device clears it on the
-                others by itself; there is nothing to dismiss and no need to
-                reload.
+                <strong>Live session</strong>, under your address — which device
+                is currently allowed to run the timer. Finishing a shift on one
+                device clears it on the others by itself; there is nothing to
+                dismiss and no need to reload.
               </li>
               <li>
                 <strong>Devices</strong> — everywhere this account is signed in,
-                when each was last seen, and which one holds the session. It is a
-                read-out, not a control.
+                when each was last seen, and which one holds the session. This
+                device comes first, and its name is the one your other devices
+                see: click it, or the pencil beside it, to rename it to something
+                you will recognise; the prompt below quotes it. The cross beside
+                any other device signs that one out.
               </li>
               <li>
                 <strong>Sync details</strong> — the last push and pull, anything
@@ -14399,13 +14546,14 @@
               <li>
                 <strong>Sign out</strong> leaves this device's copy alone, and
                 leaves your other devices signed in.
-                <strong>Sign out &amp; erase this device</strong> also clears it
+                <strong>Erase this device</strong> signs out and also clears it
                 here, leaving the cloud and your other devices untouched. It
                 uploads anything still waiting first, and if some of it could not
                 reach the cloud it tells you before erasing.
-                <strong>Sign out everywhere</strong> is the one that reaches them:
-                every device is signed out and has to enter the password again.
-                Nothing is deleted by any of the three.
+                <strong>Sign out everywhere</strong>, on the Devices heading, is
+                the one that reaches them: every device is signed out and has to
+                enter the password again. Nothing in the cloud is deleted by any
+                of the three.
               </li>
             </ul>
             <p>
@@ -18454,6 +18602,30 @@
                   <span class="sync-identity-status">
                     <span class="settings-label" id="sync-state"></span>
                   </span>
+                  <!-- Where the timer is, as a second status line under the
+                       first, because it is the other thing somebody checks
+                       before a shift. It used to be a row of a "This device"
+                       group of its own, a heading and two rows that also
+                       repeated the name the device list already carries.
+                       The render colours the line, so the dot and both
+                       halves of it agree. -->
+                  <span class="sync-identity-status" id="sync-row-live">
+                    <span class="settings-label">Live session</span>
+                    <span class="settings-label" id="sync-lease-state"></span>
+                  </span>
+                  <!-- The only way in for a device with nothing running of
+                       its own: the takeover prompt can't appear until this
+                       device already wants the lease. Directly under the
+                       line that says where the session is. -->
+                  <button
+                    type="button"
+                    class="btn-info-outline sync-action-btn"
+                    id="sync-lease-takeover-btn"
+                    style="display: none"
+                    onclick="leaseTakeOver()"
+                  >
+                    Continue session here
+                  </button>
                 </div>
 
                 <!-- iOS erases a browser tab's stored data after seven days
@@ -18854,96 +19026,107 @@
                   id="sync-account-detail"
                   style="display: none; flex-direction: column; gap: 6px"
                 >
-                  <!-- Four headed groups rather than one column of rows.
+                  <!-- Three headed groups rather than one column of rows.
                        Every read-out in here used to sit at the same weight
                        as every other, so finding the one you came for meant
-                       reading all of them. -->
-                  <div class="sync-details-heading">
-                    <span class="settings-label">This device</span>
-                  </div>
-                  <div class="settings-row" id="sync-row-device">
-                    <span class="settings-label">Name</span>
-                    <!-- Editable because the takeover prompt on the other
-                         device quotes it, and "Chrome on Windows" is only
-                         useful until there are two of them. -->
-                    <input
-                      type="text"
-                      id="sync-device-label"
-                      class="input-standard"
-                      maxlength="60"
-                      spellcheck="false"
-                      style="max-width: 58%; text-align: right"
-                      onchange="syncRenameDevice()"
-                      onkeydown="if (event.key === 'Enter') this.blur();"
-                    />
-                  </div>
-                  <div class="settings-row" id="sync-row-live">
-                    <span class="settings-label" style="font-weight: 500"
-                      >Live session</span
-                    >
-                    <span class="settings-label" id="sync-lease-state"></span>
-                  </div>
-                  <!-- The only way in for a device with nothing running of
-                       its own: the takeover prompt can't appear until this
-                       device already wants the lease. -->
-                  <button
-                    type="button"
-                    class="btn-info-outline"
-                    id="sync-lease-takeover-btn"
-                    style="display: none"
-                    onclick="leaseTakeOver()"
-                  >
-                    Continue session here
-                  </button>
+                       reading all of them.
 
-                  <!-- "Where am I signed in?" had no answer anywhere in the
+                       "Where am I signed in?" had no answer anywhere in the
                        app: the devices table was written on every heartbeat
                        and only ever read to put a name in the takeover
                        prompt.
 
-                       Each row now carries a cross that signs that one device
-                       out, which is a thing this panel could not do at all
-                       before: the only lever was "Sign out everywhere", and
-                       it takes down the device doing the asking too. The row
-                       is deleted here and the device itself finds out on its
-                       next beat — see touchDevice, which is where the promise
-                       this list makes is actually kept. Deleting the row was
-                       meaningless until then, because the device's own
-                       heartbeat wrote it straight back. -->
+                       Each other row carries a cross that signs that one
+                       device out, which is a thing this panel could not do at
+                       all before: the only lever was "Sign out everywhere",
+                       and it takes down the device doing the asking too. The
+                       row is deleted here and the device itself finds out on
+                       its next beat — see touchDevice, which is where the
+                       promise this list makes is actually kept. Deleting the
+                       row was meaningless until then, because the device's
+                       own heartbeat wrote it straight back. -->
                   <div class="sync-details-heading">
                     <span class="settings-label">Devices</span>
                     <!-- The count, because the list is folded past four rows
                          and a fold that does not say what it is hiding is
                          just a shorter list. -->
                     <span
-                      class="sync-heading-note"
+                      class="sync-heading-count"
                       id="sync-devices-count"
                     ></span>
-                  </div>
-                  <div id="sync-devices" class="sync-devices"></div>
-                  <!-- The honest version of "log out my other devices", and
-                       the button the note above means by "the button below":
-                       it revokes every refresh token on the account, which is
-                       what actually ends access. The other devices keep
-                       working until their current access token expires, so
-                       the confirmation says an hour rather than pretending it
-                       is instant.
+                    <!-- The honest version of "log out my other devices": it
+                         revokes every refresh token on the account, which is
+                         what actually ends access. The other devices keep
+                         working until their current access token expires, so
+                         the confirmation says an hour rather than pretending
+                         it is instant.
 
-                       Here rather than among the destructive three, and not
-                       drawn in the danger outline with them. It takes away
-                       access and no data at all, and signing in again undoes
-                       every bit of it -- putting it beside "Delete account"
-                       said the two were the same order of decision. It reads
-                       as what it is directly under the list of devices it
-                       acts on. -->
-                  <button
-                    type="button"
-                    class="btn-secondary sync-action-btn"
-                    id="sync-signout-all-btn"
-                    onclick="syncSignOutEverywhere()"
-                  >
-                    Sign out everywhere
-                  </button>
+                         Not among the destructive pair, and not drawn in the
+                         danger outline with them. It takes away access and no
+                         data at all, and signing in again undoes every bit of
+                         it -- putting it beside "Delete account" said the two
+                         were the same order of decision. It is the group's
+                         own action, so it sits on the group's heading, the
+                         way a list carries its "Edit": attached to the list
+                         it acts on, without a full-width button's height. -->
+                    <button
+                      type="button"
+                      class="sync-heading-action"
+                      id="sync-signout-all-btn"
+                      onclick="syncSignOutEverywhere()"
+                    >
+                      Sign out everywhere
+                    </button>
+                  </div>
+                  <!-- This device's own row is markup rather than one of the
+                       rows the render draws, because its name is the field
+                       that renames it, and the render rebuilds the rest of
+                       the list every second while the panel is open: a field
+                       rebuilt under the cursor cannot be typed in. It used to
+                       be a "Name" row of its own above the list, so the name
+                       was on screen twice, a row apart.
+
+                       Editable because the takeover prompt on the other
+                       device quotes it, and "Chrome on Windows" is only
+                       useful until there are two of them. The pencil is the
+                       field's label, so pressing it focuses the field, and
+                       it takes the column the cross takes on every other row:
+                       this row is the one that cannot be signed out from
+                       here, and the one that can be renamed. -->
+                  <div id="sync-devices" class="sync-devices">
+                    <div
+                      class="settings-row sync-device-row is-mine"
+                      id="sync-row-device"
+                    >
+                      <input
+                        type="text"
+                        id="sync-device-label"
+                        class="input-standard sync-device-name is-this-device"
+                        maxlength="60"
+                        spellcheck="false"
+                        autocomplete="off"
+                        aria-label="Name of this device"
+                        title="Rename this device"
+                        onchange="syncRenameDevice()"
+                        onkeydown="if (event.key === 'Enter') this.blur();"
+                      />
+                      <span class="sync-detail-value sync-device-meta"
+                        >this device</span
+                      >
+                      <label
+                        class="sync-device-edit"
+                        for="sync-device-label"
+                        title="Rename this device"
+                      >
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                          <path d="M12 20h9"></path>
+                          <path
+                            d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"
+                          ></path>
+                        </svg>
+                      </label>
+                    </div>
+                  </div>
 
                   <!-- A heading rather than a disclosure. These were behind a
                        collapse on the theory that the three rows above are
@@ -18958,7 +19141,7 @@
                   </div>
                   <!-- Laid out in the stylesheet rather than here. Six rows in
                        one column was the single tallest thing in this panel;
-                       it is two columns of three now, which is a grid, and a
+                       it is three columns of two now, which is a grid, and a
                        grid is not something to declare on the element in a
                        style attribute that then outranks every rule written
                        for it. -->
@@ -19020,20 +19203,27 @@
                          every sign-out. The common case should not have to
                          answer "and shall I delete a year of history?", and
                          the rare case should not be reachable by misreading
-                         a dialog. -->
+                         a dialog.
+
+                         "Erase this device" rather than "Sign out & erase
+                         this device", so the pair fits one row. What it erases
+                         is the part a label has to carry, set against "Delete
+                         account" beside it: one is this device's copy, the
+                         other is the cloud's. The sign-out that comes with it
+                         is in the confirmation's own title. -->
                     <button
                       type="button"
                       class="btn-danger-outline sync-action-btn"
                       onclick="syncSignOutAndErase()"
                     >
-                      Sign out &amp; erase this device
+                      Erase this device
                     </button>
                     <!-- Last, and the only control here that destroys anything
-                         beyond this device: everything above changes who is
-                         signed in, this one ends the account and takes the
-                         cloud copy with it. It leaves the local logbook alone,
-                         which is what keeps it from being the most destructive
-                         button in the app. -->
+                         beyond this device: everything else in this panel
+                         changes who is signed in, this one ends the account
+                         and takes the cloud copy with it. It leaves the local
+                         logbook alone, which is what keeps it from being the
+                         most destructive button in the app. -->
                     <button
                       type="button"
                       class="btn-danger-outline sync-action-btn"
@@ -19051,9 +19241,14 @@
                    copying the diagnostics is what they are asked for the
                    moment they report that something is wrong. Both used to
                    sit under a device list long enough to put them off the
-                   bottom of the panel. The three that take something away
-                   stay up in the card, where reaching them costs a
-                   deliberate scroll past everything this panel reports. -->
+                   bottom of the panel. The two that take something away
+                   stay up in the card, at its far end, past everything this
+                   panel reports.
+
+                   No rule above it. The card's own edge already separates
+                   the two, the way the settings panel's cards stand apart
+                   from each other, and a hairline under that edge was a
+                   second line doing the first one's job. -->
               <div class="sync-footer" id="sync-footer" style="display: none">
                 <!-- The panel is only half the answer if the numbers on it
                      have to be retyped by hand. -->
@@ -43014,7 +43209,7 @@
            escape hatch for anyone who wanted only this device gone. */
         const message = signedIn
           ? `This permanently deletes every shift, task and setting from this device AND from ${account} — including any other device signed in to it. ` +
-            `To clear only this device and keep the cloud copy, cancel and use "Sign out & erase this device" under Cloud sync. The app reloads when it is done. This is irreversible.`
+            `To clear only this device and keep the cloud copy, cancel and use "Erase this device" under Cloud sync. The app reloads when it is done. This is irreversible.`
           : "This permanently deletes every shift, task and setting stored on this device. " +
             "You are not signed in, so nothing in the cloud is touched. The app reloads when it is done. This is irreversible.";
 
@@ -45246,12 +45441,30 @@
           });
       }
 
+      /* This device's row. It is markup, first in the list, and is never
+         redrawn: its name is the rename field, and the render below runs
+         every second while the panel is open. Held here because signing out
+         takes it out of the document -- a signed-out list has no rows, this
+         one included -- and signing in puts the same element back. */
+      let syncOwnDeviceRow = null;
+
       function syncRenderDevices(signedIn, lease) {
         const host = document.getElementById("sync-devices");
         if (!host) return;
         const count = document.getElementById("sync-devices-count");
+        if (!syncOwnDeviceRow) {
+          syncOwnDeviceRow = document.getElementById("sync-row-device");
+        }
+        const own = syncOwnDeviceRow;
+        /* Everything after this device's row is the render's. */
+        const clear = () => {
+          while (host.lastChild && host.lastChild !== own) {
+            host.removeChild(host.lastChild);
+          }
+        };
         if (!signedIn) {
-          host.textContent = "";
+          clear();
+          if (own) own.remove();
           if (count) count.textContent = "";
           syncDeviceRows = [];
           syncDevicesFetchedAt = 0;
@@ -45260,102 +45473,78 @@
           syncDevicesExpanded = false;
           return;
         }
+        if (own && own.parentNode !== host) host.prepend(own);
         syncEnsureDevices();
 
         const mine = window.Sync ? Sync.deviceId : null;
         const holder = lease && lease.owner;
-        /* This device first, then most recently seen. Somebody reading this
-           list is placing themselves in it before anything else. */
-        const rows = syncDeviceRows.slice().sort((a, b) => {
-          if (a.id === mine) return -1;
-          if (b.id === mine) return 1;
-          return (
-            (Date.parse(b.last_seen_at) || 0) -
-            (Date.parse(a.last_seen_at) || 0)
+        /* Most recently seen first, under this device's own row. Somebody
+           reading this list is placing themselves in it before anything
+           else, which is why that row leads. */
+        const others = syncDeviceRows
+          .filter((r) => r.id !== mine)
+          .sort(
+            (a, b) =>
+              (Date.parse(b.last_seen_at) || 0) -
+              (Date.parse(a.last_seen_at) || 0),
           );
-        });
-
-        if (count) count.textContent = rows.length ? String(rows.length) : "";
-
-        if (!rows.length) {
-          host.textContent = "";
-          const empty = document.createElement("div");
-          empty.className = "settings-label sync-device-empty";
-          empty.textContent = syncDevicesInFlight
-            ? "Looking..."
-            : "No other devices yet.";
-          host.appendChild(empty);
-          return;
-        }
+        /* Counted with this device whether or not the fetch has returned its
+           row yet: the row is on screen either way. */
+        const total = others.length + 1;
+        if (count) count.textContent = String(total);
 
         /* Rebuilt rather than diffed: this is at most a handful of rows,
            redrawn a few times a minute, only while the panel is open. */
-        host.textContent = "";
-        const folded =
-          !syncDevicesExpanded && rows.length > SYNC_DEVICES_COLLAPSED;
+        clear();
+        const folded = !syncDevicesExpanded && total > SYNC_DEVICES_COLLAPSED;
         for (const row of folded
-          ? rows.slice(0, SYNC_DEVICES_COLLAPSED)
-          : rows) {
+          ? others.slice(0, SYNC_DEVICES_COLLAPSED - 1)
+          : others) {
           const el = document.createElement("div");
           el.className = "settings-row sync-device-row";
 
           const name = document.createElement("span");
           name.className = "settings-label sync-device-name";
           name.textContent = row.label || "Unnamed device";
-          /* Marked on the name for its weight and on the row for its layout:
-             the row is the thing that has to reserve the column the cross
-             would have occupied. */
-          if (row.id === mine) {
-            name.classList.add("is-this-device");
-            el.classList.add("is-mine");
-          }
 
           const meta = document.createElement("span");
           meta.className = "sync-detail-value sync-device-meta";
           const seen = Date.parse(row.last_seen_at);
-          /* What the reader actually wants to know, in priority order: is
-             this me, is this the one running the timer, and failing both,
-             how long since it was here. */
+          /* What the reader actually wants to know: is this the one running
+             the timer, and failing that, how long since it was here. */
           meta.textContent =
-            row.id === mine
-              ? "this device"
-              : row.id === holder
-                ? "has the session"
-                : formatAgo(seen);
-          if (row.id === holder && row.id !== mine) {
-            meta.style.color = "var(--accent-work)";
-          }
+            row.id === holder ? "has the session" : formatAgo(seen);
+          if (row.id === holder) meta.style.color = "var(--accent-work)";
 
           el.appendChild(name);
           el.appendChild(meta);
-          /* Not on this device's own row. Every session list worth copying
+          /* Every row drawn here gets one, and this device's own row, which
+             is not drawn here, never does. Every session list worth copying
              leaves the current one out -- yours is the row marked "this
              device" and it has no revoke beside it -- because the cross means
              "sign that one out", and a cross on your own row would mean
              something materially different while looking identical. Signing
              out here is the pinned footer's job, which is two bands away and
              cannot be hit while reading down a list. */
-          if (row.id !== mine) {
-            const kill = document.createElement("button");
-            kill.type = "button";
-            kill.className = "sync-device-remove";
-            /* Both, and the same words in both: the tooltip for a pointer,
-               the label for a screen reader, and neither leaving the icon to
-               carry the meaning on its own. */
-            const what = "Sign out " + (row.label || "this device");
-            kill.title = what;
-            kill.setAttribute("aria-label", what);
-            kill.innerHTML =
-              '<svg viewBox="0 0 24 24" aria-hidden="true">' +
-              '<line x1="18" y1="6" x2="6" y2="18"></line>' +
-              '<line x1="6" y1="6" x2="18" y2="18"></line></svg>';
-            kill.onclick = () => syncRemoveDevice(row.id, row.label);
-            el.appendChild(kill);
-          }
+          const kill = document.createElement("button");
+          kill.type = "button";
+          kill.className = "sync-device-remove";
+          /* Both, and the same words in both: the tooltip for a pointer, the
+             label for a screen reader, and neither leaving the icon to carry
+             the meaning on its own. */
+          const what = "Sign out " + (row.label || "this device");
+          kill.title = what;
+          kill.setAttribute("aria-label", what);
+          kill.innerHTML =
+            '<svg viewBox="0 0 24 24" aria-hidden="true">' +
+            '<line x1="18" y1="6" x2="6" y2="18"></line>' +
+            '<line x1="6" y1="6" x2="18" y2="18"></line></svg>';
+          kill.onclick = () => syncRemoveDevice(row.id, row.label);
+          el.appendChild(kill);
           host.appendChild(el);
         }
 
-        if (rows.length > SYNC_DEVICES_COLLAPSED) {
+        if (total > SYNC_DEVICES_COLLAPSED) {
           const more = document.createElement("button");
           more.type = "button";
           more.className = "sync-devices-more";
@@ -45363,7 +45552,7 @@
              reader to work out whether anything is missing, and the heading's
              count is at the other end of the group. */
           more.textContent = folded
-            ? `Show all ${rows.length}`
+            ? `Show all ${total}`
             : `Show ${SYNC_DEVICES_COLLAPSED} only`;
           more.onclick = syncToggleDevices;
           host.appendChild(more);
@@ -45583,13 +45772,6 @@
         const footer = document.getElementById("sync-footer");
         if (footer) footer.style.display = status.signedIn ? "grid" : "none";
 
-        const dev = document.getElementById("sync-device-label");
-        /* Never while the user is typing in it: a background beat firing
-           mid-rename would put the old name back under the cursor. */
-        if (dev && document.activeElement !== dev) {
-          dev.value = (window.Sync && Sync.deviceLabel) || "";
-        }
-
         const leaseEl = document.getElementById("sync-lease-state");
         if (leaseEl) {
           leaseEl.textContent =
@@ -45600,7 +45782,10 @@
                 : lease.phase === "free"
                   ? "not running anywhere"
                   : "—";
-          leaseEl.style.color =
+          /* On the whole line rather than the state alone, so its label and
+             its dot say the same thing the words do. */
+          const live = document.getElementById("sync-row-live");
+          (live || leaseEl).style.color =
             lease.phase === "owner"
               ? "var(--accent-work)"
               : "var(--text-muted)";
@@ -45611,6 +45796,15 @@
         }
 
         syncRenderDevices(status.signedIn, lease);
+
+        /* After the list, which is what puts the field back in the document
+           on the render that follows a sign-in. */
+        const dev = document.getElementById("sync-device-label");
+        /* Never while the user is typing in it: a background beat firing
+           mid-rename would put the old name back under the cursor. */
+        if (dev && document.activeElement !== dev) {
+          dev.value = (window.Sync && Sync.deviceLabel) || "";
+        }
 
         /* ── the diagnostics ─────────────────────────────────────────────
            Everything section 9's phase 7 asks for that the three rows above
@@ -45641,10 +45835,25 @@
               : lease.phase === "free"
                 ? "nobody"
                 : null;
-        put(
-          "sync-lease-detail",
-          holder === null ? "—" : `${holder} · gen ${lease.generation || 0}`,
-        );
+        const leaseDetail = document.getElementById("sync-lease-detail");
+        if (leaseDetail) {
+          const gen = `gen ${lease.generation || 0}`;
+          const text = holder === null ? "—" : `${holder} · ${gen}`;
+          /* "gen" and its number are one unit, so a narrow column breaks
+             before them rather than between them and leaves no bare digit on
+             a line of its own. Rebuilt only when the words change: this runs
+             every second. */
+          if (leaseDetail.textContent !== text) {
+            if (holder === null) {
+              leaseDetail.textContent = text;
+            } else {
+              const tail = document.createElement("span");
+              tail.className = "sync-lease-gen";
+              tail.textContent = gen;
+              leaseDetail.replaceChildren(`${holder} · `, tail);
+            }
+          }
+        }
 
         const errorEl = document.getElementById("sync-error");
         if (errorEl && !errorEl.dataset.sticky) {

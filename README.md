@@ -146,9 +146,9 @@ Sign in from the cloud button and this device keeps its shifts, tasks, leave, sa
 
 - **Live handoff.** Start a shift on the laptop, open the phone, and the phone shows the same running timer, to the second, with a **Continue here** button. Only one device may drive the session at a time. Ending the shift on one device clears it on the others.
 - **Offline is normal.** Edits made offline wait in a queue that survives a crash and go up when the network returns. A device that has been away for a week cannot overwrite newer data, because the server refuses stale writes.
-- **Nothing is deleted on a guess.** Only a record you deleted is deleted from your other devices. One that is simply missing on this device (a failed save, a closed tab) is downloaded again, and a sync that would delete five or more records you did not delete one by one asks first. _Sign out & erase this device_ uploads what it can before erasing and says plainly what has not reached the account.
+- **Nothing is deleted on a guess.** Only a record you deleted is deleted from your other devices. One that is simply missing on this device (a failed save, a closed tab) is downloaded again, and a sync that would delete five or more records you did not delete one by one asks first. _Erase this device_ uploads what it can before erasing and says plainly what has not reached the account.
 - **You can see what it is doing.** The sync panel shows each device, which one holds the session, the last push and pull, anything still waiting, and the measured clock offset. **Copy diagnostics** puts all of it on the clipboard.
-- **Leaving is clean.** _Sign out_ keeps this device's data. _Sign out & erase this device_ clears it here only. _Sign out everywhere_ signs out every device. Deleting the account removes it and every row it owns.
+- **Leaving is clean.** _Sign out_ keeps this device's data. _Erase this device_ signs out and clears it here only. _Sign out everywhere_ signs out every device. Deleting the account removes it and every row it owns.
 
 ### Four themes, and a real phone layout
 
