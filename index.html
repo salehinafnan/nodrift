@@ -2257,14 +2257,16 @@
          so is the sand at rest -- white on a dark theme, black on a light one
          -- turning work's colour while working and break's on a break. It is
          sized in em, so every breakpoint below that sets the logo's
-         font-size sizes the mark with it. */
+         font-size sizes the mark with it. Here its glass, stroke and all
+         (91% of the mark's 1.35em box), stands as tall as the header's
+         pills; the phone shell sizes it to its chip instead. */
       .nodrift-logo {
         display: flex;
         align-items: center;
         user-select: none;
         cursor: default;
         margin-right: 6px;
-        font-size: 1.2rem;
+        font-size: calc(var(--header-el-height) / 0.91 / 1.35);
         line-height: 1;
       }
 
@@ -12075,9 +12077,19 @@
           display: contents;
         }
 
+        /* The mark's box is a little taller than the row, its glass exactly
+           as tall: held to the row's height, the box overflows it evenly
+           rather than growing it. Its sides lose their empty margin (18.5%
+           of the box), so the glass stands flush with the column's left
+           edge, over the progress bar and the button. */
         .status-bar .nodrift-logo {
           grid-column: 1;
           margin-right: 8px;
+          height: var(--header-el-height);
+        }
+
+        .status-bar .nodrift-mark {
+          margin-inline: -0.25em;
         }
 
         /* The clocks' pill (its material is the wide shell's, above). Wider than
@@ -12193,10 +12205,6 @@
          it the clocks' pill has no width to spare: both clocks and a zone
          name each just fit it at 1280px. */
       @media (min-width: 1366px) {
-        .status-bar .nodrift-logo {
-          font-size: 1.3rem;
-        }
-
         .status-bar #work-clock,
         .status-bar #local-clock,
         .status-bar .goal-inputs input[type="text"] {
@@ -12221,10 +12229,6 @@
          steps up once more rather than floating small in the middle of
          them. */
       @media (min-width: 1680px) {
-        .status-bar .nodrift-logo {
-          font-size: 1.4rem;
-        }
-
         .status-bar #work-clock,
         .status-bar #local-clock,
         .status-bar .goal-inputs input[type="text"] {
@@ -12257,10 +12261,6 @@
       /* A very large screen, where the root size has stopped growing: one
          more step, so the row keeps its proportion to the stage under it. */
       @media (min-width: 2200px) {
-        .status-bar .nodrift-logo {
-          font-size: 1.55rem;
-        }
-
         .status-bar #work-clock,
         .status-bar #local-clock,
         .status-bar .goal-inputs input[type="text"] {
