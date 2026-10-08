@@ -232,12 +232,13 @@
       }
     </style>
 
-    <!-- The tab's icon: the sand mark at rest, the same SVG that
-         getFaviconSVG() draws for an idle app. renderTimersOnly() replaces
-         it as the session's colour and its progress bar change. -->
+    <!-- The tab's icon: the sand mark at rest, in the app icon's pose -- the
+         same SVG that getFaviconSVG() draws with no shift running.
+         renderTimersOnly() replaces it as the session's colour and its
+         progress bar change. -->
     <link
       rel="icon"
-      href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='-20 -20 140 140'><rect x='-20' y='-20' width='140' height='140' fill='%23000000'/><g fill='%23ffffff'><path d='M35.69 16.88H64.31L50 38.3Z'/></g><path d='M22 8H78L50 50L78 92H22L50 50Z' fill='none' stroke='%23ffffff' stroke-width='10' stroke-linejoin='round'/></svg>"
+      href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='-20 -20 140 140'><rect x='-20' y='-20' width='140' height='140' fill='%23000000'/><g fill='%23ffffff'><path d='M42.84 27.59H57.16L50 38.3Z'/><path d='M34.1 85.5H65.9L58.74 74.79H41.26Z'/><path d='M49 38.3H51V74.79H49Z'/></g><path d='M22 8H78L50 50L78 92H22L50 50Z' fill='none' stroke='%23ffffff' stroke-width='10' stroke-linejoin='round'/></svg>"
     />
 
     <!-- Home-screen and bookmark icon. Safari takes no SVG here: its
@@ -16382,8 +16383,9 @@
         <!-- Header Status Bar -->
         <div class="status-bar">
           <div class="status-badge status-time">
-            <!-- The sand starts as an idle day's, a full top bulb, so the first
-                 frame matches what renderSandMark() draws at rest. -->
+            <!-- The sand starts in its rest pose, the app icon's (SAND_REST),
+                 so the first frame matches what renderSandMark() draws with
+                 no shift running. -->
             <div
               class="nodrift-logo"
               role="img"
@@ -16400,10 +16402,18 @@
                 <path
                   class="nodrift-sand"
                   id="nodrift-sand-top"
-                  d="M35.69 16.88H64.31L50 38.3Z"
+                  d="M42.84 27.59H57.16L50 38.3Z"
                 ></path>
-                <path class="nodrift-sand" id="nodrift-sand-pile"></path>
-                <path class="nodrift-sand" id="nodrift-sand-stream"></path>
+                <path
+                  class="nodrift-sand"
+                  id="nodrift-sand-pile"
+                  d="M34.1 85.5H65.9L58.74 74.79H41.26Z"
+                ></path>
+                <path
+                  class="nodrift-sand"
+                  id="nodrift-sand-stream"
+                  d="M49 38.3H51V74.79H49Z"
+                ></path>
                 <path
                   class="nodrift-glass"
                   d="M22 8H78L50 50L78 92H22L50 50Z"
@@ -19850,16 +19860,24 @@
         aria-selected="true"
       >
         <!-- The app's sand mark, live: renderSandMark() draws its sand with
-             the header's. It starts as an idle day's, a full top bulb. -->
+             the header's. It starts in its rest pose, the app icon's. -->
         <svg viewBox="0 0 24 24">
           <path d="M6 3h12l-6 9 6 9H6l6-9z"></path>
           <path
             class="m-sand"
             id="m-tab-sand-top"
-            d="M8.93 4.9H15.07L12 9.49Z"
+            d="M10.47 7.2H13.53L12 9.49Z"
           ></path>
-          <path class="m-sand" id="m-tab-sand-pile"></path>
-          <path class="m-sand" id="m-tab-sand-stream"></path>
+          <path
+            class="m-sand"
+            id="m-tab-sand-pile"
+            d="M8.59 19.61H15.41L13.87 17.31H10.13Z"
+          ></path>
+          <path
+            class="m-sand"
+            id="m-tab-sand-stream"
+            d="M11.49 9.49H12.51V17.31H11.49Z"
+          ></path>
         </svg>
       </button>
       <button
@@ -22365,6 +22383,11 @@
          second. */
       const SAND_STEPS = 50;
       const SAND_GLASS = "M22 8H78L50 50L78 92H22L50 50Z";
+
+      /* The pose the live marks hold while no shift is running: the app
+         icon's own, half run with its stream, so at rest the header, the tab
+         bar and the browser tab show the same mark as icon.svg. */
+      const SAND_REST = { step: SAND_STEPS / 2, stream: true };
 
       /* The boxes the sand is drawn into: the mark's own 100 units, and the
          24 units of the tab bar's icons, where the glass is M6 3h12l-6 9 6
@@ -34636,12 +34659,17 @@
         }
 
         /* The sand mark's level is the progress bar's, and its stream runs
-           while work does. The tab's icon follows it even while the page is
-           hidden, since the tab strip is still showing it. */
+           while work does. With no shift begun it rests in the app icon's
+           pose instead (SAND_REST). The tab's icon follows it even while the
+           page is hidden, since the tab strip is still showing it. */
         const sandScale = updateProgress(workSeconds, nowMs);
-        const sandStep =
-          Math.round(Math.min(Math.max(sandScale, 0), 1) * SAND_STEPS) || 0;
-        const sandRunning = !state.idleLock && state.currentMode === "work";
+        const sandAtRest = !state.loginTimestamp;
+        const sandStep = sandAtRest
+          ? SAND_REST.step
+          : Math.round(Math.min(Math.max(sandScale, 0), 1) * SAND_STEPS) || 0;
+        const sandRunning = sandAtRest
+          ? SAND_REST.stream
+          : !state.idleLock && state.currentMode === "work";
         if (!document.hidden) renderSandMark(sandStep, sandRunning);
 
         const faviconKey = `${iconColor}|${sandStep}|${sandRunning}`;
