@@ -240,12 +240,14 @@
       href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='-20 -20 140 140'><rect x='-20' y='-20' width='140' height='140' fill='%23000000'/><g fill='%23ffffff'><path d='M35.69 16.88H64.31L50 38.3Z'/></g><path d='M22 8H78L50 50L78 92H22L50 50Z' fill='none' stroke='%23ffffff' stroke-width='10' stroke-linejoin='round'/></svg>"
     />
 
-    <!-- Home-screen icon. iOS ignores SVG here, so this is a filled raster-safe
-         square with the same sand mark as icon.svg, sized for the 180px
-         Retina slot. -->
+    <!-- Home-screen and bookmark icon. Safari takes no SVG here: its
+         Favorites, its start page and Add to Home Screen read this one opaque
+         180px PNG, icon.svg drawn at that size. It sits at the root under the
+         name Safari also asks for unprompted. -->
     <link
       rel="apple-touch-icon"
-      href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='-20 -20 140 140'><rect x='-20' y='-20' width='140' height='140' fill='%23000000'/><g fill='%2330d158'><path d='M42.84 27.59H57.16L50 38.3Z'/><path d='M34.1 85.5H65.9L58.74 74.79H41.26Z'/><path d='M49 38.3H51V74.79H49Z'/></g><path d='M22 8H78L50 50L78 92H22L50 50Z' fill='none' stroke='%23ffffff' stroke-width='7' stroke-linejoin='round'/></svg>"
+      sizes="180x180"
+      href="./apple-touch-icon.png"
     />
 
     <!-- Inline web app manifest. Kept as a data: URI so the app remains a single file; manifest-src in the CSP above permits it. -->
@@ -2251,9 +2253,10 @@
 
       /* The mark: an hourglass whose sand is the progress bar under the
          timer (see renderSandMark). The glass is drawn in the text colour and
-         the sand in the session's -- the accent at rest, work's colour while
-         working, break's on a break. It is sized in em, so every breakpoint
-         below that sets the logo's font-size sizes the mark with it. */
+         so is the sand at rest -- white on a dark theme, black on a light one
+         -- turning work's colour while working and break's on a break. It is
+         sized in em, so every breakpoint below that sets the logo's
+         font-size sizes the mark with it. */
       .nodrift-logo {
         display: flex;
         align-items: center;
@@ -2279,7 +2282,7 @@
       }
 
       .nodrift-sand {
-        fill: var(--slash-color, var(--accent-blue));
+        fill: var(--slash-color, var(--text-main));
         transition: fill 0.3s ease;
       }
 
@@ -34589,7 +34592,7 @@
 
         let activeTitle = "nodrift";
         let iconColor = "#ffffff";
-        /* Empty is the stylesheet's own fallback, var(--accent-blue): at rest
+        /* Empty is the stylesheet's own fallback, var(--text-main): at rest
            nothing is written, so the first render of an idle app does not
            change a property on <html>, which every element inherits. */
         let slashColor = "";

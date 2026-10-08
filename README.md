@@ -69,7 +69,7 @@ Three properties define it.
 | **Runs on**      | Any current desktop or mobile browser. Installable to the home screen or dock as a PWA, and works offline         |
 | **Account**      | Not needed. Optional email and password to sync your devices                                                      |
 | **Your data**    | In your browser. With sync on, also in your own rows of a Postgres database, readable only by you                 |
-| **Code**         | `index.html`, `sw.js`, `manifest.json`, `icon.svg`                                                                |
+| **Code**         | `index.html`, `sw.js`, `manifest.json`, `icon.svg`, `apple-touch-icon.png`                                        |
 | **Dependencies** | None at runtime. Two Google Fonts, with system fallbacks                                                          |
 | **Backend**      | Optional. Supabase: three tables, five SQL functions, one edge function, all in [`supabase/`](supabase/README.md) |
 | **License**      | [GPL-3.0](LICENSE)                                                                                                |
@@ -421,6 +421,7 @@ nodrift/
 ├── sw.js                   Service worker: the page from cache, refreshed behind it
 ├── manifest.json           PWA manifest
 ├── icon.svg                App icon
+├── apple-touch-icon.png    The icon Safari uses for bookmarks and the home screen
 ├── vercel.json             Security headers for the hosted copy
 ├── supabase/
 │   ├── README.md           The sync backend, explained
