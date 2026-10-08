@@ -10001,6 +10001,17 @@
           display: none;
         }
 
+        /* The bar's type -- the clocks, their zones and the presence chip
+           -- is set in --bar-type: a rem, scaled as far as the bar has room,
+           from 1rem at 378px and under to 1.15rem from 427px. The clocks
+           stay centred, so the chip's side is the limit: it must hold
+           "Idle 120m" beside two clocks, 324px of contents at 1rem, in the
+           screen's width less the bar's 54px of gutters, padding and border.
+           The root is 14px throughout this shell. */
+        .status-bar {
+          --bar-type: clamp(1rem, (100vw - 54px) * 14 / 324, 1.15rem);
+        }
+
         /* Five characters at most: an offset label
            drops its "UTC" (+5:30), and a six-character nickname is cut with
            an ellipsis. The 5.5ch leaves room for the minus sign, which the
@@ -10012,7 +10023,7 @@
            Time Zone section, whose rows are sized for a thumb. */
         .status-bar .tz-clock-label {
           display: inline-block;
-          font-size: 0.78rem;
+          font-size: calc(0.78 * var(--bar-type));
           margin: 0;
           pointer-events: none;
         }
@@ -10032,12 +10043,12 @@
         .status-bar #work-clock,
         .status-bar #local-clock {
           display: inline-block;
-          font-size: 0.78rem;
+          font-size: calc(0.78 * var(--bar-type));
         }
 
         .status-bar #work-clock .clock-ampm,
         .status-bar #local-clock .clock-ampm {
-          font-size: 0.6rem;
+          font-size: calc(0.6 * var(--bar-type));
         }
 
         /* Empty on a phone -- goal and theme are relocated into the sheet. */
@@ -10049,7 +10060,7 @@
         #last-seen.last-seen-status {
           display: inline-flex;
           margin-left: 0;
-          font-size: 0.72rem;
+          font-size: calc(0.72 * var(--bar-type));
           width: auto;
           min-width: 0;
           flex: 0 1 auto;
@@ -12456,8 +12467,14 @@
           font-size: calc(30px / 0.91 / 1.35);
         }
 
+        /* The bar's type at its largest, as on the widest phones: there is
+           room for it at every width here, two clocks and all. */
+        .status-bar {
+          --bar-type: 1.15rem;
+        }
+
         .status-bar .tz-clock-label {
-          font-size: 0.8125rem;
+          font-size: calc(0.8125 * var(--bar-type));
         }
 
         .status-bar .tz-label-text {
@@ -12466,12 +12483,12 @@
 
         .status-bar #work-clock,
         .status-bar #local-clock {
-          font-size: 0.9375rem;
+          font-size: calc(0.9375 * var(--bar-type));
         }
 
         .status-bar #work-clock .clock-ampm,
         .status-bar #local-clock .clock-ampm {
-          font-size: 0.6875rem;
+          font-size: calc(0.6875 * var(--bar-type));
         }
 
         .status-bar .clock-divider {
@@ -12482,7 +12499,7 @@
         #last-seen.last-seen-status {
           height: 30px;
           padding: 0 13px 0 11px;
-          font-size: 0.8125rem;
+          font-size: calc(0.8125 * var(--bar-type));
           gap: 0.5em;
         }
 
