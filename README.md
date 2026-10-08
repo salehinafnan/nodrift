@@ -1,9 +1,9 @@
 <div align="center">
   <img src="docs/assets/nodrift_logo.svg" alt="nodrift" height="64" />
-  <h3>A work-hours tracker that lives in one HTML file.</h3>
+  <h3>A work-hours tracker for shifts, breaks and a weekly goal.</h3>
   <p>
-    Track shifts and breaks against a weekly target, entirely in your browser.<br />
-    Cross-device sync is there when you want it, and off until you sign in.
+    Runs in the browser and installs as an app on desktop and phone.<br />
+    Sign in to sync your devices and move a running shift between them.
   </p>
   <p>
     <a href="https://nodrift.vercel.app"><strong>Open the app</strong></a> ·
@@ -13,8 +13,6 @@
   </p>
   <p>
     <img alt="License: GPL-3.0" src="https://img.shields.io/badge/license-GPL--3.0-blue" />
-    <img alt="Runtime dependencies: 0" src="https://img.shields.io/badge/runtime%20dependencies-0-brightgreen" />
-    <img alt="Build step: none" src="https://img.shields.io/badge/build%20step-none-brightgreen" />
     <img alt="Installable PWA" src="https://img.shields.io/badge/PWA-installable-5a0fc8" />
   </p>
 </div>
@@ -56,23 +54,19 @@ nodrift answers one question all day: **am I on pace?**
 
 You press **Work** when you start, **Break** when you step away, and **End Shift** when you are done. The finished day goes into a permanent logbook, gets measured against a daily goal that nodrift recalculates from your weekly target, and rolls up into weekly, monthly and yearly views. It is built for people whose hours are counted: contractors, remote staff reporting to a team in another time zone, anyone with a 40-hour week to hit and a timesheet to send.
 
-Three properties define it.
+It is a web app with a Supabase backend for sync. Without an account it works on one device, with your data in that browser's storage (IndexedDB, with a copy of the logbook in localStorage). With an account, your devices sync records, preferences and the running shift, and one device can take over a shift started on another.
 
-**Local-first.** Every feature except sync itself works with no account and no network, permanently. Your logbook and task history live in your browser's IndexedDB, the logbook with a synchronous copy in localStorage. None of your data leaves the device unless you sign in to sync.
+Timers are computed from saved wall-clock anchors instead of counted ticks, so background throttling, a sleeping laptop, a crashed tab, a changed system clock, midnight, a time zone change and a second device all resolve to the same number. The [How it works](#how-it-works) section explains how.
 
-**One file.** `index.html` is the entire application: markup, about 10,000 lines of CSS and about 33,000 lines of hand-written JavaScript. There is no framework, no bundler, no `package.json` and no `npm install`. The only other files it serves are a service worker, a web manifest and an icon.
-
-**Correct when things go wrong.** Timers are computed from saved wall-clock anchors instead of counted ticks, so background throttling, a sleeping laptop, a crashed tab, a changed system clock, midnight, a time zone change and a second device all resolve to the same, right number. Most of this README's second half is about how.
-
-| At a glance      |                                                                                                                   |
-| :--------------- | :---------------------------------------------------------------------------------------------------------------- |
-| **Runs on**      | Any current desktop or mobile browser. Installable to the home screen or dock as a PWA, and works offline         |
-| **Account**      | Not needed. Optional email and password to sync your devices                                                      |
-| **Your data**    | In your browser. With sync on, also in your own rows of a Postgres database, readable only by you                 |
-| **Code**         | `index.html`, `sw.js`, `manifest.json`, `icon.svg`, `apple-touch-icon.png`                                        |
-| **Dependencies** | None at runtime. Two Google Fonts, with system fallbacks                                                          |
-| **Backend**      | Optional. Supabase: three tables, five SQL functions, one edge function, all in [`supabase/`](supabase/README.md) |
-| **License**      | [GPL-3.0](LICENSE)                                                                                                |
+| At a glance      |                                                                                                           |
+| :--------------- | :-------------------------------------------------------------------------------------------------------- |
+| **Runs on**      | Any current desktop or mobile browser. Installable to the home screen or dock as a PWA, and works offline |
+| **Account**      | Optional. Email and password, to sync your devices                                                        |
+| **Your data**    | In your browser. When signed in, also in your own rows of a Postgres database, readable only by you       |
+| **Client**       | `index.html`, `sw.js`, `manifest.json`, `icon.svg`, `apple-touch-icon.png`                                |
+| **Dependencies** | No frameworks or SDKs. Two Google Fonts, with system fallbacks                                            |
+| **Backend**      | Supabase: three tables, five SQL functions, one edge function, all in [`supabase/`](supabase/README.md)   |
+| **License**      | [GPL-3.0](LICENSE)                                                                                        |
 
 ---
 
@@ -149,9 +143,9 @@ The **heatmap** shows the whole year one square per day, with your current strea
 - **Snapshots** are automatic. The day's first launch, or failing that its first change, captures the shifts, leaves, leave types, tasks, saved views and settings as they were, and the five most recent days are kept, so a bad edit or a regretted delete can be rolled back from Settings.
 - **End-of-day email.** Optionally, ending a shift copies a formatted summary and opens an email draft.
 
-### Cloud sync, if you want it
+### Cloud sync
 
-Sign in from the cloud button and this device keeps its shifts, tasks, leave, saved views and preferences in step with your other devices. It is off by default, and signed out, nothing leaves the machine.
+Sign in from the cloud button and this device keeps its shifts, tasks, leave, saved views and preferences in step with your other devices. Signed out, the data stays on the device.
 
 - **Live handoff.** Start a shift on the laptop, open the phone, and the phone shows the same running timer, to the second, with a **Continue here** button. Only one device may drive the session at a time. Ending the shift on one device clears it on the others.
 - **Offline is normal.** Edits made offline wait in a queue that survives a crash and go up when the network returns. A device that has been away for a week cannot overwrite newer data, because the server refuses stale writes.
@@ -200,7 +194,7 @@ Shortcuts are ignored while you type in a field and while the idle prompt is wai
 
 ### Architecture
 
-Everything above runs inside one page. Two small Web Workers are created from inline source at startup, storage is split between a synchronous and an asynchronous store, and the sync backend is a set of plain `fetch` calls (no SDK) to Supabase, used only after you sign in. Around the page, a service worker opens the app from its cache and refreshes that copy behind it, so a launch never waits on the network and works offline, and a browser-level lock keeps a second tab from writing at the same time.
+The client is one page. Two small Web Workers are created from inline source at startup, storage is split between a synchronous and an asynchronous store, and the sync backend is a set of plain `fetch` calls (no SDK) to Supabase, used only after you sign in. Around the page, a service worker opens the app from its cache and refreshes that copy behind it, so a launch never waits on the network and works offline, and a browser-level lock keeps a second tab from writing at the same time.
 
 <p align="center">
   <picture>
@@ -209,7 +203,7 @@ Everything above runs inside one page. Two small Web Workers are created from in
   </picture>
 </p>
 
-The rest of this section walks through the decisions that make the numbers trustworthy.
+The rest of this section covers the main design decisions.
 
 ### Time is an anchor, not a counter
 
@@ -393,7 +387,7 @@ You can also double-click `index.html` and it will run from `file://`, with limi
 
 ### Deploy your own copy
 
-The repository root is the web root. Deploy the folder as it is to Vercel, Netlify, GitHub Pages, or any static host. There is no build, no environment variables and no server. Two things to keep:
+The repository root is the web root. Deploy the folder as it is to Vercel, Netlify, GitHub Pages, or any static host. There is no build step and no environment variables. Two things to keep:
 
 - `sw.js` and `manifest.json` must stay beside `index.html`, because a service worker can only control pages at or below its own directory.
 - On Vercel, keep `vercel.json` to headers only. Adding `builds` or `routes` takes the project out of zero-config static hosting.
@@ -417,7 +411,7 @@ Out of the box the app points at the author's Supabase project. To use your own:
 
 ```
 nodrift/
-├── index.html              The entire app: markup, styles and scripts
+├── index.html              The client: markup, styles and scripts
 ├── sw.js                   Service worker: the page from cache, refreshed behind it
 ├── manifest.json           PWA manifest
 ├── icon.svg                App icon
@@ -427,7 +421,7 @@ nodrift/
 │   ├── README.md           The sync backend, explained
 │   ├── migrations/         0001–0008: schema, RLS, functions, lease, realtime
 │   └── functions/
-│       └── delete-account/ The only code that runs outside the browser
+│       └── delete-account/ Edge function that deletes an account
 └── docs/
     └── assets/
         ├── screenshots/    The images in this README
