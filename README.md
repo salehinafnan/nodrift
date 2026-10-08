@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="docs/assets/nodrift_logo.svg" alt="nodrift" height="48" />
+  <img src="docs/assets/nodrift_logo.svg" alt="nodrift" height="64" />
   <h3>A work-hours tracker that lives in one HTML file.</h3>
   <p>
     Track shifts and breaks against a weekly target, entirely in your browser.<br />
