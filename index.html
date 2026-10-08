@@ -11115,8 +11115,9 @@
           box-shadow: none;
         }
 
-        /* The timer's icon is the app's mark: an outlined glass whose sand is
-           solid whether or not the tab is selected. */
+        /* The timer's icon is the app's live mark: an outlined glass whose
+           sand is solid, in the tab's colour, whether or not it is
+           selected. */
         .m-tab .m-sand {
           fill: currentColor;
           stroke: none;
@@ -19845,8 +19846,17 @@
         aria-label="Timer"
         aria-selected="true"
       >
+        <!-- The app's sand mark, live: renderSandMark() draws its sand with
+             the header's. It starts as an idle day's, a full top bulb. -->
         <svg viewBox="0 0 24 24">
-          <g data-sprite="sprite-102"></g>
+          <path d="M6 3h12l-6 9 6 9H6l6-9z"></path>
+          <path
+            class="m-sand"
+            id="m-tab-sand-top"
+            d="M8.93 4.9H15.07L12 9.49Z"
+          ></path>
+          <path class="m-sand" id="m-tab-sand-pile"></path>
+          <path class="m-sand" id="m-tab-sand-stream"></path>
         </svg>
       </button>
       <button
@@ -21984,10 +21994,7 @@
           '<circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line>',
         "sprite-101":
           '<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline>',
-        /* Mobile tab bar (#m-tabbar) The phone shell's five tabs, and nothing else, draw from these. */
-        /* The app's sand mark at 24px: the glass, and its sand half run. */
-        "sprite-102":
-          '<path d="M6 3h12l-6 9 6 9H6l6-9z"></path><path class="m-sand" d="M10.47 7.2h3.06L12 9.49z"></path><path class="m-sand" d="M8.59 19.61h6.82l-1.54-2.3h-3.74z"></path>',
+        /* Mobile tab bar (#m-tabbar) The phone shell's tabs, and nothing else, draw from these -- all but the timer's, whose icon is the live sand mark, drawn in the markup and kept by renderSandMark(). */
         /* Rounded columns on a shared baseline (y=19). */
         "sprite-103":
           '<rect x="3" y="10.5" width="4" height="8.5" rx="1.75"></rect><rect x="10" y="4.5" width="4" height="14.5" rx="1.75"></rect><rect x="17" y="7.5" width="4" height="11.5" rx="1.75"></rect>',
@@ -22344,25 +22351,35 @@
       const _sharedFinishDate = new Date();
 
       /* THE SAND MARK. One hourglass is the app's mark everywhere -- the
-         header, the tab's icon, the home-screen icon -- and its sand is the
-         progress bar under the timer: the top bulb drains and the bottom one
-         fills as the session nears its goal, and a stream joins them while
-         work runs. Drawn in a 100-unit box, the glass's outline is fixed and
-         only the sand is computed. The levels are heights rather than
-         volumes, so half the bar reads as half the glass, and they move in
-         steps of 1/SAND_STEPS of the goal, so the mark is redrawn a few
-         dozen times a day rather than every second. */
+         header, the phone's tab bar, the browser tab's icon, the home-screen
+         icon -- and its sand is the progress bar under the timer: the top
+         bulb drains and the bottom one fills as the session nears its goal,
+         and a stream joins them while work runs. Drawn in a 100-unit box,
+         the glass's outline is fixed and only the sand is computed. The
+         levels are heights rather than volumes, so half the bar reads as
+         half the glass, and they move in steps of 1/SAND_STEPS of the goal,
+         so the mark is redrawn a few dozen times a day rather than every
+         second. */
       const SAND_STEPS = 50;
       const SAND_GLASS = "M22 8H78L50 50L78 92H22L50 50Z";
+
+      /* The boxes the sand is drawn into: the mark's own 100 units, and the
+         24 units of the tab bar's icons, where the glass is M6 3h12l-6 9 6
+         9H6l6-9z. A box maps the mark's centre to c and scales it by k;
+         stream is the stream's half-width in the mark's units, wider in the
+         tab bar so it still reads at 24px. */
+      const SAND_MARK_BOX = { c: 50, k: 1, stream: 1 };
+      const SAND_TAB_BOX = { c: 12, k: 18 / 84, stream: 2.4 };
 
       /**
        * The sand's three paths for a share of the goal (0..1), each an empty
        * string when it has nothing to draw.
        * @param {number} fraction
        * @param {boolean} running
+       * @param {{c: number, k: number, stream: number}} [box]
        * @returns {{top: string, pile: string, stream: string}}
        */
-      function sandPaths(fraction, running) {
+      function sandPaths(fraction, running, box = SAND_MARK_BOX) {
         // The inside of each bulb, kept clear of the glass's stroke.
         const H = 23.8;
         const W = 15.9;
@@ -22371,17 +22388,20 @@
         const topW = (W * top) / H;
         const pileY = 85.5 - pile;
         const pileW = (W * (pileY - 61.7)) / H;
-        const n = (v) => +v.toFixed(2);
+        const n = (v) => +(box.c + (v - 50) * box.k).toFixed(2);
+        const s = box.stream;
         return {
           top:
             top > 0.2
-              ? `M${n(50 - topW)} ${n(38.3 - top)}H${n(50 + topW)}L50 38.3Z`
+              ? `M${n(50 - topW)} ${n(38.3 - top)}H${n(50 + topW)}L${n(50)} ${n(38.3)}Z`
               : "",
           pile:
             pile > 0.2
-              ? `M34.1 85.5H65.9L${n(50 + pileW)} ${n(pileY)}H${n(50 - pileW)}Z`
+              ? `M${n(34.1)} ${n(85.5)}H${n(65.9)}L${n(50 + pileW)} ${n(pileY)}H${n(50 - pileW)}Z`
               : "",
-          stream: running ? `M49 38.3H51V${n(pileY)}H49Z` : "",
+          stream: running
+            ? `M${n(50 - s)} ${n(38.3)}H${n(50 + s)}V${n(pileY)}H${n(50 - s)}Z`
+            : "",
         };
       }
 
@@ -22403,23 +22423,34 @@
         return `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='-20 -20 140 140'><rect x='-20' y='-20' width='140' height='140' fill='%23000000'/><g fill='${c}'>${grains}</g><path d='${SAND_GLASS}' fill='none' stroke='${c}' stroke-width='10' stroke-linejoin='round'/></svg>`;
       }
 
-      /* The header's mark, redrawn only when its step or its stream has
-         changed. The colour is not set here: the sand is painted with
-         --slash-color, which renderTimersOnly() keeps. */
+      /* The live marks -- the header's and the phone tab bar's timer icon --
+         redrawn together, and only when the step or the stream has changed:
+         nothing animates between steps, so between them the marks cost
+         nothing at all. The caller skips this while the page is hidden. The
+         colour is not set here: the header's sand is painted with
+         --slash-color, which renderTimersOnly() keeps, and the tab's with
+         the tab's own colour. */
       let lastSandMarkKey = "";
       function renderSandMark(step, running) {
         const key = `${step}|${running}`;
         if (key === lastSandMarkKey) return;
         lastSandMarkKey = key;
-        const sand = sandPaths(step / SAND_STEPS, running);
-        const paths = [
-          [DOM.sandTop, sand.top],
-          [DOM.sandPile, sand.pile],
-          [DOM.sandStream, sand.stream],
-        ];
-        for (const [el, d] of paths) {
+        const fraction = step / SAND_STEPS;
+        drawSand(DOM.sandMark, sandPaths(fraction, running, SAND_MARK_BOX));
+        drawSand(DOM.sandTab, sandPaths(fraction, running, SAND_TAB_BOX));
+      }
+
+      /**
+       * Writes a mark's three sand paths; a path with nothing to draw loses
+       * its d rather than taking an empty one.
+       * @param {{top: Element|null, pile: Element|null, stream: Element|null}} els
+       * @param {{top: string, pile: string, stream: string}} sand
+       */
+      function drawSand(els, sand) {
+        for (const part of ["top", "pile", "stream"]) {
+          const el = els[part];
           if (!el) continue;
-          if (d) el.setAttribute("d", d);
+          if (sand[part]) el.setAttribute("d", sand[part]);
           else el.removeAttribute("d");
         }
       }
@@ -22600,9 +22631,16 @@
        * 2. DOM ELEMENT BINDINGS
        * =========================================================================*/
       const DOM = {
-        sandTop: document.getElementById("nodrift-sand-top"),
-        sandPile: document.getElementById("nodrift-sand-pile"),
-        sandStream: document.getElementById("nodrift-sand-stream"),
+        sandMark: {
+          top: document.getElementById("nodrift-sand-top"),
+          pile: document.getElementById("nodrift-sand-pile"),
+          stream: document.getElementById("nodrift-sand-stream"),
+        },
+        sandTab: {
+          top: document.getElementById("m-tab-sand-top"),
+          pile: document.getElementById("m-tab-sand-pile"),
+          stream: document.getElementById("m-tab-sand-stream"),
+        },
         workClockTime: document.querySelector("#work-clock .clock-time-text"),
         workClockAmpm: document.querySelector("#work-clock .clock-ampm"),
         localClockTime: document.querySelector("#local-clock .clock-time-text"),
