@@ -9983,9 +9983,12 @@
           overflow: hidden;
         }
 
-        /* No width reservation: the logo is the mark's own width. A fixed 62px once padded it out only to fake symmetry against the chip. */
+        /* No width reservation: the logo is the mark's own width. A fixed 62px once padded it out only to fake symmetry against the chip.
+           Its glass, stroke and all, stands as tall as that chip at the
+           bar's other end (24px): the stroke reaches 91% of the mark's
+           1.35em box. */
         .nodrift-logo {
-          font-size: 0.92rem;
+          font-size: calc(24px / 0.91 / 1.35);
           margin-right: 0;
           width: auto;
           flex: 0 0 auto;
@@ -12448,8 +12451,9 @@
           padding: 4px 16px 4px 22px;
         }
 
+        /* As tall as the chip, which is 30px here. */
         .nodrift-logo {
-          font-size: 1.1rem;
+          font-size: calc(30px / 0.91 / 1.35);
         }
 
         .status-bar .tz-clock-label {
