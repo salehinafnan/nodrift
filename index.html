@@ -8333,7 +8333,7 @@
 
       .help-tab-content ul {
         margin: 0;
-        padding-left: var(--space-4);
+        padding-left: 1.5em;
       }
 
       .help-tab-content li {
@@ -10547,6 +10547,14 @@
         #m-sheet .tz-clock-select,
         #m-sheet .tz-date-select {
           width: 9rem;
+        }
+
+        /* The work week rows' padding, so the trigger sits inside the row
+           instead of filling it edge to edge. */
+        #m-sheet .tz-log-times-row,
+        #m-sheet .tz-clock-row,
+        #m-sheet .tz-date-row {
+          padding-block: 0.5rem;
         }
 
         #m-sheet .tz-log-times-row .custom-select-trigger,
@@ -15778,7 +15786,9 @@
             Add Leave Entry
           </button>
           <hr class="leave-section-sep" />
-          <span class="form-label">Active Leave Dates</span>
+          <span class="form-label"
+            >Active Leave Dates (<span id="leave-count">0</span>)</span
+          >
           <div id="leave-dates-list" class="leave-dates-list"></div>
         </div>
 
@@ -49785,6 +49795,8 @@
         if (!listContainer) return;
 
         const currentLeaves = getLeaveDates();
+        const countEl = document.getElementById("leave-count");
+        if (countEl) countEl.textContent = currentLeaves.length;
         if (currentLeaves.length === 0) {
           listContainer.innerHTML = `<div style="text-align: center; color: var(--text-muted); font-size: 0.75rem; display: flex; align-items: center; justify-content: center; height: 100%;">No active leave dates set.</div>`;
           return;
